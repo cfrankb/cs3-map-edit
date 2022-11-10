@@ -29,10 +29,12 @@ private slots:
     void on_actionNew_Map_triggered();
     void on_actionResize_triggered();
     void showContextMenu(const QPoint&pos);
+    void changeTile(int tile);
+    void onLeftClick(int x, int y);
+    void on_actionSave_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
-    void contextMenuEvent(QContextMenuEvent *event) override;
 
     bool maybeSave();
     void setDocument(const QString);

@@ -32,7 +32,6 @@ uint32_t * loadTileData()
                         ++rgb;
                     }
                 }
-
                 ++i;
                 if (i >= fs.getSize()){
                     goto done;
@@ -98,3 +97,4 @@ done:
     memcpy(data, rgb, textureWidth * textureHeight * sizeof(rgb[0]));
     return data;
 }
+

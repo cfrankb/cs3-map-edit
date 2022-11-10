@@ -2,7 +2,6 @@
 #include <QScrollBar>
 #include <QMouseEvent>
 #include <QMenu>
-
 #include "mapwidget.h"
 
 CMapScroll::CMapScroll(QWidget *parent)
@@ -20,7 +19,6 @@ CMapScroll::CMapScroll(QWidget *parent)
 
     //connect(horizontalScrollBar(), SIGNAL(valueChanged(int)), m_widget, SLOT(setMX(int)));
     //connect(verticalScrollBar(), SIGNAL(valueChanged(int)), m_widget, SLOT(setMY(int)));
-
     m_mouse.x = m_mouse.y = 0;
     m_mouse.lButton = m_mouse.rButton = m_mouse.mButton = false;
 
@@ -56,12 +54,10 @@ void CMapScroll::mousePressEvent(QMouseEvent * event)
     {
     case Qt::LeftButton:
         m_mouse.lButton = true;
-//            emit modified();
         break;
 
     case Qt::RightButton:
         m_mouse.rButton = true;
-//            emit modified();
         break;
 
     case Qt::MidButton:
@@ -73,8 +69,8 @@ void CMapScroll::mousePressEvent(QMouseEvent * event)
     }
 
     setFocus();
-    if ((m_mouse.lButton | m_mouse.rButton) &&
-         (m_mouse.x >= 0 && m_mouse.y >= 0)){
+    if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0)) {
+        emit leftClickedAt(m_mouse.x, m_mouse.y);
     }
 }
 
@@ -95,8 +91,6 @@ void CMapScroll::mouseReleaseEvent(QMouseEvent * event)
         break;
     }
     setFocus();
-
-   // emit mouseUp();
 }
 
 void CMapScroll::mouseMoveEvent(QMouseEvent * event)
@@ -106,6 +100,10 @@ void CMapScroll::mouseMoveEvent(QMouseEvent * event)
 
     QString str = QString ("x: %1 y: %2").arg(m_mouse.x).arg(m_mouse.y);
     emit statusChanged(str);
+
+    if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0)) {
+        emit leftClickedAt(m_mouse.x, m_mouse.y);
+    }
 
     // MouseMove isn't called unless a button is pressed
             //xx = (event->x() + gridSize * horizontalScrollBar()->value()) ;
@@ -162,4 +160,3 @@ void CMapScroll::mouseDoubleClickEvent(QMouseEvent *)
 {
 //    qDebug("mouseDoubleClickEvent");
 }
-

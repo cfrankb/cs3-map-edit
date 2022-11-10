@@ -15,6 +15,7 @@ public:
 
 signals:
     void statusChanged(const QString str);
+    void leftClickedAt(int x, int y);
 
 protected:
     virtual void resizeEvent(QResizeEvent * event) override;

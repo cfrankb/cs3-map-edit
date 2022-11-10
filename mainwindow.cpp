@@ -5,10 +5,12 @@
 #include "mapwidget.h"
 #include "dlgattr.h"
 #include "dlgresize.h"
+#include "tilebox.h"
 
 const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map)";
 const char m_appName[] = "mapedit";
 #define GRID_SIZE 32
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -23,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
     ui->actionExit->setMenuRole(QAction::QuitRole);
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
+    connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
 
     CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
     glw->setMap(m_doc.map());
@@ -31,6 +34,16 @@ MainWindow::MainWindow(QWidget *parent)
         this, SLOT(showContextMenu(const QPoint&))) ;
 
     updateTitle();
+
+    auto dock = new QDockWidget ();
+    dock->setWindowTitle("Toolbox");
+    auto tilebox = new CTileBox(dock);
+    tilebox->show();
+    dock->setWidget (tilebox);
+    addDockWidget (Qt::LeftDockWidgetArea, dock);
+
+    connect(tilebox, SIGNAL(tileChanged(int)),
+            this, SLOT(changeTile(int)));
 }
 
 MainWindow::~MainWindow()
@@ -209,16 +222,6 @@ void MainWindow::setStatus(const QString msg)
     ui->statusbar->showMessage(msg);
 }
 
-void MainWindow::on_actionOpen_triggered()
-{
-    open("");
-}
-
-void MainWindow::on_actionSave_as_triggered()
-{
-    saveAs();
-}
-
 void MainWindow::on_actionNew_Map_triggered()
 {
     if (maybeSave()) {
@@ -227,6 +230,21 @@ void MainWindow::on_actionNew_Map_triggered()
         m_doc.map()->resize(40,40, true);
         updateTitle();
     }
+}
+
+void MainWindow::on_actionOpen_triggered()
+{
+    open("");
+}
+
+void MainWindow::on_actionSave_triggered()
+{
+    save();
+}
+
+void MainWindow::on_actionSave_as_triggered()
+{
+    saveAs();
 }
 
 void MainWindow::on_actionResize_triggered()
@@ -273,14 +291,24 @@ void MainWindow::showAttrDialog()
     }
 }
 
-void MainWindow::contextMenuEvent(QContextMenuEvent *event)
+void MainWindow::changeTile(int tile)
 {
-/*
+ //   qDebug("currTile: %d", tile);
+    m_currTile = tile;
+}
 
-    const QPoint pos = event->pos();
-    const QPoint pos2 = m_scrollArea->pos();
-    qDebug("context menu x:%d,  y:%d", pos.x(), pos.y());
-    qDebug("scrollarea x:%d,  y:%d", pos2.x(), pos2.y());
-
-*/
+void MainWindow::onLeftClick(int x, int y)
+{
+   // qDebug("LEFT CLICK: x=%d y=%d", x,y);
+    if ( (x >= 0) && (y >= 0)
+         && (x < m_doc.map()->len())
+         && (y < m_doc.map()->hei()) )
+    {
+        const uint8_t tile = m_doc.map()->at(x,y);
+        if (tile != m_currTile) {
+            m_doc.map()->at(x,y) = m_currTile;
+            m_doc.setDirty(true);
+            updateTitle();
+        }
+    }
 }

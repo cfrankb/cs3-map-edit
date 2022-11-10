@@ -28,9 +28,10 @@ SOURCES += \
     shared/FrameSet.cpp \
     shared/PngMagic.cpp \
     shared/helper.cpp \
-    shared/map.cpp \
+    map.cpp \
     shared/qtgui/qfilewrap.cpp \
     shared/qtgui/qthelper.cpp \
+    tilebox.cpp \
     tilesdata.cpp
 
 HEADERS += \
@@ -49,10 +50,11 @@ HEADERS += \
     shared/FrameSet.h \
     shared/PngMagic.h \
     shared/helper.h \
-    shared/map.h \
+    map.h \
     shared/qtgui/cheat.h \
     shared/qtgui/qfilewrap.h \
     shared/qtgui/qthelper.h \
+    tilebox.h \
     tilesdata.h
 
 FORMS += \
