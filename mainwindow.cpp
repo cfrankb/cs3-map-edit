@@ -3,9 +3,12 @@
 #include <QtOpenGL>
 #include "mapscroll.h"
 #include "mapwidget.h"
+#include "dlgattr.h"
+#include "dlgresize.h"
 
 const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map)";
 const char m_appName[] = "mapedit";
+#define GRID_SIZE 32
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -23,6 +26,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
     glw->setMap(m_doc.map());
+
+    connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint&)),
+        this, SLOT(showContextMenu(const QPoint&))) ;
 
     updateTitle();
 }
@@ -86,7 +92,7 @@ void MainWindow::open(QString fileName)
         loadFile(fileName);
     }
     updateMenus();
-    updateStatus();
+   // updateStatus();
 }
 
 void MainWindow::loadFile(const QString &fileName)
@@ -215,10 +221,66 @@ void MainWindow::on_actionSave_as_triggered()
 
 void MainWindow::on_actionNew_Map_triggered()
 {
-    save();
+    if (maybeSave()) {
+        m_doc.setFilename("");
+        m_doc.map()->clear();
+        m_doc.map()->resize(40,40, true);
+        updateTitle();
+    }
 }
 
 void MainWindow::on_actionResize_triggered()
 {
+    CMap &map = * m_doc.map();
+    CDlgResize dlg(this);
+    dlg.width(map.len());
+    dlg.height(map.hei());
+    if (dlg.exec()==QDialog::Accepted){
+        // TODO: add confirmation + validation
+        map.resize(dlg.width(), dlg.height(), false);
+    }
+}
 
+void MainWindow::showContextMenu(const QPoint& pos)
+{
+    int x = pos.x() / GRID_SIZE;
+    int y = pos.y() / GRID_SIZE;
+    int mx = m_scrollArea->horizontalScrollBar()->value();
+    int my = m_scrollArea->verticalScrollBar()->value();
+
+    CMap &map = * m_doc.map();
+    if (x >=0 && y >= 0 && x + mx < map.len() && y + my < map.hei()) {
+        QMenu menu(this);
+        QAction *actionSetAttr = new QAction(tr("set attribute"), &menu);
+        connect(actionSetAttr, SIGNAL(triggered()),
+                this, SLOT(showAttrDialog()));
+        menu.addAction(actionSetAttr);
+        m_hx = x + mx;
+        m_hy = y + my;
+        menu.exec(m_scrollArea->mapToGlobal(pos));
+    }
+}
+
+void MainWindow::showAttrDialog()
+{
+    CMap &map = * m_doc.map();
+    uint8_t a = map.getAttr(m_hx, m_hy);
+    CDlgAttr dlg(this);
+    dlg.attr(a);
+    if (dlg.exec()==QDialog::Accepted){
+        a = dlg.attr();
+        map.setAttr(m_hx, m_hy, a);
+    }
+}
+
+void MainWindow::contextMenuEvent(QContextMenuEvent *event)
+{
+/*
+
+    const QPoint pos = event->pos();
+    const QPoint pos2 = m_scrollArea->pos();
+    qDebug("context menu x:%d,  y:%d", pos.x(), pos.y());
+    qDebug("scrollarea x:%d,  y:%d", pos2.x(), pos2.y());
+
+*/
 }

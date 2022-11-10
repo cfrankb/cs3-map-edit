@@ -82,7 +82,7 @@ uint32_t * loadFontData()
                     uint8_t lb = 0;
                     if (x > 0) lb = f[x-1];
                     if (y > 0 && lb == 0) lb = f[x-8];
-                    p[col * fontWidth + x + y * textureWidth] = f[x] ? 0xffffffff : (lb ? 0xff000000 : 0);
+                    p[col * fontWidth + x + y * textureWidth] = f[x] ? 0xe0ffffff : (lb ? 0xff000000 : 0);
                 }
                 f += fontWidth;
             }

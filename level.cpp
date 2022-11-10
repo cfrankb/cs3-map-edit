@@ -128,7 +128,7 @@ bool processLevel(CMap &map, const char *fname)
     }
     printf("maxRows: %d, maxCols:%d\n", maxRows, maxCols);
 
-    map.resize(maxCols, maxRows);
+    map.resize(maxCols, maxRows, true);
     map.clear();
 
     // convert ascii to map
@@ -225,7 +225,7 @@ bool convertCs3Level(CMap &map, const char *fname)
     }
 
     map.clear();
-    map.resize(64, 64);
+    map.resize(64, 64, true);
     uint8_t *p = data + 7;
     for (int y = 0; y < 64; ++y)
     {

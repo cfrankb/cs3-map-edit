@@ -14,6 +14,8 @@ DEFINES += USE_QFILE=1
 SOURCES += \
     data.cpp \
     #font.cpp \
+    dlgattr.cpp \
+    dlgresize.cpp \
     level.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -34,6 +36,8 @@ SOURCES += \
 HEADERS += \
     data.h \
     #font.h \
+    dlgattr.h \
+    dlgresize.h \
     level.h \
     mainwindow.h \
     mapfile.h \
@@ -52,6 +56,8 @@ HEADERS += \
     tilesdata.h
 
 FORMS += \
+    dlgattr.ui \
+    dlgresize.ui \
     mainwindow.ui
 
 # Default rules for deployment.

@@ -1,6 +1,7 @@
 #include "map.h"
 #include <cstring>
 #include <cstdio>
+#include <algorithm>
 
 static const char SIG[] = "MAPZ";
 static const uint16_t VERSION = 0;
@@ -105,7 +106,7 @@ bool CMap::read(FILE *sfile)
         uint8_t hei;
         fread(&len, sizeof(len), 1, sfile);
         fread(&hei, sizeof(hei), 1, sfile);
-        resize(len, hei);
+        resize(len, hei, true);
         fread(m_map, len * hei, 1, sfile);
         m_attrs.clear();
         uint16_t attrCount = 0;
@@ -156,23 +157,36 @@ int CMap::hei() const
     return m_hei;
 }
 
-bool CMap::resize(int len, int hei)
+bool CMap::resize(int len, int hei, bool fast)
 {
-    if (len * hei > m_size)
-    {
-        forget();
-        m_map = new uint8_t[len * hei];
-        if (m_map == nullptr)
+    if (fast) {
+        if (len * hei > m_size)
         {
-            m_lastError = "resize fail";
-            printf("%s\n", m_lastError.c_str());
-            return false;
+            forget();
+            m_map = new uint8_t[len * hei];
+            if (m_map == nullptr)
+            {
+                m_lastError = "resize fail";
+                printf("%s\n", m_lastError.c_str());
+                return false;
+            }
+            m_size = len * hei;
         }
+        m_attrs.clear();
+    } else {
+        uint8_t * newMap = new uint8_t[len * hei];
+        memset(newMap, 0, len * hei * sizeof(newMap[0]));
+        for (int y=0; y < hei; ++y) {
+            memcpy(newMap + y * len,
+                   m_map + y * m_len,
+                   std::min(static_cast<uint8_t>(len), m_len));
+        }
+        delete [] m_map;
+        m_map = newMap;
         m_size = len * hei;
     }
     m_len = len;
     m_hei = hei;
-    m_attrs.clear();
     return true;
 }
 

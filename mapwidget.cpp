@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include <QScrollBar>
+#include <QContextMenuEvent>
+#include <QMenu>
 #include "data.h"
 #include "map.h"
 #include "mapscroll.h"
@@ -319,7 +321,7 @@ void CMapWidget::drawMap(){
             if (a) {
                 char s[16];
                 sprintf(s, "%.2x", a);
-                drawString(x*TILE_SIZE, y*TILE_SIZE, s);
+                drawString(x*TILE_SIZE, y*TILE_SIZE + 8, s);
                 fast = false;
                 continue;
             }
@@ -378,4 +380,5 @@ void CMapWidget::drawString(const int x, const int y, const char *s)
         drawChar(x + i * 16 , y, s[i] - 32, false);
     }
 }
+
 

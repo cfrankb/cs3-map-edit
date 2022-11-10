@@ -1,7 +1,6 @@
 #ifndef CMAPSCROLL_H
 #define CMAPSCROLL_H
 
-#include "data.h"
 #include <QWidget>
 #include <QAbstractScrollArea>
 class CMapWidget;
@@ -18,13 +17,13 @@ signals:
     void statusChanged(const QString str);
 
 protected:
-    virtual void resizeEvent(QResizeEvent * event);
-    virtual void paintEvent(QPaintEvent *event);
-    virtual void wheelEvent(QWheelEvent *);
-    virtual void mousePressEvent(QMouseEvent * event);
-    virtual void mouseReleaseEvent(QMouseEvent * event);
-    virtual void mouseMoveEvent(QMouseEvent * event);
-    virtual void mouseDoubleClickEvent(QMouseEvent *event);
+    virtual void resizeEvent(QResizeEvent * event) override;
+    virtual void paintEvent(QPaintEvent *event) override;
+    virtual void wheelEvent(QWheelEvent *) override;
+    virtual void mousePressEvent(QMouseEvent * event) override;
+    virtual void mouseReleaseEvent(QMouseEvent * event) override;
+    virtual void mouseMoveEvent(QMouseEvent * event) override;
+    virtual void mouseDoubleClickEvent(QMouseEvent *event) override;
 
     void updateScrollbars();
 

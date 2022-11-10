@@ -27,9 +27,10 @@ protected:
         TICK_RATE = 30
     };
 
-    virtual void initializeGL();
-    virtual void paintGL();
-    virtual void resizeGL(int w, int h);
+    virtual void initializeGL() override;
+    virtual void paintGL() override;
+    virtual void resizeGL(int w, int h) override;
+
     bool loadTiles();
     bool loadFont();
     void drawCheckers();

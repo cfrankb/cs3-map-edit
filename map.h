@@ -30,7 +30,7 @@ public:
     void forget();
     int len() const;
     int hei() const;
-    bool resize(int len, int hei);
+    bool resize(int len, int hei, bool fast);
     const Pos findFirst(uint8_t tileId);
     int count(uint8_t tileId);
     void clear(uint8_t ch = 0);

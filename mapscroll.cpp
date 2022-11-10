@@ -1,6 +1,7 @@
 #include "mapscroll.h"
 #include <QScrollBar>
 #include <QMouseEvent>
+#include <QMenu>
 
 #include "mapwidget.h"
 
@@ -161,3 +162,4 @@ void CMapScroll::mouseDoubleClickEvent(QMouseEvent *)
 {
 //    qDebug("mouseDoubleClickEvent");
 }
+
