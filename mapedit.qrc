@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>data/font.bin</file>
+        <file>data/tilestiny.obl</file>
+    </qresource>
+</RCC>
