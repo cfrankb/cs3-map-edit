@@ -127,7 +127,7 @@ void CTileBox::setupToolbox(){
              QGridLayout *layout =  reinterpret_cast<QGridLayout*>(w[j]->layout());
              int count = layout->count();
              auto btn = new QToolButton(this);
-             auto action = new QAction(icon, "test", this);
+             auto action = new QAction(icon, def.basename, this);
              action->setData(i);
              layout->addWidget(btn, count/4, count % 4);
 

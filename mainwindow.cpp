@@ -63,7 +63,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 bool MainWindow::isDirty()
 {
-    return false;
+    return m_doc.isDirty();
 }
 
 bool MainWindow::maybeSave()
@@ -91,7 +91,7 @@ void MainWindow::open(QString fileName)
             QFileDialog * dlg = new QFileDialog(this,tr("Open"),"",m_allFilter);
             dlg->setAcceptMode(QFileDialog::AcceptOpen);
             dlg->setFileMode(QFileDialog::ExistingFile);
-            dlg->selectFile("");//m_doc.getFileName());
+            dlg->selectFile(m_doc.filename());
             dlg->setNameFilters(filters);
             if (dlg->exec()) {
                 QStringList fileNames = dlg->selectedFiles();
@@ -105,7 +105,6 @@ void MainWindow::open(QString fileName)
         loadFile(fileName);
     }
     updateMenus();
-   // updateStatus();
 }
 
 void MainWindow::loadFile(const QString &fileName)
@@ -147,7 +146,6 @@ bool MainWindow::save()
 
   //  updateRecentFileActions();
    // reloadRecentFileActions();
-    //updateStatus();
     return true;
 }
 
@@ -201,9 +199,8 @@ bool MainWindow::updateTitle()
     } else {
         file = QFileInfo(m_doc.filename()).fileName();
     }
-
     m_doc.setDirty(false);
-    setWindowTitle(tr("%1[*] - %2").arg( file  ).arg(tr(m_appName)));
+    setWindowTitle(tr("%1[*] - %2").arg( file, m_appName));
     return true;
 }
 
@@ -212,10 +209,6 @@ void MainWindow::updateMenus()
 
 }
 
-void MainWindow::updateStatus()
-{
-    //setStatus(msg);
-}
 
 void MainWindow::setStatus(const QString msg)
 {
@@ -256,6 +249,7 @@ void MainWindow::on_actionResize_triggered()
     if (dlg.exec()==QDialog::Accepted){
         // TODO: add confirmation + validation
         map.resize(dlg.width(), dlg.height(), false);
+        m_doc.setDirty(true);
     }
 }
 
@@ -288,18 +282,17 @@ void MainWindow::showAttrDialog()
     if (dlg.exec()==QDialog::Accepted){
         a = dlg.attr();
         map.setAttr(m_hx, m_hy, a);
+        m_doc.setDirty(true);
     }
 }
 
 void MainWindow::changeTile(int tile)
 {
- //   qDebug("currTile: %d", tile);
     m_currTile = tile;
 }
 
 void MainWindow::onLeftClick(int x, int y)
 {
-   // qDebug("LEFT CLICK: x=%d y=%d", x,y);
     if ( (x >= 0) && (y >= 0)
          && (x < m_doc.map()->len())
          && (y < m_doc.map()->hei()) )
@@ -308,7 +301,6 @@ void MainWindow::onLeftClick(int x, int y)
         if (tile != m_currTile) {
             m_doc.map()->at(x,y) = m_currTile;
             m_doc.setDirty(true);
-            updateTitle();
         }
     }
 }
