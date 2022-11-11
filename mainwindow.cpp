@@ -10,8 +10,6 @@
 const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map)";
 const char m_appName[] = "mapedit";
 
-
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -37,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     tilebox->show();
     dock->setWidget (tilebox);
     addDockWidget (Qt::LeftDockWidgetArea, dock);
+    dock->setAllowedAreas(Qt::LeftDockWidgetArea);
 
     connect(tilebox, SIGNAL(tileChanged(int)),
             this, SLOT(changeTile(int)));

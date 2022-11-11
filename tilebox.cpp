@@ -5,10 +5,11 @@
 #include <QPixmap>
 #include <QLayout>
 #include <QFrame>
-#include <QVBoxLayout>
 #include <QGridLayout>
 #include <QToolButton>
 #include <QAction>
+#include <QCloseEvent>
+#include <QSpacerItem>
 #include "shared/qtgui/qfilewrap.h"
 #include "shared/FrameSet.h"
 #include "shared/Frame.h"
@@ -26,6 +27,10 @@ CTileBox::~CTileBox()
 }
 
 void CTileBox::setupToolbox(){
+    const int w = 150;
+    const int h = 400;
+    setMinimumSize(QSize(w,h));
+
     QFileWrap file;
     if (file.open(":/data/tilestiny.obl", "rb")) {
         qDebug("reading tiles");
@@ -58,8 +63,12 @@ void CTileBox::setupToolbox(){
 
         for (uint8_t i=0; i < tabCount; ++i) {
             w[i] = new QWidget(this);
-            QGridLayout  *layout1 = new QGridLayout();
-            w[i]->setLayout(layout1);
+            auto cw = w[i];
+            cw->setMaximumWidth(256);
+            cw->resize(QSize(256,256));
+            auto layout = new QGridLayout(cw);
+            layout->setAlignment(Qt::AlignTop);
+            cw->setLayout(layout);
             CFrame *frame = fs[icons[i]];
 
             int pngSize;
@@ -74,10 +83,8 @@ void CTileBox::setupToolbox(){
 
             QPixmap pixmap = QPixmap::fromImage(img);
             QIcon icon(pixmap);
-
             this->addItem(w[i], icon, labels[i]);
         }
-
 
         const int tiles =  fs.getSize();
         int j;
@@ -124,13 +131,12 @@ void CTileBox::setupToolbox(){
                  j = TAB_BACKGROUND;
              };
 
-             QGridLayout *layout =  reinterpret_cast<QGridLayout*>(w[j]->layout());
-             int count = layout->count();
+             auto gridLayout = reinterpret_cast<QGridLayout*>(w[j]->layout());
+             int count = gridLayout->count();
              auto btn = new QToolButton(this);
              auto action = new QAction(icon, def.basename, this);
              action->setData(i);
-             layout->addWidget(btn, count/4, count % 4);
-
+             gridLayout->addWidget(btn, count/4, count % 4);
              btn->setDefaultAction(action);
              connect(btn, SIGNAL(triggered(QAction *)), this, SLOT(buttonPressed(QAction *)));
         }
@@ -141,4 +147,11 @@ void CTileBox::buttonPressed(QAction *action)
 {
     int tile = action->data().toInt();
     emit tileChanged(tile);
+}
+
+void CTileBox::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+   // hide();
+   // emit visibilityChanged(false);
 }
