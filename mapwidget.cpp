@@ -58,7 +58,6 @@ CMapWidget::CMapWidget(QWidget *parent)
 
 CMapWidget::~CMapWidget()
 {
-
 }
 
 void CMapWidget::getGLInfo(QString &vendor, QString &renderer, QString &version, QString &extensions)
@@ -101,20 +100,6 @@ void CMapWidget::resizeGL(int w, int h)
 
 void CMapWidget::drawBackground()
 {
-    /*
-     if (m_frame) {
-         uint color = m_borderColor;
-         if (m_mode == MODE_TILED_VIEW) {
-             color = m_bkColor;
-         }
-         float red = (color & 0xff) / 255.0f;
-         float green = ( (color >> 8) & 0xff) / 255.0f;
-         float blue = ( (color >> 16) & 0xff) / 255.0f;
-         glClearColor(red, green, blue, 1.0f);
-     } else {
-         glClearColor(0x50/255.0f, 0x90/255.0f, 1.0f, 1.0f);
-     }
-     */
      QSize sz = size();
      glDisable(GL_DEPTH_TEST);
      glDisable(GL_TEXTURE_2D);
@@ -137,6 +122,7 @@ void CMapWidget::drawBackground()
          glTranslatef(0,0,0);
              //drawCheckers();
              drawMap();
+             //drawGrid();
              //drawChar(0,0, 2, false);
              //drawChar(32,32, 64, false);
              //drawString(0,0, "this is a test");
@@ -381,4 +367,30 @@ void CMapWidget::drawString(const int x, const int y, const char *s)
     }
 }
 
+void CMapWidget::drawGrid()
+{
+    QSize sz = size();
+    CMapScroll *scr = static_cast<CMapScroll*>(parent());
+    const int mx = scr->horizontalScrollBar()->value() * GRID_SIZE;
+    const int my = scr->verticalScrollBar()->value() * GRID_SIZE;
+    int w = std::min(sz.width(), (int) (m_map->len() * GRID_SIZE - mx));
+    int h = std::min(sz.height(), (int) (m_map->hei() * GRID_SIZE - my));
+    glDisable(GL_TEXTURE_2D);
+    glLineWidth(0.5f);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0, 0x79 / 255.0f, 0xa0/255.0f, 0xbf/255.0f);
 
+    for (int x = GRID_SIZE  ; x < w; x+= GRID_SIZE) {
+        glBegin(GL_LINES);
+        glVertex2f(x, 0.0);
+        glVertex2f(x, h);
+        glEnd();
+    }
+    for (int y = GRID_SIZE ; y < h; y+= GRID_SIZE) {
+        glBegin(GL_LINES);
+        glVertex2f(0.0, h - y);
+        glVertex2f(w, h - y);
+        glEnd();
+    }
+}

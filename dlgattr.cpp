@@ -1,5 +1,6 @@
 #include "dlgattr.h"
 #include "ui_dlgattr.h"
+#include <QPushButton>
 
 CDlgAttr::CDlgAttr(QWidget *parent) :
     QDialog(parent),
@@ -24,4 +25,16 @@ void CDlgAttr::attr(const uint8_t & a)
     ui->lineEdit->setText(QString("%1").arg(a));
 }
 
+void CDlgAttr::validateFields() {
+    QString s = ui->lineEdit->text();
+    int v = s.toInt();
+    QRegExp re("\\d*");
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
+                v < 0 || v > 255 || !re.exactMatch(s));
+}
+
+void CDlgAttr::on_lineEdit_textChanged(const QString &)
+{
+    validateFields();
+}
 

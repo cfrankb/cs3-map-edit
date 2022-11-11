@@ -1,5 +1,6 @@
 #include "dlgresize.h"
 #include "ui_dlgresize.h"
+#include <QPushButton>
 
 CDlgResize::CDlgResize(QWidget *parent) :
     QDialog(parent),
@@ -30,3 +31,20 @@ void CDlgResize::height(const int h)
     ui->eHeight->setText(QString("%1").arg(h));
 }
 
+
+void CDlgResize::on_eWidth_textChanged(const QString &)
+{
+    validateFields();
+}
+
+void CDlgResize::on_eHeight_textChanged(const QString &)
+{
+    validateFields();
+}
+
+void CDlgResize::validateFields() {
+    int w = ui->eWidth->text().toInt();
+    int h = ui->eHeight->text().toInt();
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
+                w < 8 || w > 255 || h < 8 || h > 255);
+}

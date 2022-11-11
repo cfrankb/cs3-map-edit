@@ -9,7 +9,7 @@
 
 const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map)";
 const char m_appName[] = "mapedit";
-#define GRID_SIZE 32
+
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -20,10 +20,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_scrollArea = new CMapScroll(this);
     m_scrollArea->viewport()->update();
     setCentralWidget(m_scrollArea);
-
-    // connect the File->Quit to the close app event
-    connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
-    ui->actionExit->setMenuRole(QAction::QuitRole);
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
     connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
 
@@ -44,6 +40,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(tilebox, SIGNAL(tileChanged(int)),
             this, SLOT(changeTile(int)));
+
+    initFileMenu();
 }
 
 MainWindow::~MainWindow()
@@ -125,8 +123,8 @@ void MainWindow::loadFile(const QString &fileName)
         }
 
         updateTitle();
-     //   updateRecentFileActions();
-       // reloadRecentFileActions();
+        updateRecentFileActions();
+        reloadRecentFileActions();
     }
 }
 
@@ -144,8 +142,8 @@ bool MainWindow::save()
         return false;
     }
 
-  //  updateRecentFileActions();
-   // reloadRecentFileActions();
+    updateRecentFileActions();
+    reloadRecentFileActions();
     return true;
 }
 
@@ -303,4 +301,61 @@ void MainWindow::onLeftClick(int x, int y)
             m_doc.setDirty(true);
         }
     }
+}
+
+void MainWindow::initFileMenu()
+{
+    // gray out the open recent `nothin' yet`
+    ui->actionNothing_yet->setEnabled(false);
+    for (int i = 0; i < MAX_RECENT_FILES; i++) {
+        m_recentFileActs[i] = new QAction(this);
+        m_recentFileActs[i]->setVisible(false);
+        ui->menuRecent_Maps->addAction(m_recentFileActs[i]);
+        connect(m_recentFileActs[i], SIGNAL(triggered()),
+                this, SLOT(openRecentFile()));
+    }
+    reloadRecentFileActions();
+    // connect the File->Quit to the close app event
+    connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
+    ui->actionExit->setMenuRole(QAction::QuitRole);
+}
+
+void MainWindow::reloadRecentFileActions()
+{
+    QSettings settings;
+    QStringList files = settings.value("recentFileList").toStringList();
+    const int numRecentFiles = qMin(files.size(), static_cast<int>(MAX_RECENT_FILES));
+    for (int i = 0; i < numRecentFiles; ++i) {
+        QString text = tr("&%1 %2").arg(i + 1).arg(QFileInfo(files[i]).fileName());
+        m_recentFileActs[i]->setText(text);
+        m_recentFileActs[i]->setData(files[i]);
+        m_recentFileActs[i]->setVisible(true);
+        m_recentFileActs[i]->setStatusTip(files[i]);
+    }
+    //for (int j = numRecentFiles; j < MAX_RECENT_FILES; ++j)
+    //    m_recentFileActs[j]->setVisible(false);
+    ui->actionNothing_yet->setVisible(numRecentFiles == 0);
+}
+
+void MainWindow::updateRecentFileActions()
+{
+    QSettings settings;
+    QStringList files = settings.value("recentFileList").toStringList();
+    QString fileName = m_doc.filename();
+    files.removeAll(fileName);
+    if (!fileName.isEmpty()) {
+        files.prepend(fileName);
+        while (files.size() > MAX_RECENT_FILES)
+            files.removeLast();
+    }
+    settings.setValue("recentFileList", files);
+}
+
+void MainWindow::openRecentFile()
+{
+    QAction *action = qobject_cast<QAction *>(sender());
+    if (action) {
+        open(action->data().toString());
+    }
+    updateMenus();
 }

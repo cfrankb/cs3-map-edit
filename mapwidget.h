@@ -24,7 +24,8 @@ protected:
     int m_mx;
     int m_my;
     enum {
-        TICK_RATE = 30
+        TICK_RATE = 30,
+        GRID_SIZE = 32,
     };
 
     virtual void initializeGL() override;
@@ -40,6 +41,7 @@ protected:
     void drawChar(const int x, const int y, uint8_t ch, const bool fast);
     void drawString(const int x, const int y, const char *s);
     void drawMap();
+    void drawGrid();
     GLint loadTexture(const uint32_t *data, const int width, const int height);
 
     QTimer m_timer;

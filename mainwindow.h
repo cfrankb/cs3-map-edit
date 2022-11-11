@@ -32,6 +32,7 @@ private slots:
     void changeTile(int tile);
     void onLeftClick(int x, int y);
     void on_actionSave_triggered();
+    void openRecentFile();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
@@ -46,6 +47,14 @@ private:
     void updateMenus();
     void updateStatus();
     bool isDirty();
+    void updateRecentFileActions();
+    void reloadRecentFileActions();
+    void initFileMenu();
+
+    enum {
+        MAX_RECENT_FILES = 4,
+        GRID_SIZE = 32,
+    };
 
     Ui::MainWindow *ui;
     CMapScroll *m_scrollArea;
@@ -53,6 +62,6 @@ private:
     int m_hx = -1;
     int m_hy = -1;
     uint8_t m_currTile = 0;
-
+    QAction *m_recentFileActs[MAX_RECENT_FILES];
 };
 #endif // MAINWINDOW_H

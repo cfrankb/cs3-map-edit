@@ -27,8 +27,15 @@
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuRecent_Maps">
+     <property name="title">
+      <string>Recent Maps</string>
+     </property>
+     <addaction name="actionNothing_yet"/>
+    </widget>
     <addaction name="actionNew_Map"/>
     <addaction name="actionOpen"/>
+    <addaction name="menuRecent_Maps"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_as"/>
     <addaction name="separator"/>
@@ -72,6 +79,11 @@
   <action name="actionResize">
    <property name="text">
     <string>Resize</string>
+   </property>
+  </action>
+  <action name="actionNothing_yet">
+   <property name="text">
+    <string>Nothing yet</string>
    </property>
   </action>
  </widget>
