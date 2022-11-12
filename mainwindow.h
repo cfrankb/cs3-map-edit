@@ -27,7 +27,7 @@ private slots:
     void on_actionOpen_triggered();
     void on_actionSave_as_triggered();
     void on_actionNew_Map_triggered();
-    void on_actionResize_triggered();
+    void on_actionResizeMap_triggered();
     void showContextMenu(const QPoint&pos);
     void changeTile(int tile);
     void onLeftClick(int x, int y);
@@ -52,7 +52,7 @@ private:
     void initFileMenu();
 
     enum {
-        MAX_RECENT_FILES = 4,
+        MAX_RECENT_FILES = 8,
         GRID_SIZE = 32,
     };
 

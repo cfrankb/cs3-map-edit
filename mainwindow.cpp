@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QtOpenGL>
+#include <QDockWidget>
 #include "mapscroll.h"
 #include "mapwidget.h"
 #include "dlgattr.h"
@@ -29,8 +30,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     updateTitle();
 
-    auto dock = new QDockWidget ();
-    dock->setWindowTitle("Toolbox");
+    auto dock = new QDockWidget();
+    dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    dock->setWindowTitle(tr("Toolbox"));
     auto tilebox = new CTileBox(dock);
     tilebox->show();
     dock->setWidget (tilebox);
@@ -237,7 +239,7 @@ void MainWindow::on_actionSave_as_triggered()
     saveAs();
 }
 
-void MainWindow::on_actionResize_triggered()
+void MainWindow::on_actionResizeMap_triggered()
 {
     CMap &map = * m_doc.map();
     CDlgResize dlg(this);
@@ -358,3 +360,5 @@ void MainWindow::openRecentFile()
     }
     updateMenus();
 }
+
+

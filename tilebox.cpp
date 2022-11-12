@@ -10,11 +10,16 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QSpacerItem>
+#include "qtgui/qthelper.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "shared/FrameSet.h"
 #include "shared/Frame.h"
 #include "tilesdata.h"
 #include "sprtypes.h"
+
+#define MAX_WIDTH 150
+#define MAX_HEIGHT 400
+#define MAX_COLS 4
 
 CTileBox::CTileBox(QWidget *parent) :
     QToolBox(parent)
@@ -27,9 +32,8 @@ CTileBox::~CTileBox()
 }
 
 void CTileBox::setupToolbox(){
-    const int w = 150;
-    const int h = 400;
-    setMinimumSize(QSize(w,h));
+    setMinimumSize(QSize(MAX_WIDTH,MAX_HEIGHT));
+    setMaximumSize(QSize(MAX_WIDTH,MAX_HEIGHT));
 
     QFileWrap file;
     if (file.open(":/data/tilestiny.obl", "rb")) {
@@ -64,43 +68,17 @@ void CTileBox::setupToolbox(){
         for (uint8_t i=0; i < tabCount; ++i) {
             w[i] = new QWidget(this);
             auto cw = w[i];
-            cw->setMaximumWidth(256);
-            cw->resize(QSize(256,256));
             auto layout = new QGridLayout(cw);
             layout->setAlignment(Qt::AlignTop);
             cw->setLayout(layout);
-            CFrame *frame = fs[icons[i]];
-
-            int pngSize;
-            uint8_t *png;
-            frame->toPng(png, pngSize);
-
-            QImage img;
-            if (!img.loadFromData( png, pngSize )) {
-                qDebug("failed to load png\n");
-            }
-            delete [] png;
-
-            QPixmap pixmap = QPixmap::fromImage(img);
-            QIcon icon(pixmap);
+            auto icon = frame2icon(* fs[icons[i]]);
             this->addItem(w[i], icon, labels[i]);
         }
 
         const int tiles =  fs.getSize();
         int j;
         for (int i=0; i < tiles; ++i) {
-             CFrame *frame = fs[i];
-             int pngSize;
-             uint8_t *png;
-             frame->toPng(png, pngSize);
-             QImage img;
-             if (!img.loadFromData( png, pngSize )) {
-                 qDebug("failed to load png\n");
-             }
-             delete [] png;
-             QPixmap pixmap = QPixmap::fromImage(img);
-             QIcon icon(pixmap);
-
+             auto icon = frame2icon(* fs[i]);
              const TileDef def =  getTileDef(i);
              switch (def.type) {
              case TYPE_BACKGROUND:
@@ -136,7 +114,7 @@ void CTileBox::setupToolbox(){
              auto btn = new QToolButton(this);
              auto action = new QAction(icon, def.basename, this);
              action->setData(i);
-             gridLayout->addWidget(btn, count/4, count % 4);
+             gridLayout->addWidget(btn, count / MAX_COLS, count % MAX_COLS);
              btn->setDefaultAction(action);
              connect(btn, SIGNAL(triggered(QAction *)), this, SLOT(buttonPressed(QAction *)));
         }
@@ -147,11 +125,4 @@ void CTileBox::buttonPressed(QAction *action)
 {
     int tile = action->data().toInt();
     emit tileChanged(tile);
-}
-
-void CTileBox::closeEvent(QCloseEvent *event)
-{
-    event->ignore();
-   // hide();
-   // emit visibilityChanged(false);
 }

@@ -1,9 +1,9 @@
 #ifndef CMAPSCROLL_H
 #define CMAPSCROLL_H
 
-#include <QWidget>
 #include <QAbstractScrollArea>
 class CMapWidget;
+class QWidget;
 
 class CMapScroll : public QAbstractScrollArea
 {
@@ -24,7 +24,6 @@ protected:
     virtual void mousePressEvent(QMouseEvent * event) override;
     virtual void mouseReleaseEvent(QMouseEvent * event) override;
     virtual void mouseMoveEvent(QMouseEvent * event) override;
-    virtual void mouseDoubleClickEvent(QMouseEvent *event) override;
 
     void updateScrollbars();
 

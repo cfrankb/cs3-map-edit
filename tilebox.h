@@ -15,9 +15,6 @@ public:
     explicit CTileBox(QWidget *parent = nullptr);
     ~CTileBox();
 
-protected:
-    virtual void closeEvent(QCloseEvent *event) override;
-
 private:
     void setupToolbox();
 

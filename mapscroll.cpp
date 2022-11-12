@@ -1,8 +1,12 @@
 #include "mapscroll.h"
+#include <algorithm>
 #include <QScrollBar>
 #include <QMouseEvent>
 #include <QMenu>
 #include "mapwidget.h"
+
+#define STEPS 8
+#define MAX_RANGE 64
 
 CMapScroll::CMapScroll(QWidget *parent)
     : QAbstractScrollArea{parent}
@@ -41,11 +45,11 @@ void CMapScroll::paintEvent(QPaintEvent *event)
 
 void CMapScroll::updateScrollbars()
 {
-    horizontalScrollBar()->setRange(0, 64);
-    verticalScrollBar()->setRange(0, 64);
+    horizontalScrollBar()->setRange(0, MAX_RANGE);
+    verticalScrollBar()->setRange(0, MAX_RANGE);
 
-    horizontalScrollBar()->setPageStep(8);
-    verticalScrollBar()->setPageStep(8);
+    horizontalScrollBar()->setPageStep(STEPS);
+    verticalScrollBar()->setPageStep(STEPS);
 }
 
 void CMapScroll::mousePressEvent(QMouseEvent * event)
@@ -151,12 +155,29 @@ void CMapScroll::mouseMoveEvent(QMouseEvent * event)
    // emit statusUpdate(0,s);*/
 }
 
-void CMapScroll::wheelEvent(QWheelEvent *)
+void CMapScroll::wheelEvent(QWheelEvent *event)
 {
-  //  qDebug("wheelEvent");
-}
+    QPoint numPixels = event->pixelDelta();
+    QPoint numDegrees = event->angleDelta() / 8;
 
-void CMapScroll::mouseDoubleClickEvent(QMouseEvent *)
-{
-//    qDebug("mouseDoubleClickEvent");
+    enum {
+        NONE=0, UP=1, DOWN=2,
+    };
+    int dir = NONE;
+    if (!numPixels.isNull()) {
+     dir = numPixels.ry() > 0 ? UP : DOWN;
+    } else {
+     dir = numDegrees.ry() > 0 ? UP : DOWN;
+    }
+
+    int val = verticalScrollBar()->value();
+    if (dir == UP) {
+        val -= STEPS;
+        val = std::max(0, val);
+    } else if (dir == DOWN) {
+       val += STEPS;
+       val = std::min(val, MAX_RANGE);
+    }
+    verticalScrollBar()->setValue(val);
+    event->accept();
 }

@@ -45,7 +45,7 @@
     <property name="title">
      <string>Edit</string>
     </property>
-    <addaction name="actionResize"/>
+    <addaction name="actionResizeMap"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -76,9 +76,9 @@
     <string>New Map</string>
    </property>
   </action>
-  <action name="actionResize">
+  <action name="actionResizeMap">
    <property name="text">
-    <string>Resize</string>
+    <string>Resize Map</string>
    </property>
   </action>
   <action name="actionNothing_yet">
