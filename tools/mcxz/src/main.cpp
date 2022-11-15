@@ -12,8 +12,8 @@
 #include "../../../shared/Frame.h"
 #include "../../../shared/ss_version.h"
 #include "tileset.h"
-#include "map.h"
-#include "level.h"
+#include "../../../map.h"
+#include "../../../level.h"
 
 typedef struct
 {
@@ -25,7 +25,8 @@ typedef struct
     std::string define;   // TILES_WALLS93
     std::string basename; // walls93.obl
     uint8_t score;
-    uint8_t health;
+    int8_t health;
+    bool hidden;
 } Tile;
 
 typedef std::vector<Tile> TileVector;
@@ -201,17 +202,17 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
 
 bool processLevels(StringVector &files)
 {
-    char chMap[256];
+    /*char chMap[256];
     memset(chMap, 0, sizeof(chMap));
     if (!getChMap("out/tiles.map", chMap))
     {
         return false;
-    }
+    }*/
 
     for (int i = 0; i < files.size(); ++i)
     {
-        CMap map; //(30, 30);
-        processLevel(map, files[0].c_str(), chMap);
+        CMap map;                            //(30, 30);
+        processLevel(map, files[0].c_str()); //, chMap);
         map.write("level01.dat");
     }
     return true;
@@ -331,7 +332,8 @@ void generateHeader(const std::string section, const std::string sectionName, st
                     "    uint8_t ch;\n"
                     "    uint8_t type;\n"
                     "    uint8_t score;\n"
-                    "    uint8_t health;\n"
+                    "    int8_t health;\n"
+                    "    uint8_t hidden;\n"
                     "    const char * basename;\n"
                     "} TileDef;\n"
                     "uint8_t getChTile(uint8_t i) ;\n"
@@ -372,8 +374,10 @@ void generateHeader(const std::string section, const std::string sectionName, st
         for (int i = 0; i < tileDefs.size(); ++i)
         {
             Tile &tile = tileDefs[i];
-            sprintf(tmp, "    {0x%.2x, TYPE_%s, %d, %d, \"%s\"}%s// %.2x %s\n",
-                    tile.ch, tile.typeName.c_str(), tile.score, tile.health, tile.basename.c_str(),
+            sprintf(tmp, "    {0x%.2x, TYPE_%s, %d, %d, %s, \"%s\"}%s// %.2x %s\n",
+                    tile.ch, tile.typeName.c_str(), tile.score, tile.health,
+                    tile.hidden ? "true" : "false",
+                    tile.basename.c_str(),
                     i != tileDefs.size() - 1 ? ", " : " ", i, tile.define.c_str());
             tfileData += tmp;
             if (tile.ch != 0)
@@ -446,6 +450,21 @@ Tile parseFileParams(const StringVector &list, const StrVal &typeMap, int &start
             else if (item[0] == '+')
             {
                 tile.health = std::stoi(item.substr(1), 0, 10);
+            }
+            else if (item[0] == '-')
+            {
+                tile.health = -std::stoi(item.substr(1), 0, 10);
+            }
+            else if (item[0] == '*')
+            {
+                if (item.substr(1) == "HIDDEN")
+                {
+                    tile.hidden = true;
+                }
+            }
+            else if (item[0] == '!')
+            {
+                tile.name = formatTitleName(item.substr(1).c_str());
             }
             else
             {
