@@ -41,6 +41,11 @@ public:
     const char *lastError();
     CMap &operator=( const CMap  map);
 
+    enum {
+        UP, DOWN, LEFT, RIGHT, MAX = RIGHT
+    };
+    void shift(int aim);
+
 protected:
     uint8_t m_len;
     uint8_t m_hei;

@@ -6,11 +6,9 @@
 #include <unordered_map>
 #include <map>
 #include "zlib.h"
-#include "../../../shared/stdafx.h"
 #include "../../../shared/FileWrap.h"
 #include "../../../shared/FrameSet.h"
 #include "../../../shared/Frame.h"
-#include "../../../shared/ss_version.h"
 #include "tileset.h"
 #include "../../../map.h"
 #include "../../../level.h"
@@ -202,17 +200,10 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
 
 bool processLevels(StringVector &files)
 {
-    /*char chMap[256];
-    memset(chMap, 0, sizeof(chMap));
-    if (!getChMap("out/tiles.map", chMap))
-    {
-        return false;
-    }*/
-
     for (int i = 0; i < files.size(); ++i)
     {
-        CMap map;                            //(30, 30);
-        processLevel(map, files[0].c_str()); //, chMap);
+        CMap map;
+        processLevel(map, files[0].c_str());
         map.write("level01.dat");
     }
     return true;
@@ -333,7 +324,7 @@ void generateHeader(const std::string section, const std::string sectionName, st
                     "    uint8_t type;\n"
                     "    uint8_t score;\n"
                     "    int8_t health;\n"
-                    "    uint8_t hidden;\n"
+                    "    bool hidden;\n"
                     "    const char * basename;\n"
                     "} TileDef;\n"
                     "uint8_t getChTile(uint8_t i) ;\n"

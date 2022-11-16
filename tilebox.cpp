@@ -80,6 +80,9 @@ void CTileBox::setupToolbox(){
         for (int i=0; i < tiles; ++i) {
              auto icon = frame2icon(* fs[i]);
              const TileDef def =  getTileDef(i);
+             if (def.hidden) {
+                 continue;
+             }
              switch (def.type) {
              case TYPE_BACKGROUND:
              case TYPE_STOP:

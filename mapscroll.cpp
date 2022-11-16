@@ -5,7 +5,7 @@
 #include <QMenu>
 #include "mapwidget.h"
 
-#define STEPS 8
+#define STEPS 4
 #define MAX_RANGE 64
 
 CMapScroll::CMapScroll(QWidget *parent)
@@ -108,51 +108,6 @@ void CMapScroll::mouseMoveEvent(QMouseEvent * event)
     if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0)) {
         emit leftClickedAt(m_mouse.x, m_mouse.y);
     }
-
-    // MouseMove isn't called unless a button is pressed
-            //xx = (event->x() + gridSize * horizontalScrollBar()->value()) ;
-            //yy = (event->y() + gridSize * verticalScrollBar()->value());
-            //if (xx < width && yy < height) {
-              //  x = xx / gridSize;
-               // y = yy / gridSize;
-           // }
-        //}
-/*
-        // Test if mouse in within valid coordonates
-        if (event->x() >= sz.width()
-                 ||event->y() >= sz.height() ) {
-            setCursor(Qt::ArrowCursor);
-            return;
-        }
-        m_mouse.oldX = m_mouse.x;
-        m_mouse.oldY = m_mouse.y;
-        m_mouse.x = x;
-        m_mouse.y = y;
-    }
-
-    QString s = "";
-    if (x < 0 || y < 0) {
-        setCursor(Qt::ForbiddenCursor);
-    } else {
-        if (widget->m_frame) {
-            uint rgb = widget->m_frame->at(x,y);
-            char hex[12];
-            int red = rgb & 0xff;
-            int green = (rgb >> 8) & 0xff;
-            int blue = (rgb >> 16) & 0xff;
-            int alpha = (rgb >> 24) & 0xff;
-            sprintf(hex, "%.2X%.2X%.2X:%.2X", red, green, blue, alpha);
-            s = QString("x=%1 y=%2 (#%3)").arg(x).arg(y).arg(hex);
-        }
-        emit cursorChanged();
-        if ((m_mouse.lButton | m_mouse.rButton) &&
-             (m_mouse.x >= 0 && m_mouse.y >= 0
-                    && (m_widget->m_mode != CFrameWidget::MODE_TILED_VIEW))) {
-    //        handleTool();
-            emit toolHandler(m_mouse.x, m_mouse.y, m_mouse.lButton, m_mouse.rButton);
-        }
-    }
-   // emit statusUpdate(0,s);*/
 }
 
 void CMapScroll::wheelEvent(QWheelEvent *event)

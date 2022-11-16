@@ -278,3 +278,44 @@ CMap & CMap::operator=(const CMap map)
     m_size = map.m_len*map.m_hei;
     return *this;
 }
+
+void CMap::shift(int aim) {
+
+    uint8_t tmp[m_len];
+    switch (aim){
+    case UP:
+        memcpy(tmp, m_map, m_len);
+        for (int y=1; y < m_hei; ++y) {
+            memcpy(m_map + (y - 1) * m_hei, m_map + y * m_hei, m_len);
+        }
+        memcpy(m_map + (m_hei -1)* m_len, tmp, m_len);
+        break;
+
+    case DOWN:
+        memcpy(tmp, m_map + (m_hei - 1) * m_len, m_len);
+        for (int y=m_hei -2; y >= 0; --y) {
+            memcpy(m_map + (y + 1) * m_hei, m_map + y * m_hei, m_len);
+        }
+        memcpy(m_map, tmp, m_len);
+        break;
+
+    case LEFT:
+        for (int y=0; y < m_hei; ++y) {
+            uint8_t *p = m_map + y * m_hei;
+            tmp[0] = p[0];
+            memcpy(p, p + 1, m_len -1);
+            p[m_len-1] = tmp[0];
+        }
+        break;
+    case RIGHT:
+        for (int y=0; y < m_hei; ++y) {
+            uint8_t *p = m_map + y * m_hei;
+            tmp[0] = p[m_len-1];
+            for (int x=m_len-2; x >= 0; --x) {
+                p[x +1] = p[x];
+            }
+            p[0] = tmp[0];
+        }
+        break;
+    };
+}

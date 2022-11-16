@@ -14,29 +14,26 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
 
 private slots:
     void loadFile(const QString & filename);
     void setStatus(const QString str);
     void showAttrDialog();
-    void on_actionOpen_triggered();
-    void on_actionSave_as_triggered();
-    void on_actionNew_Map_triggered();
-    void on_actionResizeMap_triggered();
+    void on_actionFile_New_Map_triggered();
+    void on_actionFile_Open_triggered();
+    void on_actionFile_Save_triggered();
+    void on_actionFile_Save_as_triggered();
+    void on_actionEdit_ResizeMap_triggered();
     void showContextMenu(const QPoint&pos);
     void changeTile(int tile);
     void onLeftClick(int x, int y);
-    void on_actionSave_triggered();
     void openRecentFile();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
-
     bool maybeSave();
     void setDocument(const QString);
     void warningMessage(const QString message);
@@ -49,7 +46,10 @@ private:
     bool isDirty();
     void updateRecentFileActions();
     void reloadRecentFileActions();
+
     void initFileMenu();
+    void initTilebox();
+    void initShortcuts();
 
     enum {
         MAX_RECENT_FILES = 8,

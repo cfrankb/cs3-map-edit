@@ -33,52 +33,70 @@
      </property>
      <addaction name="actionNothing_yet"/>
     </widget>
-    <addaction name="actionNew_Map"/>
-    <addaction name="actionOpen"/>
+    <addaction name="actionFile_New_Map"/>
+    <addaction name="actionFile_Open"/>
     <addaction name="menuRecent_Maps"/>
-    <addaction name="actionSave"/>
-    <addaction name="actionSave_as"/>
+    <addaction name="actionFile_Save"/>
+    <addaction name="actionFile_Save_as"/>
     <addaction name="separator"/>
-    <addaction name="actionExit"/>
+    <addaction name="actionFile_Exit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
      <string>Edit</string>
     </property>
-    <addaction name="actionResizeMap"/>
+    <addaction name="actionEdit_ResizeMap"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionOpen">
+  <action name="actionFile_Open">
    <property name="text">
     <string>Open</string>
    </property>
+   <property name="statusTip">
+    <string>Open an existing map.</string>
+   </property>
   </action>
-  <action name="actionSave">
+  <action name="actionFile_Save">
    <property name="text">
     <string>Save</string>
    </property>
+   <property name="statusTip">
+    <string>Save map to disk.</string>
+   </property>
   </action>
-  <action name="actionSave_as">
+  <action name="actionFile_Save_as">
    <property name="text">
     <string>Save as</string>
    </property>
+   <property name="statusTip">
+    <string>Save map under a different name.</string>
+   </property>
   </action>
-  <action name="actionExit">
+  <action name="actionFile_Exit">
    <property name="text">
     <string>Exit</string>
    </property>
+   <property name="statusTip">
+    <string>Exit application.</string>
+   </property>
   </action>
-  <action name="actionNew_Map">
+  <action name="actionFile_New_Map">
    <property name="text">
     <string>New Map</string>
    </property>
+   <property name="statusTip">
+    <string>Create a new map.</string>
+   </property>
   </action>
-  <action name="actionResizeMap">
+  <action name="actionEdit_ResizeMap">
    <property name="text">
     <string>Resize Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Resize current map.</string>
    </property>
   </action>
   <action name="actionNothing_yet">

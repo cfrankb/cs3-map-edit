@@ -2,6 +2,8 @@
 #include "ui_mainwindow.h"
 #include <QtOpenGL>
 #include <QDockWidget>
+#include <QShortcut>
+#include <QKeySequence>
 #include "mapscroll.h"
 #include "mapwidget.h"
 #include "dlgattr.h"
@@ -29,7 +31,32 @@ MainWindow::MainWindow(QWidget *parent)
         this, SLOT(showContextMenu(const QPoint&))) ;
 
     updateTitle();
+    initTilebox();
+    initFileMenu();
+    initShortcuts();
+}
 
+void MainWindow::initShortcuts()
+{
+    typedef struct  {
+        uint16_t shortcut;
+        QAction *action;
+    } Hotkey;
+
+    Hotkey hotkeys[] = {
+        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_S), ui->actionFile_Save},
+        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_N), ui->actionFile_New_Map},
+        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_O), ui->actionFile_Open},
+        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_Q), ui->actionFile_Exit}
+    };
+
+    for (uint i=0; i < sizeof(hotkeys)/sizeof(Hotkey);++i){
+        Hotkey h = hotkeys[i];
+        h.action->setShortcut(QKeySequence(h.shortcut));
+    }
+}
+
+void MainWindow::initTilebox() {
     auto dock = new QDockWidget();
     dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     dock->setWindowTitle(tr("Toolbox"));
@@ -38,11 +65,8 @@ MainWindow::MainWindow(QWidget *parent)
     dock->setWidget (tilebox);
     addDockWidget (Qt::LeftDockWidgetArea, dock);
     dock->setAllowedAreas(Qt::LeftDockWidgetArea);
-
     connect(tilebox, SIGNAL(tileChanged(int)),
             this, SLOT(changeTile(int)));
-
-    initFileMenu();
 }
 
 MainWindow::~MainWindow()
@@ -100,7 +124,6 @@ void MainWindow::open(QString fileName)
             }
             delete dlg;
         }
-
         loadFile(fileName);
     }
     updateMenus();
@@ -122,7 +145,6 @@ void MainWindow::loadFile(const QString &fileName)
             files.removeAll(fileName);
             settings.setValue("recentFileList", files);
         }
-
         updateTitle();
         updateRecentFileActions();
         reloadRecentFileActions();
@@ -208,13 +230,12 @@ void MainWindow::updateMenus()
 
 }
 
-
 void MainWindow::setStatus(const QString msg)
 {
     ui->statusbar->showMessage(msg);
 }
 
-void MainWindow::on_actionNew_Map_triggered()
+void MainWindow::on_actionFile_New_Map_triggered()
 {
     if (maybeSave()) {
         m_doc.setFilename("");
@@ -224,31 +245,37 @@ void MainWindow::on_actionNew_Map_triggered()
     }
 }
 
-void MainWindow::on_actionOpen_triggered()
+void MainWindow::on_actionFile_Open_triggered()
 {
     open("");
 }
 
-void MainWindow::on_actionSave_triggered()
+void MainWindow::on_actionFile_Save_triggered()
 {
     save();
 }
 
-void MainWindow::on_actionSave_as_triggered()
+void MainWindow::on_actionFile_Save_as_triggered()
 {
     saveAs();
 }
 
-void MainWindow::on_actionResizeMap_triggered()
+void MainWindow::on_actionEdit_ResizeMap_triggered()
 {
     CMap &map = * m_doc.map();
     CDlgResize dlg(this);
     dlg.width(map.len());
     dlg.height(map.hei());
     if (dlg.exec()==QDialog::Accepted){
-        // TODO: add confirmation + validation
-        map.resize(dlg.width(), dlg.height(), false);
-        m_doc.setDirty(true);
+        QMessageBox::StandardButton reply = QMessageBox::Yes;
+        if (dlg.width() < map.len() || dlg.height() < map.hei()) {
+            reply = QMessageBox::warning(this, m_appName, tr("Resizing map may lead to data lost. Continue?"),
+                QMessageBox::Yes|QMessageBox::No);
+        }
+        if (reply == QMessageBox::Yes) {
+            map.resize(dlg.width(), dlg.height(), false);
+            m_doc.setDirty(true);
+        }
     }
 }
 
@@ -317,8 +344,8 @@ void MainWindow::initFileMenu()
     }
     reloadRecentFileActions();
     // connect the File->Quit to the close app event
-    connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(close()));
-    ui->actionExit->setMenuRole(QAction::QuitRole);
+    connect(ui->actionFile_Exit, SIGNAL(triggered()), this, SLOT(close()));
+    ui->actionFile_Exit->setMenuRole(QAction::QuitRole);
 }
 
 void MainWindow::reloadRecentFileActions()
@@ -360,5 +387,3 @@ void MainWindow::openRecentFile()
     }
     updateMenus();
 }
-
-
