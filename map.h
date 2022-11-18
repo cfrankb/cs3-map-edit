@@ -26,7 +26,6 @@ public:
     bool write(const char *fname);
     bool read(FILE *sfile);
     bool write(FILE *tfile);
-
     void forget();
     int len() const;
     int hei() const;
@@ -37,7 +36,6 @@ public:
     uint8_t getAttr(const uint8_t x, const uint8_t y);
     void setAttr(const uint8_t x, const uint8_t y, const uint8_t a);
     int size();
-
     const char *lastError();
     CMap &operator=( const CMap  map);
 
@@ -53,6 +51,9 @@ protected:
     int m_size;
     AttrMap m_attrs;
     std::string m_lastError;
+
+    static uint16_t toKey(const uint8_t x, const uint8_t y);
+    void shiftAttrs(int aim);
 };
 
 #endif

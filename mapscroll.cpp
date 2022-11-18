@@ -6,7 +6,6 @@
 #include "mapwidget.h"
 
 #define STEPS 4
-#define MAX_RANGE 64
 
 CMapScroll::CMapScroll(QWidget *parent)
     : QAbstractScrollArea{parent}
@@ -20,12 +19,8 @@ CMapScroll::CMapScroll(QWidget *parent)
     setAcceptDrops(true);
     setContextMenuPolicy(Qt::CustomContextMenu);
     setFrameShape(QFrame::NoFrame);
-
-    //connect(horizontalScrollBar(), SIGNAL(valueChanged(int)), m_widget, SLOT(setMX(int)));
-    //connect(verticalScrollBar(), SIGNAL(valueChanged(int)), m_widget, SLOT(setMY(int)));
     m_mouse.x = m_mouse.y = 0;
     m_mouse.lButton = m_mouse.rButton = m_mouse.mButton = false;
-
     update();
 }
 
@@ -45,8 +40,12 @@ void CMapScroll::paintEvent(QPaintEvent *event)
 
 void CMapScroll::updateScrollbars()
 {
-    horizontalScrollBar()->setRange(0, MAX_RANGE);
-    verticalScrollBar()->setRange(0, MAX_RANGE);
+    QSize sz = size();
+    int h = sz.width() / GRID_SIZE;
+    int v = sz.height() / GRID_SIZE;
+
+    horizontalScrollBar()->setRange(0, m_mapLen - h);
+    verticalScrollBar()->setRange(0, m_mapHei - v);
 
     horizontalScrollBar()->setPageStep(STEPS);
     verticalScrollBar()->setPageStep(STEPS);
@@ -131,8 +130,15 @@ void CMapScroll::wheelEvent(QWheelEvent *event)
         val = std::max(0, val);
     } else if (dir == DOWN) {
        val += STEPS;
-       val = std::min(val, MAX_RANGE);
+       val = std::min(val,  verticalScrollBar()->maximum());
     }
     verticalScrollBar()->setValue(val);
     event->accept();
+}
+
+void CMapScroll::newMapSize(int len, int hei)
+{
+    m_mapLen = len;
+    m_mapHei = hei;
+    updateScrollbars();
 }

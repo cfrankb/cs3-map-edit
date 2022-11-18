@@ -235,7 +235,7 @@ void CMap::clear(uint8_t ch)
 
 uint8_t CMap::getAttr(const uint8_t x, const uint8_t y)
 {
-    const uint16_t key = x + (y << 8);
+    const uint16_t key = toKey(x, y);
     if (m_attrs.size() > 0 && m_attrs.count(key) != 0)
     {
         return m_attrs[key];
@@ -247,7 +247,7 @@ uint8_t CMap::getAttr(const uint8_t x, const uint8_t y)
 }
 void CMap::setAttr(const uint8_t x, const uint8_t y, const uint8_t a)
 {
-    const uint16_t key = x + (y << 8);
+    const uint16_t key = toKey(x, y);
     if (a == 0)
     {
         m_attrs.erase(key);
@@ -318,4 +318,43 @@ void CMap::shift(int aim) {
         }
         break;
     };
+
+    shiftAttrs(aim);
+}
+
+void CMap::shiftAttrs(int aim)
+{
+    uint8_t tx = 0;
+    uint8_t ty = 0;
+
+    switch (aim){
+    case UP:
+        ty = 0xff;
+        break;
+    case DOWN:
+        ty = 1;
+        break;
+    case LEFT:
+        tx = 0xff;
+        break;
+    case RIGHT:
+        tx = 1;
+        break;
+    }
+
+    AttrMap tMap;
+    for (auto& it: m_attrs) {
+        uint16_t key = it.first;
+        uint8_t x = key & 0xff;
+        uint8_t y = key >> 8;
+        uint8_t a = it.second;
+        uint16_t newKey = toKey(x + tx, y + ty);
+        tMap[newKey] = a;
+    }
+    m_attrs = tMap;
+}
+
+uint16_t CMap::toKey(const uint8_t x, const uint8_t y)
+{
+    return x + (y << 8);
 }

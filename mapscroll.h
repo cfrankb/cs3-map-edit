@@ -17,6 +17,9 @@ signals:
     void statusChanged(const QString str);
     void leftClickedAt(int x, int y);
 
+protected slots:
+    void newMapSize(int len, int hei);
+
 protected:
     virtual void resizeEvent(QResizeEvent * event) override;
     virtual void paintEvent(QPaintEvent *event) override;
@@ -36,10 +39,11 @@ protected:
     } Mouse;
     Mouse m_mouse;
 
+    int m_mapLen;
+    int m_mapHei;
     enum {
         GRID_SIZE = 32
     };
-
 };
 
 #endif // CMAPSCROLL_H

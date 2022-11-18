@@ -18,6 +18,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+signals:
+    void resizeMap(int, int);
+
 private slots:
     void loadFile(const QString & filename);
     void setStatus(const QString str);
@@ -31,6 +34,10 @@ private slots:
     void changeTile(int tile);
     void onLeftClick(int x, int y);
     void openRecentFile();
+    void shiftUp();
+    void shiftDown();
+    void shiftLeft();
+    void shiftRight();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
@@ -50,6 +57,7 @@ private:
     void initFileMenu();
     void initTilebox();
     void initShortcuts();
+    void initMapShortcuts();
 
     enum {
         MAX_RECENT_FILES = 8,

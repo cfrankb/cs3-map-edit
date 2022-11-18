@@ -46,7 +46,7 @@ void CTileBox::setupToolbox(){
 
         const char *labels[] = {
             "Background", "Essentials", "Walls",
-            "Pickup", "Monsters", "Keys & doors"
+            "Pickup", "Monsters", "Keys && doors"
         };
         uint8_t icons[] = {
             TILES_PLANTS, TILES_ANNIE2, TILES_WALLS93_2,

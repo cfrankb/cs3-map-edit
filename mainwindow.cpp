@@ -34,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     initTilebox();
     initFileMenu();
     initShortcuts();
+    initMapShortcuts();
 }
 
 void MainWindow::initShortcuts()
@@ -54,6 +55,41 @@ void MainWindow::initShortcuts()
         Hotkey h = hotkeys[i];
         h.action->setShortcut(QKeySequence(h.shortcut));
     }
+}
+
+void MainWindow::shiftUp()
+{
+    m_doc.map()->shift(CMap::UP);
+    m_doc.setDirty(true);
+}
+
+void MainWindow::shiftDown()
+{
+    m_doc.map()->shift(CMap::DOWN);
+    m_doc.setDirty(true);
+}
+
+void MainWindow::shiftLeft()
+{
+    m_doc.map()->shift(CMap::LEFT);
+    m_doc.setDirty(true);
+}
+
+void MainWindow::shiftRight()
+{
+    m_doc.map()->shift(CMap::RIGHT);
+    m_doc.setDirty(true);
+}
+
+void MainWindow::initMapShortcuts()
+{
+    connect(this, SIGNAL(resizeMap(int,int)), m_scrollArea, SLOT(newMapSize(int,int)));
+    emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
+
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Up), this, SLOT(shiftUp()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Down), this, SLOT(shiftDown()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Left), this, SLOT(shiftLeft()));
+    new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Right), this, SLOT(shiftRight()));
 }
 
 void MainWindow::initTilebox() {
@@ -148,6 +184,7 @@ void MainWindow::loadFile(const QString &fileName)
         updateTitle();
         updateRecentFileActions();
         reloadRecentFileActions();
+        emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
     }
 }
 
@@ -242,6 +279,7 @@ void MainWindow::on_actionFile_New_Map_triggered()
         m_doc.map()->clear();
         m_doc.map()->resize(40,40, true);
         updateTitle();
+        emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
     }
 }
 
@@ -275,6 +313,7 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
         if (reply == QMessageBox::Yes) {
             map.resize(dlg.width(), dlg.height(), false);
             m_doc.setDirty(true);
+            emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
         }
     }
 }
