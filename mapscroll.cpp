@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <QScrollBar>
 #include <QMouseEvent>
-#include <QMenu>
 #include "mapwidget.h"
 
 #define STEPS 4

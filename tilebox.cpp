@@ -1,15 +1,9 @@
 #include "tilebox.h"
 #include <stdint.h>
 #include <QDebug>
-#include <QImage>
-#include <QPixmap>
-#include <QLayout>
-#include <QFrame>
 #include <QGridLayout>
 #include <QToolButton>
 #include <QAction>
-#include <QCloseEvent>
-#include <QSpacerItem>
 #include "qtgui/qthelper.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "shared/FrameSet.h"
@@ -44,9 +38,9 @@ void CTileBox::setupToolbox(){
         }
         file.close();
 
-        const char *labels[] = {
-            "Background", "Essentials", "Walls",
-            "Pickup", "Monsters", "Keys && doors"
+        const QString labels[] = {
+            tr("Background"), tr("Essentials"), tr("Walls"),
+            tr("Pickup"), tr("Monsters"), tr("Keys && doors")
         };
         uint8_t icons[] = {
             TILES_PLANTS, TILES_ANNIE2, TILES_WALLS93_2,
