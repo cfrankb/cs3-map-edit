@@ -51,9 +51,7 @@ protected:
     int m_size;
     AttrMap m_attrs;
     std::string m_lastError;
-
     static uint16_t toKey(const uint8_t x, const uint8_t y);
-    void shiftAttrs(int aim);
 };
 
 #endif

@@ -62,24 +62,26 @@ void CMap::forget()
 
 bool CMap::read(const char *fname)
 {
+    bool result = false;
     FILE *sfile = fopen(fname, "rb");
     if (sfile)
     {
-        read(sfile);
+        result = read(sfile);
         fclose(sfile);
     }
-    return sfile != nullptr;
+    return sfile != nullptr && result;
 }
 
 bool CMap::write(const char *fname)
 {
+    bool result = false;
     FILE *tfile = fopen(fname, "wb");
     if (tfile)
     {
-        write(tfile);
+        result = write(tfile);
         fclose(tfile);
     }
-    return tfile != nullptr;
+    return tfile != nullptr && result;
 }
 
 bool CMap::read(FILE *sfile)
@@ -286,7 +288,7 @@ void CMap::shift(int aim) {
     case UP:
         memcpy(tmp, m_map, m_len);
         for (int y=1; y < m_hei; ++y) {
-            memcpy(m_map + (y - 1) * m_hei, m_map + y * m_hei, m_len);
+            memcpy(m_map + (y - 1) * m_len, m_map + y * m_len, m_len);
         }
         memcpy(m_map + (m_hei -1)* m_len, tmp, m_len);
         break;
@@ -294,36 +296,29 @@ void CMap::shift(int aim) {
     case DOWN:
         memcpy(tmp, m_map + (m_hei - 1) * m_len, m_len);
         for (int y=m_hei -2; y >= 0; --y) {
-            memcpy(m_map + (y + 1) * m_hei, m_map + y * m_hei, m_len);
+            memcpy(m_map + (y + 1) * m_len, m_map + y * m_len, m_len);
         }
         memcpy(m_map, tmp, m_len);
         break;
 
     case LEFT:
         for (int y=0; y < m_hei; ++y) {
-            uint8_t *p = m_map + y * m_hei;
-            tmp[0] = p[0];
-            memcpy(p, p + 1, m_len -1);
+            uint8_t *p = m_map + y * m_len;
+            memcpy(tmp, p, m_len);
+            memcpy(p, tmp+1, m_len-1);
             p[m_len-1] = tmp[0];
         }
         break;
     case RIGHT:
         for (int y=0; y < m_hei; ++y) {
-            uint8_t *p = m_map + y * m_hei;
-            tmp[0] = p[m_len-1];
-            for (int x=m_len-2; x >= 0; --x) {
-                p[x +1] = p[x];
-            }
-            p[0] = tmp[0];
+            uint8_t *p = m_map + y * m_len;
+            memcpy(tmp, p, m_len);
+            memcpy(p+1, tmp, m_len-1);
+            p[0] = tmp[m_len-1];
         }
         break;
     };
 
-    shiftAttrs(aim);
-}
-
-void CMap::shiftAttrs(int aim)
-{
     uint8_t tx = 0;
     uint8_t ty = 0;
 
