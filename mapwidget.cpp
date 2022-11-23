@@ -120,13 +120,10 @@ void CMapWidget::drawBackground()
      glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
      glPushMatrix();
          glTranslatef(0,0,0);
-             //drawCheckers();
              drawMap();
-             //drawGrid();
-             //drawChar(0,0, 2, false);
-             //drawChar(32,32, 64, false);
-             //drawString(0,0, "this is a test");
-             //paintTexture(0,0, m_textureFont);
+             if (m_showGrid) {
+                 drawGrid();
+             }
      glPopMatrix();
      glFlush();
      glFinish();
@@ -184,10 +181,7 @@ GLint CMapWidget::loadTexture(const uint32_t* data, const int width, const int h
     GLint maxSize;
     glEnable(GL_TEXTURE_2D); GLDEBUG();
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize); GLDEBUG();
-    //qDebug("MAXSIZE: %u", maxSize);
-
     glGenTextures(1, &textureId); GLDEBUG();
-    //qDebug("texture: %.8x", textureId);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4); GLDEBUG();
     glBindTexture(GL_TEXTURE_2D, textureId); GLDEBUG();
@@ -209,7 +203,7 @@ void CMapWidget::paintTexture(int x, int y, GLint textureId)
     glEnable (GL_BLEND);
     glDisable(GL_MULTISAMPLE);
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    glBindTexture(GL_TEXTURE_2D, textureId);//m_textureTiles);
+    glBindTexture(GL_TEXTURE_2D, textureId);
 
     int ix = TEXTURE_WIDTH *2;
     int iy = TEXTURE_HEIGHT *2;
@@ -241,7 +235,7 @@ void CMapWidget::drawTile(const int x, const int y, const int tile, const bool f
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         glBindTexture(GL_TEXTURE_2D, m_textureTiles);
     }
-    const int col = tile % TEX_TILE_SIZE;
+    const int col = tile & (TEX_TILE_SIZE-1);
     const int row = tile / TEX_TILE_SIZE;
     const float gx = col * TEX_TILE_SIZE;
     const float gy = (15 - row) * TEX_TILE_SIZE;
@@ -333,7 +327,7 @@ void CMapWidget::drawChar(const int x, const int y, uint8_t ch, const bool fast)
         glBindTexture(GL_TEXTURE_2D, m_textureFont);
     }
 
-    const int col = ch % fontPerRow;
+    const int col = ch & (fontPerRow-1);
     const int row = ch / fontPerRow;
     const float gx = col * fontWidth;
     const float gy = row * fontHeight;
@@ -372,25 +366,30 @@ void CMapWidget::drawGrid()
     QSize sz = size();
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
     const int mx = scr->horizontalScrollBar()->value() * GRID_SIZE;
-    const int my = scr->verticalScrollBar()->value() * GRID_SIZE;
+    //const int my = scr->verticalScrollBar()->value() * GRID_SIZE;
     int w = std::min(sz.width(), (int) (m_map->len() * GRID_SIZE - mx));
-    int h = std::min(sz.height(), (int) (m_map->hei() * GRID_SIZE - my));
+    int h = sz.height();
     glDisable(GL_TEXTURE_2D);
     glLineWidth(0.5f);
-    glEnable (GL_BLEND);
+    glEnable (GL_DST_ALPHA);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glColor4f(0, 0x79 / 255.0f, 0xa0/255.0f, 0xbf/255.0f);
 
     for (int x = GRID_SIZE  ; x < w; x+= GRID_SIZE) {
         glBegin(GL_LINES);
-        glVertex2f(x, 0.0);
-        glVertex2f(x, h);
+            glVertex2f(x, 0.0);
+            glVertex2f(x, h);
         glEnd();
     }
     for (int y = GRID_SIZE ; y < h; y+= GRID_SIZE) {
         glBegin(GL_LINES);
-        glVertex2f(0.0, h - y);
-        glVertex2f(w, h - y);
+            glVertex2f(0.0, h - y);
+            glVertex2f(w, h - y);
         glEnd();
     }
+}
+
+void CMapWidget::showGrid(bool show)
+{
+    m_showGrid = show;
 }

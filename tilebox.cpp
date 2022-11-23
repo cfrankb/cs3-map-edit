@@ -4,25 +4,25 @@
 #include <QGridLayout>
 #include <QToolButton>
 #include <QAction>
-#include "qtgui/qthelper.h"
+#include "shared/qtgui/qthelper.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "shared/FrameSet.h"
 #include "shared/Frame.h"
 #include "tilesdata.h"
 #include "sprtypes.h"
 
-#define MAX_WIDTH 150
-#define MAX_HEIGHT 400
-#define MAX_COLS 4
-
 CTileBox::CTileBox(QWidget *parent) :
     QToolBox(parent)
 {
+    m_tile = 0;
     setupToolbox();
 }
 
 CTileBox::~CTileBox()
 {
+    if (m_buttons) {
+        delete [] m_buttons;
+    }
 }
 
 void CTileBox::setupToolbox(){
@@ -69,6 +69,9 @@ void CTileBox::setupToolbox(){
             this->addItem(w[i], icon, labels[i]);
         }
 
+        int btnCount = fs.getSize();
+        m_buttons = new QToolButton *[btnCount];
+
         const int tiles =  fs.getSize();
         int j;
         for (int i=0; i < tiles; ++i) {
@@ -109,6 +112,7 @@ void CTileBox::setupToolbox(){
              auto gridLayout = reinterpret_cast<QGridLayout*>(w[j]->layout());
              int count = gridLayout->count();
              auto btn = new QToolButton(this);
+             m_buttons[i] = btn;
              auto action = new QAction(icon, def.basename, this);
              action->setData(i);
              gridLayout->addWidget(btn, count / MAX_COLS, count % MAX_COLS);
@@ -116,10 +120,21 @@ void CTileBox::setupToolbox(){
              connect(btn, SIGNAL(triggered(QAction *)), this, SLOT(buttonPressed(QAction *)));
         }
     }
+
+    m_buttons[m_tile]->setStyleSheet(highlightStyle());
+}
+
+const QString & CTileBox::highlightStyle() {
+    static QString stylesheet = QString("* { background-color: rgb(%1,%2,%3) }")
+            .arg(HIGHLIGHT_RED).arg(HIGHLIGHT_GREEN).arg(HIGHLIGHT_BLUE);
+    return stylesheet;
 }
 
 void CTileBox::buttonPressed(QAction *action)
 {
-    int tile = action->data().toInt();
-    emit tileChanged(tile);
+    int oldTile = m_tile;
+    m_buttons[oldTile]->setStyleSheet("");
+    m_tile = action->data().toInt();
+    emit tileChanged(m_tile);
+    m_buttons[m_tile]->setStyleSheet(highlightStyle());
 }

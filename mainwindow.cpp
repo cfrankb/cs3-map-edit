@@ -30,6 +30,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint&)),
         this, SLOT(showContextMenu(const QPoint&))) ;
 
+    connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
+
     updateTitle();
     initTilebox();
     initFileMenu();
@@ -296,6 +298,8 @@ void MainWindow::on_actionFile_Save_triggered()
 void MainWindow::on_actionFile_Save_as_triggered()
 {
     saveAs();
+    updateRecentFileActions();
+    reloadRecentFileActions();
 }
 
 void MainWindow::on_actionEdit_ResizeMap_triggered()
@@ -426,3 +430,4 @@ void MainWindow::openRecentFile()
     }
     updateMenus();
 }
+

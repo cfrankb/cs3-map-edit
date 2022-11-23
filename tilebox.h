@@ -7,6 +7,8 @@ namespace Ui {
 class CTileBox;
 }
 
+class QToolButton;
+
 class CTileBox : public QToolBox
 {
     Q_OBJECT
@@ -23,6 +25,20 @@ signals:
 
 private slots:
     void buttonPressed(QAction *action);
+
+private:
+    QToolButton **m_buttons;
+    int m_tile;
+    const QString &highlightStyle();
+
+    enum {
+        MAX_WIDTH =150,
+        MAX_HEIGHT = 400,
+        MAX_COLS = 4,
+        HIGHLIGHT_RED = 0x40,
+        HIGHLIGHT_GREEN = 0xf0,
+        HIGHLIGHT_BLUE = 0xf5,
+    };
 };
 
 #endif // TILELBOX_H

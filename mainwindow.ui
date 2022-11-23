@@ -47,8 +47,15 @@
     </property>
     <addaction name="actionEdit_ResizeMap"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionView_Grid"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionFile_Open">
@@ -102,6 +109,17 @@
   <action name="actionNothing_yet">
    <property name="text">
     <string>Nothing yet</string>
+   </property>
+  </action>
+  <action name="actionView_Grid">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Grid</string>
+   </property>
+   <property name="statusTip">
+    <string>Show tile grid on map.</string>
    </property>
   </action>
  </widget>

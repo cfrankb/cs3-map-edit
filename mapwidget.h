@@ -20,6 +20,9 @@ public:
     void getGLInfo(QString &vendor, QString &renderer, QString &version, QString &extensions);
     void setMap(CMap *pMap);
 
+protected slots:
+    void showGrid(bool show);
+
 protected:
     int m_mx;
     int m_my;
@@ -48,6 +51,7 @@ protected:
     GLint m_textureTiles;
     GLint m_textureFont;
     CMap *m_map;
+    bool m_showGrid;
 
 signals:
     friend class CMapScroll;
