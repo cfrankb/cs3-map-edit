@@ -48,10 +48,10 @@ uint16_t rgb888torgb565(uint8_t *rgb888Pixel)
 int test()
 {
     CFileWrap tfileTiny;
-    tfileTiny.open("data/annietiny.obl", "wb");
+    tfileTiny.open("out/test_output.obl", "wb");
 
     CFileWrap sfile;
-    if (sfile.open("data/annie2.obl", "rb"))
+    if (sfile.open("obl5/annie2.obl", "rb"))
     {
         CFrameSet images;
         if (images.extract(sfile))
@@ -98,7 +98,7 @@ int test()
         }
 
         imagesTiny.write(tfileTiny);
-        tiles.write("out/annie2.mcz");
+        tiles.write("out/test_output.mcz");
     }
     else
     {
@@ -117,7 +117,6 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
     fseek(sfile, 0, SEEK_SET);
     fread(buf, size, 1, sfile);
     fclose(sfile);
-    // puts(buf);
     char *s = buf;
 
     int line = 0;
@@ -148,14 +147,14 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
         }
 
         // trim right
-        while (b >= s && isspace(*b)) //(*b == ' ' || *b == '\t'))
+        while (b >= s && isspace(*b))
         {
             *b = 0;
             --b;
         }
 
         // trim left
-        while (isspace(*s)) //(*s == ' ' || *s == '\t')
+        while (isspace(*s))
         {
             ++s;
         }
@@ -174,7 +173,7 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
                 }
                 else
                 {
-                    printf("section head `%d` on line %d missing right bracket.\n", s, line);
+                    printf("section head `%s` on line %d missing right bracket.\n", s, line);
                 }
             }
             else
@@ -188,10 +187,7 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
                     printf("file def on line %d without section.\n", line);
                 }
             }
-
-            // puts(s);
         }
-
         s = n;
     }
 
@@ -491,7 +487,7 @@ void writeMapFile(const std::string section, const TileVector tileDefs, bool gen
     tfileMap.close();
 }
 
-bool processSection(const std::string section, StringVector &files, const StrVal &typeMap)
+bool processSection(const std::string section, StringVector &files, const StrVal &typeMap, uint8_t pixelWidth)
 {
     bool genHeaders = false;
 
@@ -579,19 +575,33 @@ bool processSection(const std::string section, StringVector &files, const StrVal
     imagesTiny.write(tfileTiny);
 
     // generate tileset
-    CTileSet tiles(16, 16, imagesTiny.getSize()); // create  tileset
+    CTileSet tiles(16, 16, imagesTiny.getSize(), pixelWidth); // create tileset
     for (int i = 0; i < imagesTiny.getSize(); ++i)
     {
         CFrame *frame = imagesTiny[i];
-        u_int32_t *rgb888 = frame->getRGB();
+        uint32_t *rgb888 = frame->getRGB();
         int pixels = frame->m_nLen * frame->m_nHei;
+        int j;
         uint16_t rgb565[pixels];
+        rgb24_t rgb24[pixels];
 
-        for (int j = 0; j < pixels; ++j)
+        switch (pixelWidth)
         {
-            rgb565[j] = rgb888torgb565(reinterpret_cast<uint8_t *>(&rgb888[j]));
-        }
-        tiles.set(i, rgb565);
+        case CTileSet::pixel16:
+            for (j = 0; j < pixels; ++j)
+            {
+                rgb565[j] = rgb888torgb565(reinterpret_cast<uint8_t *>(&rgb888[j]));
+            }
+            tiles.set(i, rgb565);
+            break;
+
+        case CTileSet::pixel24:
+            for (j = 0; j < pixels; ++j)
+            {
+                memcpy(&rgb24[j], &rgb888[j], 3);
+            }
+            tiles.set(i, rgb24);
+        };
     }
     tiles.write(fnameT);
 
@@ -604,7 +614,7 @@ bool processSection(const std::string section, StringVector &files, const StrVal
     return true;
 }
 
-bool runJob(const char *src)
+bool runJob(const char *src, uint8_t pixelWidth)
 {
     FILE *sfile = fopen(src, "rb");
     if (sfile != NULL)
@@ -629,34 +639,76 @@ bool runJob(const char *src)
             else
             {
                 puts(section.c_str());
-                processSection(section, files, typeMap);
+                processSection(section, files, typeMap, pixelWidth);
             }
         }
     }
     else
     {
         printf("can't open %s\n", src);
-        return EXIT_FAILURE;
+        return false;
     }
 
-    return EXIT_SUCCESS;
+    return true;
 }
 
 int main(int argc, char *argv[], char *envp[])
 {
-    if (argc < 2)
+    int count = 0;
+    uint8_t pixelWidth = 2;
+
+    for (int i = 1; i < argc; ++i)
     {
-        puts("require arguments");
-        return test();
+        char *src = argv[i];
+        if (src[0] == '-')
+        {
+            if (src[1] == 'h')
+            {
+                puts(
+                    "usage: \n"
+                    "       mcxz file1.ini file2.ini -2 -3 \n"
+                    "\n"
+                    "filex.ini        job configuration \n"
+                    "-2               set pixelWidth to 2\n"
+                    "-3               set pixelWidth to 3\n"
+                    "-h               show help\n"
+                    "\n");
+                return EXIT_SUCCESS;
+            }
+            else if (src[1] == 't')
+            {
+                test();
+                continue;
+            }
+
+            pixelWidth = src[1] - '0';
+            if (pixelWidth != CTileSet::pixel16 && pixelWidth != CTileSet::pixel24)
+            {
+                printf("invalid switch: %s\n", src);
+                return EXIT_FAILURE;
+            }
+            continue;
+        }
+
+        char *t = strstr(src, ".ini");
+        if (!t || strcmp(t, ".ini") != 0)
+        {
+            printf("source %s doesn't end with .ini\n", src);
+            return EXIT_FAILURE;
+        }
+        ++count;
+        if (!runJob(src, pixelWidth))
+        {
+            puts("error encountered.");
+            return EXIT_FAILURE;
+        }
     }
 
-    char *src = argv[1];
-    char *t = strstr(src, ".ini");
-    if (!t || strcmp(t, ".ini") != 0)
+    if (count == 0)
     {
-        printf("source %s doesn't end with .ini\n", src);
+        puts("require at least one .ini file argument");
         return EXIT_FAILURE;
     }
 
-    return runJob(src);
+    return EXIT_SUCCESS;
 }

@@ -1,19 +1,24 @@
 #include "tileset.h"
 #include <cstring>
 #include <cstdio>
+#include <cassert>
 
 static const char SIG[] = "MCXZ";
 static const uint16_t VERSION = 0;
 
-CTileSet::CTileSet(int width, int height, int count)
+CTileSet::CTileSet(int width, int height, int count, int pixelWidth)
 {
+    m_pixelWidth = pixelWidth ? pixelWidth : pixel16;
+    assert(m_pixelWidth == pixel16 || m_pixelWidth == pixel24);
     m_height = height;
     m_width = width;
+    assert(m_width > 0 && m_height > 0);
     m_size = count;
-    m_tiles = m_height * m_width * m_size ? new uint16_t[m_height * m_width * m_size] : nullptr;
+    m_tileSize = m_height * m_width * m_pixelWidth;
+    m_tiles = m_tileSize ? new uint8_t[m_tileSize * m_size] : nullptr;
     if (m_tiles)
     {
-        memset(m_tiles, 0, m_height * m_width * m_size * sizeof(uint16_t));
+        memset(m_tiles, 0, m_tileSize * m_size);
     }
 }
 
@@ -22,38 +27,30 @@ CTileSet::~CTileSet()
     forget();
 }
 
-uint16_t *CTileSet::operator[](int i)
+void *CTileSet::operator[](int i)
 {
-    return m_tiles + i * m_height * m_width;
+    return m_tiles + i * m_tileSize;
 }
 
 // set tile
 // i        index of target tile
 // pixels   16bits color array
-void CTileSet::set(int i, const uint16_t *pixels)
+void CTileSet::set(int i, const void *pixels)
 {
-    int offset = m_height * m_width * i;
-    int tileSize = m_height * m_width * sizeof(uint16_t);
-    // printf("set %d offset [%d] tileSize[%d]\n", i, offset, tileSize);
-
-    memcpy(m_tiles + offset, pixels, tileSize);
+    memcpy(m_tiles + i * m_tileSize, pixels, m_tileSize);
 }
 
-int CTileSet::add(const uint16_t *tile)
+int CTileSet::add(const void *tile)
 {
-    printf("size:%d  %d x %d \n", m_size, m_height, m_width);
-    //
-    int unitSize = m_height * m_width;
-    int blocksize = unitSize * sizeof(uint16_t);
-    uint16_t *t = new uint16_t[unitSize * (m_size + 1)];
+    printf("size:%d;  %d x %d x %d = %d \n", m_size, m_height, m_width, m_pixelWidth, m_tileSize);
+    uint8_t *t = new uint8_t[(m_size + 1) * m_tileSize];
     if (m_tiles != nullptr)
     {
-        memcpy(t, m_tiles, blocksize * m_size);
+        memcpy(t, m_tiles, m_tileSize * m_size);
         delete[] m_tiles;
     }
-    memcpy(t + unitSize * m_size, tile, blocksize);
+    memcpy(t + m_size * m_tileSize, tile, m_tileSize);
     m_tiles = t;
-
     return ++m_size;
 }
 
@@ -74,21 +71,29 @@ bool CTileSet::read(const char *fname)
             printf("wrong signature\n");
             return false;
         }
-
-        if (version > VERSION)
+        if (version & 0xff > VERSION)
         {
             printf("wrong version\n");
             return false;
         }
-        m_width = m_height = m_size = 0;
+        m_pixelWidth = version >> 8 ? version >> 8 : pixel16;
+        if (m_pixelWidth != pixel16 && m_pixelWidth != pixel24)
+        {
+            printf("wrong pixelWidth: %d\n", m_pixelWidth);
+            return false;
+        }
 
+        m_width = m_height = m_size = 0;
         fread(&m_width, 1, 1, sfile);
         fread(&m_height, 1, 1, sfile);
-        fread(&m_size, 4, 1, sfile);
+        fread(&m_size, 2, 1, sfile);
+        uint16_t t;
+        fread(&t, 2, 1, sfile);
+        m_tileSize = m_width * m_height * m_pixelWidth;
         if (m_size)
         {
-            m_tiles = new uint16_t[m_height * m_width * m_size];
-            fread(m_tiles, m_height * m_width * m_size * sizeof(uint16_t), 1, sfile);
+            m_tiles = new uint8_t[m_size * m_tileSize];
+            fread(m_tiles, m_size * m_tileSize, 1, sfile);
         }
         fclose(sfile);
     }
@@ -103,13 +108,16 @@ bool CTileSet::write(const char *fname)
     if (tfile)
     {
         fwrite(SIG, strlen(SIG), 1, tfile);
-        fwrite(&VERSION, sizeof(VERSION), 1, tfile);
+        uint16_t version = VERSION + m_pixelWidth << 8;
+        fwrite(&version, sizeof(version), 1, tfile);
         fwrite(&m_width, 1, 1, tfile);
         fwrite(&m_height, 1, 1, tfile);
-        fwrite(&m_size, 4, 1, tfile);
+        fwrite(&m_size, 2, 1, tfile);
+        uint16_t t = 0;
+        fwrite(&t, 2, 1, tfile); // reserved
         if (m_size)
         {
-            fwrite(m_tiles, m_height * m_width * m_size * sizeof(uint16_t), 1, tfile);
+            fwrite(m_tiles, m_size * m_tileSize, 1, tfile);
         }
         fclose(tfile);
     }
@@ -137,14 +145,10 @@ int CTileSet::size()
 // extend size of tileset by x tiles
 int CTileSet::extendBy(int tiles)
 {
-    //     printf("size:%d  %d x %d \n", m_size, m_height, m_width);
-    //
-    int unitSize = m_height * m_width;
-    int blocksize = unitSize * sizeof(uint16_t);
-    uint16_t *t = new uint16_t[unitSize * (m_size + tiles)];
+    uint8_t *t = new uint8_t[m_tileSize * (m_size + tiles)];
     if (m_tiles != nullptr)
     {
-        memcpy(t, m_tiles, blocksize * m_size);
+        memcpy(t, m_tiles, m_size * m_tileSize);
         delete[] m_tiles;
     }
     m_tiles = t;
