@@ -21,7 +21,7 @@ public:
     int add(const void *tile);
     void set(int i, const void *pixels);
 
-    bool read(const char *fname);
+    bool read(const char *fname, bool flipByteOrder = false);
     bool write(const char *fname);
     void forget();
     int size();
@@ -35,6 +35,7 @@ public:
     };
 
 protected:
+    uint16_t flipColor(const uint16_t c);
     uint8_t m_pixelWidth;
     uint16_t m_tileSize;
     uint16_t m_width;

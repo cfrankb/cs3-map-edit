@@ -487,7 +487,11 @@ void writeMapFile(const std::string section, const TileVector tileDefs, bool gen
     tfileMap.close();
 }
 
-bool processSection(const std::string section, StringVector &files, const StrVal &typeMap, uint8_t pixelWidth)
+bool processSection(
+    const std::string section,
+    StringVector &files,
+    const StrVal &typeMap,
+    uint8_t pixelWidth)
 {
     bool genHeaders = false;
 
@@ -628,11 +632,7 @@ bool runJob(const char *src, uint8_t pixelWidth)
         {
             std::string section = sectionList[i];
             StringVector files = conf[section];
-            if (section == "levels")
-            {
-                processLevels(files);
-            }
-            else if (section == "types")
+            if (section == "types")
             {
                 processTypes(files, typeMap);
             }
@@ -652,6 +652,20 @@ bool runJob(const char *src, uint8_t pixelWidth)
     return true;
 }
 
+void showUsage()
+{
+    puts(
+        "mcxz tileset generator\n\n"
+        "usage: \n"
+        "       mcxz file1.ini file2.ini -2 -3 \n"
+        "\n"
+        "filex.ini        job configuration \n"
+        "-2               set pixelWidth to 2 (16bits)\n"
+        "-3               set pixelWidth to 3 (18bits/24bits)\n"
+        "-h               show help\n"
+        "\n");
+}
+
 int main(int argc, char *argv[], char *envp[])
 {
     int count = 0;
@@ -662,17 +676,21 @@ int main(int argc, char *argv[], char *envp[])
         char *src = argv[i];
         if (src[0] == '-')
         {
+            if (std::string(src) == "--help")
+            {
+                showUsage();
+                return EXIT_SUCCESS;
+            }
+
+            if (strlen(src) != 2)
+            {
+                printf("invalid switch: %s\n", src);
+                return EXIT_FAILURE;
+            }
+
             if (src[1] == 'h')
             {
-                puts(
-                    "usage: \n"
-                    "       mcxz file1.ini file2.ini -2 -3 \n"
-                    "\n"
-                    "filex.ini        job configuration \n"
-                    "-2               set pixelWidth to 2\n"
-                    "-3               set pixelWidth to 3\n"
-                    "-h               show help\n"
-                    "\n");
+                showUsage();
                 return EXIT_SUCCESS;
             }
             else if (src[1] == 't')
@@ -682,7 +700,8 @@ int main(int argc, char *argv[], char *envp[])
             }
 
             pixelWidth = src[1] - '0';
-            if (pixelWidth != CTileSet::pixel16 && pixelWidth != CTileSet::pixel24)
+            if (pixelWidth != CTileSet::pixel16 &&
+                pixelWidth != CTileSet::pixel24)
             {
                 printf("invalid switch: %s\n", src);
                 return EXIT_FAILURE;

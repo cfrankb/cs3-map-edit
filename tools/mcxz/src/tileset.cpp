@@ -56,7 +56,7 @@ int CTileSet::add(const void *tile)
 
 // read
 // read tileset from file
-bool CTileSet::read(const char *fname)
+bool CTileSet::read(const char *fname, bool flipByteOrder)
 {
     FILE *sfile = fopen(fname, "rb");
     if (sfile)
@@ -94,6 +94,15 @@ bool CTileSet::read(const char *fname)
         {
             m_tiles = new uint8_t[m_size * m_tileSize];
             fread(m_tiles, m_size * m_tileSize, 1, sfile);
+            if (flipByteOrder && m_pixelWidth == pixel16)
+            {
+                // for displays that have a reversed byte order
+                uint16_t *pixels = reinterpret_cast<uint16_t *>(m_tiles);
+                for (int i = 0; i < m_height * m_width * m_size; ++i)
+                {
+                    pixels[i] = flipColor(pixels[i]);
+                }
+            }
         }
         fclose(sfile);
     }
@@ -108,7 +117,7 @@ bool CTileSet::write(const char *fname)
     if (tfile)
     {
         fwrite(SIG, strlen(SIG), 1, tfile);
-        uint16_t version = VERSION + m_pixelWidth << 8;
+        uint16_t version = VERSION + (m_pixelWidth << 8);
         fwrite(&version, sizeof(version), 1, tfile);
         fwrite(&m_width, 1, 1, tfile);
         fwrite(&m_height, 1, 1, tfile);
@@ -154,4 +163,10 @@ int CTileSet::extendBy(int tiles)
     m_tiles = t;
     m_size += tiles;
     return m_size;
+}
+
+// Flip bytes in a 16bbp pixel
+uint16_t CTileSet::flipColor(const uint16_t c)
+{
+    return (c >> 8) + ((c & 0xff) << 8);
 }
