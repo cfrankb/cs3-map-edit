@@ -5,13 +5,14 @@
 #include <string.h>
 #include <unordered_map>
 #include <map>
+#include <vector>
 #include "zlib.h"
 #include "../../../shared/FileWrap.h"
 #include "../../../shared/FrameSet.h"
 #include "../../../shared/Frame.h"
 #include "tileset.h"
-#include "../../../map.h"
-#include "../../../level.h"
+
+typedef std::vector<std::string> StringVector;
 
 typedef struct
 {
@@ -31,6 +32,44 @@ typedef std::vector<Tile> TileVector;
 typedef std::vector<std::string> StrVector;
 typedef std::map<std::string, StringVector> Config;
 typedef std::unordered_map<std::string, uint8_t> StrVal;
+
+void splitString(const std::string str, StringVector &list)
+{
+    int i = 0;
+    unsigned int j = 0;
+    while (j < str.length())
+    {
+        if (isspace(str[j]))
+        {
+            list.push_back(str.substr(i, j - i));
+            while (isspace(str[j]) && j < str.length())
+            {
+                ++j;
+            }
+            i = j;
+            continue;
+        }
+        ++j;
+    }
+    list.push_back(str.substr(i, j - i));
+}
+
+std::string str2upper(const std::string in)
+{
+    char t[in.length() + 1];
+    strcpy(t, in.c_str());
+    char *p = t;
+    while (*p)
+    {
+        if (*p == '.')
+        {
+            break;
+        }
+        *p = toupper(*p);
+        ++p;
+    }
+    return t;
+}
 
 uint16_t rgb888torgb565(uint8_t *rgb888Pixel)
 {
@@ -191,17 +230,6 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
         s = n;
     }
 
-    return true;
-}
-
-bool processLevels(StringVector &files)
-{
-    for (int i = 0; i < files.size(); ++i)
-    {
-        CMap map;
-        processLevel(map, files[0].c_str());
-        map.write("level01.dat");
-    }
     return true;
 }
 
