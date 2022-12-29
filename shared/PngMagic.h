@@ -18,7 +18,7 @@
 #ifndef PNGMAGIC_H
 #define PNGMAGIC_H
 
-
+#include <stdint.h>
 class CFrame;
 class CFrameSet;
 class IFile;

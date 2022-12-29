@@ -5,7 +5,6 @@
 #include <QOpenGLFunctions_2_0>
 #include <QWidget>
 #include <QTimer>
-//#include <stdafx.h>
 
 class CMap;
 

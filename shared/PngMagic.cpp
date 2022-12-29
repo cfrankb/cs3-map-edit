@@ -15,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "stdafx.h"
 #include "PngMagic.h"
 #include "Frame.h"
 #include "FrameSet.h"
@@ -273,15 +272,15 @@ bool CPngMagic::_8bpp(
     //printf("pixelWidth: %d\n", pixelWidth);
     //printf("pitch: %d\n", pitch);
 
-    LONGUINT dataSize = pitch * CFrame::toNet(ihdr.Height);
+    uLong dataSize = pitch * CFrame::toNet(ihdr.Height);
     uint8_t *data = new uint8_t [ dataSize ];
     //    printf("total data:%d\n", ((int)dataSize));
 
     int err = uncompress(
                 (uint8_t *)data,
-                (LONGUINT *)& dataSize,
+                (uLong *)& dataSize,
                 (uint8_t *)cData,
-                (LONGUINT) cDataSize);
+                (uLong) cDataSize);
 
     if (err) {
 //        set.setLastError("error in decomp");
@@ -467,9 +466,9 @@ bool CPngMagic::_4bpp(
 
     int err = uncompress(
                 (uint8_t *)data,
-                (LONGUINT *)& dataSize,
+                (uLong *)& dataSize,
                 (uint8_t *)cData,
-                (LONGUINT) cDataSize);
+                (uLong) cDataSize);
 
     if (err) {
 //        set.setLastError("error in decomp");

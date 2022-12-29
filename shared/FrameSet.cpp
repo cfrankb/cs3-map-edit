@@ -20,14 +20,13 @@
 //
 #include <cstring>
 #include <cstdio>
-#include "stdafx.h"
+#include <stdint.h>
 #include "FrameSet.h"
 #include "Frame.h"
 #include <zlib.h>
 #include "IFile.h"
 #include "PngMagic.h"
 #include "helper.h"
-//#include "LuaVM.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CFrameSet
@@ -101,9 +100,9 @@ void CFrameSet::write0x501(IFile &file)
         ptr += 4 * frame->m_nLen * frame->m_nHei;
     }
 
-    LONGUINT destSize;
+    uLong destSize;
     uint8_t *dest;
-    int err = compressData((uint8_t *)buffer, (LONGUINT)totalSize, &dest, destSize);
+    int err = compressData((uint8_t *)buffer, (uLong)totalSize, &dest, destSize);
     if (err != Z_OK)
     {
         // CLuaVM::debugv("CFrameSet::write0x501 error: %d", err);
@@ -217,9 +216,9 @@ bool CFrameSet::read0x501(IFile &file, int size)
 
     int err = uncompress(
         (uint8_t *)buffer,
-        (LONGUINT *)&totalSize,
+        (uLong *)&totalSize,
         (uint8_t *)srcBuffer,
-        (LONGUINT)srcSize);
+        (uLong)srcSize);
 
     if (err)
     {
@@ -707,16 +706,16 @@ bool CFrameSet::extract(IFile &file, char *out_format)
             }
             else
             {
-                LONGUINT nSrcLen = 0;
+                uLong nSrcLen = 0;
                 file.read(&nSrcLen, 4);
                 uint8_t *pSrc = new uint8_t[nSrcLen];
                 file.read(pSrc, nSrcLen);
-                LONGUINT nDestLen = frame->m_nLen * frame->m_nHei;
+                uLong nDestLen = frame->m_nLen * frame->m_nHei;
                 int err = uncompress(
                     (uint8_t *)bitmap,
-                    (LONGUINT *)&nDestLen,
+                    (uLong *)&nDestLen,
                     (uint8_t *)pSrc,
-                    (LONGUINT)nSrcLen);
+                    (uLong)nSrcLen);
                 if (err)
                 {
                     m_lastError = "CFrameSet::extract zlib error";
