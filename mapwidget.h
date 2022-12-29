@@ -5,7 +5,7 @@
 #include <QOpenGLFunctions_2_0>
 #include <QWidget>
 #include <QTimer>
-#include <stdafx.h>
+//#include <stdafx.h>
 
 class CMap;
 
@@ -24,8 +24,6 @@ protected slots:
     void showGrid(bool show);
 
 protected:
-    int m_mx;
-    int m_my;
     enum {
         TICK_RATE = 30,
         GRID_SIZE = 32,

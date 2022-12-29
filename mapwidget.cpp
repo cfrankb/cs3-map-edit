@@ -54,6 +54,7 @@ CMapWidget::CMapWidget(QWidget *parent)
     m_textureTiles = -1;
     m_textureFont = -1;
     m_map = nullptr;
+    m_showGrid = false;
 }
 
 CMapWidget::~CMapWidget()
@@ -366,7 +367,6 @@ void CMapWidget::drawGrid()
     QSize sz = size();
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
     const int mx = scr->horizontalScrollBar()->value() * GRID_SIZE;
-    //const int my = scr->verticalScrollBar()->value() * GRID_SIZE;
     int w = std::min(sz.width(), (int) (m_map->len() * GRID_SIZE - mx));
     int h = sz.height();
     glDisable(GL_TEXTURE_2D);

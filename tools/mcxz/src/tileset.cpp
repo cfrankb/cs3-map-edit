@@ -15,7 +15,7 @@ CTileSet::CTileSet(int width, int height, int count, int pixelWidth)
     assert(m_width > 0 && m_height > 0);
     m_size = count;
     m_tileSize = m_height * m_width * m_pixelWidth;
-    m_tiles = m_tileSize ? new uint8_t[m_tileSize * m_size] : nullptr;
+    m_tiles = (count * m_tileSize) > 0 ? new uint8_t[m_tileSize * m_size] : nullptr;
     if (m_tiles)
     {
         memset(m_tiles, 0, m_tileSize * m_size);

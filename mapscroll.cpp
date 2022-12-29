@@ -23,7 +23,6 @@ CMapScroll::CMapScroll(QWidget *parent)
     update();
 }
 
-
 void CMapScroll::resizeEvent(QResizeEvent * event)
 {
     CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
@@ -140,4 +139,6 @@ void CMapScroll::newMapSize(int len, int hei)
     m_mapLen = len;
     m_mapHei = hei;
     updateScrollbars();
+    horizontalScrollBar()->setSliderPosition(0);
+    verticalScrollBar()->setSliderPosition(0);
 }
