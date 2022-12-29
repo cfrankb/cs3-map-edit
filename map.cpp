@@ -88,7 +88,7 @@ bool CMap::read(FILE *sfile)
 {
     if (sfile)
     {
-        char sig[strlen(SIG)];
+        char sig[4];
         fread(sig, strlen(SIG), 1, sfile);
         if (memcmp(sig, SIG, strlen(SIG)) != 0)
         {
@@ -96,7 +96,7 @@ bool CMap::read(FILE *sfile)
             printf("%s\n", m_lastError.c_str());
             return false;
         }
-        uint16_t ver;
+        uint16_t ver = 0;
         fread(&ver, sizeof(VERSION), 1, sfile);
         if (ver > VERSION)
         {
@@ -283,7 +283,7 @@ CMap & CMap::operator=(const CMap map)
 
 void CMap::shift(int aim) {
 
-    uint8_t tmp[m_len];
+    uint8_t *tmp = new uint8_t[m_len];
     switch (aim){
     case UP:
         memcpy(tmp, m_map, m_len);
@@ -347,6 +347,7 @@ void CMap::shift(int aim) {
         tMap[newKey] = a;
     }
     m_attrs = tMap;
+    delete []tmp;
 }
 
 uint16_t CMap::toKey(const uint8_t x, const uint8_t y)

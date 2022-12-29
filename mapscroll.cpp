@@ -61,9 +61,6 @@ void CMapScroll::mousePressEvent(QMouseEvent * event)
         m_mouse.rButton = true;
         break;
 
-    case Qt::MidButton:
-        m_mouse.rButton = true;
-        break;
 
     default:
         break;
@@ -85,9 +82,7 @@ void CMapScroll::mouseReleaseEvent(QMouseEvent * event)
     case Qt::RightButton:
         m_mouse.rButton = false;
         break;
-    case Qt::MidButton:
-        m_mouse.mButton = false;
-        break;
+
     default:
         break;
     }

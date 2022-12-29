@@ -1,6 +1,5 @@
 #include <cstring>
 #include <stdio.h>
-#include <dirent.h>
 #include "level.h"
 #include "map.h"
 #include "tilesdata.h"
@@ -281,29 +280,4 @@ bool fetchLevel(CMap &map, const char *fname, std::string & error)
     fclose(sfile);
     printf("level is map\n");
     return processLevel(map, fname);
-}
-
-std::string findLevel(const char *target)
-{
-    DIR *dir;
-    char *fname = nullptr;
-
-    struct dirent *diread;
-    if ((dir = opendir("/spiffs")) != nullptr)
-    {
-        while ((diread = readdir(dir)) != nullptr)
-        {
-            if (strstr(diread->d_name, target))
-            {
-                fname = diread->d_name;
-                break;
-            }
-        }
-        closedir(dir);
-    }
-    else
-    {
-        perror("opendir");
-    }
-    return std::string(fname ? fname : "");
 }
