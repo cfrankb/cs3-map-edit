@@ -8,7 +8,7 @@ CONFIG += c++17
 # In order to do so, uncomment the following line.
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-INCLUDEPATH += shared/
+INCLUDEPATH += shared/ headers/
 DEFINES += USE_QFILE=1
 
 SOURCES += \
@@ -69,3 +69,4 @@ RESOURCES += \
     mapedit.qrc
 
 unix:LIBS += -lz
+win32:LIBS += -L"libs" -lzlib

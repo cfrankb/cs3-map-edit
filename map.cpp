@@ -135,8 +135,8 @@ bool CMap::write(FILE *tfile)
         fwrite(&m_len, sizeof(uint8_t), 1, tfile);
         fwrite(&m_hei, sizeof(uint8_t), 1, tfile);
         fwrite(m_map, m_len * m_hei, 1, tfile);
-        uint16_t attrCount =  m_attrs.size();
-        fwrite(&attrCount, sizeof(attrCount), 1, tfile);
+        size_t attrCount =  m_attrs.size();
+        fwrite(&attrCount, sizeof(uint16_t), 1, tfile);
         for (auto& it: m_attrs) {
             uint16_t key = it.first;
             uint8_t x = key & 0xff;

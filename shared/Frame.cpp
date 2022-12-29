@@ -962,7 +962,8 @@ void CFrame::enlarge()
 
 void CFrame::shiftUP()
 {
-    uint32_t t[m_nLen];
+
+    uint32_t *t = new uint32_t[m_nLen];
 
     // copy first line to buffer
     memcpy(t, m_rgb, sizeof(uint32_t) * m_nLen);
@@ -975,11 +976,13 @@ void CFrame::shiftUP()
 
     // copy first line to last
     memcpy(&at(0, m_nHei - 1), t, sizeof(uint32_t) * m_nLen);
+
+    delete []t;
 }
 
 void CFrame::shiftDOWN()
 {
-    uint32_t t[m_nLen];
+    uint32_t *t = new uint32_t[m_nLen];
 
     // copy first line to buffer
     memcpy(t, &at(0, m_nHei - 1), sizeof(uint32_t) * m_nLen);
@@ -992,6 +995,8 @@ void CFrame::shiftDOWN()
 
     // copy first line to last
     memcpy(m_rgb, t, sizeof(uint32_t) * m_nLen);
+    delete []t;
+
 }
 
 void CFrame::shiftLEFT()

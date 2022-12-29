@@ -38,6 +38,17 @@ jobs:
         run: |
           git fetch --all --tags -f
 
+      - name: Download JOM
+        uses: suisei-cn/actions-download-file@v1
+        with:
+          url: http://download.qt.io/official_releases/jom/jom.zip
+          target: ${{ runner.temp }}\
+
+      - name: Unzip JOM
+        working-directory: ${{ runner.temp }}
+        run: |
+          7z x jom.zip -ojom
+
       - name: Download zlib
         uses: suisei-cn/actions-download-file@v1
         with:
@@ -50,13 +61,6 @@ jobs:
           7z x zlib1213.zip -ozlib
           dir /w zlib
 
-      - name: compile zlib
-        working-directory: ${{ runner.temp }}
-        run: |
-          cd zlib
-          nmake /f win32/Makefile.msc
-          dir /w
-
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
@@ -68,17 +72,6 @@ jobs:
           modules: qtcore qtwidgets qtgui #qtcharts qt3d
           setup-python: false
 
-      - name: Download JOM
-        uses: suisei-cn/actions-download-file@v1
-        with:
-          url: http://download.qt.io/official_releases/jom/jom.zip
-          target: ${{ runner.temp }}\
-
-      - name: Unzip JOM
-        working-directory: ${{ runner.temp }}
-        run: |
-          7z x jom.zip -ojom
-
       - name: Create build directory
         run: mkdir ${{ runner.temp }}\build
 
@@ -87,10 +80,28 @@ jobs:
         with:
           arch: ${{ env.VSARCH }}
 
+      - name: compile zlib
+        working-directory: ${{ runner.temp }}
+        run: |
+          cd zlib\\zlib-1.2.13
+          dir /w
+          nmake /f win32/Makefile.msc
+          dir /w
+
+          mkdir ${{ runner.temp }}\build\libs
+          mkdir ${{ runner.temp }}\build\headers
+          copy zlib.lib ${{ runner.temp }}\build\libs
+          copy zlib.h ${{ runner.temp }}\build\headers
+          copy zconf.h ${{ runner.temp }}\build\headers
+
+          mkdir ${{ env.SOURCE_DIR }}\libs
+          copy zlib.lib ${{ env.SOURCE_DIR }}\libs
+
       - name: Build
         working-directory: ${{ runner.temp }}\build
         run: |
           qmake -r ${{ env.SOURCE_DIR }}\\mapedit.pro
+          cat Makefile.Release
           ${{ runner.temp }}\jom\jom -j2
           dir /s
           cd release

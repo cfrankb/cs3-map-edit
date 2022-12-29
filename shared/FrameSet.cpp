@@ -905,8 +905,8 @@ void CFrameSet::toPng(unsigned char *&data, int &size)
 {
     if (m_size > 1)
     {
-        short xx[m_size];
-        short yy[m_size];
+        short *xx = new short[m_size];
+        short *yy = new short[m_size];
         int width = 0;
         int height = 0;
         for (int i = 0; i < m_size; ++i)
@@ -953,6 +953,8 @@ void CFrameSet::toPng(unsigned char *&data, int &size)
         frame->toPng(data, size, buf, t_size);
         delete frame;
         delete[] buf;
+        delete []xx;
+        delete []yy;
     }
     else
     {
@@ -986,10 +988,9 @@ void CFrameSet::setTag(const char *tag, const char *v)
 void CFrameSet::toSubset(CFrameSet &dest, int start, int end)
 {
     int last = end == -1 ? getSize() - 1 : end;
-    CFrameSet &me = *this;
     for (int i = start; i <= last; ++i)
     {
-        CFrame *p = new CFrame(me[i]);
+        CFrame *p = new CFrame(m_arrFrames[i]);
         dest.add(p);
     }
 }
