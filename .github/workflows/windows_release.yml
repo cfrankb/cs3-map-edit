@@ -38,6 +38,25 @@ jobs:
         run: |
           git fetch --all --tags -f
 
+      - name: Download zlib
+        uses: suisei-cn/actions-download-file@v1
+        with:
+          url: https://zlib.net/zlib1213.zip
+          target: ${{ runner.temp }}\
+
+      - name: Unzip zlib
+        working-directory: ${{ runner.temp }}
+        run: |
+          7z x zlib1213.zip -ozlib
+          dir /w zlib
+
+      - name: compile zlib
+        working-directory: ${{ runner.temp }}
+        run: |
+          cd zlib
+          nmake /f win32/Makefile.msc
+          dir /w
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
