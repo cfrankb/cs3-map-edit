@@ -1,0 +1,94 @@
+name: Windows Release
+
+on:
+  push:
+    branches: 
+      - 'master'
+      - 'continuous-integration'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'master'
+      - 'continuous-integration'
+
+defaults:
+  run:
+    shell: cmd
+
+env:
+  BUILD_TYPE:   Release
+  SOURCE_DIR:   ${{ github.workspace }}
+  QT_VERSION:   5.15.2
+  ARTIFACT:     CS3MapEdit_Win64
+  ARCH:         win64_msvc2019_64
+  HOST:         windows
+  VSARCH:       x64
+
+jobs:
+  build:
+    runs-on: windows-2019
+
+    steps:
+
+      - name: checkout repo
+        uses: actions/checkout@v3
+
+      - name: (2) Get all tags for correct version determination
+        working-directory:  ${{ github.workspace }}
+        run: |
+          git fetch --all --tags -f
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v2
+        with:
+          version:      ${{ env.QT_VERSION }}
+          host:         ${{ env.HOST }}
+          target:       desktop
+          arch:         ${{ env.ARCH }}
+          dir:          ${{ runner.temp }}
+          modules:      qtcore qtwidgets qtgui   #qtcharts qt3d
+          setup-python: false
+
+      - name: Download JOM
+        uses: suisei-cn/actions-download-file@v1
+        with:
+          url:    http://download.qt.io/official_releases/jom/jom.zip
+          target: ${{ runner.temp }}\
+
+      - name: Unzip JOM
+        working-directory: ${{ runner.temp }}
+        run:  |
+              7z x jom.zip -ojom
+              
+      - name: Create build directory
+        run:  mkdir ${{ runner.temp }}\build
+
+      - name: Set up Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: ${{ env.VSARCH }}
+
+      - name: Build
+        working-directory: ${{ runner.temp }}\build
+        run:  |
+              qmake -r ${{ env.SOURCE_DIR }}\\mapedit.pro
+              ${{ runner.temp }}\jom\jom -j2
+              dir /s
+              cd release
+              windeployqt --qmldir ${{ env.SOURCE_DIR }}\\src mapedit.exe --pdb --release --no-compiler-runtime  --no-translations  --no-system-d3d-compiler --no-opengl-sw
+              copy C:\Windows\System32\concrt140.dll . 
+              copy C:\Windows\System32\vccorlib140.dll .
+              copy C:\Windows\System32\msvcp140.dll .
+              copy C:\Windows\System32\vcruntime140.dll .
+              del *.obj
+              del *.cpp
+              del *.h
+              del *.res
+                           
+      - name: Save build artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{ env.ARTIFACT }}
+          path: ${{ runner.temp }}\build\release
+
