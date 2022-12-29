@@ -4,23 +4,6 @@
 #include "map.h"
 #include "tilesdata.h"
 
-std::string str2upper(const std::string in)
-{
-    char t[in.length() + 1];
-    strcpy(t, in.c_str());
-    char *p = t;
-    while (*p)
-    {
-        if (*p == '.')
-        {
-            break;
-        }
-        *p = toupper(*p);
-        ++p;
-    }
-    return t;
-}
-
 void splitString(const std::string str, StringVector &list)
 {
     int i = 0;
@@ -86,7 +69,7 @@ bool getChMap(const char *mapFile, char *chMap)
         }
         StringVector list;
         splitString(std::string(p), list);
-        u_int8_t ch = std::stoi(list[3], 0, 16);
+        uint8_t ch = std::stoi(list[3], 0, 16);
         p = n;
         chMap[ch] = i;
         ++i;
@@ -250,15 +233,18 @@ bool convertCs3Level(CMap &map, const char *fname)
 
 bool fetchLevel(CMap &map, const char *fname, std::string & error)
 {
-    char tmp[strlen(fname) + 128];
+    char *tmp = new char[strlen(fname) + 128];
     printf("fetching: %s\n", fname);
 
     FILE * sfile = fopen(fname,"rb");
     if (!sfile) {
         sprintf(tmp, "can't open file: %s", fname);
         error = tmp;
+        delete []tmp;
         return false;
     }
+
+    delete []tmp;
 
     char sig[4];
     fread(sig, sizeof(sig), 1, sfile);

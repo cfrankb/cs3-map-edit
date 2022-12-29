@@ -5,7 +5,6 @@
 #include <string>
 class CMap;
 
-std::string str2upper(const std::string in);
 typedef std::vector<std::string> StringVector;
 uint8_t *readFile(const char *fname);
 bool processLevel(CMap &map, const char *fname);
