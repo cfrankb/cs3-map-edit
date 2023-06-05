@@ -519,7 +519,9 @@ bool processSection(
     const std::string section,
     StringVector &files,
     const StrVal &typeMap,
-    uint8_t pixelWidth)
+    uint8_t pixelWidth,
+    bool flipPixels,
+    bool headerless)
 {
     bool genHeaders = false;
 
@@ -635,7 +637,7 @@ bool processSection(
             tiles.set(i, rgb24);
         };
     }
-    tiles.write(fnameT);
+    tiles.write(fnameT, flipPixels, headerless);
 
     // write MapFile
     writeMapFile(section, tileDefs, genHeaders);
@@ -646,7 +648,7 @@ bool processSection(
     return true;
 }
 
-bool runJob(const char *src, uint8_t pixelWidth)
+bool runJob(const char *src, uint8_t pixelWidth, bool flipPixels, bool headerless)
 {
     FILE *sfile = fopen(src, "rb");
     if (sfile != NULL)
@@ -667,7 +669,7 @@ bool runJob(const char *src, uint8_t pixelWidth)
             else
             {
                 puts(section.c_str());
-                processSection(section, files, typeMap, pixelWidth);
+                processSection(section, files, typeMap, pixelWidth, flipPixels, headerless);
             }
         }
     }
@@ -680,25 +682,30 @@ bool runJob(const char *src, uint8_t pixelWidth)
     return true;
 }
 
-void showUsage()
+void showUsage(const char *cmd)
 {
-    puts(
+    printf(
         "mcxz tileset generator\n\n"
         "usage: \n"
-        "       mcxz file1.ini file2.ini -2 -3 \n"
+        "       %s [-2 -3 -r -f] file1.ini [file2.ini]\n"
         "\n"
         "filex.ini        job configuration \n"
         "-2               set pixelWidth to 2 (16bits)\n"
         "-3               set pixelWidth to 3 (18bits/24bits)\n"
+        "-r               raw headerless generation\n"
+        "-f               flip bytes (only applies to 16bits)\n"
         "-h               show help\n"
-        "\n");
+        "\n", cmd);
 }
 
 int main(int argc, char *argv[], char *envp[])
 {
     int count = 0;
-    uint8_t pixelWidth = 2;
+    uint8_t pixelWidth = CTileSet::pixel16;
+    bool flipPixels = false;
+    bool headerless = false;
 
+    StringVector files;
     for (int i = 1; i < argc; ++i)
     {
         char *src = argv[i];
@@ -706,7 +713,7 @@ int main(int argc, char *argv[], char *envp[])
         {
             if (std::string(src) == "--help")
             {
-                showUsage();
+                showUsage(argv[0]);
                 return EXIT_SUCCESS;
             }
 
@@ -718,7 +725,7 @@ int main(int argc, char *argv[], char *envp[])
 
             if (src[1] == 'h')
             {
-                showUsage();
+                showUsage(argv[0]);
                 return EXIT_SUCCESS;
             }
             else if (src[1] == 't')
@@ -726,15 +733,32 @@ int main(int argc, char *argv[], char *envp[])
                 test();
                 continue;
             }
-
-            pixelWidth = src[1] - '0';
-            if (pixelWidth != CTileSet::pixel16 &&
-                pixelWidth != CTileSet::pixel24)
+            else if (src[1] == 'f')
             {
-                printf("invalid switch: %s\n", src);
-                return EXIT_FAILURE;
+                flipPixels = true;
+                continue;
             }
-            continue;
+            else if (src[1] == 'r')
+            {
+                headerless = true;
+                continue;
+            }
+
+            if (isdigit(src[1])) {
+                pixelWidth = src[1] - '0';
+                if (pixelWidth == CTileSet::pixel16 ||
+                    pixelWidth == CTileSet::pixel24)
+                {
+                    continue;
+                }
+            }
+            printf("invalid switch: %s\n", src);
+            return EXIT_FAILURE;
+        }
+
+        if (flipPixels && pixelWidth != CTileSet::pixel16) {
+            printf("invalid flag combination. cannot flip bytes if not 16bits.\n");
+            return EXIT_FAILURE;
         }
 
         char *t = strstr(src, ".ini");
@@ -743,18 +767,23 @@ int main(int argc, char *argv[], char *envp[])
             printf("source %s doesn't end with .ini\n", src);
             return EXIT_FAILURE;
         }
-        ++count;
-        if (!runJob(src, pixelWidth))
-        {
-            puts("error encountered.");
-            return EXIT_FAILURE;
-        }
+
+        files.push_back(src);
     }
 
-    if (count == 0)
+    if (files.size() == 0)
     {
         puts("require at least one .ini file argument");
         return EXIT_FAILURE;
+    } else {
+        for (int i=0; i < files.size(); ++i)  {
+            
+            if (!runJob(files.at(i).c_str(), pixelWidth, flipPixels, headerless))
+            {
+                puts("error encountered.");
+                return EXIT_FAILURE;
+            }
+        }
     }
 
     return EXIT_SUCCESS;

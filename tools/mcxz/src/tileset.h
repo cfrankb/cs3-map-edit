@@ -22,7 +22,7 @@ public:
     void set(int i, const void *pixels);
 
     bool read(const char *fname, bool flipByteOrder = false);
-    bool write(const char *fname);
+    bool write(const char *fname, bool flipByteOrder = false, bool headerless = false);
     void forget();
     int size();
     int extendBy(int tiles);
