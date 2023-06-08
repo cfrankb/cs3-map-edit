@@ -5,9 +5,12 @@
 
 static const char SIG[] = "MAPZ";
 static const uint16_t VERSION = 0;
+static const uint16_t MAX_SIZE = 256;
 
-CMap::CMap(int len, int hei, uint8_t t)
+CMap::CMap(uint16_t len, uint16_t hei, uint8_t t)
 {
+    len = std::min(len, MAX_SIZE);
+    hei = std::min(hei, MAX_SIZE);
     m_size = 0;
     m_len = len;
     m_hei = hei;
@@ -58,6 +61,7 @@ void CMap::forget()
     m_len = 0;
     m_hei = 0;
     m_size = 0;
+    m_attrs.clear();
 }
 
 bool CMap::read(const char *fname)
@@ -104,10 +108,12 @@ bool CMap::read(FILE *sfile)
             printf("%s\n", m_lastError.c_str());
             return false;
         }
-        uint8_t len;
-        uint8_t hei;
-        fread(&len, sizeof(len), 1, sfile);
-        fread(&hei, sizeof(hei), 1, sfile);
+        uint16_t len = 0;
+        uint16_t hei = 0;
+        fread(&len, sizeof(uint8_t), 1, sfile);
+        fread(&hei, sizeof(uint8_t), 1, sfile);
+        len = len ? len : MAX_SIZE;
+        hei = hei ? hei : MAX_SIZE;
         resize(len, hei, true);
         fread(m_map, len * hei, 1, sfile);
         m_attrs.clear();
@@ -124,6 +130,45 @@ bool CMap::read(FILE *sfile)
         }
     }
     return sfile != nullptr;
+}
+
+bool CMap::fromMemory(uint8_t *mem)
+{
+    if (memcmp(mem, SIG, strlen(SIG)) != 0)
+    {
+        m_lastError = "signature mismatch";
+        printf("%s\n", m_lastError.c_str());
+        return false;
+    }
+
+    uint16_t ver = 0;
+    memcpy(mem+4, &ver, 2);
+    if (ver > VERSION)
+    {
+        m_lastError = "bad version";
+        printf("%s\n", m_lastError.c_str());
+        return false;
+    }
+
+    uint16_t len = mem[6];
+    uint16_t hei = mem[7];
+    len = len ? len : MAX_SIZE;
+    hei = hei ? hei : MAX_SIZE;
+    resize(len, hei, true);
+    const uint32_t mapSize = len * hei;
+    memcpy(m_map, mem + 8, mapSize);
+    m_attrs.clear();
+    uint8_t *ptr = mem + 8 + mapSize;
+    uint16_t attrCount = 0;
+    memcpy(&attrCount, ptr, 2);
+    ptr +=2;
+    for (int i=0; i < attrCount; ++i) {
+        uint8_t x = *ptr ++;
+        uint8_t y = *ptr ++;
+        uint8_t a = *ptr ++;
+        setAttr(x,y,a);
+    }
+    return true;
 }
 
 bool CMap::write(FILE *tfile)
@@ -159,8 +204,10 @@ int CMap::hei() const
     return m_hei;
 }
 
-bool CMap::resize(int len, int hei, bool fast)
+bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
 {
+    len = std::min(len, MAX_SIZE);
+    hei = std::min(hei, MAX_SIZE);
     if (fast) {
         if (len * hei > m_size)
         {
@@ -181,7 +228,7 @@ bool CMap::resize(int len, int hei, bool fast)
         for (int y=0; y < hei; ++y) {
             memcpy(newMap + y * len,
                    m_map + y * m_len,
-                   std::min(static_cast<uint8_t>(len), m_len));
+                   std::min(static_cast<uint16_t>(len), m_len));
         }
         delete [] m_map;
         m_map = newMap;
@@ -353,4 +400,17 @@ void CMap::shift(int aim) {
 uint16_t CMap::toKey(const uint8_t x, const uint8_t y)
 {
     return x + (y << 8);
+}
+
+void CMap::debug()
+{
+    printf("len: %d hei:%d\n", m_len, m_hei);
+    printf("attrCount:%d\n", m_attrs.size());
+    for (auto& it: m_attrs) {
+        uint16_t key = it.first;
+        uint8_t x = key & 0xff;
+        uint8_t y = key >> 8;
+        uint8_t a = it.second;
+        printf("key:%.4x x:%.2x y:%.2x a:%.2x\n", key,x,y,a);
+    }
 }
