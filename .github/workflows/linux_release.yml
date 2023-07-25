@@ -40,7 +40,7 @@ jobs:
           target: desktop
           arch: gcc_64
           dir: ${{ runner.temp }}
-          modules: qtcore qtwidgets qtgui #qtcharts qt3d
+          #modules: #qtcharts qt3d
           setup-python: false
 
       - name: Create build directory
