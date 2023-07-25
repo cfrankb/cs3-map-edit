@@ -62,14 +62,14 @@ jobs:
           dir /w zlib
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           version: ${{ env.QT_VERSION }}
           host: ${{ env.HOST }}
           target: desktop
           arch: ${{ env.ARCH }}
           dir: ${{ runner.temp }}
-          modules: qtcore qtwidgets qtgui #qtcharts qt3d
+          #modules: qtcharts qt3d
           setup-python: false
 
       - name: Create build directory
