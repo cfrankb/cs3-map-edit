@@ -15,6 +15,7 @@ SOURCES += \
     data.cpp \
     dlgattr.cpp \
     dlgresize.cpp \
+    dlgabout.cpp \
     level.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
     data.h \
     dlgattr.h \
     dlgresize.h \
+    dlgabout.h \
     level.h \
     mainwindow.h \
     mapfile.h \
@@ -58,6 +60,7 @@ HEADERS += \
 FORMS += \
     dlgattr.ui \
     dlgresize.ui \
+    dlgabout.ui \
     mainwindow.ui
 
 # Default rules for deployment.

@@ -2,5 +2,18 @@
     <qresource prefix="/">
         <file>data/font.bin</file>
         <file>data/tilestiny.obl</file>
+        <file>linux/CS3MapEdit-icon.png</file>
+        <file>data/icons/colorpicker.png</file>
+        <file>data/icons/current.gif</file>
+        <file>data/icons/icons8-erase-40.png</file>
+        <file>data/icons/icons8-eraser-50.png</file>
+        <file>data/icons/memo.gif</file>
+        <file>data/icons/next.gif</file>
+        <file>data/icons/options.gif</file>
+        <file>data/icons/prev.gif</file>
+        <file>data/icons/strawberrypntbrush.png</file>
+        <file>data/icons/new.gif</file>
+        <file>data/icons/open.gif</file>
+        <file>data/icons/save.gif</file>
     </qresource>
 </RCC>

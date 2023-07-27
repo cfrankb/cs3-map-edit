@@ -19,12 +19,14 @@ public:
 
 private:
     void setupToolbox();
+    int getTabId(int typeId);
 
 signals:
     void tileChanged(int);
 
 private slots:
     void buttonPressed(QAction *action);
+    void setTile(int tile);
 
 private:
     QToolButton **m_buttons;

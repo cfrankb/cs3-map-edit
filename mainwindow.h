@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "mapfile.h"
+#include "qactiongroup.h"
 
 class CMapScroll;
 
@@ -20,6 +21,7 @@ public:
 
 signals:
     void resizeMap(int, int);
+    void newTile(int);
 
 private slots:
     void loadFile(const QString & filename);
@@ -38,6 +40,9 @@ private slots:
     void shiftDown();
     void shiftLeft();
     void shiftRight();
+    void on_actionClear_Map_triggered();
+    void on_actionHelp_About_triggered();
+    void on_actionHelp_About_Qt_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
@@ -58,10 +63,15 @@ private:
     void initTilebox();
     void initShortcuts();
     void initMapShortcuts();
+    void initToolBar();
+    int currentTool();
 
     enum {
         MAX_RECENT_FILES = 8,
         GRID_SIZE = 32,
+        TOOL_SELECT = 0,
+        TOOL_PAINT=1,
+        TOOL_ERASE=2
     };
 
     Ui::MainWindow *ui;
@@ -69,6 +79,7 @@ private:
     CMapFile m_doc;
     int m_hx = -1;
     int m_hy = -1;
+    QActionGroup *m_toolGroup;
     uint8_t m_currTile = 0;
     QAction *m_recentFileActs[MAX_RECENT_FILES];
 };

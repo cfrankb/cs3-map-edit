@@ -405,7 +405,7 @@ uint16_t CMap::toKey(const uint8_t x, const uint8_t y)
 void CMap::debug()
 {
     printf("len: %d hei:%d\n", m_len, m_hei);
-    printf("attrCount:%d\n", m_attrs.size());
+    printf("attrCount:%ld\n", m_attrs.size());
     for (auto& it: m_attrs) {
         uint16_t key = it.first;
         uint8_t x = key & 0xff;

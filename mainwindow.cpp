@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "dlgabout.h"
 #include "ui_mainwindow.h"
 #include <QtOpenGL>
 #include <QDockWidget>
@@ -35,8 +36,10 @@ MainWindow::MainWindow(QWidget *parent)
     updateTitle();
     initTilebox();
     initFileMenu();
-    initShortcuts();
+    //initShortcuts();
     initMapShortcuts();
+    initToolBar();
+    setWindowIcon(QIcon(":/linux/CS3MapEdit-icon.png"));
 }
 
 void MainWindow::initShortcuts()
@@ -105,6 +108,8 @@ void MainWindow::initTilebox() {
     dock->setAllowedAreas(Qt::LeftDockWidgetArea);
     connect(tilebox, SIGNAL(tileChanged(int)),
             this, SLOT(changeTile(int)));
+    connect(this, SIGNAL(newTile(int)),
+            tilebox, SLOT(setTile(int)));
 }
 
 MainWindow::~MainWindow()
@@ -358,6 +363,7 @@ void MainWindow::showAttrDialog()
 void MainWindow::changeTile(int tile)
 {
     m_currTile = tile;
+    ui->actionTools_Paint->setChecked(true);
 }
 
 void MainWindow::onLeftClick(int x, int y)
@@ -367,8 +373,21 @@ void MainWindow::onLeftClick(int x, int y)
          && (y < m_doc.map()->hei()) )
     {
         const uint8_t tile = m_doc.map()->at(x,y);
-        if (tile != m_currTile) {
-            m_doc.map()->at(x,y) = m_currTile;
+        uint8_t newTileId = tile;
+        switch(currentTool()) {
+        case TOOL_PAINT:
+            newTileId = m_currTile;
+            break;
+        case TOOL_ERASE:
+            newTileId = 0;
+            break;
+        case TOOL_SELECT:
+            m_currTile = m_doc.map()->at(x,y);
+            emit newTile(m_currTile);
+        }
+
+        if (newTileId != tile) {
+            m_doc.map()->at(x,y) = newTileId;
             m_doc.setDirty(true);
         }
     }
@@ -403,8 +422,6 @@ void MainWindow::reloadRecentFileActions()
         m_recentFileActs[i]->setVisible(true);
         m_recentFileActs[i]->setStatusTip(files[i]);
     }
-    //for (int j = numRecentFiles; j < MAX_RECENT_FILES; ++j)
-    //    m_recentFileActs[j]->setVisible(false);
     ui->actionNothing_yet->setVisible(numRecentFiles == 0);
 }
 
@@ -431,3 +448,55 @@ void MainWindow::openRecentFile()
     updateMenus();
 }
 
+void MainWindow::initToolBar()
+{
+    ui->toolBar->setIconSize( QSize(16,16) );
+    ui->toolBar->addAction(ui->actionFile_New_Map);
+    ui->toolBar->addAction(ui->actionFile_Open);
+    ui->toolBar->addAction(ui->actionFile_Save);
+    ui->toolBar->addSeparator();
+    ui->toolBar->addAction(ui->actionTools_Paint);
+    ui->toolBar->addAction(ui->actionTools_Erase);
+    ui->toolBar->addAction(ui->actionTools_Select);
+
+    m_toolGroup = new QActionGroup(this);
+    m_toolGroup->addAction(ui->actionTools_Paint);
+    m_toolGroup->addAction(ui->actionTools_Erase);
+    m_toolGroup->addAction(ui->actionTools_Select);
+    m_toolGroup->setExclusive(true);
+    ui->actionTools_Paint->setChecked(true);
+    ui->actionTools_Paint->setData(TOOL_PAINT);
+    ui->actionTools_Erase->setData(TOOL_ERASE);
+    ui->actionTools_Select->setData(TOOL_SELECT);
+
+    QAction *actionToolBar = ui->toolBar->toggleViewAction();
+    actionToolBar->setText(tr("ToolBar"));
+    actionToolBar->setStatusTip(tr("Show or hide toolbar"));
+    ui->menuView->addAction(actionToolBar);
+}
+
+void MainWindow::on_actionClear_Map_triggered()
+{
+    QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, tr("Clearing the map cannot be reversed. Continue?"),
+                                 QMessageBox::Yes|QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        m_doc.map()->clear();
+        m_doc.setDirty(true);
+    }
+}
+
+int MainWindow::currentTool()
+{
+    return m_toolGroup->checkedAction()->data().toUInt();
+}
+
+void MainWindow::on_actionHelp_About_triggered()
+{
+    DlgAbout dlg;
+    dlg.exec();
+}
+
+void MainWindow::on_actionHelp_About_Qt_triggered()
+{
+    QApplication::aboutQt();
+}
