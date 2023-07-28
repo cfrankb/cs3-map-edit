@@ -10,8 +10,9 @@
 #include "dlgattr.h"
 #include "dlgresize.h"
 #include "tilebox.h"
+#include "map.h"
 
-const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map)";
+const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map *.mapz)";
 const char m_appName[] = "mapedit";
 
 MainWindow::MainWindow(QWidget *parent)
@@ -24,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(m_scrollArea);
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
     connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
+    connect(this, SIGNAL(mapChanged(CMap*)), m_scrollArea, SLOT(newMap(CMap*)));
 
     CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
     glw->setMap(m_doc.map());
@@ -39,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     //initShortcuts();
     initMapShortcuts();
     initToolBar();
+    updateMenus();
     setWindowIcon(QIcon(":/linux/CS3MapEdit-icon.png"));
 }
 
@@ -51,7 +54,7 @@ void MainWindow::initShortcuts()
 
     Hotkey hotkeys[] = {
         {static_cast<uint16_t>(Qt::CTRL + Qt::Key_S), ui->actionFile_Save},
-        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_N), ui->actionFile_New_Map},
+        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_N), ui->actionFile_New_File},
         {static_cast<uint16_t>(Qt::CTRL + Qt::Key_O), ui->actionFile_Open},
         {static_cast<uint16_t>(Qt::CTRL + Qt::Key_Q), ui->actionFile_Exit}
     };
@@ -191,14 +194,14 @@ void MainWindow::loadFile(const QString &fileName)
         updateTitle();
         updateRecentFileActions();
         reloadRecentFileActions();
-        emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
+        emit mapChanged(m_doc.map());
     }
 }
 
 bool MainWindow::save()
 {
     QString oldFileName = m_doc.filename();
-    if (m_doc.isUntitled()) {
+    if (m_doc.isUntitled() || m_doc.isWrongExt()) {
         if (!saveAs())
             return false;
     }
@@ -218,7 +221,7 @@ bool MainWindow::saveAs()
 {
     bool result = false;
     QStringList filters;
-    QString suffix = "dat";
+    QString suffix = m_doc.isMulti() ? "mapz" : "dat";
     QString fileName = "";
 
     QFileDialog * dlg = new QFileDialog(this,tr("Save as"),"",m_allFilter);
@@ -271,7 +274,10 @@ bool MainWindow::updateTitle()
 
 void MainWindow::updateMenus()
 {
-
+    int index = m_doc.currentIndex();
+    ui->actionEdit_Previous_Map->setEnabled(index > 0);
+    ui->actionEdit_Next_Map->setEnabled(index < m_doc.size() - 1);
+    ui->actionEdit_Delete_Map->setEnabled(m_doc.size() > 1);
 }
 
 void MainWindow::setStatus(const QString msg)
@@ -279,14 +285,16 @@ void MainWindow::setStatus(const QString msg)
     ui->statusbar->showMessage(msg);
 }
 
-void MainWindow::on_actionFile_New_Map_triggered()
+void MainWindow::on_actionFile_New_File_triggered()
 {
     if (maybeSave()) {
         m_doc.setFilename("");
-        m_doc.map()->clear();
-        m_doc.map()->resize(40,40, true);
+        m_doc.forget();
+        CMap *map = new CMap(40,40);
+        m_doc.add(map);
         updateTitle();
-        emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
+        emit mapChanged(m_doc.map());
+        updateMenus();
     }
 }
 
@@ -451,9 +459,17 @@ void MainWindow::openRecentFile()
 void MainWindow::initToolBar()
 {
     ui->toolBar->setIconSize( QSize(16,16) );
-    ui->toolBar->addAction(ui->actionFile_New_Map);
+    ui->toolBar->addAction(ui->actionFile_New_File);
     ui->toolBar->addAction(ui->actionFile_Open);
     ui->toolBar->addAction(ui->actionFile_Save);
+    ui->toolBar->addSeparator();
+    ui->toolBar->addAction(ui->actionEdit_ResizeMap);
+    ui->toolBar->addAction(ui->actionEdit_Previous_Map);
+    ui->toolBar->addAction(ui->actionEdit_Next_Map);
+    ui->toolBar->addSeparator();
+    ui->toolBar->addAction(ui->actionEdit_Add_Map);
+    //ui->toolBar->addAction(ui->actionClear_Map);
+    ui->toolBar->addAction(ui->actionEdit_Delete_Map);
     ui->toolBar->addSeparator();
     ui->toolBar->addAction(ui->actionTools_Paint);
     ui->toolBar->addAction(ui->actionTools_Erase);
@@ -477,8 +493,8 @@ void MainWindow::initToolBar()
 
 void MainWindow::on_actionClear_Map_triggered()
 {
-    QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, tr("Clearing the map cannot be reversed. Continue?"),
-                                 QMessageBox::Yes|QMessageBox::No);
+    QString msg = tr("Clearing the map cannot be reversed. Continue?");
+    QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes|QMessageBox::No);
     if (reply == QMessageBox::Yes) {
         m_doc.map()->clear();
         m_doc.setDirty(true);
@@ -499,4 +515,60 @@ void MainWindow::on_actionHelp_About_triggered()
 void MainWindow::on_actionHelp_About_Qt_triggered()
 {
     QApplication::aboutQt();
+}
+
+void MainWindow::on_actionEdit_Previous_Map_triggered()
+{
+    int index = m_doc.currentIndex();
+    if ( index > 0) {
+        m_doc.setCurrentIndex(--index);
+        emit mapChanged(m_doc.map());
+        updateMenus();
+    }
+}
+
+void MainWindow::on_actionEdit_Next_Map_triggered()
+{
+    int index = m_doc.currentIndex();
+    if ( index < m_doc.size() - 1) {
+        m_doc.setCurrentIndex(++index);
+        emit mapChanged(m_doc.map());
+        updateMenus();
+    }
+}
+
+void MainWindow::on_actionEdit_Add_Map_triggered()
+{
+    CMap *map = new CMap(64,64);
+    m_doc.add(map);
+    m_doc.setCurrentIndex(m_doc.size() - 1);
+    m_doc.setDirty(true);
+    emit mapChanged(m_doc.map());
+    updateMenus();
+}
+
+void MainWindow::on_actionEdit_Delete_Map_triggered()
+{
+    int index = m_doc.currentIndex();
+    if (m_doc.size() > 1)  {
+        QString msg = tr("Deleting the map cannot be reversed. Continue?");
+        QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes|QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            CMap *delMap = m_doc.removeAt(index);
+            delete delMap;
+            m_doc.setDirty(true);
+            emit mapChanged(m_doc.map());
+            updateMenus();
+        }
+    }
+}
+
+void MainWindow::on_actionEdit_Insert_Map_triggered()
+{
+    int index = m_doc.currentIndex();
+    CMap *map = new CMap(64,64);
+    m_doc.insertAt(index, map);
+    m_doc.setDirty(true);
+    emit mapChanged(m_doc.map());
+    updateMenus();
 }

@@ -29,11 +29,11 @@
     </property>
     <widget class="QMenu" name="menuRecent_Maps">
      <property name="title">
-      <string>Recent Maps</string>
+      <string>Recent Files</string>
      </property>
      <addaction name="actionNothing_yet"/>
     </widget>
-    <addaction name="actionFile_New_Map"/>
+    <addaction name="actionFile_New_File"/>
     <addaction name="actionFile_Open"/>
     <addaction name="menuRecent_Maps"/>
     <addaction name="actionFile_Save"/>
@@ -54,8 +54,14 @@
      <addaction name="actionTools_Erase"/>
     </widget>
     <addaction name="actionEdit_ResizeMap"/>
-    <addaction name="actionClear_Map"/>
+    <addaction name="actionEdit_Previous_Map"/>
+    <addaction name="actionEdit_Next_Map"/>
     <addaction name="menuTools"/>
+    <addaction name="separator"/>
+    <addaction name="actionEdit_Add_Map"/>
+    <addaction name="actionEdit_Insert_Map"/>
+    <addaction name="actionClear_Map"/>
+    <addaction name="actionEdit_Delete_Map"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -136,13 +142,13 @@
     <string>Ctrl+Q</string>
    </property>
   </action>
-  <action name="actionFile_New_Map">
+  <action name="actionFile_New_File">
    <property name="icon">
     <iconset resource="mapedit.qrc">
      <normaloff>:/data/icons/new.gif</normaloff>:/data/icons/new.gif</iconset>
    </property>
    <property name="text">
-    <string>New Map</string>
+    <string>New File</string>
    </property>
    <property name="statusTip">
     <string>Create a new map.</string>
@@ -152,6 +158,10 @@
    </property>
   </action>
   <action name="actionEdit_ResizeMap">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/options.gif</normaloff>:/data/icons/options.gif</iconset>
+   </property>
    <property name="text">
     <string>Resize Map</string>
    </property>
@@ -244,6 +254,56 @@
   <action name="actionHelp_About">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionEdit_Previous_Map">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/prev.gif</normaloff>:/data/icons/prev.gif</iconset>
+   </property>
+   <property name="text">
+    <string>Previous Map</string>
+   </property>
+  </action>
+  <action name="actionEdit_Next_Map">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/next.gif</normaloff>:/data/icons/next.gif</iconset>
+   </property>
+   <property name="text">
+    <string>Next Map</string>
+   </property>
+  </action>
+  <action name="actionEdit_Add_Map">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/plus.png</normaloff>:/data/icons/plus.png</iconset>
+   </property>
+   <property name="text">
+    <string>Add Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Add a new Map to this file.</string>
+   </property>
+  </action>
+  <action name="actionEdit_Delete_Map">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/minus.png</normaloff>:/data/icons/minus.png</iconset>
+   </property>
+   <property name="text">
+    <string>Delete Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Delete Current Map</string>
+   </property>
+  </action>
+  <action name="actionEdit_Insert_Map">
+   <property name="text">
+    <string>Insert Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Insert a Map at the current index.</string>
    </property>
   </action>
  </widget>

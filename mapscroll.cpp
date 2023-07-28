@@ -3,6 +3,7 @@
 #include <QScrollBar>
 #include <QMouseEvent>
 #include "mapwidget.h"
+#include "map.h"
 
 #define STEPS 4
 
@@ -136,4 +137,11 @@ void CMapScroll::newMapSize(int len, int hei)
     updateScrollbars();
     horizontalScrollBar()->setSliderPosition(0);
     verticalScrollBar()->setSliderPosition(0);
+}
+
+void CMapScroll::newMap(CMap* map)
+{
+    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
+    glw->setMap(map);
+    newMapSize(map->len(), map->hei());
 }

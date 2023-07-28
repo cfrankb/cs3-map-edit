@@ -21,13 +21,14 @@ public:
 
 signals:
     void resizeMap(int, int);
+    void mapChanged(CMap *);
     void newTile(int);
 
 private slots:
     void loadFile(const QString & filename);
     void setStatus(const QString str);
     void showAttrDialog();
-    void on_actionFile_New_Map_triggered();
+    void on_actionFile_New_File_triggered();
     void on_actionFile_Open_triggered();
     void on_actionFile_Save_triggered();
     void on_actionFile_Save_as_triggered();
@@ -43,6 +44,11 @@ private slots:
     void on_actionClear_Map_triggered();
     void on_actionHelp_About_triggered();
     void on_actionHelp_About_Qt_triggered();
+    void on_actionEdit_Previous_Map_triggered();
+    void on_actionEdit_Next_Map_triggered();
+    void on_actionEdit_Add_Map_triggered();
+    void on_actionEdit_Delete_Map_triggered();
+    void on_actionEdit_Insert_Map_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
@@ -58,7 +64,6 @@ private:
     bool isDirty();
     void updateRecentFileActions();
     void reloadRecentFileActions();
-
     void initFileMenu();
     void initTilebox();
     void initShortcuts();

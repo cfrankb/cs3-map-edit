@@ -4,6 +4,7 @@
 #include <QAbstractScrollArea>
 class CMapWidget;
 class QWidget;
+class CMap;
 
 class CMapScroll : public QAbstractScrollArea
 {
@@ -19,6 +20,7 @@ signals:
 
 protected slots:
     void newMapSize(int len, int hei);
+    void newMap(CMap* map);
 
 protected:
     virtual void resizeEvent(QResizeEvent * event) override;

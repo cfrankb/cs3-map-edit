@@ -15,5 +15,7 @@
         <file>data/icons/new.gif</file>
         <file>data/icons/open.gif</file>
         <file>data/icons/save.gif</file>
+        <file>data/icons/minus.png</file>
+        <file>data/icons/plus.png</file>
     </qresource>
 </RCC>
