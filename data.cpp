@@ -10,7 +10,7 @@ uint32_t * loadTileData()
     qDebug("load tiles");
     QFileWrap file;
     uint32_t * data = nullptr;
-    if (file.open(":/data/tilestiny.obl", "rb")) {
+    if (file.open(":/data/tiles.obl", "rb")) {
         qDebug("reading tiles");
         CFrameSet fs;
         if (fs.extract(file)) {

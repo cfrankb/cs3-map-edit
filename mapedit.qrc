@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>data/font.bin</file>
-        <file>data/tilestiny.obl</file>
+        <file>data/tiles.obl</file>
         <file>linux/CS3MapEdit-icon.png</file>
         <file>data/icons/colorpicker.png</file>
         <file>data/icons/current.gif</file>
@@ -17,5 +17,7 @@
         <file>data/icons/save.gif</file>
         <file>data/icons/minus.png</file>
         <file>data/icons/plus.png</file>
+        <file>data/animz.obl</file>
+        <file>data/annie.obl</file>
     </qresource>
 </RCC>

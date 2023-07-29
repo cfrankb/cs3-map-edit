@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <map>
 #include <vector>
-#include "zlib.h"
 #include "../../../shared/FileWrap.h"
 #include "../../../shared/FrameSet.h"
 #include "../../../shared/Frame.h"
@@ -528,8 +527,8 @@ bool processSection(
     std::string sectionName = formatTitleName(section.c_str());
     std::string sectionBasename = getBasename(section.c_str());
 
-    char fnameTiny[section.length() + strlen("tiny.obl") + 1];
-    sprintf(fnameTiny, "%s%s", section.c_str(), "tiny.obl");
+    char fnameTiny[section.length() + strlen(".obl") + 1];
+    sprintf(fnameTiny, "%s%s", section.c_str(), ".obl");
 
     char fnameT[section.length() + strlen(".mcz") + 1];
     sprintf(fnameT, "%s%s", section.c_str(), ".mcz");

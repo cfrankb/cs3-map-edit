@@ -105,8 +105,8 @@ const TileDef tileDefs[]={
     {0x00, TYPE_MONSTER, 0, -9, false, "blueghos.obl"}, // 61 TILES_BLUEGHOS
     {0x44, TYPE_MONSTER, 0, -4, false, "deico.obl"}, // 62 TILES_DEICO
     {0x2f, TYPE_WALLS, 0, 0, false, "forcef94.obl"}, // 63 TILES_FORCEF94
-    {0x5f, TYPE_WALLS, 0, 0, false, "forcefih.obl"}, // 64 TILES_FORCEFIH
-    {0x7c, TYPE_WALLS, 0, 0, false, "forcefiv.obl"}, // 65 TILES_FORCEFIV
+    {0x5f, TYPE_WALLS, 0, 0, true, "forcefih.obl"}, // 64 TILES_FORCEFIH
+    {0x7c, TYPE_WALLS, 0, 0, true, "forcefiv.obl"}, // 65 TILES_FORCEFIV
     {0x69, TYPE_MONSTER, 0, -6, false, "insect1.obl"}, // 66 TILES_INSECT1
     {0x6c, TYPE_MONSTER, 0, -7, false, "lutin.obl"}, // 67 TILES_LUTIN
     {0x4d, TYPE_MONSTER, 0, -8, false, "manka.obl"}, // 68 TILES_MANKA

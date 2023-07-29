@@ -30,7 +30,7 @@ void CTileBox::setupToolbox(){
     setMaximumSize(QSize(MAX_WIDTH,MAX_HEIGHT));
 
     QFileWrap file;
-    if (file.open(":/data/tilestiny.obl", "rb")) {
+    if (file.open(":/data/tiles.obl", "rb")) {
         qDebug("reading tiles");
         CFrameSet fs;
         if (fs.extract(file)) {

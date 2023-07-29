@@ -55,7 +55,7 @@ CFrameSet *CDlgSelect::preloadTiles()
 {
     CFrameSet * fs = new CFrameSet();
     QFileWrap file;
-    if (file.open(":/data/tilestiny.obl", "rb")) {
+    if (file.open(":/data/tiles.obl", "rb")) {
         qDebug("reading tiles");
         if (fs->extract(file)) {
             qDebug("exracted: %d", fs->getSize());
