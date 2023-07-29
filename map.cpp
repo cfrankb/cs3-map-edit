@@ -366,31 +366,26 @@ void CMap::shift(int aim) {
         break;
     };
 
-    uint8_t tx = 0;
-    uint8_t ty = 0;
-
-    switch (aim){
-    case UP:
-        ty = 0xff;
-        break;
-    case DOWN:
-        ty = 1;
-        break;
-    case LEFT:
-        tx = 0xff;
-        break;
-    case RIGHT:
-        tx = 1;
-        break;
-    }
-
     AttrMap tMap;
     for (auto& it: m_attrs) {
         uint16_t key = it.first;
-        uint8_t x = key & 0xff;
-        uint8_t y = key >> 8;
+        uint16_t x = key & 0xff;
+        uint16_t y = key >> 8;
         uint8_t a = it.second;
-        uint16_t newKey = toKey(x + tx, y + ty);
+        switch (aim){
+        case UP:
+            y = y ? y - 1 : m_hei - 1;
+            break;
+        case DOWN:
+            y = y < m_hei - 1 ? y + 1 : 0;
+            break;
+        case LEFT:
+            x = x ? x - 1 : m_len - 1;
+            break;
+        case RIGHT:
+            x = x < m_len - 1 ? x + 1 : 0;
+        }
+        uint16_t newKey = toKey(x, y);
         tMap[newKey] = a;
     }
     m_attrs = tMap;
