@@ -56,9 +56,11 @@
     <addaction name="actionEdit_ResizeMap"/>
     <addaction name="actionEdit_Previous_Map"/>
     <addaction name="actionEdit_Next_Map"/>
+    <addaction name="actionGo_to_Map"/>
     <addaction name="menuTools"/>
     <addaction name="separator"/>
     <addaction name="actionEdit_Add_Map"/>
+    <addaction name="actionEdit_Move_Map"/>
     <addaction name="actionEdit_Insert_Map"/>
     <addaction name="actionClear_Map"/>
     <addaction name="actionEdit_Delete_Map"/>
@@ -264,6 +266,12 @@
    <property name="text">
     <string>Previous Map</string>
    </property>
+   <property name="statusTip">
+    <string>Move to Previous Map</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+PgUp</string>
+   </property>
   </action>
   <action name="actionEdit_Next_Map">
    <property name="icon">
@@ -272,6 +280,12 @@
    </property>
    <property name="text">
     <string>Next Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Move to Next Map</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+PgDown</string>
    </property>
   </action>
   <action name="actionEdit_Add_Map">
@@ -304,6 +318,22 @@
    </property>
    <property name="statusTip">
     <string>Insert a Map at the current index.</string>
+   </property>
+  </action>
+  <action name="actionEdit_Move_Map">
+   <property name="text">
+    <string>Move Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Move current map to a different position.</string>
+   </property>
+  </action>
+  <action name="actionGo_to_Map">
+   <property name="text">
+    <string>Go to Map</string>
+   </property>
+   <property name="statusTip">
+    <string>Go to another map</string>
    </property>
   </action>
  </widget>

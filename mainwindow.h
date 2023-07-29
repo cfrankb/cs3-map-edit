@@ -49,6 +49,8 @@ private slots:
     void on_actionEdit_Add_Map_triggered();
     void on_actionEdit_Delete_Map_triggered();
     void on_actionEdit_Insert_Map_triggered();
+    void on_actionEdit_Move_Map_triggered();
+    void on_actionGo_to_Map_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;

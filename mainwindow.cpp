@@ -9,6 +9,7 @@
 #include "mapwidget.h"
 #include "dlgattr.h"
 #include "dlgresize.h"
+#include "dlgselect.h"
 #include "tilebox.h"
 #include "map.h"
 
@@ -23,22 +24,19 @@ MainWindow::MainWindow(QWidget *parent)
     m_scrollArea = new CMapScroll(this);
     m_scrollArea->viewport()->update();
     setCentralWidget(m_scrollArea);
-    connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
-    connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
-    connect(this, SIGNAL(mapChanged(CMap*)), m_scrollArea, SLOT(newMap(CMap*)));
-
     CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
     glw->setMap(m_doc.map());
 
+    connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
+    connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
+    connect(this, SIGNAL(mapChanged(CMap*)), m_scrollArea, SLOT(newMap(CMap*)));
     connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint&)),
         this, SLOT(showContextMenu(const QPoint&))) ;
-
     connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
 
     updateTitle();
     initTilebox();
     initFileMenu();
-    //initShortcuts();
     initMapShortcuts();
     initToolBar();
     updateMenus();
@@ -278,6 +276,8 @@ void MainWindow::updateMenus()
     ui->actionEdit_Previous_Map->setEnabled(index > 0);
     ui->actionEdit_Next_Map->setEnabled(index < m_doc.size() - 1);
     ui->actionEdit_Delete_Map->setEnabled(m_doc.size() > 1);
+    ui->actionEdit_Move_Map->setEnabled(m_doc.size() > 1);
+    ui->actionGo_to_Map->setEnabled(m_doc.size() > 1);
 }
 
 void MainWindow::setStatus(const QString msg)
@@ -571,4 +571,35 @@ void MainWindow::on_actionEdit_Insert_Map_triggered()
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
     updateMenus();
+}
+
+void MainWindow::on_actionEdit_Move_Map_triggered()
+{
+    int currIndex= m_doc.currentIndex();
+    CDlgSelect dlg(this);
+    dlg.setWindowTitle(tr("Move map %1 to ...").arg(currIndex + 1));
+    dlg.init(tr("Select destination"), &m_doc);
+    if (dlg.exec()==QDialog::Accepted && dlg.index() != currIndex){
+        int i = dlg.index();
+        CMap *map =m_doc.removeAt(currIndex);
+        m_doc.insertAt(i, map);
+        m_doc.setCurrentIndex(i);
+        m_doc.setDirty(true);
+        emit mapChanged(m_doc.map());
+        updateMenus();
+    }
+}
+
+void MainWindow::on_actionGo_to_Map_triggered()
+{
+    int currIndex= m_doc.currentIndex();
+    CDlgSelect dlg(this);
+    dlg.setWindowTitle(tr("Go to Map ..."));
+    dlg.init(tr("Select map"), &m_doc);
+    if (dlg.exec()==QDialog::Accepted && dlg.index() != currIndex){
+        int i = dlg.index();
+        m_doc.setCurrentIndex(i);
+        emit mapChanged(m_doc.map());
+        updateMenus();
+    }
 }

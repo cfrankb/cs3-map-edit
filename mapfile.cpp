@@ -247,3 +247,9 @@ void CMapFile::allocSpace()
         m_maps = t;
     }
 }
+
+CMap *CMapFile::at(int i)
+{
+    return m_maps[i];
+}
+

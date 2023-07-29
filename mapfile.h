@@ -28,6 +28,7 @@ public:
     CMap* removeAt(int i);
     bool isWrongExt();
     void insertAt(int i, CMap *map);
+    CMap *at(int i);
 
 protected:
     void allocSpace();
