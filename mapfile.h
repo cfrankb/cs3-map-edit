@@ -2,10 +2,11 @@
 #define CMAPFILE_H
 
 #include <QString>
+#include "maparch.h"
 
 class CMap;
 
-class CMapFile
+class CMapFile: public CMapArch
 {
 public:
     CMapFile();
@@ -14,36 +15,21 @@ public:
     bool write();
     QString filename();
     void setFilename(const QString);
-    int size();
-    QString lastError();
     CMap *map();
     void setDirty(bool b);
     bool isDirty();
     bool isUntitled();
-    void forget();
     void setCurrentIndex(int i);
     int currentIndex();
     bool isMulti();
-    int add(CMap *map);
-    CMap* removeAt(int i);
+    void forget();
     bool isWrongExt();
-    void insertAt(int i, CMap *map);
-    CMap *at(int i);
+    CMap* removeAt(int i);
 
 protected:
-    void allocSpace();
-
-    enum {
-        GROW_BY = 5
-    };
-
     int m_currIndex;
-    int m_size;
-    int m_max;
     bool m_dirty;
     QString m_filename;
-    CMap **m_maps;
-    std::string m_lastError;
 };
 
 #endif // CMAPFILE_H

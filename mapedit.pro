@@ -23,6 +23,7 @@ SOURCES += \
     level.cpp \
     main.cpp \
     mainwindow.cpp \
+    maparch.cpp \
     mapfile.cpp \
     mapscroll.cpp \
     mapwidget.cpp \
@@ -49,6 +50,7 @@ HEADERS += \
     game.h \
     level.h \
     mainwindow.h \
+    maparch.h \
     mapfile.h \
     mapscroll.h \
     mapwidget.h \
