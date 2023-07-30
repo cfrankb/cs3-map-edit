@@ -13,7 +13,7 @@ class CMapArch
 {
 public:
     CMapArch();
-    ~CMapArch();
+    virtual ~CMapArch();
 
     int size();
     const char* lastError();

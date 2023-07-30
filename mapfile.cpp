@@ -11,7 +11,6 @@ CMapFile::CMapFile():CMapArch()
 
 CMapFile::~CMapFile()
 {
-    CMapArch::~CMapArch();
 }
 
 bool CMapFile::read()

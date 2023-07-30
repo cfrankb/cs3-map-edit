@@ -10,7 +10,7 @@ class CMapFile: public CMapArch
 {
 public:
     CMapFile();
-    ~CMapFile();
+    virtual ~CMapFile();
     bool read();
     bool write();
     QString filename();
