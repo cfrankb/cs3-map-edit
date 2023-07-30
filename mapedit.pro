@@ -2,7 +2,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets opengl
 
-CONFIG += c++20
+CONFIG += c++17
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -86,5 +86,5 @@ RESOURCES += \
 unix:LIBS += -lz
 win32:LIBS += -L"libs" -lzlib
 
-QMAKE_CXXFLAGS_RELEASE += -O3
-QMAKE_CXXFLAGS_DEBUG += -g3
+QMAKE_CXXFLAGS_RELEASE += -std=c++17 -O3
+QMAKE_CXXFLAGS_DEBUG += -std=c++17 -g3

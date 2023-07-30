@@ -228,7 +228,7 @@ void CDlgTest::drawScreen() {
     drawFont(bitmap, bx * 8, 2, tmp, PURPLE);
 
     // draw health bar
-    drawRect(bitmap, Rect{.x = 4, .y = bitmap.m_nHei - 10, .width = std::min(game.health() / 2, bitmap.m_nLen - 4), .height = 8}, LIME);
+    drawRect(bitmap, Rect{4, bitmap.m_nHei - 10, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, LIME);
 
     // show screen
     QPixmap pixmap = frame2pixmap(bitmap);
