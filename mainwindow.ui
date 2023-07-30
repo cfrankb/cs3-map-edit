@@ -39,6 +39,9 @@
     <addaction name="actionFile_Save"/>
     <addaction name="actionFile_Save_as"/>
     <addaction name="separator"/>
+    <addaction name="actionFile_Import_Maps"/>
+    <addaction name="actionFile_Export_Map"/>
+    <addaction name="separator"/>
     <addaction name="actionFile_Exit"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
@@ -343,6 +346,16 @@
    </property>
    <property name="shortcut">
     <string>F5</string>
+   </property>
+  </action>
+  <action name="actionFile_Import_Maps">
+   <property name="text">
+    <string>Import Maps...</string>
+   </property>
+  </action>
+  <action name="actionFile_Export_Map">
+   <property name="text">
+    <string>Export Map...</string>
    </property>
   </action>
  </widget>

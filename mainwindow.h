@@ -52,6 +52,8 @@ private slots:
     void on_actionEdit_Move_Map_triggered();
     void on_actionEdit_Goto_Map_triggered();
     void on_actionEdit_Test_Map_triggered();
+    void on_actionFile_Import_Maps_triggered();
+    void on_actionFile_Export_Map_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;

@@ -631,3 +631,72 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
     }
 }
 
+void MainWindow::on_actionFile_Import_Maps_triggered()
+{
+    QString fileName;
+    QStringList filters;
+    filters.append(m_allFilter);
+    QFileDialog * dlg = new QFileDialog(this,tr("Import"),"",m_allFilter);
+    dlg->setAcceptMode(QFileDialog::AcceptOpen);
+    dlg->setFileMode(QFileDialog::ExistingFile);
+    dlg->selectFile(m_doc.filename());
+    dlg->setNameFilters(filters);
+    if (dlg->exec()) {
+        QStringList fileNames = dlg->selectedFiles();
+        if (fileNames.count()>0) {
+            fileName = fileNames[0];
+        }
+    }
+    delete dlg;
+
+    // copy map from arch to current document
+    if (!fileName.isEmpty()) {
+        CMapArch arch;
+        if (arch.extract(fileName.toLocal8Bit().toStdString().c_str())) {
+            for (int i=0; i < arch.size(); ++i) {
+                m_doc.add(arch.at(i));
+            }
+            arch.removeAll();
+            m_doc.setCurrentIndex(m_doc.size() -1);
+            m_doc.setDirty(true);
+            emit mapChanged(m_doc.map());
+            updateMenus();
+        } else {
+            QString msg = tr("Fail to import:\n%1").arg(fileName);
+            QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
+        }
+    }
+}
+
+void MainWindow::on_actionFile_Export_Map_triggered()
+{
+    QStringList filters;
+    QString suffix = "dat";
+    QString fileName = "";
+
+    QFileDialog * dlg = new QFileDialog(this,tr("Export Map"),"",m_allFilter);
+    dlg->setAcceptMode(QFileDialog::AcceptSave);
+
+    dlg->setNameFilters(filters);
+    dlg->setAcceptMode(QFileDialog::AcceptSave);
+    dlg->setDefaultSuffix(suffix);
+    dlg->selectFile(m_doc.filename());
+    if (dlg->exec()) {
+        QStringList fileNames = dlg->selectedFiles();
+        if (fileNames.count()>0) {
+            fileName = fileNames[0];
+        }
+    }
+
+    if (!fileName.isEmpty()) {
+        // copy current map
+        if (!m_doc.map()->write(fileName.toLocal8Bit().toStdString().c_str())) {
+            QString msg = tr("Fail exporting to:\n%1").arg(fileName);
+            QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
+        }
+    }
+
+    updateTitle();
+    delete dlg;
+}
+
