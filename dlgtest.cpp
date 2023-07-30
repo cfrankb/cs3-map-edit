@@ -10,6 +10,7 @@
 #include "shared/qtgui/qfilewrap.h"
 #include "shared/qtgui/qthelper.h"
 #include <QKeyEvent>
+#include <QMessageBox>
 
 typedef struct
 {
@@ -329,6 +330,7 @@ void CDlgTest::nextLevel()
     } else {
         m_currMapId = 0;
     }
+    sanityTest();
     m_countdown = INTRO_DELAY;
     m_game->getMap() = * m_mapfile->at(m_currMapId);
     m_game->loadLevel(false);
@@ -345,6 +347,7 @@ void CDlgTest::restartGame()
 {
     m_countdown = INTRO_DELAY;
     m_currMapId = 0;
+    sanityTest();
     m_game->getMap() = * m_mapfile->at(m_currMapId);
     m_game->loadLevel(true);
 }
@@ -353,6 +356,7 @@ void CDlgTest::init(CMapFile *mapfile)
 {
     m_mapfile = mapfile;
     m_currMapId = m_mapfile->currentIndex();
+    sanityTest();
     m_game->getMap() = * m_mapfile->map();
     m_countdown = INTRO_DELAY;
     m_game->loadLevel(false);
@@ -396,5 +400,23 @@ void CDlgTest::keyReleaseEvent(QKeyEvent *event)
         break;
     case Qt::Key_Right:
         m_joyState[AIM_RIGHT] = KEY_RELEASED;
+    }
+}
+
+void CDlgTest::sanityTest()
+{
+    CMap *map = m_mapfile->at(m_currMapId);
+    const Pos pos = map->findFirst(TILES_ANNIE2);
+    QStringList listIssues;
+    if ((pos.x == 0xff) && (pos.y == 0xff)) {
+        listIssues.push_back(tr("No player on map"));
+    }
+    if (map->count(TILES_DIAMOND) == 0) {
+        listIssues.push_back(tr("No diamond on map"));
+    }
+    if (listIssues.count() > 0) {
+        QString msg = tr("Map %1 is incomplete:\n%2").arg(m_currMapId + 1).arg(listIssues.join("\n"));
+        QMessageBox::warning(this, "", msg, QMessageBox::Button::Ok);
+        reject();
     }
 }

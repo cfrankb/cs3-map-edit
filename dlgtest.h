@@ -75,6 +75,7 @@ private:
     void nextLevel();
     void restartLevel();
     void restartGame();
+    void sanityTest();
 };
 
 #endif // DLGTEST_H
