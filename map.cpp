@@ -316,7 +316,7 @@ int CMap::size() {
     return m_size;
 }
 
-CMap & CMap::operator=(const CMap map)
+CMap & CMap::operator=(const CMap &map)
 {
     forget();
     m_len = map.m_len;

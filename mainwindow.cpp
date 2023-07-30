@@ -10,7 +10,9 @@
 #include "dlgattr.h"
 #include "dlgresize.h"
 #include "dlgselect.h"
+#include "dlgtest.h"
 #include "tilebox.h"
+#include "tilesdata.h"
 #include "map.h"
 
 const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map *.mapz)";
@@ -277,7 +279,7 @@ void MainWindow::updateMenus()
     ui->actionEdit_Next_Map->setEnabled(index < m_doc.size() - 1);
     ui->actionEdit_Delete_Map->setEnabled(m_doc.size() > 1);
     ui->actionEdit_Move_Map->setEnabled(m_doc.size() > 1);
-    ui->actionGo_to_Map->setEnabled(m_doc.size() > 1);
+    ui->actionEdit_Goto_Map->setEnabled(m_doc.size() > 1);
 }
 
 void MainWindow::setStatus(const QString msg)
@@ -590,7 +592,7 @@ void MainWindow::on_actionEdit_Move_Map_triggered()
     }
 }
 
-void MainWindow::on_actionGo_to_Map_triggered()
+void MainWindow::on_actionEdit_Goto_Map_triggered()
 {
     int currIndex= m_doc.currentIndex();
     CDlgSelect dlg(this);
@@ -603,3 +605,29 @@ void MainWindow::on_actionGo_to_Map_triggered()
         updateMenus();
     }
 }
+
+void MainWindow::on_actionEdit_Test_Map_triggered()
+{
+    if (m_doc.size()) {
+        CMap *map = m_doc.map();
+        // Sanitycheck
+        const Pos pos = map->findFirst(TILES_ANNIE2);
+        QStringList listIssues;
+        if ((pos.x == 0xff) && (pos.y == 0xff)) {
+            listIssues.push_back(tr("No player on map"));
+        }
+        if (map->count(TILES_DIAMOND) == 0) {
+            listIssues.push_back(tr("No diamond on map"));
+        }
+        if (listIssues.count() > 0) {
+            QString msg = tr("Map is incomplete:\n%1").arg(listIssues.join("\n"));
+            QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
+            return;
+        }
+        CDlgTest dlg;
+        dlg.setWindowTitle(tr("Test level"));
+        dlg.init(map);
+        dlg.exec();
+    }
+}
+

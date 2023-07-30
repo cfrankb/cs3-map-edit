@@ -56,7 +56,8 @@
     <addaction name="actionEdit_ResizeMap"/>
     <addaction name="actionEdit_Previous_Map"/>
     <addaction name="actionEdit_Next_Map"/>
-    <addaction name="actionGo_to_Map"/>
+    <addaction name="actionEdit_Goto_Map"/>
+    <addaction name="actionEdit_Test_Map"/>
     <addaction name="menuTools"/>
     <addaction name="separator"/>
     <addaction name="actionEdit_Add_Map"/>
@@ -328,12 +329,20 @@
     <string>Move current map to a different position.</string>
    </property>
   </action>
-  <action name="actionGo_to_Map">
+  <action name="actionEdit_Goto_Map">
    <property name="text">
     <string>Go to Map</string>
    </property>
    <property name="statusTip">
     <string>Go to another map</string>
+   </property>
+  </action>
+  <action name="actionEdit_Test_Map">
+   <property name="text">
+    <string>Test Map</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
    </property>
   </action>
  </widget>

@@ -6,19 +6,6 @@
 
 #include <stdint.h>
 
-typedef struct
-{
-    uint8_t ch;
-    uint8_t type;
-    uint8_t score;
-    int8_t health;
-    bool hidden;
-    const char * basename;
-} TileDef;
-uint8_t getChTile(uint8_t i) ;
-const TileDef * getTileDefs();
-const TileDef & getTileDef(int i);
-
 #define ANIMZ_SWAMP          0x00
 #define ANIMZ_SWAMP_2        0x01
 #define ANIMZ_DIAMOND        0x02

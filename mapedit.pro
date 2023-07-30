@@ -12,11 +12,14 @@ INCLUDEPATH += shared/ headers/
 DEFINES += USE_QFILE=1
 
 SOURCES += \
+    actor.cpp \
     data.cpp \
     dlgattr.cpp \
     dlgresize.cpp \
     dlgabout.cpp \
     dlgselect.cpp \
+    dlgtest.cpp \
+    game.cpp \
     level.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -36,11 +39,14 @@ SOURCES += \
     tilesdata.cpp
 
 HEADERS += \
+    actor.h \
     data.h \
     dlgattr.h \
     dlgresize.h \
     dlgabout.h \
     dlgselect.h \
+    dlgtest.h \
+    game.h \
     level.h \
     mainwindow.h \
     mapfile.h \
@@ -64,6 +70,7 @@ FORMS += \
     dlgresize.ui \
     dlgabout.ui \
     dlgselect.ui \
+    dlgtest.ui \
     mainwindow.ui
 
 # Default rules for deployment.
