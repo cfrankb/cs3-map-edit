@@ -151,7 +151,7 @@ bool CMapArch::write(const char *filename)
         // write index
         long indexPtr = ftell(tfile);
         size_t size = index.size();
-        for (uint i=0; i < index.size(); ++i) {
+        for (unsigned int i=0; i < index.size(); ++i) {
             long ptr = index[i];
             fwrite(&ptr, 4, 1, tfile);
         }
