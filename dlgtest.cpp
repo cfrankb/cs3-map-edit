@@ -5,6 +5,7 @@
 #include "FrameSet.h"
 #include "Frame.h"
 #include "map.h"
+#include "mapfile.h"
 #include "game.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "shared/qtgui/qthelper.h"
@@ -54,41 +55,54 @@ CDlgTest::CDlgTest(QWidget *parent) :
 CDlgTest::~CDlgTest()
 {
     delete ui;
-    delete m_game;
-    delete m_tiles;
-    delete m_animz;
-    delete m_annie;
-    delete [] m_fontData;
+
+    if (m_game) {
+        delete m_game;
+    }
+
+    if (m_tiles) {
+        delete m_tiles;
+    }
+
+    if (m_animz){
+        delete m_animz;
+    }
+
+    if (m_annie)
+    {
+        delete m_annie;
+    }
+
+    if (m_fontData){
+        delete [] m_fontData;
+    }
 }
 
 void CDlgTest::preloadAssets()
 {
     QFileWrap file;
-    m_tiles = new CFrameSet();
-    if (file.open(":/data/tiles.obl", "rb")) {
-        qDebug("reading tiles");
-        if (m_tiles->extract(file)) {
-            qDebug("exracted: %d", m_tiles->getSize());
-        }
-        file.close();
-    }
 
-    m_animz = new CFrameSet();
-    if (file.open(":/data/animz.obl", "rb")) {
-        qDebug("reading animz");
-        if (m_animz->extract(file)) {
-            qDebug("exracted: %d", m_animz->getSize());
-        }
-        file.close();
-    }
+    typedef struct {
+        const char *filename;
+        CFrameSet **frameset;
+    } asset_t;
 
-    m_annie = new CFrameSet();
-    if (file.open(":/data/annie.obl", "rb")) {
-        qDebug("reading annie");
-        if (m_annie->extract(file)) {
-            qDebug("exracted: %d", m_annie->getSize());
+    asset_t assets[] = {
+        {":/data/tiles.obl", &m_tiles},
+        {":/data/animz.obl", &m_animz},
+        {":/data/annie.obl", &m_annie},
+    };
+
+    for (int i=0; i < 3; ++i) {
+        asset_t & asset = assets[i];
+        *(asset.frameset) = new CFrameSet();
+        if (file.open(asset.filename, "rb")) {
+            qDebug("reading %s", asset.filename);
+            if ((*(asset.frameset))->extract(file)) {
+                qDebug("exracted: %d", m_tiles->getSize());
+            }
+            file.close();
         }
-        file.close();
     }
 
     const char fontName [] = ":/data/font.bin";
@@ -115,7 +129,7 @@ void CDlgTest::animate()
     }
 }
 
-void CDlgTest::drawFont(CFrame & frame, int x, int y, const char *text, uint32_t color)
+void CDlgTest::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color)
 {
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.m_nLen;
@@ -129,11 +143,11 @@ void CDlgTest::drawFont(CFrame & frame, int x, int y, const char *text, uint32_t
                 ++font;
             }
         }
-        x+= 8;
+        x+= fontSize;
     }
 }
 
-void CDlgTest::drawRect(CFrame & frame, const Rect &rect, uint32_t color)
+void CDlgTest::drawRect(CFrame & frame, const Rect &rect, const uint32_t color)
 {
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.m_nLen;
@@ -144,13 +158,14 @@ void CDlgTest::drawRect(CFrame & frame, const Rect &rect, uint32_t color)
     }
 }
 
-void CDlgTest::updateScreen()
-{
+void CDlgTest::drawScreen() {
     CMap *map = & m_game->getMap();
     CGame &game = * m_game;
+
     QSize size = ui->sMapView->size();
-    const int maxRows = size.height() / 16;
-    const int maxCols = size.width() / 16;
+    const int tileSize = 16;
+    int maxRows = size.height() / tileSize;
+    int maxCols = size.width() / tileSize;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
 
@@ -159,13 +174,12 @@ void CDlgTest::updateScreen()
     const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
     const int my = std::min(lmy, map->hei() > rows ? map->hei() - rows : 0);
 
-    const int tileSize = 16;
     const int lineSize = maxCols * tileSize;
     CFrameSet & tiles = *m_tiles;
     CFrameSet & animz = *m_animz;
     CFrameSet & annie = *m_annie;
-    CFrame bitmap(maxCols * tileSize, maxRows *tileSize);
-    bitmap.fill(0xff000000);
+    CFrame bitmap(maxCols * tileSize, maxRows * tileSize);
+    bitmap.fill(BLACK);
     uint32_t *rgba = bitmap.getRGB();
     for (int row=0; row < rows; ++row) {
         if (row + my >= map->hei())
@@ -175,7 +189,6 @@ void CDlgTest::updateScreen()
         for (int col=0; col < cols; ++col) {
             uint8_t tileID = map->at(col + mx, row + my);
             CFrame *tile;
-
             if (tileID == TILES_ANNIE2)
             {
                 tile = annie[game.player().getAim() * 4 + col % 3];
@@ -214,11 +227,65 @@ void CDlgTest::updateScreen()
     drawFont(bitmap, bx * 8, 2, tmp, PURPLE);
 
     // draw health bar
-    drawRect(bitmap, Rect{.x = 4, .y = bitmap.m_nHei - 10, .width = std::min(game.health() / 2, static_cast<int>(bitmap.m_nLen) - 4), .height = 8}, LIME);
+    drawRect(bitmap, Rect{.x = 4, .y = bitmap.m_nHei - 10, .width = std::min(game.health() / 2, bitmap.m_nLen - 4), .height = 8}, LIME);
 
-    // bitmap.shrink();
+    // show screen
     QPixmap pixmap = frame2pixmap(bitmap);
     ui->sMapView->setPixmap(pixmap);
+}
+
+void CDlgTest::drawLevelIntro()
+{
+    char t[32];
+    switch (m_game->mode())
+    {
+    case CGame::MODE_INTRO:
+        sprintf(t, "LEVEL %.2d", m_currMapId + 1);
+        break;
+    case CGame::MODE_RESTART:
+        sprintf(t, "LIVES LEFT %.2d", m_game->lives());
+        break;
+    case CGame::MODE_GAMEOVER:
+        strcpy(t, "GAME OVER");
+    };
+
+    QSize size = ui->sMapView->size();
+    int x = (size.width() - strlen(t) * 8) / 2;
+    int y = (size.height() - 8) / 2;
+    CFrame bitmap(size.width(), size.height());
+    bitmap.fill(BLACK);
+    drawFont(bitmap, x, y, t, WHITE);
+
+    // show screen
+    QPixmap pixmap = frame2pixmap(bitmap);
+    ui->sMapView->setPixmap(pixmap);
+}
+
+void CDlgTest::mainLoop()
+{
+    CGame &game = * m_game;
+    if (m_countdown > 0) {
+        --m_countdown;
+    }
+
+    switch (game.mode())
+    {
+    case CGame::MODE_INTRO:
+    case CGame::MODE_RESTART:
+    case CGame::MODE_GAMEOVER:
+        drawLevelIntro();
+        if (m_countdown) {
+            return;
+        }
+        if (game.mode()== CGame::MODE_GAMEOVER) {
+            restartGame();
+        } else {
+            game.setMode(CGame::MODE_LEVEL);
+        }
+        break;
+    case CGame::MODE_LEVEL:
+        drawScreen();
+    }
 
     if (m_ticks % 3 == 0 && !game.isPlayerDead())
     {
@@ -237,40 +304,62 @@ void CDlgTest::updateScreen()
 
     if (game.isPlayerDead()){
         game.killPlayer();
-        /*
-        //sleep_ms(500);
+
         if(!game.isGameOver()) {
-            game.restartLevel();
+            restartLevel();
         } else {
             game.setMode(CGame::MODE_GAMEOVER);
-        }*/
+        }
     }
 
     ++m_ticks;
 
-    /*
-    //uint16_t joy =engine->readJoystick();
     if (!game.isGameOver()) {
-        if (game.goalCount() == 0 || joy & JOY_A_BUTTON)
+        if (game.goalCount() == 0)
         {
-            game.nextLevel();
-        }
-    } else {
-        if (joy & JOY_BUTTON) {
+            nextLevel();
         }
     }
-    */
 }
 
-
-void CDlgTest::init(CMap *map)
+void CDlgTest::nextLevel()
 {
-    m_game->getMap() = *map;
-    m_game->loadLevel();
+    if (m_currMapId != m_mapfile->size() -1) {
+        ++m_currMapId;
+    } else {
+        m_currMapId = 0;
+    }
+    m_countdown = INTRO_DELAY;
+    m_game->getMap() = * m_mapfile->at(m_currMapId);
+    m_game->loadLevel(false);
+}
+
+void CDlgTest::restartLevel()
+{
+    m_countdown = INTRO_DELAY;
+    m_game->getMap() = * m_mapfile->at(m_currMapId);
+    m_game->loadLevel(true);
+}
+
+void CDlgTest::restartGame()
+{
+    m_countdown = INTRO_DELAY;
+    m_currMapId = 0;
+    m_game->getMap() = * m_mapfile->at(m_currMapId);
+    m_game->loadLevel(true);
+}
+
+void CDlgTest::init(CMapFile *mapfile)
+{
+    m_mapfile = mapfile;
+    m_currMapId = m_mapfile->currentIndex();
+    m_game->getMap() = * m_mapfile->map();
+    m_countdown = INTRO_DELAY;
+    m_game->loadLevel(false);
 
     m_timer.setInterval(1000 / TICK_RATE);
     m_timer.start();
-    connect(&m_timer, SIGNAL(timeout()), this, SLOT(updateScreen()));
+    connect(&m_timer, SIGNAL(timeout()), this, SLOT(mainLoop()));
 }
 
 void CDlgTest::keyPressEvent(QKeyEvent *event)
@@ -287,6 +376,9 @@ void CDlgTest::keyPressEvent(QKeyEvent *event)
         break;
     case Qt::Key_Right:
         m_joyState[AIM_RIGHT] = KEY_PRESSED;
+        break;
+    case Qt::Key_Escape:
+        reject();
     }
 }
 
@@ -306,4 +398,3 @@ void CDlgTest::keyReleaseEvent(QKeyEvent *event)
         m_joyState[AIM_RIGHT] = KEY_RELEASED;
     }
 }
-

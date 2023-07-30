@@ -1,14 +1,13 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <QDebug>
 #include "game.h"
 #include "map.h"
 #include "actor.h"
 #include "sprtypes.h"
 #include "tilesdata.h"
-//#include "animzdata.h"
 
-//extern uint8_t levels_mapz;
 CMap map(30, 30);
 uint8_t CGame::m_keys[6];
 
@@ -29,11 +28,6 @@ CGame::~CGame()
     if (m_monsters)
     {
         delete[] m_monsters;
-    }
-
-    //if (m_engine)
-    {
-     //   delete m_engine;
     }
 }
 
@@ -111,20 +105,20 @@ bool CGame::init()
 
 
 
-bool CGame::loadLevel()
+bool CGame::loadLevel(bool restart)
 {
-    printf("loading level: %d ...\n", m_level + 1);
+    qDebug("loading level: %d ...\n", m_level + 1);
 //    std::lock_guard<std::mutex> lk(g_mutex);
-    //setMode(restart ? MODE_RESTART :MODE_INTRO);
+    setMode(restart ? MODE_RESTART :MODE_INTRO);
 
     // extract level from levelArch
 //    uint8_t *ptr = &levels_mapz;
     //int i = m_level % m_arch.count();
     //map.fromMemory(ptr + m_arch.at(i));
-    printf("level loaded\n");
+    qDebug("level loaded\n");
 
     Pos pos = map.findFirst(TILES_ANNIE2);
-    printf("Player at: %d %d\n", pos.x, pos.y);
+    qDebug("Player at: %d %d\n", pos.x, pos.y);
     m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
     m_diamonds = map.count(TILES_DIAMOND);
     memset(m_keys, 0, sizeof(m_keys));
@@ -151,7 +145,7 @@ bool CGame::findMonsters()
             }
         }
     }
-    printf("%d monsters found.\n", m_monsterCount);
+    qDebug("%d monsters found.\n", m_monsterCount);
     return true;
 }
 
@@ -431,4 +425,3 @@ int CGame::health()
 {
     return m_health;
 }
-

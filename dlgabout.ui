@@ -25,10 +25,6 @@
   <property name="windowTitle">
    <string>About mapEdit</string>
   </property>
-  <property name="windowIcon">
-   <iconset resource="mapedit.qrc">
-    <normaloff>:/linux/CS3MapEdit-icon.png</normaloff>:/linux/CS3MapEdit-icon.png</iconset>
-  </property>
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>

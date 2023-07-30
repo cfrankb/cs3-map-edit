@@ -11,7 +11,7 @@ public:
     ~CGame();
 
     bool init();
-    bool loadLevel();
+    bool loadLevel(bool restart);
     bool move(int dir);
     void manageMonsters();
     void managePlayer(uint8_t *joystate);

@@ -510,7 +510,7 @@ int MainWindow::currentTool()
 
 void MainWindow::on_actionHelp_About_triggered()
 {
-    DlgAbout dlg;
+    DlgAbout dlg(this);
     dlg.exec();
 }
 
@@ -624,9 +624,9 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
             QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
             return;
         }
-        CDlgTest dlg;
+        CDlgTest dlg(this);
         dlg.setWindowTitle(tr("Test level"));
-        dlg.init(map);
+        dlg.init(&m_doc);
         dlg.exec();
     }
 }

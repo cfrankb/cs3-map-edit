@@ -6,6 +6,7 @@
 #include "shared/qtgui/qthelper.h"
 #include "map.h"
 #include "mapfile.h"
+#include "tilesdata.h"
 
 CDlgSelect::CDlgSelect(QWidget *parent) :
     QDialog(parent),
@@ -28,6 +29,14 @@ void CDlgSelect::updatePreview(CMap *map)
     const int maxCols = 16;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
+
+    const Pos pos = map->findFirst(TILES_ANNIE2);
+    const bool isFound = pos.x != 0xff || pos.y != 0xff;
+    const int lmx = std::max(0, isFound? pos.x - cols / 2 : 0);
+    const int lmy = std::max(0, isFound? pos.y - rows / 2 : 0);
+    const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
+    const int my = std::min(lmy, map->hei() > rows ? map->hei() - rows : 0);
+
     const int tileSize = 16;
     const int lineSize = maxCols * tileSize;
     CFrameSet & fs = *m_frameSet;
@@ -36,7 +45,7 @@ void CDlgSelect::updatePreview(CMap *map)
     uint32_t *rgba = bitmap.getRGB();
     for (int row=0; row < rows; ++row) {
         for (int col=0; col < cols; ++col) {
-            uint8_t tile = map->at(col, row);
+            uint8_t tile = map->at(col + mx, row +my);
             CFrame *frame = fs[tile];
             for (int y=0; y < tileSize; ++y) {
                 for (int x=0; x < tileSize; ++x) {

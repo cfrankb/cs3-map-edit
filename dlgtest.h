@@ -5,6 +5,7 @@
 #include <QTimer>
 class CFrameSet;
 class CMap;
+class CMapFile;
 class CGame;
 class QKeyEvent;
 class CFrame;
@@ -19,7 +20,7 @@ class CDlgTest : public QDialog
 
 public:
     explicit CDlgTest(QWidget *parent = nullptr);
-    void init(CMap *map);
+    void init(CMapFile *mapfile);
     ~CDlgTest();
 
 protected:
@@ -27,7 +28,7 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
 protected slots:
-    void updateScreen();
+    void mainLoop();
 
 private:
     enum {
@@ -35,12 +36,14 @@ private:
         NO_ANIMZ = 255,
         KEY_PRESSED=1,
         KEY_RELEASED=0,
+        INTRO_DELAY = 50,
         WHITE  = 0xffffffff,
         YELLOW = 0xff00ffff,
         PURPLE = 0xffff00ff,
         BLACK  = 0xff000000,
         GREEN  = 0xff00ff00,
-        LIME   = 0xff34ebb1
+        LIME   = 0xff34ebb1,
+        ALPHA  = 0xff000000,
     };
 
     typedef struct
@@ -58,12 +61,20 @@ private:
     CFrameSet *m_animz = nullptr;
     CFrameSet *m_annie = nullptr;
     uint8_t *m_fontData = nullptr;
+    CGame *m_game = nullptr;
+    CMapFile * m_mapfile = nullptr;
     QTimer m_timer;
-    CGame *m_game;
+    int m_currMapId = 0;
+    int m_countdown = 0;
+    void drawScreen();
+    void drawLevelIntro();
     void preloadAssets();
     void animate();
-    void drawFont(CFrame & frame, int x, int y, const char *text, uint32_t color);
-    void drawRect(CFrame & frame, const Rect &rect, uint32_t color = GREEN);
+    void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);
+    void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN);
+    void nextLevel();
+    void restartLevel();
+    void restartGame();
 };
 
 #endif // DLGTEST_H
