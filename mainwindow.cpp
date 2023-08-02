@@ -613,7 +613,7 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
         // Sanitycheck
         const Pos pos = map->findFirst(TILES_ANNIE2);
         QStringList listIssues;
-        if ((pos.x == 0xff) && (pos.y == 0xff)) {
+        if ((pos.x == CMap::NOT_FOUND ) && (pos.y == CMap::NOT_FOUND)) {
             listIssues.push_back(tr("No player on map"));
         }
         if (map->count(TILES_DIAMOND) == 0) {
@@ -699,4 +699,3 @@ void MainWindow::on_actionFile_Export_Map_triggered()
     updateTitle();
     delete dlg;
 }
-

@@ -65,16 +65,15 @@ CDlgTest::~CDlgTest()
         delete m_tiles;
     }
 
-    if (m_animz){
+    if (m_animz) {
         delete m_animz;
     }
 
-    if (m_annie)
-    {
+    if (m_annie) {
         delete m_annie;
     }
 
-    if (m_fontData){
+    if (m_fontData) {
         delete [] m_fontData;
     }
 }
@@ -100,7 +99,7 @@ void CDlgTest::preloadAssets()
         if (file.open(asset.filename, "rb")) {
             qDebug("reading %s", asset.filename);
             if ((*(asset.frameset))->extract(file)) {
-                qDebug("exracted: %d", m_tiles->getSize());
+                qDebug("exracted: %d", (*(asset.frameset))->getSize());
             }
             file.close();
         }
@@ -135,9 +134,11 @@ void CDlgTest::drawFont(CFrame & frame, int x, int y, const char *text, const ui
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.m_nLen;
     const int fontSize = 8;
-    for (int i=0; text[i]; ++i) {
-        const uint8_t c = text[i] - ' ';
-        uint8_t *font = m_fontData + c * fontSize * fontSize;
+    const int fontOffset = fontSize * fontSize;
+    const int textSize = strlen(text);
+    for (int i=0; i < textSize; ++i) {
+        const uint8_t c = static_cast<uint8_t>(text[i]) - ' ';
+        uint8_t *font = m_fontData + c * fontOffset;
         for (int yy=0; yy < fontSize; ++yy) {
             for (int xx=0; xx < fontSize; ++xx) {
                 rgba[ (yy + y) * rowPixels + xx + x] = *font ? color : BLACK;
@@ -209,7 +210,7 @@ void CDlgTest::drawScreen() {
             }
             for (int y=0; y < tileSize; ++y) {
                 for (int x=0; x < tileSize; ++x) {
-                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = tile->at(x,y) | 0xff000000;
+                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = tile->at(x,y) | ALPHA;
                 }
             }
         }
@@ -241,7 +242,7 @@ void CDlgTest::drawLevelIntro()
     switch (m_game->mode())
     {
     case CGame::MODE_INTRO:
-        sprintf(t, "LEVEL %.2d", m_currMapId + 1);
+        sprintf(t, "LEVEL %.2d", m_game->level() + 1);
         break;
     case CGame::MODE_RESTART:
         sprintf(t, "LIVES LEFT %.2d", m_game->lives());
@@ -309,6 +310,7 @@ void CDlgTest::mainLoop()
         if(!game.isGameOver()) {
             restartLevel();
         } else {
+            startCountdown();
             game.setMode(CGame::MODE_GAMEOVER);
         }
     }
@@ -325,39 +327,38 @@ void CDlgTest::mainLoop()
 
 void CDlgTest::nextLevel()
 {
-    if (m_currMapId != m_mapfile->size() -1) {
-        ++m_currMapId;
-    } else {
-        m_currMapId = 0;
-    }
+    m_game->nextLevel();
     sanityTest();
-    m_countdown = INTRO_DELAY;
-    m_game->getMap() = * m_mapfile->at(m_currMapId);
+    startCountdown();
     m_game->loadLevel(false);
 }
 
 void CDlgTest::restartLevel()
 {
-    m_countdown = INTRO_DELAY;
-    m_game->getMap() = * m_mapfile->at(m_currMapId);
+    startCountdown();
     m_game->loadLevel(true);
 }
 
 void CDlgTest::restartGame()
 {
-    m_countdown = INTRO_DELAY;
-    m_currMapId = 0;
+    startCountdown();
+    m_game->restartGame();
     sanityTest();
-    m_game->getMap() = * m_mapfile->at(m_currMapId);
-    m_game->loadLevel(true);
+    m_game->loadLevel(false);
+}
+
+void CDlgTest::startCountdown()
+{
+    m_countdown = INTRO_DELAY;
 }
 
 void CDlgTest::init(CMapFile *mapfile)
 {
     m_mapfile = mapfile;
-    m_currMapId = m_mapfile->currentIndex();
+    m_game->setMapArch(mapfile);
+    m_game->setLevel(m_mapfile->currentIndex());
     sanityTest();
-    m_game->getMap() = * m_mapfile->map();
+
     m_countdown = INTRO_DELAY;
     m_game->loadLevel(false);
 
@@ -405,17 +406,17 @@ void CDlgTest::keyReleaseEvent(QKeyEvent *event)
 
 void CDlgTest::sanityTest()
 {
-    CMap *map = m_mapfile->at(m_currMapId);
+    CMap *map = m_mapfile->at(m_game->level());
     const Pos pos = map->findFirst(TILES_ANNIE2);
     QStringList listIssues;
-    if ((pos.x == 0xff) && (pos.y == 0xff)) {
+    if ((pos.x == CMap::NOT_FOUND ) && (pos.y == CMap::NOT_FOUND )) {
         listIssues.push_back(tr("No player on map"));
     }
     if (map->count(TILES_DIAMOND) == 0) {
         listIssues.push_back(tr("No diamond on map"));
     }
     if (listIssues.count() > 0) {
-        QString msg = tr("Map %1 is incomplete:\n%2").arg(m_currMapId + 1).arg(listIssues.join("\n"));
+        QString msg = tr("Map %1 is incomplete:\n%2").arg(m_game->level() + 1).arg(listIssues.join("\n"));
         QMessageBox::warning(this, "", msg, QMessageBox::Button::Ok);
         reject();
     }

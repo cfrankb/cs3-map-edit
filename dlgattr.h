@@ -19,7 +19,7 @@ public:
     void attr(const uint8_t & a);
 
 private slots:
-    void on_lineEdit_textChanged(const QString &);
+    void on_line_AttrEdit_textChanged(const QString &);
 
 private:
     Ui::CDlgAttr *ui;

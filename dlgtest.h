@@ -36,7 +36,7 @@ private:
         NO_ANIMZ = 255,
         KEY_PRESSED=1,
         KEY_RELEASED=0,
-        INTRO_DELAY = 50,
+        INTRO_DELAY = TICK_RATE,
         WHITE  = 0xffffffff,
         YELLOW = 0xff00ffff,
         PURPLE = 0xffff00ff,
@@ -64,7 +64,6 @@ private:
     CGame *m_game = nullptr;
     CMapFile * m_mapfile = nullptr;
     QTimer m_timer;
-    int m_currMapId = 0;
     int m_countdown = 0;
     void drawScreen();
     void drawLevelIntro();
@@ -76,6 +75,7 @@ private:
     void restartLevel();
     void restartGame();
     void sanityTest();
+    void startCountdown();
 };
 
 #endif // DLGTEST_H

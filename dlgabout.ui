@@ -83,6 +83,19 @@
     <pixmap resource="mapedit.qrc">:/linux/CS3MapEdit-icon.png</pixmap>
    </property>
   </widget>
+  <widget class="QLabel" name="sAppVersion">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>70</y>
+     <width>191</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>version</string>
+   </property>
+  </widget>
  </widget>
  <resources>
   <include location="mapedit.qrc"/>

@@ -7,6 +7,7 @@
 #include "actor.h"
 #include "sprtypes.h"
 #include "tilesdata.h"
+#include "maparch.h"
 
 CMap map(30, 30);
 uint8_t CGame::m_keys[6];
@@ -20,7 +21,6 @@ CGame::CGame()
     m_level = 0;
     m_lives = DEFAULT_LIVES;
     m_score = 0;
-   // m_engine = new CEngine(this);
 }
 
 CGame::~CGame()
@@ -103,18 +103,14 @@ bool CGame::init()
     return true;
 }
 
-
-
 bool CGame::loadLevel(bool restart)
 {
     qDebug("loading level: %d ...\n", m_level + 1);
-//    std::lock_guard<std::mutex> lk(g_mutex);
     setMode(restart ? MODE_RESTART :MODE_INTRO);
 
-    // extract level from levelArch
-//    uint8_t *ptr = &levels_mapz;
-    //int i = m_level % m_arch.count();
-    //map.fromMemory(ptr + m_arch.at(i));
+    // extract level from MapArch
+    map = *(m_mapArch->at(m_level));
+
     qDebug("level loaded\n");
 
     Pos pos = map.findFirst(TILES_ANNIE2);
@@ -126,6 +122,42 @@ bool CGame::loadLevel(bool restart)
     findMonsters();
 
     return true;
+}
+
+void CGame::nextLevel()
+{
+    m_score += LEVEL_BONUS + m_health;
+    if (m_level != m_mapArch->size() -1) {
+        ++m_level;
+    } else {
+        m_level = 0;
+    }
+}
+
+void CGame::restartLevel()
+{
+}
+
+void CGame::restartGame()
+{
+    m_score = 0;
+    m_lives = DEFAULT_LIVES;
+    m_level = 0;
+}
+
+void CGame::setLevel(int levelId)
+{
+    m_level = levelId;
+}
+
+int CGame::level()
+{
+    return m_level;
+}
+
+void CGame::setMapArch(CMapArch *arch)
+{
+    m_mapArch = arch;
 }
 
 bool CGame::findMonsters()
@@ -396,14 +428,6 @@ void CGame::killPlayer()
 bool CGame::isGameOver()
 {
     return m_lives == 0;
-}
-
-void CGame::restartGane()
-{
-    m_level = 0;
-    m_score =0;
-    m_lives = DEFAULT_LIVES;
-    //loadLevel(false);
 }
 
 int CGame::score()

@@ -4,6 +4,8 @@
 #include "actor.h"
 #include "map.h"
 
+class CMapArch;
+
 class CGame
 {
 public:
@@ -20,11 +22,10 @@ public:
     static bool hasKey(uint8_t c);
     void addKey(uint8_t c);
     bool goalCount();
-
     static CMap &getMap();
     void nextLevel();
     void restartLevel();
-    void restartGane();
+    void restartGame();
     void setMode(int mode);
     int mode() const;
     bool isPlayerDead();
@@ -35,6 +36,9 @@ public:
     int lives();
     int diamonds();
     int health();
+    void setMapArch(CMapArch *arch);
+    void setLevel(int levelId);
+    int level();
 
     enum
     {
@@ -58,8 +62,7 @@ protected:
     int m_monsterCount;
     int m_monsterMax;
     CActor m_player;
-    //CEngine *m_engine;
-   // CLevelArch m_arch;
+    CMapArch *m_mapArch;
 
     // monsters
     enum
@@ -75,7 +78,5 @@ protected:
     int addMonster(const CActor actor);
     int findMonsterAt(int x, int y);
     void addHealth(int hp);
-
-    friend class CEngine;
 };
 #endif

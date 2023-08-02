@@ -42,7 +42,7 @@
     <string>Attribute value</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit">
+  <widget class="QLineEdit" name="line_AttrEdit">
    <property name="geometry">
     <rect>
      <x>20</x>
@@ -52,9 +52,25 @@
     </rect>
    </property>
   </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>80</y>
+     <width>201</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Please provide hexadecimal value between 00 and ff.</string>
+   </property>
+   <property name="wordWrap">
+    <bool>true</bool>
+   </property>
+  </widget>
  </widget>
  <tabstops>
-  <tabstop>lineEdit</tabstop>
+  <tabstop>line_AttrEdit</tabstop>
  </tabstops>
  <resources/>
  <connections>

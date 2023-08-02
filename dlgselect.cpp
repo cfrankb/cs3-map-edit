@@ -31,7 +31,7 @@ void CDlgSelect::updatePreview(CMap *map)
     const int cols = std::min(maxCols, map->len());
 
     const Pos pos = map->findFirst(TILES_ANNIE2);
-    const bool isFound = pos.x != 0xff || pos.y != 0xff;
+    const bool isFound = pos.x != CMap::NOT_FOUND || pos.y != CMap::NOT_FOUND;
     const int lmx = std::max(0, isFound? pos.x - cols / 2 : 0);
     const int lmy = std::max(0, isFound? pos.y - rows / 2 : 0);
     const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
@@ -41,7 +41,7 @@ void CDlgSelect::updatePreview(CMap *map)
     const int lineSize = maxCols * tileSize;
     CFrameSet & fs = *m_frameSet;
     CFrame bitmap(maxCols * tileSize, maxRows *tileSize);
-    bitmap.fill(0xff000000);
+    bitmap.fill(BLACK);
     uint32_t *rgba = bitmap.getRGB();
     for (int row=0; row < rows; ++row) {
         for (int col=0; col < cols; ++col) {
@@ -49,7 +49,7 @@ void CDlgSelect::updatePreview(CMap *map)
             CFrame *frame = fs[tile];
             for (int y=0; y < tileSize; ++y) {
                 for (int x=0; x < tileSize; ++x) {
-                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = frame->at(x,y) | 0xff000000;
+                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = frame->at(x,y) | ALPHA;
                 }
             }
         }
@@ -80,7 +80,7 @@ void CDlgSelect::init(const QString s, CMapFile *mf)
     ui->sSelect_Maps->setText(s);
     QStringList list;
     for (int i=0; i < mf->size(); ++i) {
-        list.append(tr("map %1").arg(i+1));
+        list.append(tr("map %1").arg(i+1,2,10,QChar('0')));
     }
     ui->cbSelect_Maps->addItems(list);
     ui->cbSelect_Maps->setCurrentIndex(mf->currentIndex());

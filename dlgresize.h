@@ -25,6 +25,10 @@ private slots:
 
 private:
     void validateFields();
+    enum {
+        MIN_SIZE = 8,
+        MAX_SIZE = 256
+    };
 
 private:
     Ui::CDlgResize *ui;

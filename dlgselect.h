@@ -25,6 +25,10 @@ private slots:
     void on_cbSelect_Maps_currentIndexChanged(int index);
 
 private:
+    enum {
+        BLACK = 0xff000000,
+        ALPHA = 0xff000000
+    };
     void updatePreview(CMap *map);
     CFrameSet* preloadTiles();
     Ui::CDlgSelect *ui;

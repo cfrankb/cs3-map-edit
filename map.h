@@ -10,8 +10,8 @@ typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
 
 typedef struct
 {
-    uint8_t x;
-    uint8_t y;
+    uint16_t x;
+    uint16_t y;
 } Pos;
 
 class CMap
@@ -41,7 +41,8 @@ public:
     bool fromMemory(uint8_t *mem);
 
     enum:uint16_t {
-        UP, DOWN, LEFT, RIGHT, MAX = RIGHT
+        UP, DOWN, LEFT, RIGHT, MAX = RIGHT,
+        NOT_FOUND=0xffff
     };
     void shift(int aim);
     void debug();

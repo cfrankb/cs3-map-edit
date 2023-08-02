@@ -31,7 +31,6 @@ void CDlgResize::height(const int h)
     ui->eHeight->setText(QString("%1").arg(h));
 }
 
-
 void CDlgResize::on_eWidth_textChanged(const QString &)
 {
     validateFields();
@@ -46,5 +45,5 @@ void CDlgResize::validateFields() {
     int w = ui->eWidth->text().toInt();
     int h = ui->eHeight->text().toInt();
     ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
-                w < 8 || w > 255 || h < 8 || h > 255);
+                w < MIN_SIZE || w > MAX_SIZE || h < MIN_SIZE || h > MAX_SIZE);
 }

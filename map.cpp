@@ -219,21 +219,20 @@ bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
                 printf("%s\n", m_lastError.c_str());
                 return false;
             }
-            m_size = len * hei;
         }
         m_attrs.clear();
     } else {
         uint8_t * newMap = new uint8_t[len * hei];
-        memset(newMap, 0, len * hei * sizeof(newMap[0]));
-        for (int y=0; y < hei; ++y) {
+        memset(newMap, 0, len * hei);
+        for (int y=0; y < std::min(m_hei, hei); ++y) {
             memcpy(newMap + y * len,
                    m_map + y * m_len,
-                   std::min(static_cast<uint16_t>(len), m_len));
+                   std::min(len, m_len));
         }
         delete [] m_map;
         m_map = newMap;
-        m_size = len * hei;
     }
+    m_size = len * hei;
     m_len = len;
     m_hei = hei;
     return true;
@@ -241,9 +240,9 @@ bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
 
 const Pos CMap::findFirst(uint8_t tileId)
 {
-    for (uint8_t y = 0; y < m_hei; ++y)
+    for (uint16_t y = 0; y < m_hei; ++y)
     {
-        for (uint8_t x = 0; x < m_len; ++x)
+        for (uint16_t x = 0; x < m_len; ++x)
         {
             if (at(x, y) == tileId)
             {
@@ -251,15 +250,15 @@ const Pos CMap::findFirst(uint8_t tileId)
             }
         }
     }
-    return Pos{0xff, 0xff};
+    return Pos{NOT_FOUND, NOT_FOUND};
 }
 
 int CMap::count(uint8_t tileId)
 {
     int count = 0;
-    for (uint8_t y = 0; y < m_hei; ++y)
+    for (uint16_t y = 0; y < m_hei; ++y)
     {
-        for (uint8_t x = 0; x < m_len; ++x)
+        for (uint16_t x = 0; x < m_len; ++x)
         {
             if (at(x, y) == tileId)
             {
@@ -321,10 +320,10 @@ CMap & CMap::operator=(const CMap &map)
     forget();
     m_len = map.m_len;
     m_hei = map.m_hei;
-    m_map = new uint8_t[m_len * m_hei];
-    memcpy(m_map, map.m_map, sizeof(m_map[0]) * map.m_len*map.m_hei);
-    m_attrs = map.m_attrs;
     m_size = map.m_len*map.m_hei;
+    m_map = new uint8_t[m_size];
+    memcpy(m_map, map.m_map, m_size);
+    m_attrs = map.m_attrs;
     return *this;
 }
 
