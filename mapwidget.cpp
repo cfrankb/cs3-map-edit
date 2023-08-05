@@ -236,30 +236,36 @@ void CMapWidget::drawTile(const int x, const int y, const int tile, const bool f
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         glBindTexture(GL_TEXTURE_2D, m_textureTiles);
     }
-    const int col = tile & (TEX_TILE_SIZE-1);
-    const int row = tile / TEX_TILE_SIZE;
-    const float gx = col * TEX_TILE_SIZE;
-    const float gy = (15 - row) * TEX_TILE_SIZE;
-
     const int x2 = x1 + TILE_SIZE;
     const int y2 = y1 - TILE_SIZE;
 
-    const float w = TEXTURE_WIDTH;
-    const float h = TEXTURE_HEIGHT;
-    const float a1 = gx / w;
-    const float b1 = 1.0-(gy / h);
-    const float a2 = (gx + TEX_TILE_SIZE)/ w;
-    const float b2 = 1.0-(gy + TEX_TILE_SIZE) / h;
+    textureDef_t def;
+    if (m_textureCache.count(tile) == 0) {
+        // add new tileDef to cache
+        const int col = tile & (TEX_TILE_SIZE-1);
+        const int row = tile / TEX_TILE_SIZE;
+        const float gx = col * TEX_TILE_SIZE;
+        const float gy = (15 - row) * TEX_TILE_SIZE;
+        const float w = TEXTURE_WIDTH;
+        const float h = TEXTURE_HEIGHT;
+        def.a1 = gx / w;
+        def.b1 = 1.0-(gy / h);
+        def.a2 = (gx + TEX_TILE_SIZE)/ w;
+        def.b2 = 1.0-(gy + TEX_TILE_SIZE) / h;
+        m_textureCache[tile] = def;
+    } else {
+        def = m_textureCache[tile];
+    }
 
     glBegin(GL_QUADS);
         // bottom left
-        glTexCoord2f(a1, b2); glVertex3f(x1, y2, 0.0);
+        glTexCoord2f(def.a1, def.b2); glVertex3f(x1, y2, 0.0);
         // top left
-        glTexCoord2f(a1,b1); glVertex3f(x1, y1, 0.0);
+        glTexCoord2f(def.a1, def.b1); glVertex3f(x1, y1, 0.0);
         // top right
-        glTexCoord2f(a2,b1); glVertex3f(x2, y1, 0.0);
+        glTexCoord2f(def.a2, def.b1); glVertex3f(x2, y1, 0.0);
         // bottom right
-        glTexCoord2f(a2, b2); glVertex3f(x2, y2, 0.0);
+        glTexCoord2f(def.a2, def.b2); glVertex3f(x2, y2, 0.0);
     glEnd();
 }
 

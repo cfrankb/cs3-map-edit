@@ -5,6 +5,17 @@
 #include <QOpenGLFunctions_2_0>
 #include <QWidget>
 #include <QTimer>
+#include <unordered_map>
+#include <inttypes.h>
+
+typedef struct {
+    float a1;
+    float a2;
+    float b1;
+    float b2;
+} textureDef_t;
+
+typedef std::unordered_map<uint8_t, textureDef_t> textureMap_t;
 
 class CMap;
 
@@ -49,6 +60,7 @@ protected:
     GLint m_textureFont;
     CMap *m_map;
     bool m_showGrid;
+    textureMap_t m_textureCache;
 
 signals:
     friend class CMapScroll;

@@ -11,6 +11,7 @@
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QPainter>
+#include <QShortcut>
 
 typedef struct
 {
@@ -51,7 +52,7 @@ CDlgTest::CDlgTest(QWidget *parent) :
     ui->setupUi(this);
     memset(tileReplacement, NO_ANIMZ, sizeof(tileReplacement));
     memset(m_joyState, 0, sizeof(m_joyState));
-    ui->sMapView->hide();
+    new QShortcut(QKeySequence(Qt::Key_F11), this, SLOT(changeZoom()));
 }
 
 CDlgTest::~CDlgTest()
@@ -261,9 +262,7 @@ void CDlgTest::mainLoop()
         --m_countdown;
     }
 
-    if ((m_ticks & 1) == 0) {
-        update();
-    }
+    update();
 
     switch (game.mode())
     {
@@ -416,11 +415,8 @@ void CDlgTest::sanityTest()
 
 void CDlgTest::paintEvent(QPaintEvent *)
 {
-    QSize size = {WIDTH, HEIGHT};
-    CFrame bitmap(size.width(), size.height());
-
-    const CGame &game = * m_game;
-    switch (game.mode())
+    CFrame bitmap(WIDTH, HEIGHT);
+    switch (m_game->mode())
     {
     case CGame::MODE_INTRO:
     case CGame::MODE_RESTART:
@@ -433,8 +429,22 @@ void CDlgTest::paintEvent(QPaintEvent *)
 
     // show the screen
     const QImage img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB()), bitmap.m_nLen, bitmap.m_nHei, QImage::Format_RGBX8888);
-    const QPixmap pixmap = QPixmap::fromImage(img);
+    const QPixmap pixmap = QPixmap::fromImage(m_zoom ? img.scaled(QSize(WIDTH * 2, HEIGHT * 2)): img);
     QPainter p(this);
     p.drawPixmap(0, 0, pixmap);
     p.end();
+}
+
+void CDlgTest::changeZoom()
+{
+    setZoom(!m_zoom);
+}
+
+void CDlgTest::setZoom(bool zoom)
+{
+    m_zoom = zoom;
+    int factor = m_zoom ? 2 : 1;
+    this->setMaximumSize(QSize(WIDTH * factor, HEIGHT * factor));
+    this->setMinimumSize(QSize(WIDTH * factor, HEIGHT * factor));
+    this->resize(QSize(WIDTH * factor, HEIGHT * factor));
 }

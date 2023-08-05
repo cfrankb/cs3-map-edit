@@ -31,6 +31,7 @@ protected:
 
 protected slots:
     void mainLoop();
+    void changeZoom();
 
 private:
     enum {
@@ -48,7 +49,6 @@ private:
         LIME   = 0x0034ebb1 | ALPHA,
         WIDTH  = 240,
         HEIGHT = 320,
-
     };
 
     typedef struct
@@ -70,6 +70,7 @@ private:
     CMapFile * m_mapfile = nullptr;
     QTimer m_timer;
     int m_countdown = 0;
+    bool m_zoom = false;
     void drawScreen(CFrame &bitmap);
     void drawLevelIntro(CFrame &bitmap);
     void preloadAssets();
@@ -81,6 +82,7 @@ private:
     void restartGame();
     void sanityTest();
     void startCountdown();
+    void setZoom(bool zoom);
 };
 
 #endif // DLGTEST_H
