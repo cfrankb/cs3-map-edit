@@ -29,14 +29,6 @@ QIcon frame2icon(CFrame & frame)
 
 QPixmap frame2pixmap(CFrame & frame)
 {
-    uint8_t *png;
-    int size;
-    frame.toPng(png, size);
-    QImage img;
-    if (!img.loadFromData(png, size)) {
-        qWarning("failed to load png");
-    }
-    delete [] png;
+    const QImage img = QImage(reinterpret_cast<uint8_t*>(frame.getRGB()), frame.m_nLen, frame.m_nHei, QImage::Format_RGBA8888);
     return QPixmap::fromImage(img);
 }
-

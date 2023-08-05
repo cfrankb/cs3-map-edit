@@ -9,6 +9,7 @@ class CMapFile;
 class CGame;
 class QKeyEvent;
 class CFrame;
+class QPaintEvent;
 
 namespace Ui {
 class CDlgTest;
@@ -26,6 +27,7 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
+    void paintEvent(QPaintEvent *) override;
 
 protected slots:
     void mainLoop();
@@ -37,13 +39,16 @@ private:
         KEY_PRESSED=1,
         KEY_RELEASED=0,
         INTRO_DELAY = TICK_RATE,
-        WHITE  = 0xffffffff,
-        YELLOW = 0xff00ffff,
-        PURPLE = 0xffff00ff,
-        BLACK  = 0xff000000,
-        GREEN  = 0xff00ff00,
-        LIME   = 0xff34ebb1,
         ALPHA  = 0xff000000,
+        WHITE  = 0x00ffffff | ALPHA,
+        YELLOW = 0x0000ffff | ALPHA,
+        PURPLE = 0x00ff00ff | ALPHA,
+        BLACK  = 0x00000000 | ALPHA,
+        GREEN  = 0x0000ff00 | ALPHA,
+        LIME   = 0x0034ebb1 | ALPHA,
+        WIDTH  = 240,
+        HEIGHT = 320,
+
     };
 
     typedef struct
@@ -65,8 +70,8 @@ private:
     CMapFile * m_mapfile = nullptr;
     QTimer m_timer;
     int m_countdown = 0;
-    void drawScreen();
-    void drawLevelIntro();
+    void drawScreen(CFrame &bitmap);
+    void drawLevelIntro(CFrame &bitmap);
     void preloadAssets();
     void animate();
     void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);

@@ -8,9 +8,9 @@
 #include "mapfile.h"
 #include "game.h"
 #include "shared/qtgui/qfilewrap.h"
-#include "shared/qtgui/qthelper.h"
 #include <QKeyEvent>
 #include <QMessageBox>
+#include <QPainter>
 
 typedef struct
 {
@@ -51,6 +51,7 @@ CDlgTest::CDlgTest(QWidget *parent) :
     ui->setupUi(this);
     memset(tileReplacement, NO_ANIMZ, sizeof(tileReplacement));
     memset(m_joyState, 0, sizeof(m_joyState));
+    ui->sMapView->hide();
 }
 
 CDlgTest::~CDlgTest()
@@ -160,11 +161,11 @@ void CDlgTest::drawRect(CFrame & frame, const Rect &rect, const uint32_t color)
     }
 }
 
-void CDlgTest::drawScreen() {
+void CDlgTest::drawScreen(CFrame & bitmap) {
     CMap *map = & m_game->getMap();
     CGame &game = * m_game;
 
-    QSize size = ui->sMapView->size();
+    QSize size = {WIDTH, HEIGHT};
     const int tileSize = 16;
     int maxRows = size.height() / tileSize;
     int maxCols = size.width() / tileSize;
@@ -180,7 +181,6 @@ void CDlgTest::drawScreen() {
     CFrameSet & tiles = *m_tiles;
     CFrameSet & animz = *m_animz;
     CFrameSet & annie = *m_annie;
-    CFrame bitmap(maxCols * tileSize, maxRows * tileSize);
     bitmap.fill(BLACK);
     uint32_t *rgba = bitmap.getRGB();
     for (int row=0; row < rows; ++row) {
@@ -210,7 +210,7 @@ void CDlgTest::drawScreen() {
             }
             for (int y=0; y < tileSize; ++y) {
                 for (int x=0; x < tileSize; ++x) {
-                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = tile->at(x,y) | ALPHA;
+                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = tile->at(x,y);
                 }
             }
         }
@@ -230,13 +230,9 @@ void CDlgTest::drawScreen() {
 
     // draw health bar
     drawRect(bitmap, Rect{4, bitmap.m_nHei - 10, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, LIME);
-
-    // show screen
-    QPixmap pixmap = frame2pixmap(bitmap);
-    ui->sMapView->setPixmap(pixmap);
 }
 
-void CDlgTest::drawLevelIntro()
+void CDlgTest::drawLevelIntro(CFrame &bitmap)
 {
     char t[32];
     switch (m_game->mode())
@@ -251,16 +247,11 @@ void CDlgTest::drawLevelIntro()
         strcpy(t, "GAME OVER");
     };
 
-    QSize size = ui->sMapView->size();
+    QSize size = {WIDTH, HEIGHT};
     int x = (size.width() - strlen(t) * 8) / 2;
     int y = (size.height() - 8) / 2;
-    CFrame bitmap(size.width(), size.height());
     bitmap.fill(BLACK);
     drawFont(bitmap, x, y, t, WHITE);
-
-    // show screen
-    QPixmap pixmap = frame2pixmap(bitmap);
-    ui->sMapView->setPixmap(pixmap);
 }
 
 void CDlgTest::mainLoop()
@@ -270,12 +261,15 @@ void CDlgTest::mainLoop()
         --m_countdown;
     }
 
+    if ((m_ticks & 1) == 0) {
+        update();
+    }
+
     switch (game.mode())
     {
     case CGame::MODE_INTRO:
     case CGame::MODE_RESTART:
     case CGame::MODE_GAMEOVER:
-        drawLevelIntro();
         if (m_countdown) {
             return;
         }
@@ -285,8 +279,6 @@ void CDlgTest::mainLoop()
             game.setMode(CGame::MODE_LEVEL);
         }
         break;
-    case CGame::MODE_LEVEL:
-        drawScreen();
     }
 
     if (m_ticks % 3 == 0 && !game.isPlayerDead())
@@ -299,7 +291,7 @@ void CDlgTest::mainLoop()
         animate();
     }
 
-    if (m_ticks % 4 == 0)
+    if ((m_ticks & 3) == 0)
     {
         game.manageMonsters();
     }
@@ -420,4 +412,29 @@ void CDlgTest::sanityTest()
         QMessageBox::warning(this, "", msg, QMessageBox::Button::Ok);
         reject();
     }
+}
+
+void CDlgTest::paintEvent(QPaintEvent *)
+{
+    QSize size = {WIDTH, HEIGHT};
+    CFrame bitmap(size.width(), size.height());
+
+    const CGame &game = * m_game;
+    switch (game.mode())
+    {
+    case CGame::MODE_INTRO:
+    case CGame::MODE_RESTART:
+    case CGame::MODE_GAMEOVER:
+        drawLevelIntro(bitmap);
+        break;
+    case CGame::MODE_LEVEL:
+        drawScreen(bitmap);
+    }
+
+    // show the screen
+    const QImage img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB()), bitmap.m_nLen, bitmap.m_nHei, QImage::Format_RGBX8888);
+    const QPixmap pixmap = QPixmap::fromImage(img);
+    QPainter p(this);
+    p.drawPixmap(0, 0, pixmap);
+    p.end();
 }

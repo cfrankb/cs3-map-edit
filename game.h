@@ -21,7 +21,7 @@ public:
     void consume();
     static bool hasKey(uint8_t c);
     void addKey(uint8_t c);
-    bool goalCount();
+    bool goalCount() const;
     static CMap &getMap();
     void nextLevel();
     void restartLevel();

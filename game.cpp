@@ -366,7 +366,7 @@ void CGame::addKey(uint8_t c)
     }
 }
 
-bool CGame::goalCount()
+bool CGame::goalCount() const
 {
     return m_diamonds;
 }
