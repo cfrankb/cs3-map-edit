@@ -20,6 +20,7 @@ SOURCES += \
     dlgselect.cpp \
     dlgtest.cpp \
     game.cpp \
+    gamemixin.cpp \
     level.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -48,6 +49,7 @@ HEADERS += \
     dlgselect.h \
     dlgtest.h \
     game.h \
+    gamemixin.h \
     level.h \
     mainwindow.h \
     maparch.h \
