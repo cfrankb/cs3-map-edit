@@ -19,13 +19,10 @@ public:
     void attr(const uint8_t & a);
 
 private slots:
-    void on_line_AttrEdit_textChanged(const QString &);
+    void on_line_AttrEdit_textChanged(const QString &text);
 
 private:
     Ui::CDlgAttr *ui;
-
-    void validateFields();
-
 };
 
 #endif // DLGATTR_H

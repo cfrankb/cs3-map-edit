@@ -140,13 +140,81 @@ void CGameMixin::drawFont(CFrame & frame, int x, int y, const char *text, const 
     }
 }
 
-void CGameMixin::drawRect(CFrame & frame, const Rect &rect, const uint32_t color)
+void CGameMixin::drawRect(CFrame & frame, const Rect &rect, const uint32_t color, bool fill)
 {
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.m_nLen;
-    for (int y=0; y < rect.height; y++ ) {
-        for (int x=0; x < rect.width; x++ ) {
-            rgba[ (rect.y + y) * rowPixels + rect.x + x] = color;
+    if (fill) {
+        for (int y=0; y < rect.height; y++ ) {
+            for (int x=0; x < rect.width; x++ ) {
+                rgba[ (rect.y + y) * rowPixels + rect.x + x] = color;
+            }
+        }
+    } else {
+        for (int y=0; y < rect.height; y++ ) {
+            for (int x=0; x < rect.width; x++ ) {
+                if (y == 0 || y == rect.height-1 || x ==0 || x == rect.width-1) {
+                    rgba[ (rect.y + y) * rowPixels + rect.x + x] = color;
+                }
+            }
+        }
+    }
+}
+
+void CGameMixin::drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, bool alpha)
+{
+    const uint32_t *tileData = tile.getRGB();
+    uint32_t *dest = bitmap.getRGB() + x + y * WIDTH;
+    if (alpha) {
+        for (uint32_t row=0; row < TILE_SIZE; ++row) {
+            for (uint32_t col=0; col < TILE_SIZE; ++col) {
+                const uint32_t & rgba = tileData[col];
+                if (rgba & ALPHA) {
+                    dest[col] = rgba;
+                }
+            }
+            dest += WIDTH;
+            tileData += TILE_SIZE;
+        }
+    } else {
+        for (uint32_t row=0; row < TILE_SIZE; ++row) {
+            int i = 0;
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest[i++] = *(tileData++);
+            dest += WIDTH;
+        }
+    }
+}
+
+void CGameMixin::drawKeys(CFrame &bitmap)
+{
+    CGame &game = * m_game;
+    CFrameSet & tiles = *m_tiles;
+    int y = HEIGHT - TILE_SIZE;
+    int x = WIDTH - TILE_SIZE;
+    const uint8_t *keys = game.keys();
+    for (int i=0; i < 6; ++i) {
+        uint8_t k = keys[i];
+        if (k) {
+            drawTile(bitmap, x,y, * tiles[k], true);
+            x -= TILE_SIZE;
         }
     }
 }
@@ -155,9 +223,8 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     CMap *map = & m_game->getMap();
     CGame &game = * m_game;
 
-    const int tileSize = 16;
-    int maxRows = HEIGHT / tileSize;
-    int maxCols = WIDTH / tileSize;
+    int maxRows = HEIGHT / TILE_SIZE;
+    int maxCols = WIDTH / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
 
@@ -166,29 +233,27 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
     const int my = std::min(lmy, map->hei() > rows ? map->hei() - rows : 0);
 
-    const int lineSize = maxCols * tileSize;
     CFrameSet & tiles = *m_tiles;
     CFrameSet & animz = *m_animz;
     CFrameSet & annie = *m_annie;
     bitmap.fill(BLACK);
-    uint32_t *rgba = bitmap.getRGB();
-    for (int row=0; row < rows; ++row) {
-        if (row + my >= map->hei())
+    for (int y=0; y < rows; ++y) {
+        if (y + my >= map->hei())
         {
             break;
         }
-        for (int col=0; col < cols; ++col) {
-            uint8_t tileID = map->at(col + mx, row + my);
+        for (int x=0; x < cols; ++x) {
+            uint8_t tileID = map->at(x + mx, y + my);
             CFrame *tile;
             if (tileID == TILES_ANNIE2)
             {
-                tile = annie[game.player().getAim() * 4 + col % 3];
+                tile = annie[game.player().getAim() * 4 + m_playerFrameOffset];
             }
             else
             {
-                if (tileID == TILES_STOP)
+                if (tileID == TILES_STOP || tileID == TILES_BLANK)
                 {
-                    tileID = TILES_BLANK;
+                    continue;
                 }
                 int j = tileReplacement[tileID];
                 if (j == NO_ANIMZ) {
@@ -197,11 +262,7 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
                     tile = animz[j];
                 }
             }
-            for (int y=0; y < tileSize; ++y) {
-                for (int x=0; x < tileSize; ++x) {
-                    rgba[x + col*tileSize+ y * lineSize + row * tileSize*lineSize] = tile->at(x,y);
-                }
-            }
+            drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
         }
     }
 
@@ -217,8 +278,15 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     sprintf(tmp, "LIVES %.2d ", game.lives());
     drawFont(bitmap, bx * 8, 2, tmp, PURPLE);
 
+    // draw bottom rect
+    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, LIGHTSLATEGRAY, true);
+    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
+
     // draw health bar
-    drawRect(bitmap, Rect{4, bitmap.m_nHei - 10, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, LIME);
+    drawRect(bitmap, Rect{4, bitmap.m_nHei - 12, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, LIME, true);
+    drawRect(bitmap, Rect{4, bitmap.m_nHei - 12, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, WHITE, false);
+
+    drawKeys(bitmap);
 }
 
 void CGameMixin::drawLevelIntro(CFrame &bitmap)
@@ -272,6 +340,14 @@ void CGameMixin::mainLoop()
 
     if (m_ticks % 3 == 0)
     {
+        if (game.health() < m_healthRef && m_playerFrameOffset != 3) {
+            m_playerFrameOffset = 3;
+        } else if (*(reinterpret_cast<uint32_t*>(m_joyState))){
+            m_playerFrameOffset = (m_playerFrameOffset + 1) % 3;
+        } else {
+            m_playerFrameOffset = 0;
+        }
+        m_healthRef = game.health();
         animate();
     }
 
@@ -286,7 +362,7 @@ void CGameMixin::mainLoop()
         if(!game.isGameOver()) {
             restartLevel();
         } else {
-            startCountdown();
+            startCountdown(1);
             game.setMode(CGame::MODE_GAMEOVER);
         }
     }
@@ -303,29 +379,30 @@ void CGameMixin::mainLoop()
 
 void CGameMixin::nextLevel()
 {
+    m_healthRef = 0;
     m_game->nextLevel();
     sanityTest();
-    startCountdown();
+    startCountdown(1);
     m_game->loadLevel(false);
 }
 
 void CGameMixin::restartLevel()
 {
-    startCountdown();
+    startCountdown(1);
     m_game->loadLevel(true);
 }
 
 void CGameMixin::restartGame()
 {
-    startCountdown();
+    startCountdown(2);
     m_game->restartGame();
     sanityTest();
     m_game->loadLevel(false);
 }
 
-void CGameMixin::startCountdown()
+void CGameMixin::startCountdown(int f)
 {
-    m_countdown = INTRO_DELAY;
+    m_countdown = f * INTRO_DELAY;
 }
 
 void CGameMixin::init(CMapArch *maparch, int index)

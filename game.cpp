@@ -224,12 +224,22 @@ void CGame::manageMonsters()
             {
                 // apply health damages
                 addHealth(def.health);
+                continue;
             }
 
             int aim = actor.findNextDir();
             if (aim != AIM_NONE)
             {
                 actor.move(aim);
+            } else {
+                for (uint8_t i = 0; i < sizeof(dirs); ++i)
+                {
+                    if (actor.isPlayerThere(dirs[i])) {
+                        // apply health damages
+                        addHealth(def.health);
+                        break;
+                    }
+                }
             }
         }
         else if (def.type == TYPE_DRONE)
@@ -295,6 +305,9 @@ void CGame::manageMonsters()
 
 void CGame::managePlayer(uint8_t *joystate)
 {
+    if (m_player.getPU() == TILES_SWAMP) {
+        addHealth(-1);
+    }
     uint8_t aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
     for (uint8_t i =0; i < 4; ++i) {
         uint8_t aim = aims[i];
@@ -448,4 +461,9 @@ int CGame::diamonds()
 int CGame::health()
 {
     return m_health;
+}
+
+uint8_t *CGame::keys()
+{
+    return m_keys;
 }

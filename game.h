@@ -39,6 +39,7 @@ public:
     void setMapArch(CMapArch *arch);
     void setLevel(int levelId);
     int level();
+    static uint8_t *keys();
 
     enum
     {

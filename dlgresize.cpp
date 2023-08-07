@@ -7,6 +7,8 @@ CDlgResize::CDlgResize(QWidget *parent) :
     ui(new Ui::CDlgResize)
 {
     ui->setupUi(this);
+    setMinimumSize(size());
+    setMaximumSize(size());
 }
 
 CDlgResize::~CDlgResize()

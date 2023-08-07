@@ -8,6 +8,8 @@ CDlgAttr::CDlgAttr(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->line_AttrEdit->setFocus();
+    setMinimumSize(size());
+    setMaximumSize(size());
 }
 
 CDlgAttr::~CDlgAttr()
@@ -22,19 +24,15 @@ uint8_t CDlgAttr::attr()
 
 void CDlgAttr::attr(const uint8_t & a)
 {
-    ui->line_AttrEdit->setText(QString("%1").arg(a,2,16));
+    ui->line_AttrEdit->setText(QString("%1").arg(a,2,16,QChar('0')));
 }
 
-void CDlgAttr::validateFields() {
-    QString s = ui->line_AttrEdit->text().toLower();
-    int v = s.toUInt(nullptr, 16);
-    QRegExp re("[\\da-f]*");
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
-                v < 0 || v > 255 || !re.exactMatch(s));
-}
-
-void CDlgAttr::on_line_AttrEdit_textChanged(const QString &)
+void CDlgAttr::on_line_AttrEdit_textChanged(const QString & text)
 {
-    validateFields();
+    bool ok;
+    int v = text.toUInt(&ok, 16);
+    QRegExp re("[0-9a-fA-F]+");
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
+        !ok || v < 0 || v > 255 || !re.exactMatch(text));
 }
 

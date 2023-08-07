@@ -35,7 +35,7 @@ protected slots:
 
 protected:
     enum {
-        TICK_RATE = 30,
+        TICK_RATE = 20,
         GRID_SIZE = 32,
     };
 

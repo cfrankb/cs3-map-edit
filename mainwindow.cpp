@@ -321,6 +321,7 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
 {
     CMap &map = * m_doc.map();
     CDlgResize dlg(this);
+    dlg.setWindowTitle(tr("Resize Map"));
     dlg.width(map.len());
     dlg.height(map.hei());
     if (dlg.exec()==QDialog::Accepted){
@@ -625,7 +626,7 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
             return;
         }
         CDlgTest dlg(this);
-        dlg.setWindowTitle(tr("Test level"));
+        dlg.setWindowTitle(tr("Test Map"));
         dlg.init(&m_doc);
         dlg.exec();
     }

@@ -19,7 +19,7 @@ protected slots:
     void changeZoom();
 
 protected:
-    enum {
+    enum:uint32_t {
         TICK_RATE= 24,
         NO_ANIMZ = 255,
         KEY_PRESSED=1,
@@ -32,8 +32,13 @@ protected:
         BLACK  = 0x00000000 | ALPHA,
         GREEN  = 0x0000ff00 | ALPHA,
         LIME   = 0x0034ebb1 | ALPHA,
+        BLUE   = 0x00ff0000 | ALPHA,
+        DARKBLUE = 0x00440000 | ALPHA,
+        LIGHTSLATEGRAY= 0x00998877 | ALPHA,
+        LIGHTGRAY= 0x00DCDCDC | ALPHA,
         WIDTH  = 240,
         HEIGHT = 320,
+        TILE_SIZE = 16
     };
 
     typedef struct
@@ -53,6 +58,8 @@ protected:
     CGame *m_game = nullptr;
     CMapArch * m_maparch = nullptr;
     QTimer m_timer;
+    int m_playerFrameOffset = 0;
+    int m_healthRef = 0;
     int m_countdown = 0;
     bool m_zoom = false;
     void drawScreen(CFrame &bitmap);
@@ -60,12 +67,14 @@ protected:
     void preloadAssets();
     void animate();
     void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);
-    void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN);
+    void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN, bool fill=true);
+    void drawKeys(CFrame &bitmap);
+    inline void drawTile(CFrame & frame, const int x, const int y, CFrame & tile, bool alpha);
     void nextLevel();
     void restartLevel();
     void restartGame();
     virtual void sanityTest();
-    void startCountdown();
+    void startCountdown(int f=1);
     virtual void setZoom(bool zoom);
 
 };
