@@ -43,6 +43,7 @@ SOURCES += \
 HEADERS += \
     actor.h \
     animator.h \
+    app_version.h \
     dlgattr.h \
     dlgresize.h \
     dlgabout.h \

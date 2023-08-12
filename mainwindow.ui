@@ -269,10 +269,16 @@
    <property name="text">
     <string>About Qt</string>
    </property>
+   <property name="statusTip">
+    <string>About Qt...</string>
+   </property>
   </action>
   <action name="actionHelp_About">
    <property name="text">
     <string>About</string>
+   </property>
+   <property name="statusTip">
+    <string>About mapEdit</string>
    </property>
   </action>
   <action name="actionEdit_Previous_Map">

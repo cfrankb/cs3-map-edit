@@ -242,7 +242,7 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     drawFont(bitmap, bx * 8, 2, tmp, PURPLE);
 
     // draw bottom rect
-    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, DARKBLUE, true);
+    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, DARKGRAY, true);
     drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
 
     // draw health bar

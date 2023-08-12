@@ -134,7 +134,7 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
             }
             uint8_t tileID = map->at(x + mx, y + my);
             CFrame *tile;
-            int j = m_animate ? m_animator->at(tileID) : NO_ANIMZ;
+            int j = m_animate ? m_animator->at(tileID) : static_cast<uint8_t>(NO_ANIMZ);
             if (j == NO_ANIMZ) {
                 tile = tiles[tileID];
             } else {
