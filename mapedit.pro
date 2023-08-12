@@ -13,7 +13,6 @@ DEFINES += USE_QFILE=1
 
 SOURCES += \
     actor.cpp \
-    data.cpp \
     dlgattr.cpp \
     dlgresize.cpp \
     dlgabout.cpp \
@@ -27,7 +26,7 @@ SOURCES += \
     maparch.cpp \
     mapfile.cpp \
     mapscroll.cpp \
-    mapwidget.cpp \
+    mapwidgetgl.cpp \
     shared/DotArray.cpp \
     shared/FileWrap.cpp \
     shared/Frame.cpp \
@@ -42,7 +41,6 @@ SOURCES += \
 
 HEADERS += \
     actor.h \
-    data.h \
     dlgattr.h \
     dlgresize.h \
     dlgabout.h \
@@ -55,7 +53,7 @@ HEADERS += \
     maparch.h \
     mapfile.h \
     mapscroll.h \
-    mapwidget.h \
+    mapwidgetgl.h \
     shared/DotArray.h \
     shared/FileWrap.h \
     shared/Frame.h \

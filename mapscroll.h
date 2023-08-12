@@ -2,7 +2,7 @@
 #define CMAPSCROLL_H
 
 #include <QAbstractScrollArea>
-class CMapWidget;
+class CMapWidgetGL;
 class QWidget;
 class CMap;
 
@@ -11,8 +11,8 @@ class CMapScroll : public QAbstractScrollArea
     Q_OBJECT
 public:
     explicit CMapScroll(QWidget *parent = nullptr);
-    CMapWidget *m_widget;
-
+    CMapWidgetGL *m_widget;
+    bool isGlWidget();
 
 signals:
     void statusChanged(const QString str);
@@ -44,8 +44,11 @@ protected:
     int m_mapLen;
     int m_mapHei;
     enum {
-        GRID_SIZE = 32
+        GRID_SIZE = 32,
+        STEPS = 4
     };
+
+    bool m_isGlWidget = false;
 };
 
 #endif // CMAPSCROLL_H

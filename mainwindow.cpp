@@ -6,7 +6,7 @@
 #include <QShortcut>
 #include <QKeySequence>
 #include "mapscroll.h"
-#include "mapwidget.h"
+#include "mapwidgetgl.h"
 #include "dlgattr.h"
 #include "dlgresize.h"
 #include "dlgselect.h"
@@ -24,17 +24,19 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     m_scrollArea = new CMapScroll(this);
-    m_scrollArea->viewport()->update();
+    if (m_scrollArea->isGlWidget()) {
+        m_scrollArea->viewport()->update();
+        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(m_scrollArea->viewport());
+        glw->setMap(m_doc.map());
+        connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
+    }
     setCentralWidget(m_scrollArea);
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
-    glw->setMap(m_doc.map());
 
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
     connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
     connect(this, SIGNAL(mapChanged(CMap*)), m_scrollArea, SLOT(newMap(CMap*)));
     connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint&)),
         this, SLOT(showContextMenu(const QPoint&))) ;
-    connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
 
     updateTitle();
     initTilebox();

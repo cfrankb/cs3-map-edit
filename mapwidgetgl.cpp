@@ -1,12 +1,22 @@
-#include "mapwidget.h"
+#include "mapwidgetgl.h"
 
 #include <stdint.h>
 #include <QScrollBar>
 #include <QContextMenuEvent>
 #include <QMenu>
-#include "data.h"
 #include "map.h"
 #include "mapscroll.h"
+#include "shared/qtgui/qfilewrap.h"
+#include "shared/FrameSet.h"
+#include "shared/Frame.h"
+
+#define TEXTURE_WIDTH 256
+#define TEXTURE_HEIGHT 256
+#define FONT_TEXTURE_WIDTH 128
+#define FONT_TEXTURE_HEIGHT 64
+#define FONT_SIZE 8
+#define TEX_TILE_SIZE 16
+#define TILE_SIZE 32
 
 void openglError(unsigned int code, const char *file, int line){
     std::string tmp;
@@ -41,7 +51,7 @@ void openglError(unsigned int code, const char *file, int line){
 }
 #define GLDEBUG() openglError(glGetError(), __FILE__, __LINE__ );
 
-CMapWidget::CMapWidget(QWidget *parent)
+CMapWidgetGL::CMapWidgetGL(QWidget *parent)
     : QOpenGLWidget(parent)
 {
     setUpdateBehavior(QOpenGLWidget::PartialUpdate);
@@ -57,11 +67,12 @@ CMapWidget::CMapWidget(QWidget *parent)
     m_showGrid = false;
 }
 
-CMapWidget::~CMapWidget()
+CMapWidgetGL::~CMapWidgetGL()
 {
+    m_timer.stop();
 }
 
-void CMapWidget::getGLInfo(QString &vendor, QString &renderer, QString &version, QString &extensions)
+void CMapWidgetGL::getGLInfo(QString &vendor, QString &renderer, QString &version, QString &extensions)
 {
     vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
     renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
@@ -69,7 +80,7 @@ void CMapWidget::getGLInfo(QString &vendor, QString &renderer, QString &version,
     extensions = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
 }
 
-void CMapWidget::initializeGL()
+void CMapWidgetGL::initializeGL()
 {
     QOpenGLWidget::initializeGL();
     initializeOpenGLFunctions();
@@ -77,19 +88,18 @@ void CMapWidget::initializeGL()
     qDebug("renderer: %s", glGetString(GL_RENDERER));
     qDebug("version: %s", glGetString(GL_VERSION));
     qDebug("extensions: %s", glGetString(GL_EXTENSIONS));
-
     loadTiles();
     loadFont();
 }
 
-void CMapWidget::paintGL()
+void CMapWidgetGL::paintGL()
 {
     QOpenGLWidget::paintGL();
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     drawBackground();
 }
 
-void CMapWidget::resizeGL(int w, int h)
+void CMapWidgetGL::resizeGL(int w, int h)
 {
     QOpenGLWidget::resizeGL(w, h);
     glViewport(0,0,w,h);
@@ -99,7 +109,7 @@ void CMapWidget::resizeGL(int w, int h)
     glLoadIdentity();
 }
 
-void CMapWidget::drawBackground()
+void CMapWidgetGL::drawBackground()
 {
      QSize sz = size();
      glDisable(GL_DEPTH_TEST);
@@ -130,7 +140,7 @@ void CMapWidget::drawBackground()
      glFinish();
 }
 
-void CMapWidget::drawCheckers()
+void CMapWidgetGL::drawCheckers()
 {
     QSize sz = size();
     int gridSize = TILE_SIZE;
@@ -153,7 +163,7 @@ void CMapWidget::drawCheckers()
     }
 }
 
-bool CMapWidget::loadTiles()
+bool CMapWidgetGL::loadTiles()
 {
     const uint32_t *data = loadTileData();
     if (data == nullptr) {
@@ -163,7 +173,7 @@ bool CMapWidget::loadTiles()
     return true;
 }
 
-bool CMapWidget::loadFont()
+bool CMapWidgetGL::loadFont()
 {
     const uint32_t * data = loadFontData();
     if (data == nullptr) {
@@ -175,7 +185,7 @@ bool CMapWidget::loadFont()
     return true;
 }
 
-GLint CMapWidget::loadTexture(const uint32_t* data, const int width, const int height)
+GLint CMapWidgetGL::loadTexture(const uint32_t* data, const int width, const int height)
 {
     makeCurrent();
     GLuint textureId = -1;
@@ -195,7 +205,7 @@ GLint CMapWidget::loadTexture(const uint32_t* data, const int width, const int h
 }
 
 /* test texture output */
-void CMapWidget::paintTexture(int x, int y, GLint textureId)
+void CMapWidgetGL::paintTexture(int x, int y, GLint textureId)
 {
     QSize sz = size();
     int x1 = x;
@@ -223,7 +233,7 @@ void CMapWidget::paintTexture(int x, int y, GLint textureId)
     glEnd();
 }
 
-void CMapWidget::drawTile(const int x, const int y, const int tile, const bool fast)
+void CMapWidgetGL::drawTile(const int x, const int y, const int tile, const bool fast)
 {
     const QSize sz = size();
     const int x1 = x;
@@ -269,12 +279,12 @@ void CMapWidget::drawTile(const int x, const int y, const int tile, const bool f
     glEnd();
 }
 
-void CMapWidget::setMap(CMap *pMap)
+void CMapWidgetGL::setMap(CMap *pMap)
 {
    m_map = pMap;
 }
 
-void CMapWidget::drawMap(){
+void CMapWidgetGL::drawMap(){
 
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
     const int mx = scr->horizontalScrollBar()->value();
@@ -317,7 +327,7 @@ void CMapWidget::drawMap(){
     }
 }
 
-void CMapWidget::drawChar(const int x, const int y, uint8_t ch, const bool fast)
+void CMapWidgetGL::drawChar(const int x, const int y, uint8_t ch, const bool fast)
 {
     const int fontPerRow= FONT_TEXTURE_WIDTH / FONT_SIZE;
     const int fontWidth = FONT_SIZE;
@@ -361,14 +371,14 @@ void CMapWidget::drawChar(const int x, const int y, uint8_t ch, const bool fast)
     glEnd();
 }
 
-void CMapWidget::drawString(const int x, const int y, const char *s)
+void CMapWidgetGL::drawString(const int x, const int y, const char *s)
 {
     for (int i=0; s[i]; ++i) {
         drawChar(x + i * 16 , y, s[i] - 32, false);
     }
 }
 
-void CMapWidget::drawGrid()
+void CMapWidgetGL::drawGrid()
 {
     QSize sz = size();
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
@@ -395,7 +405,100 @@ void CMapWidget::drawGrid()
     }
 }
 
-void CMapWidget::showGrid(bool show)
+void CMapWidgetGL::showGrid(bool show)
 {
     m_showGrid = show;
+}
+
+uint32_t * CMapWidgetGL::loadTileData()
+{
+    qDebug("load tiles");
+    QFileWrap file;
+    uint32_t * data = nullptr;
+    if (file.open(":/data/tiles.obl", "rb")) {
+        qDebug("reading tiles");
+        CFrameSet fs;
+        if (fs.extract(file)) {
+            qDebug("exracted: %d", fs.getSize());
+        }
+        file.close();
+
+        data = new uint32_t[TEXTURE_WIDTH * TEXTURE_HEIGHT];
+        uint32_t *p = data;
+        int i = 0;
+        for (int row=0; row< TEXTURE_HEIGHT/TEX_TILE_SIZE; ++row) {
+            for (int col=0; col< TEXTURE_WIDTH/TEX_TILE_SIZE; ++col) {
+                CFrame *frame = fs[i];
+                frame->flipV();
+                uint32_t *rgb =  frame->getRGB();
+                for (int y=0; y < TEX_TILE_SIZE; ++y){
+                    for (int x=0; x < TEX_TILE_SIZE; ++x){
+                        p[col * TEX_TILE_SIZE + x + y *TEXTURE_WIDTH] = *rgb | 0xff000000;
+                        ++rgb;
+                    }
+                }
+                ++i;
+                if (i >= fs.getSize()){
+                    goto done;
+                }
+            }
+            p += TEXTURE_WIDTH * TEX_TILE_SIZE;
+        }
+    }
+done:
+    return data;
+}
+
+uint32_t * CMapWidgetGL::loadFontData()
+{
+    uint32_t * data = nullptr;
+    const char fontName [] = ":/data/font.bin";
+
+    QFileWrap file;
+    uint8_t *fontData = nullptr;
+    int size = 0;
+    if (file.open(fontName, "rb")) {
+        size = file.getSize();
+        fontData = new uint8_t[size];
+        file.read(fontData, size);
+        file.close();
+    } else {
+        qDebug("failed to open %s", fontName);
+        return nullptr;
+    }
+    const int textureWidth = FONT_TEXTURE_WIDTH;//128;
+    const int textureHeight = FONT_TEXTURE_HEIGHT;// 64;
+    const int fontWidth = FONT_SIZE;//8;
+    const int fontHeight = FONT_SIZE;//8;
+    const int fontMemSize = fontWidth*fontHeight;
+    const int fontCount = size / fontMemSize;
+    qDebug("fontCount: %d", fontCount);
+    CFrame frame(textureWidth, textureHeight);
+    uint32_t *rgb = frame.getRGB();
+
+    int i = 0;
+    uint32_t *p = rgb;
+    for (int row=0; row < textureHeight/fontHeight; ++row) {
+        for (int col=0; col < textureWidth/fontWidth; ++col) {
+            uint8_t *f = & fontData[i * fontMemSize];
+            for (int y=0; y < fontHeight; ++y) {
+                for (int x=0; x < fontWidth; ++x) {
+                    uint8_t lb = 0;
+                    if (x > 0) lb = f[x-1];
+                    if (y > 0 && lb == 0) lb = f[x-8];
+                    p[col * fontWidth + x + y * textureWidth] = f[x] ? 0xe0ffffff : (lb ? 0xff000000 : 0);
+                }
+                f += fontWidth;
+            }
+            ++i;
+            if (i == fontCount) goto done;
+        }
+        p += textureWidth * fontHeight;
+    }
+
+done:
+    frame.flipV();
+    data = new uint32_t[textureWidth * textureHeight];
+    memcpy(data, rgb, textureWidth * textureHeight * sizeof(rgb[0]));
+    return data;
 }

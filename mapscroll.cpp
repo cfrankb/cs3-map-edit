@@ -2,16 +2,22 @@
 #include <algorithm>
 #include <QScrollBar>
 #include <QMouseEvent>
-#include "mapwidget.h"
+#include "mapwidgetgl.h"
 #include "map.h"
-
-#define STEPS 4
 
 CMapScroll::CMapScroll(QWidget *parent)
     : QAbstractScrollArea{parent}
 {
-    m_widget = new CMapWidget(this);
-    setViewport(m_widget);
+    CMapWidgetGL *glwidget = new CMapWidgetGL(this);
+    if (glwidget->isValid()) {
+        m_isGlWidget = true;
+        setViewport(glwidget);
+    } else {
+        delete glwidget;
+        QWidget *widget = new QWidget(this);
+        setViewport(widget);
+        qDebug("glWidget not valid");
+    }
 
     // set view attributes
     setAttribute(Qt::WA_MouseTracking);
@@ -26,15 +32,19 @@ CMapScroll::CMapScroll(QWidget *parent)
 
 void CMapScroll::resizeEvent(QResizeEvent * event)
 {
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
-    glw->resizeEvent(event);
+    if (m_isGlWidget) {
+        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
+        glw->resizeEvent(event);
+    }
     updateScrollbars();
 }
 
 void CMapScroll::paintEvent(QPaintEvent *event)
 {
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
-    glw->paintEvent(event);
+    if (m_isGlWidget) {
+        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
+        glw->paintEvent(event);
+    }
 }
 
 void CMapScroll::updateScrollbars()
@@ -57,12 +67,9 @@ void CMapScroll::mousePressEvent(QMouseEvent * event)
     case Qt::LeftButton:
         m_mouse.lButton = true;
         break;
-
     case Qt::RightButton:
         m_mouse.rButton = true;
         break;
-
-
     default:
         break;
     }
@@ -83,7 +90,6 @@ void CMapScroll::mouseReleaseEvent(QMouseEvent * event)
     case Qt::RightButton:
         m_mouse.rButton = false;
         break;
-
     default:
         break;
     }
@@ -141,7 +147,14 @@ void CMapScroll::newMapSize(int len, int hei)
 
 void CMapScroll::newMap(CMap* map)
 {
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
-    glw->setMap(map);
+    if (m_isGlWidget) {
+        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
+        glw->setMap(map);
+    }
     newMapSize(map->len(), map->hei());
+}
+
+bool CMapScroll::isGlWidget()
+{
+    return m_isGlWidget;
 }

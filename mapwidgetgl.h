@@ -1,5 +1,5 @@
-#ifndef CMAPWIDGET_H
-#define CMAPWIDGET_H
+#ifndef CMapWidgetGL_H
+#define CMapWidgetGL_H
 
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions_2_0>
@@ -19,14 +19,14 @@ typedef std::unordered_map<uint8_t, textureDef_t> textureMap_t;
 
 class CMap;
 
-class CMapWidget :
+class CMapWidgetGL :
         public QOpenGLWidget,
         protected QOpenGLFunctions_2_0
 {
     Q_OBJECT
 public:
-    explicit CMapWidget(QWidget *parent = nullptr);
-    virtual ~CMapWidget();
+    explicit CMapWidgetGL(QWidget *parent = nullptr);
+    virtual ~CMapWidgetGL();
     void getGLInfo(QString &vendor, QString &renderer, QString &version, QString &extensions);
     void setMap(CMap *pMap);
 
@@ -58,12 +58,15 @@ protected:
     QTimer m_timer;
     GLint m_textureTiles;
     GLint m_textureFont;
-    CMap *m_map;
+    CMap *m_map = nullptr;
     bool m_showGrid;
     textureMap_t m_textureCache;
 
-signals:
     friend class CMapScroll;
+
+private:
+    uint32_t * loadTileData();
+    uint32_t * loadFontData();
 };
 
-#endif // CMAPWIDGET_H
+#endif // CMapWidgetGL_H
