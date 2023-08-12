@@ -5,11 +5,13 @@
 #include "Frame.h"
 #include "map.h"
 #include "mapscroll.h"
+#include "animator.h"
 #include <QScrollBar>
 
 CMapWidgetGDI::CMapWidgetGDI(QWidget *parent)
     : QWidget{parent}
 {
+    m_animator = new CAnimator();
     m_timer.setInterval(1000 / TICK_RATE);
     m_timer.start();
     preloadAssets();
@@ -31,20 +33,25 @@ void CMapWidgetGDI::showGrid(bool show)
     m_showGrid = show;
 }
 
+void CMapWidgetGDI::setAnimate(bool val)
+{
+    m_animate = val;
+}
+
 void CMapWidgetGDI::preloadAssets()
 {
     QFileWrap file;
-
     typedef struct {
         const char *filename;
         CFrameSet **frameset;
     } asset_t;
 
     asset_t assets[] = {
-                        {":/data/tiles.obl", &m_tiles},
-                        };
+        {":/data/tiles.obl", &m_tiles},
+        {":/data/animz.obl", &m_animz},
+    };
 
-    for (int i=0; i < 1; ++i) {
+    for (int i=0; i < 2; ++i) {
         asset_t & asset = assets[i];
         *(asset.frameset) = new CFrameSet();
         if (file.open(asset.filename, "rb")) {
@@ -75,6 +82,18 @@ void CMapWidgetGDI::paintEvent(QPaintEvent *)
     const int width = widgetSize.width() / 2 + TILE_SIZE;
     const int height = widgetSize.height() / 2 + TILE_SIZE;
 
+    if (!m_map) {
+        qDebug("map is null");
+        return;
+    }
+
+    // animate tiles
+    ++m_ticks;
+    if (m_animate && m_ticks % 3 == 0) {
+        m_animator->animate();
+    }
+
+    // draw screen
     CFrame bitmap(width, height);
     drawScreen(bitmap);
     if (m_showGrid) {
@@ -82,8 +101,8 @@ void CMapWidgetGDI::paintEvent(QPaintEvent *)
     }
 
     // show the screen
-    const QImage img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB()), bitmap.m_nLen, bitmap.m_nHei, QImage::Format_RGBX8888);
-    const QPixmap pixmap = QPixmap::fromImage(img.scaled(QSize(width * 2, height * 2)));
+    const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB()), bitmap.m_nLen, bitmap.m_nHei, QImage::Format_RGBX8888);
+    const QPixmap & pixmap = QPixmap::fromImage(img.scaled(QSize(width * 2, height * 2)));
     QPainter p(this);
     p.drawPixmap(0, 0, pixmap);
     p.end();
@@ -92,11 +111,6 @@ void CMapWidgetGDI::paintEvent(QPaintEvent *)
 void CMapWidgetGDI::drawScreen(CFrame &bitmap)
 {
     CMap *map = m_map;
-    if (!map) {
-        qDebug("map is null");
-        return;
-    }
-
     int maxRows = bitmap.m_nHei / TILE_SIZE;
     int maxCols = bitmap.m_nLen / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
@@ -106,6 +120,7 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
     const int my = scr->verticalScrollBar()->value();
 
     CFrameSet & tiles = *m_tiles;
+    CFrameSet & animz = *m_animz;
     bitmap.fill(WHITE);
     for (int y=0; y < rows; ++y) {
         if (y + my >= map->hei())
@@ -119,7 +134,12 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
             }
             uint8_t tileID = map->at(x + mx, y + my);
             CFrame *tile;
-            tile = tiles[tileID];
+            int j = m_animate ? m_animator->at(tileID) : NO_ANIMZ;
+            if (j == NO_ANIMZ) {
+                tile = tiles[tileID];
+            } else {
+                tile = animz[j];
+            }
             drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
             uint8_t a = map->getAttr(mx+x, my+y);
             if (a) {
@@ -134,11 +154,6 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
 void CMapWidgetGDI::drawGrid(CFrame & bitmap)
 {
     CMap *map = m_map;
-    if (!map) {
-        qDebug("map is null");
-        return;
-    }
-
     int maxRows = bitmap.m_nHei / TILE_SIZE;
     int maxCols = bitmap.m_nLen / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
@@ -157,9 +172,8 @@ void CMapWidgetGDI::drawGrid(CFrame & bitmap)
             {
                 break;
             }
-
-            for (unsigned int yy=0; yy< TILE_SIZE; ++yy) {
-                for (unsigned int xx=0; xx< TILE_SIZE; ++xx) {
+            for (unsigned int yy=0; yy< TILE_SIZE; yy += 2) {
+                for (unsigned int xx=0; xx< TILE_SIZE; xx += 2) {
                     if (xx == 0 || yy == 0) {
                         bitmap.at(x * TILE_SIZE + xx, y * TILE_SIZE + yy) = GRIDCOLOR;
                         if (yy !=0) {
@@ -168,7 +182,6 @@ void CMapWidgetGDI::drawGrid(CFrame & bitmap)
                     }
                 }
             }
-
         }
     }
 }

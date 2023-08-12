@@ -1,53 +1,27 @@
 #include "gamemixin.h"
 #include "tilesdata.h"
-#include "animzdata.h"
 #include "FrameSet.h"
 #include "Frame.h"
 #include "map.h"
 #include "game.h"
 #include "maparch.h"
 #include "shared/qtgui/qfilewrap.h"
-
-typedef struct
-{
-    uint8_t srcTile;
-    uint8_t startSeq;
-    uint8_t count;
-    uint8_t index;
-} AnimzSeq;
-
-AnimzSeq animzSeq[] = {
-    {TILES_DIAMOND, ANIMZ_DIAMOND, 13, 0},
-    {TILES_INSECT1, ANIMZ_INSECT1, 2, 0},
-    {TILES_SWAMP, ANIMZ_SWAMP, 2, 0},
-    {TILES_ALPHA, ANIMZ_ALPHA, 2, 0},
-    {TILES_FORCEF94, ANIMZ_FORCEF94, 8, 0},
-    {TILES_VAMPLANT, ANIMZ_VAMPLANT, 2, 0},
-    {TILES_ORB, ANIMZ_ORB, 4, 0},
-    {TILES_TEDDY93, ANIMZ_TEDDY93, 2, 0},
-    {TILES_LUTIN, ANIMZ_LUTIN, 2, 0},
-    {TILES_OCTOPUS, ANIMZ_OCTOPUS, 2, 0},
-    {TILES_TRIFORCE, ANIMZ_TRIFORCE, 4, 0},
-    {TILES_YAHOO, ANIMZ_YAHOO, 2, 0},
-    {TILES_YIGA, ANIMZ_YIGA, 2, 0},
-    {TILES_YELKILLER, ANIMZ_YELKILLER, 2, 0},
-    {TILES_MANKA, ANIMZ_MANKA, 2, 0},
-    // {TILES_MAXKILLER, ANIMZ_MAXKILLER, 1, 0},
-    // {TILES_WHTEWORM, ANIMZ_WHTEWORM, 2, 0},
-    };
-
-uint8_t tileReplacement[256];
+#include "animator.h"
 
 CGameMixin::CGameMixin()
 {
     preloadAssets();
     m_game = new CGame();
-    memset(tileReplacement, NO_ANIMZ, sizeof(tileReplacement));
+    m_animator = new CAnimator();
     memset(m_joyState, 0, sizeof(m_joyState));
 }
 
 CGameMixin::~CGameMixin()
 {
+    if (m_animator) {
+        delete m_animator;
+    }
+
     if (m_game) {
         delete m_game;
     }
@@ -106,17 +80,6 @@ void CGameMixin::preloadAssets()
         qDebug("size: %d", size);
     } else {
         qDebug("failed to open %s", fontName);
-    }
-}
-
-void CGameMixin::animate()
-{
-    for (uint i = 0; i < sizeof(animzSeq) / sizeof(AnimzSeq); ++i)
-    {
-        AnimzSeq &seq = animzSeq[i];
-        int j = seq.srcTile;
-        tileReplacement[j] = seq.startSeq + seq.index;
-        seq.index = seq.index < seq.count - 1 ? seq.index + 1 : 0;
     }
 }
 
@@ -255,7 +218,7 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
                 {
                     continue;
                 }
-                int j = tileReplacement[tileID];
+                int j = m_animator->at(tileID);
                 if (j == NO_ANIMZ) {
                     tile = tiles[tileID];
                 } else {
@@ -279,7 +242,7 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     drawFont(bitmap, bx * 8, 2, tmp, PURPLE);
 
     // draw bottom rect
-    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, LIGHTSLATEGRAY, true);
+    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, DARKBLUE, true);
     drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
 
     // draw health bar
@@ -348,7 +311,7 @@ void CGameMixin::mainLoop()
             m_playerFrameOffset = 0;
         }
         m_healthRef = game.health();
-        animate();
+        m_animator->animate();
     }
 
     if ((m_ticks & 3) == 0)

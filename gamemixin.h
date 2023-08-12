@@ -6,6 +6,7 @@ class CFrameSet;
 class CGame;
 class CFrame;
 class CMapArch;
+class CAnimator;
 
 class CGameMixin
 {
@@ -53,6 +54,7 @@ protected:
 
     uint8_t m_joyState[4];
     uint32_t m_ticks = 0;
+    CAnimator *m_animator;
     CFrameSet *m_tiles = nullptr;
     CFrameSet *m_animz = nullptr;
     CFrameSet *m_annie = nullptr;
@@ -67,7 +69,6 @@ protected:
     void drawScreen(CFrame &bitmap);
     void drawLevelIntro(CFrame &bitmap);
     void preloadAssets();
-    void animate();
     inline void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);
     inline void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN, bool fill=true);
     inline void drawKeys(CFrame &bitmap);
@@ -78,7 +79,6 @@ protected:
     virtual void sanityTest();
     void startCountdown(int f=1);
     virtual void setZoom(bool zoom);
-
 };
 
 #endif // CGAMEMIXIN_H

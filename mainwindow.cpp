@@ -1,12 +1,15 @@
 #include "mainwindow.h"
 #include "dlgabout.h"
 #include "ui_mainwindow.h"
-#include <QtOpenGL>
 #include <QDockWidget>
 #include <QShortcut>
 #include <QKeySequence>
+#include <QMessageBox>
+#include <QCloseEvent>
+#include <QFileDialog>
+#include <QSettings>
+#include <QScrollBar>
 #include "mapscroll.h"
-#include "mapwidgetgl.h"
 #include "mapwidgetgdi.h"
 #include "dlgattr.h"
 #include "dlgresize.h"
@@ -25,17 +28,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     m_scrollArea = new CMapScroll(this);
-    if (m_scrollArea->isGlWidget()) {
-        m_scrollArea->viewport()->update();
-        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(m_scrollArea->viewport());
-        glw->setMap(m_doc.map());
-        connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
-    } else {
-        m_scrollArea->viewport()->update();
-        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(m_scrollArea->viewport());
-        glw->setMap(m_doc.map());
-        connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
-    }
+    m_scrollArea->viewport()->update();
+    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(m_scrollArea->viewport());
+    glw->setMap(m_doc.map());
+    connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
+    connect(ui->actionView_Animate, SIGNAL(toggled(bool)), glw, SLOT(setAnimate(bool)));
     setCentralWidget(m_scrollArea);
 
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));

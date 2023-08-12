@@ -105,16 +105,16 @@ bool CGame::init()
 
 bool CGame::loadLevel(bool restart)
 {
-    qDebug("loading level: %d ...\n", m_level + 1);
+    qDebug("loading level: %d ...", m_level + 1);
     setMode(restart ? MODE_RESTART :MODE_INTRO);
 
     // extract level from MapArch
     map = *(m_mapArch->at(m_level));
 
-    qDebug("level loaded\n");
+    qDebug("level loaded");
 
     Pos pos = map.findFirst(TILES_ANNIE2);
-    qDebug("Player at: %d %d\n", pos.x, pos.y);
+    qDebug("Player at: %d %d", pos.x, pos.y);
     m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
     m_diamonds = map.count(TILES_DIAMOND);
     memset(m_keys, 0, sizeof(m_keys));
@@ -177,7 +177,7 @@ bool CGame::findMonsters()
             }
         }
     }
-    qDebug("%d monsters found.\n", m_monsterCount);
+    qDebug("%d monsters found.", m_monsterCount);
     return true;
 }
 

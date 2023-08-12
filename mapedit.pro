@@ -1,6 +1,6 @@
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets opengl
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
 
@@ -13,6 +13,7 @@ DEFINES += USE_QFILE=1
 
 SOURCES += \
     actor.cpp \
+    animator.cpp \
     dlgattr.cpp \
     dlgresize.cpp \
     dlgabout.cpp \
@@ -27,7 +28,6 @@ SOURCES += \
     mapfile.cpp \
     mapscroll.cpp \
     mapwidgetgdi.cpp \
-    mapwidgetgl.cpp \
     shared/DotArray.cpp \
     shared/FileWrap.cpp \
     shared/Frame.cpp \
@@ -42,6 +42,7 @@ SOURCES += \
 
 HEADERS += \
     actor.h \
+    animator.h \
     dlgattr.h \
     dlgresize.h \
     dlgabout.h \
@@ -55,7 +56,6 @@ HEADERS += \
     mapfile.h \
     mapscroll.h \
     mapwidgetgdi.h \
-    mapwidgetgl.h \
     shared/DotArray.h \
     shared/FileWrap.h \
     shared/Frame.h \

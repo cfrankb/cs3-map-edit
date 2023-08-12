@@ -2,23 +2,14 @@
 #include <algorithm>
 #include <QScrollBar>
 #include <QMouseEvent>
-#include "mapwidgetgl.h"
 #include "mapwidgetgdi.h"
 #include "map.h"
 
 CMapScroll::CMapScroll(QWidget *parent)
     : QAbstractScrollArea{parent}
 {
-    CMapWidgetGL *glwidget = new CMapWidgetGL(this);
-    if (glwidget->isValid()) {
-        m_isGlWidget = true;
-        setViewport(glwidget);
-    } else {
-        qDebug("glWidget not valid. using fallback.");
-        delete glwidget;
-        CMapWidgetGDI *widget = new CMapWidgetGDI(this);
-        setViewport(widget);
-    }
+    CMapWidgetGDI *widget = new CMapWidgetGDI(this);
+    setViewport(widget);
 
     // set view attributes
     setAttribute(Qt::WA_MouseTracking);
@@ -26,6 +17,7 @@ CMapScroll::CMapScroll(QWidget *parent)
     setAcceptDrops(true);
     setContextMenuPolicy(Qt::CustomContextMenu);
     setFrameShape(QFrame::NoFrame);
+    setAutoFillBackground(false);
     m_mouse.x = m_mouse.y = 0;
     m_mouse.lButton = m_mouse.rButton = m_mouse.mButton = false;
     update();
@@ -33,25 +25,15 @@ CMapScroll::CMapScroll(QWidget *parent)
 
 void CMapScroll::resizeEvent(QResizeEvent * event)
 {
-    if (m_isGlWidget) {
-        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
-        glw->resizeEvent(event);
-    } else {
-        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
-        glw->resizeEvent(event);
-    }
+    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+    glw->resizeEvent(event);
     updateScrollbars();
 }
 
 void CMapScroll::paintEvent(QPaintEvent *event)
 {
-    if (m_isGlWidget) {
-        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
-        glw->paintEvent(event);
-    } else {
-        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
-        glw->paintEvent(event);
-    }
+    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+    glw->paintEvent(event);
 }
 
 void CMapScroll::updateScrollbars()
@@ -154,17 +136,7 @@ void CMapScroll::newMapSize(int len, int hei)
 
 void CMapScroll::newMap(CMap* map)
 {
-    if (m_isGlWidget) {
-        CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
-        glw->setMap(map);
-    } else {
-        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
-        glw->setMap(map);
-    }
+    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+    glw->setMap(map);
     newMapSize(map->len(), map->hei());
-}
-
-bool CMapScroll::isGlWidget()
-{
-    return m_isGlWidget;
 }

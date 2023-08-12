@@ -12,7 +12,6 @@ class CMapScroll : public QAbstractScrollArea
 public:
     explicit CMapScroll(QWidget *parent = nullptr);
     CMapWidgetGL *m_widget;
-    bool isGlWidget();
 
 signals:
     void statusChanged(const QString str);
@@ -47,8 +46,6 @@ protected:
         GRID_SIZE = 32,
         STEPS = 4
     };
-
-    bool m_isGlWidget = false;
 };
 
 #endif // CMAPSCROLL_H
