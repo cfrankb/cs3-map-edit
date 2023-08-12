@@ -7,6 +7,7 @@
 #include <QKeySequence>
 #include "mapscroll.h"
 #include "mapwidgetgl.h"
+#include "mapwidgetgdi.h"
 #include "dlgattr.h"
 #include "dlgresize.h"
 #include "dlgselect.h"
@@ -27,6 +28,11 @@ MainWindow::MainWindow(QWidget *parent)
     if (m_scrollArea->isGlWidget()) {
         m_scrollArea->viewport()->update();
         CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(m_scrollArea->viewport());
+        glw->setMap(m_doc.map());
+        connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
+    } else {
+        m_scrollArea->viewport()->update();
+        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(m_scrollArea->viewport());
         glw->setMap(m_doc.map());
         connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
     }

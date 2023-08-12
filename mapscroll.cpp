@@ -3,6 +3,7 @@
 #include <QScrollBar>
 #include <QMouseEvent>
 #include "mapwidgetgl.h"
+#include "mapwidgetgdi.h"
 #include "map.h"
 
 CMapScroll::CMapScroll(QWidget *parent)
@@ -13,10 +14,10 @@ CMapScroll::CMapScroll(QWidget *parent)
         m_isGlWidget = true;
         setViewport(glwidget);
     } else {
+        qDebug("glWidget not valid. using fallback.");
         delete glwidget;
-        QWidget *widget = new QWidget(this);
+        CMapWidgetGDI *widget = new CMapWidgetGDI(this);
         setViewport(widget);
-        qDebug("glWidget not valid");
     }
 
     // set view attributes
@@ -35,6 +36,9 @@ void CMapScroll::resizeEvent(QResizeEvent * event)
     if (m_isGlWidget) {
         CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
         glw->resizeEvent(event);
+    } else {
+        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+        glw->resizeEvent(event);
     }
     updateScrollbars();
 }
@@ -43,6 +47,9 @@ void CMapScroll::paintEvent(QPaintEvent *event)
 {
     if (m_isGlWidget) {
         CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
+        glw->paintEvent(event);
+    } else {
+        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
         glw->paintEvent(event);
     }
 }
@@ -149,6 +156,9 @@ void CMapScroll::newMap(CMap* map)
 {
     if (m_isGlWidget) {
         CMapWidgetGL * glw = dynamic_cast<CMapWidgetGL *>(viewport());
+        glw->setMap(map);
+    } else {
+        CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
         glw->setMap(map);
     }
     newMapSize(map->len(), map->hei());
