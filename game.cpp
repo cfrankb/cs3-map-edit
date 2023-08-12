@@ -80,7 +80,7 @@ void CGame::consume()
     }
     else if (def.type == TYPE_SWAMP)
     {
-        addHealth(-1);
+        addHealth(def.health);
     }
 
     // trigger key
@@ -305,8 +305,11 @@ void CGame::manageMonsters()
 
 void CGame::managePlayer(uint8_t *joystate)
 {
-    if (m_player.getPU() == TILES_SWAMP) {
-        addHealth(-1);
+    auto const pu = m_player.getPU();
+    if (pu == TILES_SWAMP) {
+        // apply health damage
+        const TileDef &def = getTileDef(pu);
+        addHealth(def.health);
     }
     uint8_t aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
     for (uint8_t i =0; i < 4; ++i) {

@@ -362,7 +362,7 @@ void CGameMixin::mainLoop()
         if(!game.isGameOver()) {
             restartLevel();
         } else {
-            startCountdown(1);
+            startCountdown(COUNTDOWN_INTRO);
             game.setMode(CGame::MODE_GAMEOVER);
         }
     }
@@ -382,19 +382,19 @@ void CGameMixin::nextLevel()
     m_healthRef = 0;
     m_game->nextLevel();
     sanityTest();
-    startCountdown(1);
+    startCountdown(COUNTDOWN_INTRO);
     m_game->loadLevel(false);
 }
 
 void CGameMixin::restartLevel()
 {
-    startCountdown(1);
+    startCountdown(COUNTDOWN_INTRO);
     m_game->loadLevel(true);
 }
 
 void CGameMixin::restartGame()
 {
-    startCountdown(2);
+    startCountdown(COUNTDOWN_RESTART);
     m_game->restartGame();
     sanityTest();
     m_game->loadLevel(false);

@@ -96,7 +96,7 @@ const TileDef tileDefs[]={
     {0x72, TYPE_KEY, 50, 0, false, "redkey.obl"}, // 58 TILES_REDKEY
     {0x59, TYPE_DOOR, 0, 0, false, "yeldoor.obl"}, // 59 TILES_YELDOOR
     {0x79, TYPE_KEY, 50, 0, false, "yelkey.obl"}, // 5a TILES_YELKEY
-    {0x5e, TYPE_SWAMP, 0, 0, false, "swamp.obl"}, // 5b TILES_SWAMP
+    {0x5e, TYPE_SWAMP, 0, -1, false, "swamp.obl"}, // 5b TILES_SWAMP
     {0x24, TYPE_DIAMOND, 10, 6, false, "diamond.obl"}, // 5c TILES_DIAMOND
     {0x54, TYPE_PICKUP, 99, 20, false, "triforce.obl"}, // 5d TILES_TRIFORCE
     {0x4f, TYPE_PICKUP, 67, 10, false, "orb.obl"}, // 5e TILES_ORB

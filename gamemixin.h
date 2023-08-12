@@ -38,7 +38,9 @@ protected:
         LIGHTGRAY= 0x00DCDCDC | ALPHA,
         WIDTH  = 240,
         HEIGHT = 320,
-        TILE_SIZE = 16
+        TILE_SIZE = 16,
+        COUNTDOWN_INTRO = 1,
+        COUNTDOWN_RESTART = 2,
     };
 
     typedef struct
@@ -66,9 +68,9 @@ protected:
     void drawLevelIntro(CFrame &bitmap);
     void preloadAssets();
     void animate();
-    void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);
-    void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN, bool fill=true);
-    void drawKeys(CFrame &bitmap);
+    inline void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);
+    inline void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN, bool fill=true);
+    inline void drawKeys(CFrame &bitmap);
     inline void drawTile(CFrame & frame, const int x, const int y, CFrame & tile, bool alpha);
     void nextLevel();
     void restartLevel();
