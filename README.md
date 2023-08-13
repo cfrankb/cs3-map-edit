@@ -1,17 +1,17 @@
 # cs3-map-edit
-##Map Editor for CS3
+## Map Editor for CS3
 
 ![alt text](images/Screenshot_2022-11-10_19-14-59.png)
 
 
 
-###Preview map in the editor.
+### Preview map in the editor.
 
 
 ![alt text](images/Screenshot_2023-08-13_00-32-18.png)
 
 
-###Runtimes available
+### Runtimes available
 
 
 ESP32
