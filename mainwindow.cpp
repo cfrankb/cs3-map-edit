@@ -10,7 +10,7 @@
 #include <QSettings>
 #include <QScrollBar>
 #include "mapscroll.h"
-#include "mapwidgetgdi.h"
+#include "mapwidget.h"
 #include "dlgattr.h"
 #include "dlgresize.h"
 #include "dlgselect.h"
@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     m_scrollArea = new CMapScroll(this);
     m_scrollArea->viewport()->update();
-    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(m_scrollArea->viewport());
+    CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
     glw->setMap(m_doc.map());
     connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
     connect(ui->actionView_Animate, SIGNAL(toggled(bool)), glw, SLOT(setAnimate(bool)));

@@ -27,7 +27,7 @@ SOURCES += \
     maparch.cpp \
     mapfile.cpp \
     mapscroll.cpp \
-    mapwidgetgdi.cpp \
+    mapwidget.cpp \
     shared/DotArray.cpp \
     shared/FileWrap.cpp \
     shared/Frame.cpp \
@@ -56,7 +56,7 @@ HEADERS += \
     maparch.h \
     mapfile.h \
     mapscroll.h \
-    mapwidgetgdi.h \
+    mapwidget.h \
     shared/DotArray.h \
     shared/FileWrap.h \
     shared/Frame.h \

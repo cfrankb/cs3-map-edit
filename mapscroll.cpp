@@ -2,13 +2,13 @@
 #include <algorithm>
 #include <QScrollBar>
 #include <QMouseEvent>
-#include "mapwidgetgdi.h"
+#include "mapwidget.h"
 #include "map.h"
 
 CMapScroll::CMapScroll(QWidget *parent)
     : QAbstractScrollArea{parent}
 {
-    CMapWidgetGDI *widget = new CMapWidgetGDI(this);
+    CMapWidget *widget = new CMapWidget(this);
     setViewport(widget);
 
     // set view attributes
@@ -25,14 +25,14 @@ CMapScroll::CMapScroll(QWidget *parent)
 
 void CMapScroll::resizeEvent(QResizeEvent * event)
 {
-    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
     glw->resizeEvent(event);
     updateScrollbars();
 }
 
 void CMapScroll::paintEvent(QPaintEvent *event)
 {
-    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
     glw->paintEvent(event);
 }
 
@@ -136,7 +136,7 @@ void CMapScroll::newMapSize(int len, int hei)
 
 void CMapScroll::newMap(CMap* map)
 {
-    CMapWidgetGDI * glw = dynamic_cast<CMapWidgetGDI *>(viewport());
+    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
     glw->setMap(map);
     newMapSize(map->len(), map->hei());
 }

@@ -8,12 +8,12 @@ class CFrame;
 class CFrameSet;
 class CAnimator;
 
-class CMapWidgetGDI : public QWidget
+class CMapWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit CMapWidgetGDI(QWidget *parent = nullptr);
-    virtual ~CMapWidgetGDI();
+    explicit CMapWidget(QWidget *parent = nullptr);
+    virtual ~CMapWidget();
     void setMap(CMap *pMap);
 
 signals:

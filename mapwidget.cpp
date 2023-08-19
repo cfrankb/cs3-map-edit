@@ -1,4 +1,4 @@
-#include "mapwidgetgdi.h"
+#include "mapwidget.h"
 #include "qpainter.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "FrameSet.h"
@@ -8,7 +8,7 @@
 #include "animator.h"
 #include <QScrollBar>
 
-CMapWidgetGDI::CMapWidgetGDI(QWidget *parent)
+CMapWidget::CMapWidget(QWidget *parent)
     : QWidget{parent}
 {
     m_animator = new CAnimator();
@@ -18,27 +18,27 @@ CMapWidgetGDI::CMapWidgetGDI(QWidget *parent)
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(update()));
 }
 
-CMapWidgetGDI::~CMapWidgetGDI()
+CMapWidget::~CMapWidget()
 {
     m_timer.stop();
 }
 
-void CMapWidgetGDI::setMap(CMap *pMap)
+void CMapWidget::setMap(CMap *pMap)
 {
     m_map = pMap;
 }
 
-void CMapWidgetGDI::showGrid(bool show)
+void CMapWidget::showGrid(bool show)
 {
     m_showGrid = show;
 }
 
-void CMapWidgetGDI::setAnimate(bool val)
+void CMapWidget::setAnimate(bool val)
 {
     m_animate = val;
 }
 
-void CMapWidgetGDI::preloadAssets()
+void CMapWidget::preloadAssets()
 {
     QFileWrap file;
     typedef struct {
@@ -76,7 +76,7 @@ void CMapWidgetGDI::preloadAssets()
     }
 }
 
-void CMapWidgetGDI::paintEvent(QPaintEvent *)
+void CMapWidget::paintEvent(QPaintEvent *)
 {
     const QSize widgetSize = size();
     const int width = widgetSize.width() / 2 + TILE_SIZE;
@@ -108,7 +108,7 @@ void CMapWidgetGDI::paintEvent(QPaintEvent *)
     p.end();
 }
 
-void CMapWidgetGDI::drawScreen(CFrame &bitmap)
+void CMapWidget::drawScreen(CFrame &bitmap)
 {
     CMap *map = m_map;
     int maxRows = bitmap.m_nHei / TILE_SIZE;
@@ -154,7 +154,7 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
     }
 }
 
-void CMapWidgetGDI::drawGrid(CFrame & bitmap)
+void CMapWidget::drawGrid(CFrame & bitmap)
 {
     CMap *map = m_map;
     int maxRows = bitmap.m_nHei / TILE_SIZE;
@@ -189,7 +189,7 @@ void CMapWidgetGDI::drawGrid(CFrame & bitmap)
     }
 }
 
-void CMapWidgetGDI::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha)
+void CMapWidget::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha)
 {
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.m_nLen;
@@ -225,7 +225,7 @@ void CMapWidgetGDI::drawFont(CFrame & frame, int x, int y, const char *text, con
     }
 }
 
-void CMapWidgetGDI::drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha)
+void CMapWidget::drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha)
 {
     const int WIDTH = bitmap.m_nLen;
     const uint32_t *tileData = tile.getRGB();
