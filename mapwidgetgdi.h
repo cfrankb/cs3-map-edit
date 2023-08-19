@@ -25,6 +25,7 @@ protected slots:
 protected:
     virtual void paintEvent(QPaintEvent *) ;
     enum:uint32_t {
+        FONT_SIZE = 8,
         NO_ANIMZ = 255,
         TICK_RATE = 24,
         TILE_SIZE = 16,
@@ -44,8 +45,8 @@ protected:
 
     void preloadAssets();
     inline void drawScreen(CFrame &bitmap);
-    inline void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color);
-    inline void drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, bool alpha);
+    inline void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha);
+    inline void drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha);
     inline void drawGrid(CFrame & bitmap);
 
     QTimer m_timer;
@@ -53,7 +54,7 @@ protected:
     CFrameSet *m_animz = nullptr;
     uint8_t *m_fontData = nullptr;
     CMap *m_map = nullptr;
-    CAnimator *m_animator;
+    CAnimator *m_animator = nullptr;
     bool m_showGrid = false;
     bool m_animate = false;
     uint32_t m_ticks = 0;

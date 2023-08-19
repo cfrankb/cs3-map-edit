@@ -20,9 +20,9 @@ public:
     ~MainWindow();
 
 signals:
-    void resizeMap(int, int);
-    void mapChanged(CMap *);
-    void newTile(int);
+    void resizeMap(int, int);   // notify of a map resize
+    void mapChanged(CMap *);    // notify of a map change
+    void newTile(int);          // select a diffent tile in the tilebox
 
 private slots:
     void loadFile(const QString & filename);
@@ -84,6 +84,8 @@ private:
         TOOL_ERASE=2
     };
 
+    QString m_appName = tr("mapedit");
+    QString m_allFilter = tr("All Supported Maps (*.dat *.cs3 *.map *.mapz)");
     Ui::MainWindow *ui;
     CMapScroll *m_scrollArea;
     CMapFile m_doc;

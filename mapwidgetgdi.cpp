@@ -118,6 +118,7 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
     const int mx = scr->horizontalScrollBar()->value();
     const int my = scr->verticalScrollBar()->value();
+    const char hexchar[] = "0123456789ABCDEF";
 
     CFrameSet & tiles = *m_tiles;
     CFrameSet & animz = *m_animz;
@@ -143,9 +144,11 @@ void CMapWidgetGDI::drawScreen(CFrame &bitmap)
             drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
             uint8_t a = map->getAttr(mx+x, my+y);
             if (a) {
-                char s[4];
-                sprintf(s, "%.2x", a);
-                drawFont(bitmap, x*TILE_SIZE, y*TILE_SIZE + 4, s, YELLOW);
+                char s[3];
+                s[0] = hexchar[a >> 4];
+                s[1] = hexchar[a & 0xf];
+                s[2] = 0;
+                drawFont(bitmap, x*TILE_SIZE, y*TILE_SIZE + 4, s, YELLOW, true);
             }
         }
     }
@@ -186,27 +189,43 @@ void CMapWidgetGDI::drawGrid(CFrame & bitmap)
     }
 }
 
-void CMapWidgetGDI::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color)
+void CMapWidgetGDI::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha)
 {
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.m_nLen;
-    const int fontSize = 8;
+    const int fontSize = static_cast<int>(FONT_SIZE);
     const int fontOffset = fontSize * fontSize;
     const int textSize = strlen(text);
     for (int i=0; i < textSize; ++i) {
         const uint8_t c = static_cast<uint8_t>(text[i]) - ' ';
         uint8_t *font = m_fontData + c * fontOffset;
-        for (int yy=0; yy < fontSize; ++yy) {
-            for (int xx=0; xx < fontSize; ++xx) {
-                rgba[ (yy + y) * rowPixels + xx + x] = *font ? color : BLACK;
-                ++font;
+        if (alpha) {
+            for (int yy=0; yy < fontSize; ++yy) {
+                for (int xx=0; xx < fontSize; ++xx) {
+                    uint8_t lb = 0;
+                    if (xx > 0) lb = font[xx-1];
+                    if (yy > 0 && lb == 0) lb = font[xx-fontSize];
+                    if (font[xx]) {
+                        rgba[ (yy + y) * rowPixels + xx + x] = color;
+                    } else if (lb) {
+                        rgba[ (yy + y) * rowPixels + xx + x] = BLACK;
+                    }
+                }
+                font += fontSize;
+            }
+        } else {
+            for (int yy=0; yy < fontSize; ++yy) {
+                for (int xx=0; xx < fontSize; ++xx) {
+                    rgba[ (yy + y) * rowPixels + xx + x] = *font ? color : BLACK;
+                    ++font;
+                }
             }
         }
         x+= fontSize;
     }
 }
 
-void CMapWidgetGDI::drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, bool alpha)
+void CMapWidgetGDI::drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha)
 {
     const int WIDTH = bitmap.m_nLen;
     const uint32_t *tileData = tile.getRGB();

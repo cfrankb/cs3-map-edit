@@ -19,9 +19,6 @@
 #include "tilesdata.h"
 #include "map.h"
 
-const char m_allFilter[]= "All Supported Maps (*.dat *.cs3 *.map *.mapz)";
-const char m_appName[] = "mapedit";
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -143,7 +140,7 @@ bool MainWindow::isDirty()
 bool MainWindow::maybeSave()
 {
     if (isDirty()) {
-        QMessageBox::StandardButton ret = QMessageBox::warning(this, tr(m_appName),
+        QMessageBox::StandardButton ret = QMessageBox::warning(this, m_appName,
                      tr("The document has been modified.\n"
                         "Do you want to save your changes?"),
                      QMessageBox::Save | QMessageBox::Discard
@@ -621,9 +618,13 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
         QStringList listIssues;
         if ((pos.x == CMap::NOT_FOUND ) && (pos.y == CMap::NOT_FOUND)) {
             listIssues.push_back(tr("No player on map"));
+            emit newTile(TILES_ANNIE2);
+            m_currTile = TILES_ANNIE2;
         }
         if (map->count(TILES_DIAMOND) == 0) {
             listIssues.push_back(tr("No diamond on map"));
+            emit newTile(TILES_DIAMOND);
+            m_currTile = TILES_DIAMOND;
         }
         if (listIssues.count() > 0) {
             QString msg = tr("Map is incomplete:\n%1").arg(listIssues.join("\n"));
@@ -645,7 +646,7 @@ void MainWindow::on_actionFile_Import_Maps_triggered()
     QFileDialog * dlg = new QFileDialog(this,tr("Import"),"",m_allFilter);
     dlg->setAcceptMode(QFileDialog::AcceptOpen);
     dlg->setFileMode(QFileDialog::ExistingFile);
-    dlg->selectFile(m_doc.filename());
+    dlg->selectFile("");
     dlg->setNameFilters(filters);
     if (dlg->exec()) {
         QStringList fileNames = dlg->selectedFiles();
@@ -686,7 +687,7 @@ void MainWindow::on_actionFile_Export_Map_triggered()
     dlg->setNameFilters(filters);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
     dlg->setDefaultSuffix(suffix);
-    dlg->selectFile(m_doc.filename());
+    dlg->selectFile(tr("level%1.dat").arg(m_doc.currentIndex()+1,2,10,QChar('0')));
     if (dlg->exec()) {
         QStringList fileNames = dlg->selectedFiles();
         if (fileNames.count()>0) {
