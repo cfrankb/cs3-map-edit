@@ -157,8 +157,8 @@ public:
     bool canUndo();
     bool canRedo();
 
-    int m_nLen;
-    int m_nHei;
+    inline int len() const { return m_nLen; }
+    inline int hei() const { return m_nHei; }
 
     enum {
         ALPHA_MASK = 0xff000000,
@@ -208,6 +208,9 @@ protected:
         MODE_COLOR_ONLY,
         MODE_ALPHA_ONLY
     };
+
+    int m_nLen;
+    int m_nHei;
 
     int m_bCustomMap;
     uint32_t *m_rgb;

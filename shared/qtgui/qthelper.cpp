@@ -29,6 +29,6 @@ QIcon frame2icon(CFrame & frame)
 
 QPixmap frame2pixmap(CFrame & frame)
 {
-    const QImage img = QImage(reinterpret_cast<uint8_t*>(frame.getRGB()), frame.m_nLen, frame.m_nHei, QImage::Format_RGBA8888);
+    const QImage img = QImage(reinterpret_cast<uint8_t*>(frame.getRGB()), frame.len(), frame.hei(), QImage::Format_RGBA8888);
     return QPixmap::fromImage(img);
 }

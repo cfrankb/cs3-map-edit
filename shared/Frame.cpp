@@ -438,7 +438,6 @@ void CFrame::toPng(uint8_t *&png, int &totalSize, uint8_t *obl5data, int obl5siz
     iend.Lenght = 0;
     memcpy(iend.ChunkType, "IEND", 4);
     iend.CRC = toNet(crc.crc((uint8_t *)"IEND", 4));
-    t += sizeof(png_IEND);
 
     delete[] cData;
 }

@@ -193,23 +193,18 @@ bool CPngMagic::parsePNG(CFrameSet &set, IFile &file)
              ((ihdr.BitDepth == 8) || (ihdr.BitDepth == 4)) &&
              (ihdr.ColorType != PNG_COLOR_TYPE_GRAY) &&
              (ihdr.ColorType != PNG_COLOR_TYPE_GRAY_ALPHA) ) {
-            CFrame *frame = new CFrame();
             int height = CFrame::toNet(ihdr.Height);
             int width = CFrame::toNet(ihdr.Width);
-            frame->m_nHei = height;
-            frame->m_nLen = width;
             int offsetY = 0;
-            //printf("len: %d; hei: %d\n", images[0].m_nLen, images[0].m_nHei);
-            if (frame->m_nLen & 7) {
-                frame->m_nLen += (8 - (frame->m_nLen & 7));
+            if (width & 7) {
+                width += (8 - (width & 7));
             }
-            if (frame->m_nHei & 7) {
-                offsetY = 8 - (frame->m_nHei & 7);
-                frame->m_nHei += offsetY;
+            if (height & 7) {
+                offsetY = 8 - (height & 7);
+                height += offsetY;
             }
-            //printf("len: %d; hei: %d\n", images[0].m_nLen, images[0].m_nHei);
-            frame->setRGB( new uint32_t [ frame->m_nLen * frame->m_nHei ] );
-            memset(frame->getRGB(), 0, sizeof(uint32_t) * frame->m_nLen * frame->m_nHei);
+            CFrame *frame = new CFrame(width, height);
+            memset(frame->getRGB(), 0, sizeof(uint32_t) * frame->len() * frame->hei());
 
             if (ihdr.BitDepth == 8) {
                 valid = _8bpp(frame, cData, cDataSize, ihdr, plte, trns_found, trns, offsetY);
@@ -424,7 +419,7 @@ bool CPngMagic::_8bpp(
                     break;
                 }
 
-                rgb [(offsetY + y) * frame->m_nLen + x] = rgba;
+                rgb [(offsetY + y) * frame->len() + x] = rgba;
             }
         } else {
             valid = false;
@@ -514,7 +509,7 @@ bool CPngMagic::_4bpp(
                     rgba |= 0xff000000;
                 }
 
-                rgb [(offsetY + y) * frame->m_nLen + x] = rgba;
+                rgb [(offsetY + y) * frame->len() + x] = rgba;
             }
         } else {
             valid = false;

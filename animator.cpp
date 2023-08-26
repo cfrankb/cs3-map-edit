@@ -1,5 +1,4 @@
 #include "animator.h"
-
 #include "tilesdata.h"
 #include "animzdata.h"
 #include <cstring>

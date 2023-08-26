@@ -86,7 +86,7 @@ void CGameMixin::preloadAssets()
 void CGameMixin::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color)
 {
     uint32_t *rgba = frame.getRGB();
-    const int rowPixels = frame.m_nLen;
+    const int rowPixels = frame.len();
     const int fontSize = 8;
     const int fontOffset = fontSize * fontSize;
     const int textSize = strlen(text);
@@ -106,7 +106,7 @@ void CGameMixin::drawFont(CFrame & frame, int x, int y, const char *text, const 
 void CGameMixin::drawRect(CFrame & frame, const Rect &rect, const uint32_t color, bool fill)
 {
     uint32_t *rgba = frame.getRGB();
-    const int rowPixels = frame.m_nLen;
+    const int rowPixels = frame.len();
     if (fill) {
         for (int y=0; y < rect.height; y++ ) {
             for (int x=0; x < rect.width; x++ ) {
@@ -186,8 +186,8 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     CMap *map = & m_game->getMap();
     CGame &game = * m_game;
 
-    int maxRows = HEIGHT / TILE_SIZE;
-    int maxCols = WIDTH / TILE_SIZE;
+    const int maxRows = HEIGHT / TILE_SIZE;
+    const int maxCols = WIDTH / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
 
@@ -201,23 +201,20 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     CFrameSet & annie = *m_annie;
     bitmap.fill(BLACK);
     for (int y=0; y < rows; ++y) {
-        if (y + my >= map->hei())
-        {
-            break;
-        }
         for (int x=0; x < cols; ++x) {
             uint8_t tileID = map->at(x + mx, y + my);
             CFrame *tile;
-            if (tileID == TILES_ANNIE2)
+            if (tileID == TILES_STOP || tileID == TILES_BLANK)
+            {
+                // skip blank tiles
+                continue;
+            }
+            else if (tileID == TILES_ANNIE2)
             {
                 tile = annie[game.player().getAim() * 4 + m_playerFrameOffset];
             }
             else
             {
-                if (tileID == TILES_STOP || tileID == TILES_BLANK)
-                {
-                    continue;
-                }
                 int j = m_animator->at(tileID);
                 if (j == NO_ANIMZ) {
                     tile = tiles[tileID];
@@ -242,12 +239,12 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     drawFont(bitmap, bx * 8, 2, tmp, PURPLE);
 
     // draw bottom rect
-    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, DARKGRAY, true);
-    drawRect(bitmap, Rect{0, bitmap.m_nHei - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
+    drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, DARKGRAY, true);
+    drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
 
     // draw health bar
-    drawRect(bitmap, Rect{4, bitmap.m_nHei - 12, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, LIME, true);
-    drawRect(bitmap, Rect{4, bitmap.m_nHei - 12, std::min(game.health() / 2, bitmap.m_nLen - 4), 8}, WHITE, false);
+    drawRect(bitmap, Rect{4, bitmap.hei() - 12, std::min(game.health() / 2, bitmap.len() - 4), 8}, LIME, true);
+    drawRect(bitmap, Rect{4, bitmap.hei() - 12, std::min(game.health() / 2, bitmap.len() - 4), 8}, WHITE, false);
 
     drawKeys(bitmap);
 }
