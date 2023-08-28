@@ -24,8 +24,14 @@ https://github.com/cfrankb/cs3_rp2040_pico
 
 
 
-##### MSDOS
-online emulator: https://cfrankb.com/games/cs3dos/
+##### MSDOS (legacy v1)
+online runtime: https://cfrankb.com/games/msdos/CS3.html
 
 source code: https://github.com/cfrankb/monstics/tree/master/src/msdos/games
+
+##### Runtime V2
+
+online runtime: https://cfrankb.com/games/ems/cs3v2.html
+
+
 
