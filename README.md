@@ -25,7 +25,7 @@ https://github.com/cfrankb/cs3_rp2040_pico
 
 
 ##### MSDOS (legacy v1)
-online runtime: https://cfrankb.com/games/msdos/CS3.html
+online runtime: https://cfrankb.com/games/msdos/cs3.html
 
 source code: https://github.com/cfrankb/monstics/tree/master/src/msdos/games
 
