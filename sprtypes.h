@@ -4,7 +4,9 @@
 #ifndef _SPRTYPES__H
 #define _SPRTYPES__H
 
-#define TYPE_NONE 0xff
+#define FLAG_GODMODE             0x01
+#define FLAG_EXTRA_LIFE          0x02
+#define FLAG_EXTRA_SPEED         0x04
 
 #define TYPE_BACKGROUND          0x00
 #define TYPE_STOP                0x01
@@ -18,5 +20,6 @@
 #define TYPE_DRONE               0x09
 #define TYPE_VAMPLANT            0x0a
 #define TYPE_DIAMOND             0x0b
+#define TYPE_NONE                0xff
 
 #endif
