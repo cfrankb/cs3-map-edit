@@ -13,7 +13,6 @@
 
 typedef struct
 {
-    uint8_t id;
     uint8_t ch;
     std::string name;     // WALLS93
     uint8_t type;         // 0x03
@@ -22,7 +21,8 @@ typedef struct
     std::string basename; // walls93.obl
     uint8_t score;
     int8_t health;
-    uint16_t flags;
+    uint8_t flags;
+    uint8_t speed;
     bool hidden;
 } Tile;
 
@@ -250,7 +250,8 @@ bool processConst(StringVector &rows, const char *prefix, StrVal &constMap, Stri
         constMap[key] = val;
 
         char tmp[128];
-        sprintf(tmp, "#define %s_%-20s0x%.2x\n", prefix, key.c_str(), val);
+        std::string name = std::string(prefix) + "_" + key;
+        sprintf(tmp, "#define %-25s0x%.2x\n", name.c_str(), val);
         constList.push_back(tmp);
     }
 
@@ -357,6 +358,7 @@ void generateHeader(const std::string section, const std::string sectionName, st
                     "    uint8_t type;\n"
                     "    uint8_t score;\n"
                     "    int8_t health;\n"
+                    "    uint8_t speed;\n"
                     "    bool hidden;\n"
                     "    const char * basename;\n"
                     "} TileDef;\n"
@@ -398,8 +400,11 @@ void generateHeader(const std::string section, const std::string sectionName, st
         for (int i = 0; i < tileDefs.size(); ++i)
         {
             Tile &tile = tileDefs[i];
-            sprintf(tmp, "    {0x%.2x, TYPE_%s, %d, %d, %s, \"%s\"}%s// %.2x %s\n",
-                    tile.flags, tile.typeName.c_str(), tile.score, tile.health,
+            sprintf(tmp, "    {0x%.2x, TYPE_%s, %d, %d, %d, %s, \"%s\"}%s// %.2x %s\n",
+                    tile.flags, tile.typeName.c_str(),
+                    tile.score,
+                    tile.health,
+                    tile.speed,
                     tile.hidden ? "true" : "false",
                     tile.basename.c_str(),
                     i != tileDefs.size() - 1 ? ", " : " ", i, tile.define.c_str());
@@ -446,7 +451,8 @@ void generateHeader(const std::string section, const std::string sectionName, st
 
 Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &start, int &end, std::vector<uint8_t> &ch, bool &genHeaders)
 {
-    Tile tile{.id = 0, .ch = 0, .name = formatTitleName(list[0].c_str()), .typeName = "NONE", .score = 0};
+    Tile tile{.ch = 0, .name = formatTitleName(list[0].c_str()), .typeName = "NONE", .score = 0};
+    const StrVal &speedMap = constConfig["speeds"];
     const StrVal &typeMap = constConfig["types"];
     const StrVal &flagMap = constConfig["flags"];
 
@@ -494,6 +500,10 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
             else if (item[0] == '^')
             {
                 tile.flags |= static_cast<StrVal>(flagMap)[item.substr(1)];
+            }
+            else if (item[0] == '&')
+            {
+                tile.speed = static_cast<StrVal>(speedMap)[item.substr(1)];
             }
             else
             {
@@ -585,7 +595,6 @@ bool processSection(
             int u = 0;
             for (int i = start; i < end; ++i)
             {
-                tile.id = j;
                 tile.ch = u < ch.size() ? ch[u] : 0;
                 CFrame *s = images[i];
                 CFrame *t = new CFrame;
@@ -688,6 +697,11 @@ bool runJob(const char *src, uint8_t pixelWidth, bool flipPixels, bool headerles
             {
                 constConfig["flags"] = StrVal{};
                 processConst(files, "FLAG", constConfig["flags"], constLists["flags"]);
+            }
+            else if (section == "speeds")
+            {
+                constConfig["speeds"] = StrVal{};
+                processConst(files, "SPEED", constConfig["speeds"], constLists["speeds"]);
             }
             else
             {

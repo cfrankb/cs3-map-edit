@@ -7,6 +7,7 @@
 #include "maparch.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "animator.h"
+#include "sprtypes.h"
 
 CGameMixin::CGameMixin()
 {
@@ -64,7 +65,7 @@ void CGameMixin::preloadAssets()
         if (file.open(asset.filename, "rb")) {
             qDebug("reading %s", asset.filename);
             if ((*(asset.frameset))->extract(file)) {
-                qDebug("exracted: %d", (*(asset.frameset))->getSize());
+                qDebug("extracted: %d", (*(asset.frameset))->getSize());
             }
             file.close();
         }
@@ -311,9 +312,17 @@ void CGameMixin::mainLoop()
         m_animator->animate();
     }
 
-    if ((m_ticks & 3) == 0)
-    {
-        game.manageMonsters();
+    uint8_t speeds[] = {
+        SPEED_SLOW,
+        SPEED_FAST,
+        SPEED_VERYSLOW,
+        SPEED_NORMAL,
+    };
+    for (uint32_t i=0; i < sizeof(speeds); ++i) {
+        if ((m_ticks % speeds[i]) == 0)
+        {
+            game.manageMonsters(speeds[i]);
+        }
     }
 
     if (game.isPlayerDead()){

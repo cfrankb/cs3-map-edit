@@ -67,6 +67,7 @@ HEADERS += \
     shared/qtgui/cheat.h \
     shared/qtgui/qfilewrap.h \
     shared/qtgui/qthelper.h \
+    sprtypes.h \
     tilebox.h \
     tilesdata.h
 

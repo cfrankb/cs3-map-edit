@@ -15,7 +15,7 @@ public:
     bool init();
     bool loadLevel(bool restart);
     bool move(int dir);
-    void manageMonsters();
+    void manageMonsters(int speed);
     void managePlayer(uint8_t *joystate);
     static Pos translate(const Pos p, int aim);
     void consume();
@@ -47,8 +47,6 @@ public:
         MODE_LEVEL = 1,
         MODE_RESTART = 2,
         MODE_GAMEOVER =3,
-        DEFAULT_LIVES = 5,
-        LEVEL_BONUS = 500
     };
 
 protected:
@@ -56,6 +54,7 @@ protected:
     int m_health = 0;
     int m_level = 0;
     int m_score = 0;
+    int m_nextLife = SCORE_LIFE;
     int m_diamonds = 0;
     static uint8_t m_keys[6];
     int m_mode;
@@ -72,6 +71,10 @@ protected:
         GROWBY_MONSTERS = 64,
         MAX_HEALTH = 255,
         DEFAULT_HEALTH = 64,
+        DEFAULT_LIVES = 5,
+        LEVEL_BONUS = 500,
+        SCORE_LIFE = 5000,
+        MAX_LIVES = 99,
     };
 
     void clearAttr(uint8_t attr);
@@ -79,5 +82,8 @@ protected:
     int addMonster(const CActor actor);
     int findMonsterAt(int x, int y);
     void addHealth(int hp);
+    void addPoints(int points);
+    void addLife();
+    void vDebug(const char *format, ...);
 };
 #endif

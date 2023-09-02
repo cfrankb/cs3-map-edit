@@ -12,6 +12,7 @@ typedef struct
     uint8_t type;
     uint8_t score;
     int8_t health;
+    uint8_t speed;
     bool hidden;
     const char * basename;
 } TileDef;

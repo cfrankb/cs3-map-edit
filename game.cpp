@@ -1,13 +1,13 @@
 #include <cstring>
 #include <string>
 #include <vector>
-#include <QDebug>
 #include "game.h"
 #include "map.h"
 #include "actor.h"
 #include "sprtypes.h"
 #include "tilesdata.h"
 #include "maparch.h"
+#include <stdarg.h>
 
 CMap map(30, 30);
 uint8_t CGame::m_keys[6];
@@ -60,20 +60,20 @@ void CGame::consume()
 
     if (def.type == TYPE_PICKUP)
     {
-        m_score += def.score;
+        addPoints(def.score);
         m_player.setPU(TILES_BLANK);
         addHealth(def.health);
     }
     else if (def.type == TYPE_KEY)
     {
-        m_score += def.score;
+        addPoints(def.score);
         m_player.setPU(TILES_BLANK);
         addKey(pu);
         addHealth(def.health);
     }
     else if (def.type == TYPE_DIAMOND)
     {
-        m_score += def.score;
+        addPoints(def.score);
         m_player.setPU(TILES_BLANK);
         --m_diamonds;
         addHealth(def.health);
@@ -81,6 +81,10 @@ void CGame::consume()
     else if (def.type == TYPE_SWAMP)
     {
         addHealth(def.health);
+    }
+
+    if (def.flags & FLAG_EXTRA_LIFE) {
+        addLife();
     }
 
     // trigger key
@@ -105,16 +109,16 @@ bool CGame::init()
 
 bool CGame::loadLevel(bool restart)
 {
-    qDebug("loading level: %d ...", m_level + 1);
+    vDebug("loading level: %d ...\n", m_level + 1);
     setMode(restart ? MODE_RESTART :MODE_INTRO);
 
     // extract level from MapArch
     map = *(m_mapArch->at(m_level));
 
-    qDebug("level loaded");
+    vDebug("level loaded\n");
 
     Pos pos = map.findFirst(TILES_ANNIE2);
-    qDebug("Player at: %d %d", pos.x, pos.y);
+    vDebug("Player at: %d %d\n", pos.x, pos.y);
     m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
     m_diamonds = map.count(TILES_DIAMOND);
     memset(m_keys, 0, sizeof(m_keys));
@@ -126,7 +130,7 @@ bool CGame::loadLevel(bool restart)
 
 void CGame::nextLevel()
 {
-    m_score += LEVEL_BONUS + m_health;
+    addPoints(LEVEL_BONUS + m_health);
     if (m_level != m_mapArch->size() -1) {
         ++m_level;
     } else {
@@ -143,6 +147,7 @@ void CGame::restartGame()
     m_score = 0;
     m_lives = DEFAULT_LIVES;
     m_level = 0;
+    m_nextLife = SCORE_LIFE;
 }
 
 void CGame::setLevel(int levelId)
@@ -177,7 +182,7 @@ bool CGame::findMonsters()
             }
         }
     }
-    qDebug("%d monsters found.", m_monsterCount);
+    vDebug("%d monsters found.\n", m_monsterCount);
     return true;
 }
 
@@ -208,7 +213,7 @@ int CGame::findMonsterAt(int x, int y)
     return -1;
 }
 
-void CGame::manageMonsters()
+void CGame::manageMonsters(int speed)
 {
     uint8_t dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
     std::vector<CActor> newMonsters;
@@ -218,6 +223,9 @@ void CGame::manageMonsters()
         CActor &actor = m_monsters[i];
         uint8_t c = map.at(actor.getX(), actor.getY());
         const TileDef &def = getTileDef(c);
+        if (speed != def.speed){
+            continue;
+        }
         if (def.type == TYPE_MONSTER)
         {
             if (actor.isPlayerThere(actor.getAim()))
@@ -469,4 +477,27 @@ int CGame::health()
 uint8_t *CGame::keys()
 {
     return m_keys;
+}
+
+void CGame::addPoints(int points)
+{
+    m_score += points;
+    if (m_score >= m_nextLife) {
+        m_nextLife += SCORE_LIFE;
+        addLife();
+    }
+}
+
+void CGame::addLife()
+{
+    m_lives = std::min(m_lives + 1, static_cast<int>(MAX_LIVES));
+}
+
+void CGame::vDebug(const char *format, ...)
+{
+    char buffer[256];
+    va_list args;
+    va_start (args, format);
+    vsprintf (buffer,format, args);
+    va_end (args);
 }
