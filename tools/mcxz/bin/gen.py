@@ -26,7 +26,7 @@ def get_deps_blocks():
          '../../shared/FrameSet.cpp',
          '../../shared/PngMagic.cpp',
          '../../shared/DotArray.cpp',
-         '../../shared/helper.cpp'
+         '../../shared/helper.cpp',
     ]
 
     for f in files:
