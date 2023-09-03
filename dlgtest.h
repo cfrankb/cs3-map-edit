@@ -22,6 +22,7 @@ public:
 protected slots:
     void mainLoop();
     void changeZoom();
+    virtual void preloadAssets();
 
 private:
     Ui::CDlgTest *ui;

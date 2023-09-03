@@ -8,6 +8,8 @@
 #include "game.h"
 #include "tilesdata.h"
 #include "Frame.h"
+#include "FrameSet.h"
+#include "shared/qtgui/qfilewrap.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),
@@ -129,5 +131,45 @@ void CDlgTest::keyReleaseEvent(QKeyEvent *event)
         break;
     case Qt::Key_Right:
         m_joyState[AIM_RIGHT] = KEY_RELEASED;
+    }
+}
+
+void CDlgTest::preloadAssets()
+{
+    QFileWrap file;
+
+    typedef struct {
+        const char *filename;
+        CFrameSet **frameset;
+    } asset_t;
+
+    asset_t assets[] = {
+        {":/data/tiles.obl", &m_tiles},
+        {":/data/animz.obl", &m_animz},
+        {":/data/annie.obl", &m_annie},
+    };
+
+    for (int i=0; i < 3; ++i) {
+        asset_t & asset = assets[i];
+        *(asset.frameset) = new CFrameSet();
+        if (file.open(asset.filename, "rb")) {
+            qDebug("reading %s", asset.filename);
+            if ((*(asset.frameset))->extract(file)) {
+                qDebug("extracted: %d", (*(asset.frameset))->getSize());
+            }
+            file.close();
+        }
+    }
+
+    const char fontName [] = ":/data/font.bin";
+    int size = 0;
+    if (file.open(fontName, "rb")) {
+        size = file.getSize();
+        m_fontData = new uint8_t[size];
+        file.read(m_fontData, size);
+        file.close();
+        qDebug("size: %d", size);
+    } else {
+        qDebug("failed to open %s", fontName);
     }
 }

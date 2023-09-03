@@ -100,7 +100,7 @@ const TileDef tileDefs[]={
     {0x00, TYPE_DIAMOND, 10, 6, 0, false, "diamond.obl"}, // 5c TILES_DIAMOND
     {0x00, TYPE_PICKUP, 99, 20, 0, false, "triforce.obl"}, // 5d TILES_TRIFORCE
     {0x00, TYPE_PICKUP, 67, 10, 0, false, "orb.obl"}, // 5e TILES_ORB
-    {0x00, TYPE_PICKUP, 66, 0, 4, false, "tntstick.obl"}, // 5f TILES_TNTSTICK
+    {0x00, TYPE_PICKUP, 66, 0, 0, false, "tntstick.obl"}, // 5f TILES_TNTSTICK
     {0x00, TYPE_MONSTER, 0, -20, 4, false, "alpha.obl"}, // 60 TILES_ALPHA
     {0x00, TYPE_MONSTER, 0, -9, 4, false, "blueghos.obl"}, // 61 TILES_BLUEGHOS
     {0x00, TYPE_MONSTER, 0, -4, 4, false, "deico.obl"}, // 62 TILES_DEICO

@@ -5,13 +5,10 @@
 #include "map.h"
 #include "game.h"
 #include "maparch.h"
-#include "shared/qtgui/qfilewrap.h"
 #include "animator.h"
-#include "sprtypes.h"
 
 CGameMixin::CGameMixin()
 {
-    preloadAssets();
     m_game = new CGame();
     m_animator = new CAnimator();
     memset(m_joyState, 0, sizeof(m_joyState));
@@ -46,42 +43,7 @@ CGameMixin::~CGameMixin()
 
 void CGameMixin::preloadAssets()
 {
-    QFileWrap file;
-
-    typedef struct {
-        const char *filename;
-        CFrameSet **frameset;
-    } asset_t;
-
-    asset_t assets[] = {
-        {":/data/tiles.obl", &m_tiles},
-        {":/data/animz.obl", &m_animz},
-        {":/data/annie.obl", &m_annie},
-    };
-
-    for (int i=0; i < 3; ++i) {
-        asset_t & asset = assets[i];
-        *(asset.frameset) = new CFrameSet();
-        if (file.open(asset.filename, "rb")) {
-            qDebug("reading %s", asset.filename);
-            if ((*(asset.frameset))->extract(file)) {
-                qDebug("extracted: %d", (*(asset.frameset))->getSize());
-            }
-            file.close();
-        }
-    }
-
-    const char fontName [] = ":/data/font.bin";
-    int size = 0;
-    if (file.open(fontName, "rb")) {
-        size = file.getSize();
-        m_fontData = new uint8_t[size];
-        file.read(m_fontData, size);
-        file.close();
-        qDebug("size: %d", size);
-    } else {
-        qDebug("failed to open %s", fontName);
-    }
+    // TODO: implement in child class
 }
 
 void CGameMixin::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color)
@@ -367,6 +329,10 @@ void CGameMixin::startCountdown(int f)
 
 void CGameMixin::init(CMapArch *maparch, int index)
 {
+    if (!m_assetPreloaded){
+        preloadAssets();
+        m_assetPreloaded = true;
+    }
     m_maparch = maparch;
     m_game->setMapArch(maparch);
     m_game->setLevel(index);
@@ -391,5 +357,5 @@ void CGameMixin::setZoom(bool zoom)
 
 void CGameMixin::sanityTest()
 {
-    qDebug("TODO: sanityTest() to be implemented in child class");
+    // TODO: sanityTest() to be implemented in child class
 }

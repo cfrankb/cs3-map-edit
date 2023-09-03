@@ -66,9 +66,10 @@ protected:
     int m_healthRef = 0;
     int m_countdown = 0;
     bool m_zoom = false;
+    bool m_assetPreloaded = false;
     void drawScreen(CFrame &bitmap);
     void drawLevelIntro(CFrame &bitmap);
-    void preloadAssets();
+    virtual void preloadAssets();
     inline void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color = WHITE);
     inline void drawRect(CFrame & frame, const Rect &rect, const uint32_t color = GREEN, bool fill=true);
     inline void drawKeys(CFrame &bitmap);
