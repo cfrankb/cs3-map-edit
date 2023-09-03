@@ -20,23 +20,22 @@
 #include "map.h"
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
     m_scrollArea = new CMapScroll(this);
     m_scrollArea->viewport()->update();
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
+    CMapWidget *glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
     glw->setMap(m_doc.map());
     connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
     connect(ui->actionView_Animate, SIGNAL(toggled(bool)), glw, SLOT(setAnimate(bool)));
     setCentralWidget(m_scrollArea);
 
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
-    connect(m_scrollArea, SIGNAL(leftClickedAt(int,int)), this, SLOT(onLeftClick(int,int)));
-    connect(this, SIGNAL(mapChanged(CMap*)), m_scrollArea, SLOT(newMap(CMap*)));
-    connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint&)),
-        this, SLOT(showContextMenu(const QPoint&))) ;
+    connect(m_scrollArea, SIGNAL(leftClickedAt(int, int)), this, SLOT(onLeftClick(int, int)));
+    connect(this, SIGNAL(mapChanged(CMap *)), m_scrollArea, SLOT(newMap(CMap *)));
+    connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint &)),
+            this, SLOT(showContextMenu(const QPoint &)));
 
     updateTitle();
     initTilebox();
@@ -49,7 +48,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::initShortcuts()
 {
-    typedef struct  {
+    typedef struct
+    {
         uint16_t shortcut;
         QAction *action;
     } Hotkey;
@@ -58,10 +58,10 @@ void MainWindow::initShortcuts()
         {static_cast<uint16_t>(Qt::CTRL + Qt::Key_S), ui->actionFile_Save},
         {static_cast<uint16_t>(Qt::CTRL + Qt::Key_N), ui->actionFile_New_File},
         {static_cast<uint16_t>(Qt::CTRL + Qt::Key_O), ui->actionFile_Open},
-        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_Q), ui->actionFile_Exit}
-    };
+        {static_cast<uint16_t>(Qt::CTRL + Qt::Key_Q), ui->actionFile_Exit}};
 
-    for (uint i=0; i < sizeof(hotkeys)/sizeof(Hotkey);++i){
+    for (uint32_t i = 0; i < sizeof(hotkeys) / sizeof(Hotkey); ++i)
+    {
         Hotkey h = hotkeys[i];
         h.action->setShortcut(QKeySequence(h.shortcut));
     }
@@ -93,7 +93,7 @@ void MainWindow::shiftRight()
 
 void MainWindow::initMapShortcuts()
 {
-    connect(this, SIGNAL(resizeMap(int,int)), m_scrollArea, SLOT(newMapSize(int,int)));
+    connect(this, SIGNAL(resizeMap(int, int)), m_scrollArea, SLOT(newMapSize(int, int)));
     emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
 
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Up), this, SLOT(shiftUp()));
@@ -102,14 +102,15 @@ void MainWindow::initMapShortcuts()
     new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Right), this, SLOT(shiftRight()));
 }
 
-void MainWindow::initTilebox() {
+void MainWindow::initTilebox()
+{
     auto dock = new QDockWidget();
     dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     dock->setWindowTitle(tr("Toolbox"));
     auto tilebox = new CTileBox(dock);
     tilebox->show();
-    dock->setWidget (tilebox);
-    addDockWidget (Qt::LeftDockWidgetArea, dock);
+    dock->setWidget(tilebox);
+    addDockWidget(Qt::LeftDockWidgetArea, dock);
     dock->setAllowedAreas(Qt::LeftDockWidgetArea);
     connect(tilebox, SIGNAL(tileChanged(int)),
             this, SLOT(changeTile(int)));
@@ -124,9 +125,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (maybeSave()) {
+    if (maybeSave())
+    {
         event->accept();
-    } else {
+    }
+    else
+    {
         event->ignore();
         return;
     }
@@ -139,12 +143,14 @@ bool MainWindow::isDirty()
 
 bool MainWindow::maybeSave()
 {
-    if (isDirty()) {
-        QMessageBox::StandardButton ret = QMessageBox::warning(this, m_appName,
-                     tr("The document has been modified.\n"
-                        "Do you want to save your changes?"),
-                     QMessageBox::Save | QMessageBox::Discard
-                     | QMessageBox::Cancel);
+    if (isDirty())
+    {
+        QMessageBox::StandardButton ret = QMessageBox::warning(
+            this,
+            m_appName,
+            tr("The document has been modified.\n"
+               "Do you want to save your changes?"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
         if (ret == QMessageBox::Save)
             return save();
         else if (ret == QMessageBox::Cancel)
@@ -155,18 +161,22 @@ bool MainWindow::maybeSave()
 
 void MainWindow::open(QString fileName)
 {
-    if (maybeSave()) {
-        if (fileName.isEmpty()) {
+    if (maybeSave())
+    {
+        if (fileName.isEmpty())
+        {
             QStringList filters;
             filters.append(m_allFilter);
-            QFileDialog * dlg = new QFileDialog(this,tr("Open"),"",m_allFilter);
+            QFileDialog *dlg = new QFileDialog(this, tr("Open"), "", m_allFilter);
             dlg->setAcceptMode(QFileDialog::AcceptOpen);
             dlg->setFileMode(QFileDialog::ExistingFile);
             dlg->selectFile(m_doc.filename());
             dlg->setNameFilters(filters);
-            if (dlg->exec()) {
+            if (dlg->exec())
+            {
                 QStringList fileNames = dlg->selectedFiles();
-                if (fileNames.count()>0) {
+                if (fileNames.count() > 0)
+                {
                     fileName = fileNames[0];
                 }
             }
@@ -179,12 +189,16 @@ void MainWindow::open(QString fileName)
 
 void MainWindow::loadFile(const QString &fileName)
 {
-    if (!fileName.isEmpty()) {
+    if (!fileName.isEmpty())
+    {
         QString oldFileName = m_doc.filename();
         m_doc.setFilename(fileName);
-        if (m_doc.read())  {
+        if (m_doc.read())
+        {
             qDebug("size: %d", m_doc.size());
-        } else {
+        }
+        else
+        {
             warningMessage(tr("error:\n") + m_doc.lastError());
             m_doc.setFilename(oldFileName);
             // update fileList
@@ -203,12 +217,14 @@ void MainWindow::loadFile(const QString &fileName)
 bool MainWindow::save()
 {
     QString oldFileName = m_doc.filename();
-    if (m_doc.isUntitled() || m_doc.isWrongExt()) {
+    if (m_doc.isUntitled() || m_doc.isWrongExt())
+    {
         if (!saveAs())
             return false;
     }
 
-    if (!m_doc.write() || !updateTitle())  {
+    if (!m_doc.write() || !updateTitle())
+    {
         warningMessage(tr("Can't write file"));
         m_doc.setFilename(oldFileName);
         return false;
@@ -226,21 +242,24 @@ bool MainWindow::saveAs()
     QString suffix = m_doc.isMulti() ? "mapz" : "dat";
     QString fileName = "";
 
-    QFileDialog * dlg = new QFileDialog(this,tr("Save as"),"",m_allFilter);
+    QFileDialog *dlg = new QFileDialog(this, tr("Save as"), "", m_allFilter);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
 
     dlg->setNameFilters(filters);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
     dlg->setDefaultSuffix(suffix);
     dlg->selectFile(m_doc.filename());
-    if (dlg->exec()) {
+    if (dlg->exec())
+    {
         QStringList fileNames = dlg->selectedFiles();
-        if (fileNames.count()>0) {
+        if (fileNames.count() > 0)
+        {
             fileName = fileNames[0];
         }
     }
 
-    if (!fileName.isEmpty()) {
+    if (!fileName.isEmpty())
+    {
         m_doc.setFilename(fileName);
         result = m_doc.write();
     }
@@ -264,13 +283,16 @@ void MainWindow::setDocument(const QString fileName)
 bool MainWindow::updateTitle()
 {
     QString file;
-    if (m_doc.filename().isEmpty()) {
+    if (m_doc.filename().isEmpty())
+    {
         file = tr("untitled");
-    } else {
+    }
+    else
+    {
         file = QFileInfo(m_doc.filename()).fileName();
     }
     m_doc.setDirty(false);
-    setWindowTitle(tr("%1[*] - %2").arg( file, m_appName));
+    setWindowTitle(tr("%1[*] - %2").arg(file, m_appName));
     return true;
 }
 
@@ -291,10 +313,11 @@ void MainWindow::setStatus(const QString msg)
 
 void MainWindow::on_actionFile_New_File_triggered()
 {
-    if (maybeSave()) {
+    if (maybeSave())
+    {
         m_doc.setFilename("");
         m_doc.forget();
-        CMap *map = new CMap(40,40);
+        CMap *map = new CMap(40, 40);
         m_doc.add(map);
         updateTitle();
         emit mapChanged(m_doc.map());
@@ -321,18 +344,22 @@ void MainWindow::on_actionFile_Save_as_triggered()
 
 void MainWindow::on_actionEdit_ResizeMap_triggered()
 {
-    CMap &map = * m_doc.map();
+    CMap &map = *m_doc.map();
     CDlgResize dlg(this);
     dlg.setWindowTitle(tr("Resize Map"));
     dlg.width(map.len());
     dlg.height(map.hei());
-    if (dlg.exec()==QDialog::Accepted){
+    if (dlg.exec() == QDialog::Accepted)
+    {
         QMessageBox::StandardButton reply = QMessageBox::Yes;
-        if (dlg.width() < map.len() || dlg.height() < map.hei()) {
-            reply = QMessageBox::warning(this, m_appName, tr("Resizing map may lead to data lost. Continue?"),
-                QMessageBox::Yes|QMessageBox::No);
+        if (dlg.width() < map.len() || dlg.height() < map.hei())
+        {
+            reply = QMessageBox::warning(
+                this, m_appName, tr("Resizing map may lead to data lost. Continue?"),
+                QMessageBox::Yes | QMessageBox::No);
         }
-        if (reply == QMessageBox::Yes) {
+        if (reply == QMessageBox::Yes)
+        {
             map.resize(dlg.width(), dlg.height(), false);
             m_doc.setDirty(true);
             emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
@@ -340,15 +367,16 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
     }
 }
 
-void MainWindow::showContextMenu(const QPoint& pos)
+void MainWindow::showContextMenu(const QPoint &pos)
 {
     int x = pos.x() / GRID_SIZE;
     int y = pos.y() / GRID_SIZE;
     int mx = m_scrollArea->horizontalScrollBar()->value();
     int my = m_scrollArea->verticalScrollBar()->value();
 
-    CMap &map = * m_doc.map();
-    if (x >=0 && y >= 0 && x + mx < map.len() && y + my < map.hei()) {
+    CMap &map = *m_doc.map();
+    if (x >= 0 && y >= 0 && x + mx < map.len() && y + my < map.hei())
+    {
         QMenu menu(this);
         QAction *actionSetAttr = new QAction(tr("set attribute"), &menu);
         connect(actionSetAttr, SIGNAL(triggered()),
@@ -362,11 +390,12 @@ void MainWindow::showContextMenu(const QPoint& pos)
 
 void MainWindow::showAttrDialog()
 {
-    CMap &map = * m_doc.map();
+    CMap &map = *m_doc.map();
     uint8_t a = map.getAttr(m_hx, m_hy);
     CDlgAttr dlg(this);
     dlg.attr(a);
-    if (dlg.exec()==QDialog::Accepted){
+    if (dlg.exec() == QDialog::Accepted)
+    {
         a = dlg.attr();
         map.setAttr(m_hx, m_hy, a);
         m_doc.setDirty(true);
@@ -381,13 +410,12 @@ void MainWindow::changeTile(int tile)
 
 void MainWindow::onLeftClick(int x, int y)
 {
-    if ( (x >= 0) && (y >= 0)
-         && (x < m_doc.map()->len())
-         && (y < m_doc.map()->hei()) )
+    if ((x >= 0) && (y >= 0) && (x < m_doc.map()->len()) && (y < m_doc.map()->hei()))
     {
-        const uint8_t tile = m_doc.map()->at(x,y);
+        const uint8_t tile = m_doc.map()->at(x, y);
         uint8_t newTileId = tile;
-        switch(currentTool()) {
+        switch (currentTool())
+        {
         case TOOL_PAINT:
             newTileId = m_currTile;
             break;
@@ -395,12 +423,13 @@ void MainWindow::onLeftClick(int x, int y)
             newTileId = 0;
             break;
         case TOOL_SELECT:
-            m_currTile = m_doc.map()->at(x,y);
+            m_currTile = m_doc.map()->at(x, y);
             emit newTile(m_currTile);
         }
 
-        if (newTileId != tile) {
-            m_doc.map()->at(x,y) = newTileId;
+        if (newTileId != tile)
+        {
+            m_doc.map()->at(x, y) = newTileId;
             m_doc.setDirty(true);
         }
     }
@@ -410,7 +439,8 @@ void MainWindow::initFileMenu()
 {
     // gray out the open recent `nothin' yet`
     ui->actionNothing_yet->setEnabled(false);
-    for (int i = 0; i < MAX_RECENT_FILES; i++) {
+    for (int i = 0; i < MAX_RECENT_FILES; i++)
+    {
         m_recentFileActs[i] = new QAction(this);
         m_recentFileActs[i]->setVisible(false);
         ui->menuRecent_Maps->addAction(m_recentFileActs[i]);
@@ -428,7 +458,8 @@ void MainWindow::reloadRecentFileActions()
     QSettings settings;
     QStringList files = settings.value("recentFileList").toStringList();
     const int numRecentFiles = qMin(files.size(), static_cast<int>(MAX_RECENT_FILES));
-    for (int i = 0; i < numRecentFiles; ++i) {
+    for (int i = 0; i < numRecentFiles; ++i)
+    {
         QString text = tr("&%1 %2").arg(i + 1).arg(QFileInfo(files[i]).fileName());
         m_recentFileActs[i]->setText(text);
         m_recentFileActs[i]->setData(files[i]);
@@ -444,7 +475,8 @@ void MainWindow::updateRecentFileActions()
     QStringList files = settings.value("recentFileList").toStringList();
     QString fileName = m_doc.filename();
     files.removeAll(fileName);
-    if (!fileName.isEmpty()) {
+    if (!fileName.isEmpty())
+    {
         files.prepend(fileName);
         while (files.size() > MAX_RECENT_FILES)
             files.removeLast();
@@ -455,7 +487,8 @@ void MainWindow::updateRecentFileActions()
 void MainWindow::openRecentFile()
 {
     QAction *action = qobject_cast<QAction *>(sender());
-    if (action) {
+    if (action)
+    {
         open(action->data().toString());
     }
     updateMenus();
@@ -463,7 +496,7 @@ void MainWindow::openRecentFile()
 
 void MainWindow::initToolBar()
 {
-    ui->toolBar->setIconSize( QSize(16,16) );
+    ui->toolBar->setIconSize(QSize(16, 16));
     ui->toolBar->addAction(ui->actionFile_New_File);
     ui->toolBar->addAction(ui->actionFile_Open);
     ui->toolBar->addAction(ui->actionFile_Save);
@@ -473,7 +506,7 @@ void MainWindow::initToolBar()
     ui->toolBar->addAction(ui->actionEdit_Next_Map);
     ui->toolBar->addSeparator();
     ui->toolBar->addAction(ui->actionEdit_Add_Map);
-    //ui->toolBar->addAction(ui->actionClear_Map);
+    // ui->toolBar->addAction(ui->actionClear_Map);
     ui->toolBar->addAction(ui->actionEdit_Delete_Map);
     ui->toolBar->addSeparator();
     ui->toolBar->addAction(ui->actionTools_Paint);
@@ -499,8 +532,9 @@ void MainWindow::initToolBar()
 void MainWindow::on_actionClear_Map_triggered()
 {
     QString msg = tr("Clearing the map cannot be reversed. Continue?");
-    QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes|QMessageBox::No);
-    if (reply == QMessageBox::Yes) {
+    QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes)
+    {
         m_doc.map()->clear();
         m_doc.setDirty(true);
     }
@@ -525,7 +559,8 @@ void MainWindow::on_actionHelp_About_Qt_triggered()
 void MainWindow::on_actionEdit_Previous_Map_triggered()
 {
     int index = m_doc.currentIndex();
-    if ( index > 0) {
+    if (index > 0)
+    {
         m_doc.setCurrentIndex(--index);
         emit mapChanged(m_doc.map());
         updateMenus();
@@ -535,7 +570,8 @@ void MainWindow::on_actionEdit_Previous_Map_triggered()
 void MainWindow::on_actionEdit_Next_Map_triggered()
 {
     int index = m_doc.currentIndex();
-    if ( index < m_doc.size() - 1) {
+    if (index < m_doc.size() - 1)
+    {
         m_doc.setCurrentIndex(++index);
         emit mapChanged(m_doc.map());
         updateMenus();
@@ -544,7 +580,7 @@ void MainWindow::on_actionEdit_Next_Map_triggered()
 
 void MainWindow::on_actionEdit_Add_Map_triggered()
 {
-    CMap *map = new CMap(64,64);
+    CMap *map = new CMap(64, 64);
     m_doc.add(map);
     m_doc.setCurrentIndex(m_doc.size() - 1);
     m_doc.setDirty(true);
@@ -555,10 +591,12 @@ void MainWindow::on_actionEdit_Add_Map_triggered()
 void MainWindow::on_actionEdit_Delete_Map_triggered()
 {
     int index = m_doc.currentIndex();
-    if (m_doc.size() > 1)  {
+    if (m_doc.size() > 1)
+    {
         QString msg = tr("Deleting the map cannot be reversed. Continue?");
-        QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes|QMessageBox::No);
-        if (reply == QMessageBox::Yes) {
+        QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes | QMessageBox::No);
+        if (reply == QMessageBox::Yes)
+        {
             CMap *delMap = m_doc.removeAt(index);
             delete delMap;
             m_doc.setDirty(true);
@@ -571,7 +609,7 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
 void MainWindow::on_actionEdit_Insert_Map_triggered()
 {
     int index = m_doc.currentIndex();
-    CMap *map = new CMap(64,64);
+    CMap *map = new CMap(64, 64);
     m_doc.insertAt(index, map);
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
@@ -580,13 +618,14 @@ void MainWindow::on_actionEdit_Insert_Map_triggered()
 
 void MainWindow::on_actionEdit_Move_Map_triggered()
 {
-    int currIndex= m_doc.currentIndex();
+    int currIndex = m_doc.currentIndex();
     CDlgSelect dlg(this);
     dlg.setWindowTitle(tr("Move map %1 to ...").arg(currIndex + 1));
     dlg.init(tr("Select destination"), &m_doc);
-    if (dlg.exec()==QDialog::Accepted && dlg.index() != currIndex){
+    if (dlg.exec() == QDialog::Accepted && dlg.index() != currIndex)
+    {
         int i = dlg.index();
-        CMap *map =m_doc.removeAt(currIndex);
+        CMap *map = m_doc.removeAt(currIndex);
         m_doc.insertAt(i, map);
         m_doc.setCurrentIndex(i);
         m_doc.setDirty(true);
@@ -597,11 +636,12 @@ void MainWindow::on_actionEdit_Move_Map_triggered()
 
 void MainWindow::on_actionEdit_Goto_Map_triggered()
 {
-    int currIndex= m_doc.currentIndex();
+    int currIndex = m_doc.currentIndex();
     CDlgSelect dlg(this);
     dlg.setWindowTitle(tr("Go to Map ..."));
     dlg.init(tr("Select map"), &m_doc);
-    if (dlg.exec()==QDialog::Accepted && dlg.index() != currIndex){
+    if (dlg.exec() == QDialog::Accepted && dlg.index() != currIndex)
+    {
         int i = dlg.index();
         m_doc.setCurrentIndex(i);
         emit mapChanged(m_doc.map());
@@ -611,22 +651,26 @@ void MainWindow::on_actionEdit_Goto_Map_triggered()
 
 void MainWindow::on_actionEdit_Test_Map_triggered()
 {
-    if (m_doc.size()) {
+    if (m_doc.size())
+    {
         CMap *map = m_doc.map();
         // Sanitycheck
         const Pos pos = map->findFirst(TILES_ANNIE2);
         QStringList listIssues;
-        if ((pos.x == CMap::NOT_FOUND ) && (pos.y == CMap::NOT_FOUND)) {
+        if ((pos.x == CMap::NOT_FOUND) && (pos.y == CMap::NOT_FOUND))
+        {
             listIssues.push_back(tr("No player on map"));
             emit newTile(TILES_ANNIE2);
             m_currTile = TILES_ANNIE2;
         }
-        if (map->count(TILES_DIAMOND) == 0) {
+        if (map->count(TILES_DIAMOND) == 0)
+        {
             listIssues.push_back(tr("No diamond on map"));
             emit newTile(TILES_DIAMOND);
             m_currTile = TILES_DIAMOND;
         }
-        if (listIssues.count() > 0) {
+        if (listIssues.count() > 0)
+        {
             QString msg = tr("Map is incomplete:\n%1").arg(listIssues.join("\n"));
             QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
             return;
@@ -643,32 +687,39 @@ void MainWindow::on_actionFile_Import_Maps_triggered()
     QString fileName;
     QStringList filters;
     filters.append(m_allFilter);
-    QFileDialog * dlg = new QFileDialog(this,tr("Import"),"",m_allFilter);
+    QFileDialog *dlg = new QFileDialog(this, tr("Import"), "", m_allFilter);
     dlg->setAcceptMode(QFileDialog::AcceptOpen);
     dlg->setFileMode(QFileDialog::ExistingFile);
     dlg->selectFile("");
     dlg->setNameFilters(filters);
-    if (dlg->exec()) {
+    if (dlg->exec())
+    {
         QStringList fileNames = dlg->selectedFiles();
-        if (fileNames.count()>0) {
+        if (fileNames.count() > 0)
+        {
             fileName = fileNames[0];
         }
     }
     delete dlg;
 
     // copy map from arch to current document
-    if (!fileName.isEmpty()) {
+    if (!fileName.isEmpty())
+    {
         CMapArch arch;
-        if (arch.extract(fileName.toLocal8Bit().toStdString().c_str())) {
-            for (int i=0; i < arch.size(); ++i) {
+        if (arch.extract(fileName.toLocal8Bit().toStdString().c_str()))
+        {
+            for (int i = 0; i < arch.size(); ++i)
+            {
                 m_doc.add(arch.at(i));
             }
             arch.removeAll();
-            m_doc.setCurrentIndex(m_doc.size() -1);
+            m_doc.setCurrentIndex(m_doc.size() - 1);
             m_doc.setDirty(true);
             emit mapChanged(m_doc.map());
             updateMenus();
-        } else {
+        }
+        else
+        {
             QString msg = tr("Fail to import:\n%1").arg(fileName);
             QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
         }
@@ -681,23 +732,27 @@ void MainWindow::on_actionFile_Export_Map_triggered()
     QString suffix = "dat";
     QString fileName = "";
 
-    QFileDialog * dlg = new QFileDialog(this,tr("Export Map"),"",m_allFilter);
+    QFileDialog *dlg = new QFileDialog(this, tr("Export Map"), "", m_allFilter);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
 
     dlg->setNameFilters(filters);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
     dlg->setDefaultSuffix(suffix);
-    dlg->selectFile(tr("level%1.dat").arg(m_doc.currentIndex()+1,2,10,QChar('0')));
-    if (dlg->exec()) {
+    dlg->selectFile(tr("level%1.dat").arg(m_doc.currentIndex() + 1, 2, 10, QChar('0')));
+    if (dlg->exec())
+    {
         QStringList fileNames = dlg->selectedFiles();
-        if (fileNames.count()>0) {
+        if (fileNames.count() > 0)
+        {
             fileName = fileNames[0];
         }
     }
 
-    if (!fileName.isEmpty()) {
+    if (!fileName.isEmpty())
+    {
         // copy current map
-        if (!m_doc.map()->write(fileName.toLocal8Bit().toStdString().c_str())) {
+        if (!m_doc.map()->write(fileName.toLocal8Bit().toStdString().c_str()))
+        {
             QString msg = tr("Fail exporting to:\n%1").arg(fileName);
             QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
         }

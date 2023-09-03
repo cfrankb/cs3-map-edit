@@ -25,6 +25,5 @@
 #define TYPE_DRONE               0x09
 #define TYPE_VAMPLANT            0x0a
 #define TYPE_DIAMOND             0x0b
-#define TYPE_NONE                0xff
 
 #endif

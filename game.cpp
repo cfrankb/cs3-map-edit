@@ -84,15 +84,18 @@ void CGame::consume()
     }
 
     // apply flags
-    if (def.flags & FLAG_EXTRA_LIFE) {
+    if (def.flags & FLAG_EXTRA_LIFE)
+    {
         addLife();
     }
 
-    if (def.flags & FLAG_GODMODE) {
+    if (def.flags & FLAG_GODMODE)
+    {
         m_godModeTimer = GODMODE_TIMER;
     }
 
-    if (def.flags & FLAG_EXTRA_SPEED) {
+    if (def.flags & FLAG_EXTRA_SPEED)
+    {
         m_extraSpeedTimer = EXTRASPEED_TIMER;
     }
 
@@ -109,17 +112,17 @@ void CGame::consume()
 
 bool CGame::init()
 {
-    //m_engine->init();
-    //uint8_t *ptr = &levels_mapz;
-    // load levelArch index from memory
-    //m_arch.fromMemory(ptr);
+    // m_engine->init();
+    // uint8_t *ptr = &levels_mapz;
+    //  load levelArch index from memory
+    // m_arch.fromMemory(ptr);
     return true;
 }
 
 bool CGame::loadLevel(bool restart)
 {
     vDebug("loading level: %d ...\n", m_level + 1);
-    setMode(restart ? MODE_RESTART :MODE_INTRO);
+    setMode(restart ? MODE_RESTART : MODE_INTRO);
 
     // extract level from MapArch
     map = *(m_mapArch->at(m_level));
@@ -140,9 +143,12 @@ bool CGame::loadLevel(bool restart)
 void CGame::nextLevel()
 {
     addPoints(LEVEL_BONUS + m_health);
-    if (m_level != m_mapArch->size() -1) {
+    if (m_level != m_mapArch->size() - 1)
+    {
         ++m_level;
-    } else {
+    }
+    else
+    {
         m_level = 0;
     }
 }
@@ -160,7 +166,7 @@ void CGame::restartGame()
     m_level = 0;
     m_nextLife = SCORE_LIFE;
     m_godModeTimer = 0;
-    m_extraSpeedTimer= 0;
+    m_extraSpeedTimer = 0;
 }
 
 void CGame::setLevel(int levelId)
@@ -230,7 +236,8 @@ void CGame::manageMonsters(int ticks)
 {
     const int speedCount = 9;
     bool speeds[speedCount];
-    for (uint32_t i=0; i < sizeof(speeds); ++i) {
+    for (uint32_t i = 0; i < sizeof(speeds); ++i)
+    {
         speeds[i] = i ? (ticks % i) == 0 : true;
     }
 
@@ -242,7 +249,8 @@ void CGame::manageMonsters(int ticks)
         CActor &actor = m_monsters[i];
         uint8_t c = map.at(actor.getX(), actor.getY());
         const TileDef &def = getTileDef(c);
-        if (!speeds[def.speed]){
+        if (!speeds[def.speed])
+        {
             continue;
         }
         if (def.type == TYPE_MONSTER)
@@ -258,10 +266,13 @@ void CGame::manageMonsters(int ticks)
             if (aim != AIM_NONE)
             {
                 actor.move(aim);
-            } else {
+            }
+            else
+            {
                 for (uint8_t i = 0; i < sizeof(dirs); ++i)
                 {
-                    if (actor.isPlayerThere(dirs[i])) {
+                    if (actor.isPlayerThere(dirs[i]))
+                    {
                         // apply health damages
                         addHealth(def.health);
                         break;
@@ -324,7 +335,7 @@ void CGame::manageMonsters(int ticks)
     }
 
     // moved here to avoid reallocation while using a reference
-    for (auto const & monster : newMonsters)
+    for (auto const &monster : newMonsters)
     {
         addMonster(monster);
     }
@@ -335,15 +346,18 @@ void CGame::managePlayer(uint8_t *joystate)
     m_godModeTimer = std::max(m_godModeTimer - 1, 0);
     m_extraSpeedTimer = std::max(m_extraSpeedTimer - 1, 0);
     auto const pu = m_player.getPU();
-    if (pu == TILES_SWAMP) {
+    if (pu == TILES_SWAMP)
+    {
         // apply health damage
         const TileDef &def = getTileDef(pu);
         addHealth(def.health);
     }
     uint8_t aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
-    for (uint8_t i =0; i < 4; ++i) {
+    for (uint8_t i = 0; i < 4; ++i)
+    {
         uint8_t aim = aims[i];
-        if (joystate[aim] && move(aim)) {
+        if (joystate[aim] && move(aim))
+        {
             break;
         }
     }
@@ -385,7 +399,7 @@ Pos CGame::translate(const Pos p, int aim)
 
 bool CGame::hasKey(uint8_t c)
 {
-    for (uint i = 0; i < sizeof(m_keys); ++i)
+    for (uint32_t i = 0; i < sizeof(m_keys); ++i)
     {
         if (m_keys[i] == c)
         {
@@ -397,7 +411,7 @@ bool CGame::hasKey(uint8_t c)
 
 void CGame::addKey(uint8_t c)
 {
-    for (uint i = 0; i < sizeof(m_keys); ++i)
+    for (uint32_t i = 0; i < sizeof(m_keys); ++i)
     {
         if (m_keys[i] == c)
         {
@@ -467,7 +481,7 @@ bool CGame::isPlayerDead()
 
 void CGame::killPlayer()
 {
-    m_lives = m_lives ? m_lives -1 : 0;
+    m_lives = m_lives ? m_lives - 1 : 0;
 }
 
 bool CGame::isGameOver()
@@ -503,7 +517,8 @@ uint8_t *CGame::keys()
 void CGame::addPoints(int points)
 {
     m_score += points;
-    if (m_score >= m_nextLife) {
+    if (m_score >= m_nextLife)
+    {
         m_nextLife += SCORE_LIFE;
         addLife();
     }
@@ -521,14 +536,14 @@ int CGame::godModeTimer()
 
 int CGame::playerSpeed()
 {
-    return m_extraSpeedTimer? FAST_PLAYER_SPEED: DEFAULT_PLAYER_SPEED;
+    return m_extraSpeedTimer ? FAST_PLAYER_SPEED : DEFAULT_PLAYER_SPEED;
 }
 
 void CGame::vDebug(const char *format, ...)
 {
     char buffer[256];
     va_list args;
-    va_start (args, format);
-    vsprintf (buffer,format, args);
-    va_end (args);
+    va_start(args, format);
+    vsprintf(buffer, format, args);
+    va_end(args);
 }

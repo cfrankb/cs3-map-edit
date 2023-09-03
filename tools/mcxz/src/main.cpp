@@ -13,17 +13,17 @@
 
 typedef struct
 {
-    uint8_t ch;
+    uint8_t ch;           // char for ascii map (deprecated)
     std::string name;     // WALLS93
     uint8_t type;         // 0x03
     std::string typeName; // TYPE_WALLS
     std::string define;   // TILES_WALLS93
     std::string basename; // walls93.obl
-    uint8_t score;
-    int8_t health;
-    uint8_t flags;
-    uint8_t speed;
-    bool hidden;
+    uint8_t score;        // points to add
+    int8_t health;        // health to add or remove
+    uint8_t flags;        // action
+    uint8_t speed;        // SLOW, NORMAL, FAST
+    bool hidden;          // hide tile in IDE
 } Tile;
 
 typedef std::vector<std::string> StringVector;
@@ -459,6 +459,7 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
     for (int i = 1; i < list.size(); ++i)
     {
         const std::string item = list[i];
+        std::string ref = item.length() > 0 ? item.substr(1) : "";
         switch (item.c_str()[0])
         {
         case '@':
@@ -488,9 +489,13 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
             }
             else if (item[0] == '*')
             {
-                if (item.substr(1) == "HIDDEN")
+                if (ref == "HIDDEN")
                 {
                     tile.hidden = true;
+                }
+                else
+                {
+                    printf("unknown directive: %s\n", ref.c_str());
                 }
             }
             else if (item[0] == '!')
@@ -499,17 +504,35 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
             }
             else if (item[0] == '^')
             {
-                tile.flags |= static_cast<StrVal>(flagMap)[item.substr(1)];
+                if (flagMap.count(ref) != 0)
+                {
+                    tile.flags |= static_cast<StrVal>(flagMap)[ref];
+                }
+                else
+                {
+                    printf("can't find flag: %s\n", ref.c_str());
+                }
             }
             else if (item[0] == '&')
             {
-                tile.speed = static_cast<StrVal>(speedMap)[item.substr(1)];
+                if (speedMap.count(ref) != 0)
+                {
+                    tile.speed = static_cast<StrVal>(speedMap)[ref];
+                }
+                else
+                {
+                    printf("can't find speed: %s\n", ref.c_str());
+                }
             }
             else
             {
                 genHeaders = true;
                 tile.typeName = item;
-                tile.type = static_cast<StrVal>(typeMap)[item]; // typeMap.count(item) != 0 ? typeMap[item] : -1;
+                tile.type = static_cast<StrVal>(typeMap)[item];
+                if (typeMap.count(ref) != 0)
+                {
+                    printf("unknown type: %s\n", ref.c_str());
+                }
             }
         }
     }
@@ -681,29 +704,35 @@ bool runJob(const char *src, uint8_t pixelWidth, bool flipPixels, bool headerles
         Config constLists;
         StrVector sectionList;
         Config conf;
+        std::map<std::string, std::string> sectionRefs = {
+            {"types", "TYPE"},
+            {"flags", "FLAG"},
+            {"speeds", "SPEED"},
+        };
 
         parseConfig(conf, sectionList, sfile);
         for (int i = 0; i < sectionList.size(); ++i)
         {
-            std::string section = sectionList[i];
-            StringVector files = conf[section];
-            if (section == "types")
+            std::string sectionName = sectionList[i];
+            StringVector files = conf[sectionName];
+            if (sectionRefs.count(sectionName) != 0)
             {
-                files.push_back("NONE 0xff");
-                processConst(files, "TYPE", constConfig["types"], constLists["types"]);
-            }
-            else if (section == "flags")
-            {
-                processConst(files, "FLAG", constConfig["flags"], constLists["flags"]);
-            }
-            else if (section == "speeds")
-            {
-                processConst(files, "SPEED", constConfig["speeds"], constLists["speeds"]);
+                processConst(
+                    files,
+                    sectionRefs[sectionName].c_str(),
+                    constConfig[sectionName],
+                    constLists[sectionName]);
             }
             else
             {
-                puts(section.c_str());
-                processSection(section, files, constConfig, pixelWidth, flipPixels, headerless);
+                puts(sectionName.c_str());
+                processSection(
+                    sectionName,
+                    files,
+                    constConfig,
+                    pixelWidth,
+                    flipPixels,
+                    headerless);
             }
         }
         writeConstFile(constLists);
