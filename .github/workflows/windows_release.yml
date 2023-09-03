@@ -52,13 +52,13 @@ jobs:
       - name: Download zlib
         uses: suisei-cn/actions-download-file@v1
         with:
-          url: https://zlib.net/zlib1213.zip
+          url: https://cfrankb.com/files/libs/zlib13.zip
           target: ${{ runner.temp }}\
 
       - name: Unzip zlib
         working-directory: ${{ runner.temp }}
         run: |
-          7z x zlib1213.zip -ozlib
+          7z x zlib13.zip -ozlib
           dir /w zlib
 
       - name: Install Qt
@@ -83,7 +83,7 @@ jobs:
       - name: compile zlib
         working-directory: ${{ runner.temp }}
         run: |
-          cd zlib\\zlib-1.2.13
+          cd zlib\\zlib-1.3
           dir /w
           nmake /f win32/Makefile.msc
           dir /w
