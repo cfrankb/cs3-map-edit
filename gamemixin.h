@@ -61,7 +61,6 @@ protected:
     uint8_t *m_fontData = nullptr;
     CGame *m_game = nullptr;
     CMapArch * m_maparch = nullptr;
-    QTimer m_timer;
     int m_playerFrameOffset = 0;
     int m_healthRef = 0;
     int m_countdown = 0;

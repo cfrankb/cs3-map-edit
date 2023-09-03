@@ -25,6 +25,7 @@ protected slots:
     virtual void preloadAssets();
 
 private:
+    QTimer m_timer;
     Ui::CDlgTest *ui;
     virtual void keyPressEvent(QKeyEvent *event);
     virtual void keyReleaseEvent(QKeyEvent *event);

@@ -18,6 +18,8 @@ CDlgTest::CDlgTest(QWidget *parent) :
 {
     ui->setupUi(this);
     new QShortcut(QKeySequence(Qt::Key_F11), this, SLOT(changeZoom()));
+    m_timer.setInterval(1000 / TICK_RATE);
+    m_timer.start();
 }
 
 CDlgTest::~CDlgTest()

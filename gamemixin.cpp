@@ -340,9 +340,6 @@ void CGameMixin::init(CMapArch *maparch, int index)
 
     m_countdown = INTRO_DELAY;
     m_game->loadLevel(false);
-
-    m_timer.setInterval(1000 / TICK_RATE);
-    m_timer.start();
 }
 
 void CGameMixin::changeZoom()
