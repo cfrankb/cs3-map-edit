@@ -690,17 +690,14 @@ bool runJob(const char *src, uint8_t pixelWidth, bool flipPixels, bool headerles
             if (section == "types")
             {
                 files.push_back("NONE 0xff");
-                constConfig["types"] = StrVal{};
                 processConst(files, "TYPE", constConfig["types"], constLists["types"]);
             }
             else if (section == "flags")
             {
-                constConfig["flags"] = StrVal{};
                 processConst(files, "FLAG", constConfig["flags"], constLists["flags"]);
             }
             else if (section == "speeds")
             {
-                constConfig["speeds"] = StrVal{};
                 processConst(files, "SPEED", constConfig["speeds"], constLists["speeds"]);
             }
             else

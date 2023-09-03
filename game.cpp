@@ -83,8 +83,17 @@ void CGame::consume()
         addHealth(def.health);
     }
 
+    // apply flags
     if (def.flags & FLAG_EXTRA_LIFE) {
         addLife();
+    }
+
+    if (def.flags & FLAG_GODMODE) {
+        m_godModeTimer = GODMODE_TIMER;
+    }
+
+    if (def.flags & FLAG_EXTRA_SPEED) {
+        m_extraSpeedTimer = EXTRASPEED_TIMER;
     }
 
     // trigger key
@@ -140,6 +149,8 @@ void CGame::nextLevel()
 
 void CGame::restartLevel()
 {
+    m_godModeTimer = 0;
+    m_extraSpeedTimer = 0;
 }
 
 void CGame::restartGame()
@@ -148,6 +159,8 @@ void CGame::restartGame()
     m_lives = DEFAULT_LIVES;
     m_level = 0;
     m_nextLife = SCORE_LIFE;
+    m_godModeTimer = 0;
+    m_extraSpeedTimer= 0;
 }
 
 void CGame::setLevel(int levelId)
@@ -213,8 +226,14 @@ int CGame::findMonsterAt(int x, int y)
     return -1;
 }
 
-void CGame::manageMonsters(int speed)
+void CGame::manageMonsters(int ticks)
 {
+    const int speedCount = 9;
+    bool speeds[speedCount];
+    for (uint32_t i=0; i < sizeof(speeds); ++i) {
+        speeds[i] = i ? (ticks % i) == 0 : true;
+    }
+
     uint8_t dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
     std::vector<CActor> newMonsters;
 
@@ -223,7 +242,7 @@ void CGame::manageMonsters(int speed)
         CActor &actor = m_monsters[i];
         uint8_t c = map.at(actor.getX(), actor.getY());
         const TileDef &def = getTileDef(c);
-        if (speed != def.speed){
+        if (!speeds[def.speed]){
             continue;
         }
         if (def.type == TYPE_MONSTER)
@@ -313,6 +332,8 @@ void CGame::manageMonsters(int speed)
 
 void CGame::managePlayer(uint8_t *joystate)
 {
+    m_godModeTimer = std::max(m_godModeTimer - 1, 0);
+    m_extraSpeedTimer = std::max(m_extraSpeedTimer - 1, 0);
     auto const pu = m_player.getPU();
     if (pu == TILES_SWAMP) {
         // apply health damage
@@ -423,7 +444,7 @@ void CGame::addHealth(int hp)
     {
         m_health = std::min(m_health + hp, static_cast<int>(MAX_HEALTH));
     }
-    else if (hp < 0)
+    else if (hp < 0 && !m_godModeTimer)
     {
         m_health = std::max(m_health + hp, 0);
     }
@@ -491,6 +512,16 @@ void CGame::addPoints(int points)
 void CGame::addLife()
 {
     m_lives = std::min(m_lives + 1, static_cast<int>(MAX_LIVES));
+}
+
+int CGame::godModeTimer()
+{
+    return m_godModeTimer;
+}
+
+int CGame::playerSpeed()
+{
+    return m_extraSpeedTimer? FAST_PLAYER_SPEED: DEFAULT_PLAYER_SPEED;
 }
 
 void CGame::vDebug(const char *format, ...)

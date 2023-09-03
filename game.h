@@ -15,7 +15,7 @@ public:
     bool init();
     bool loadLevel(bool restart);
     bool move(int dir);
-    void manageMonsters(int speed);
+    void manageMonsters(int ticks);
     void managePlayer(uint8_t *joystate);
     static Pos translate(const Pos p, int aim);
     void consume();
@@ -39,6 +39,8 @@ public:
     void setMapArch(CMapArch *arch);
     void setLevel(int levelId);
     int level();
+    int godModeTimer();
+    int playerSpeed();
     static uint8_t *keys();
 
     enum
@@ -56,15 +58,17 @@ protected:
     int m_score = 0;
     int m_nextLife = SCORE_LIFE;
     int m_diamonds = 0;
+    int32_t m_godModeTimer = 0;
+    int32_t m_extraSpeedTimer = 0;
     static uint8_t m_keys[6];
     int m_mode;
+    // monsters
     CActor *m_monsters;
     int m_monsterCount;
     int m_monsterMax;
     CActor m_player;
     CMapArch *m_mapArch;
 
-    // monsters
     enum
     {
         MAX_MONSTERS = 128,
@@ -75,6 +79,10 @@ protected:
         LEVEL_BONUS = 500,
         SCORE_LIFE = 5000,
         MAX_LIVES = 99,
+        GODMODE_TIMER = 100,
+        EXTRASPEED_TIMER = 200,
+        DEFAULT_PLAYER_SPEED = 3,
+        FAST_PLAYER_SPEED = 2,
     };
 
     void clearAttr(uint8_t attr);

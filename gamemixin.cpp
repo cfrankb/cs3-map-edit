@@ -244,8 +244,10 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
 
     // draw health bar
-    drawRect(bitmap, Rect{4, bitmap.hei() - 12, std::min(game.health() / 2, bitmap.len() - 4), 8}, LIME, true);
-    drawRect(bitmap, Rect{4, bitmap.hei() - 12, std::min(game.health() / 2, bitmap.len() - 4), 8}, WHITE, false);
+    drawRect(bitmap, Rect{4, bitmap.hei() - 12, std::min(game.health() / 2, bitmap.len() - 4), 8},
+             game.godModeTimer()? WHITE: LIME, true);
+    drawRect(bitmap, Rect{4, bitmap.hei() - 12, std::min(game.health() / 2, bitmap.len() - 4), 8},
+             WHITE, false);
 
     drawKeys(bitmap);
 }
@@ -294,7 +296,7 @@ void CGameMixin::mainLoop()
         break;
     }
 
-    if (m_ticks % 3 == 0 && !game.isPlayerDead())
+    if (m_ticks % game.playerSpeed() == 0 && !game.isPlayerDead())
     {
         game.managePlayer(m_joyState);
     }
@@ -312,18 +314,7 @@ void CGameMixin::mainLoop()
         m_animator->animate();
     }
 
-    uint8_t speeds[] = {
-        SPEED_SLOW,
-        SPEED_FAST,
-        SPEED_VERYSLOW,
-        SPEED_NORMAL,
-    };
-    for (uint32_t i=0; i < sizeof(speeds); ++i) {
-        if ((m_ticks % speeds[i]) == 0)
-        {
-            game.manageMonsters(speeds[i]);
-        }
-    }
+    game.manageMonsters(m_ticks);
 
     if (game.isPlayerDead()){
         game.killPlayer();
