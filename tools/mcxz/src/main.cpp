@@ -26,6 +26,13 @@ typedef struct
     bool hidden;          // hide tile in IDE
 } Tile;
 
+typedef struct
+{
+    uint16_t pixelWidth;
+    bool flipPixels;
+    bool headerless;
+} AppSettings;
+
 typedef std::vector<std::string> StringVector;
 typedef std::vector<Tile> TileVector;
 typedef std::vector<std::string> StrVector;
@@ -567,9 +574,7 @@ bool processSection(
     const std::string section,
     StringVector &files,
     MapStrVal &constConfig,
-    uint8_t pixelWidth,
-    bool flipPixels,
-    bool headerless)
+    const AppSettings &appSettings)
 {
     bool genHeaders = false;
 
@@ -656,7 +661,7 @@ bool processSection(
     imagesTiny.write(tfileTiny);
 
     // generate tileset
-    CTileSet tiles(16, 16, imagesTiny.getSize(), pixelWidth); // create tileset
+    CTileSet tiles(16, 16, imagesTiny.getSize(), appSettings.pixelWidth); // create tileset
     for (int i = 0; i < imagesTiny.getSize(); ++i)
     {
         CFrame *frame = imagesTiny[i];
@@ -666,7 +671,7 @@ bool processSection(
         uint16_t rgb565[pixels];
         rgb24_t rgb24[pixels];
 
-        switch (pixelWidth)
+        switch (appSettings.pixelWidth)
         {
         case CTileSet::pixel16:
             for (j = 0; j < pixels; ++j)
@@ -684,7 +689,7 @@ bool processSection(
             tiles.set(i, rgb24);
         };
     }
-    tiles.write(fnameT, flipPixels, headerless);
+    tiles.write(fnameT, appSettings.flipPixels, appSettings.headerless);
 
     // write MapFile
     writeMapFile(section, tileDefs, genHeaders);
@@ -695,7 +700,7 @@ bool processSection(
     return true;
 }
 
-bool runJob(const char *src, uint8_t pixelWidth, bool flipPixels, bool headerless)
+bool runJob(const char *src, const AppSettings &appSettings)
 {
     FILE *sfile = fopen(src, "rb");
     if (sfile != NULL)
@@ -730,9 +735,7 @@ bool runJob(const char *src, uint8_t pixelWidth, bool flipPixels, bool headerles
                     sectionName,
                     files,
                     constConfig,
-                    pixelWidth,
-                    flipPixels,
-                    headerless);
+                    appSettings);
             }
         }
         writeConstFile(constLists);
@@ -765,12 +768,13 @@ void showUsage(const char *cmd)
 
 int main(int argc, char *argv[], char *envp[])
 {
-    int count = 0;
-    uint8_t pixelWidth = CTileSet::pixel16;
-    bool flipPixels = false;
-    bool headerless = false;
-
+    AppSettings appSettings = AppSettings{
+        .pixelWidth = CTileSet::pixel16,
+        .flipPixels = false,
+        .headerless = false,
+    };
     StringVector files;
+
     for (int i = 1; i < argc; ++i)
     {
         char *src = argv[i];
@@ -800,20 +804,20 @@ int main(int argc, char *argv[], char *envp[])
             }
             else if (src[1] == 'f')
             {
-                flipPixels = true;
+                appSettings.flipPixels = true;
                 continue;
             }
             else if (src[1] == 'r')
             {
-                headerless = true;
+                appSettings.headerless = true;
                 continue;
             }
 
             if (isdigit(src[1]))
             {
-                pixelWidth = src[1] - '0';
-                if (pixelWidth == CTileSet::pixel16 ||
-                    pixelWidth == CTileSet::pixel24)
+                appSettings.pixelWidth = src[1] - '0';
+                if (appSettings.pixelWidth == CTileSet::pixel16 ||
+                    appSettings.pixelWidth == CTileSet::pixel24)
                 {
                     continue;
                 }
@@ -822,7 +826,7 @@ int main(int argc, char *argv[], char *envp[])
             return EXIT_FAILURE;
         }
 
-        if (flipPixels && pixelWidth != CTileSet::pixel16)
+        if (appSettings.flipPixels && appSettings.pixelWidth != CTileSet::pixel16)
         {
             printf("invalid flag combination. cannot flip bytes if not 16bits.\n");
             return EXIT_FAILURE;
@@ -847,8 +851,7 @@ int main(int argc, char *argv[], char *envp[])
     {
         for (int i = 0; i < files.size(); ++i)
         {
-
-            if (!runJob(files.at(i).c_str(), pixelWidth, flipPixels, headerless))
+            if (!runJob(files.at(i).c_str(), appSettings))
             {
                 puts("error encountered.");
                 return EXIT_FAILURE;
