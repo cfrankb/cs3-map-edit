@@ -4,6 +4,11 @@
 #ifndef _SPRTYPES__H
 #define _SPRTYPES__H
 
+#define AI_STICKY                0x01
+#define AI_ROUND                 0x02
+#define AI_CLASSIC               0x02
+#define AI_NEO                   0x03
+
 #define FLAG_GODMODE             0x01
 #define FLAG_EXTRA_LIFE          0x02
 #define FLAG_EXTRA_SPEED         0x04

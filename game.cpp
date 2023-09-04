@@ -259,24 +259,26 @@ void CGame::manageMonsters(int ticks)
             {
                 // apply health damages
                 addHealth(def.health);
-                continue;
+                if (def.ai & AI_STICKY) {
+                    continue;
+                }
             }
 
             int aim = actor.findNextDir();
             if (aim != AIM_NONE)
             {
                 actor.move(aim);
+                if (!(def.ai & AI_ROUND)) {
+                    continue;
+                }
             }
-            else
+            for (uint8_t i = 0; i < sizeof(dirs); ++i)
             {
-                for (uint8_t i = 0; i < sizeof(dirs); ++i)
+                if (actor.isPlayerThere(dirs[i]))
                 {
-                    if (actor.isPlayerThere(dirs[i]))
-                    {
-                        // apply health damages
-                        addHealth(def.health);
-                        break;
-                    }
+                    // apply health damages
+                    addHealth(def.health);
+                    break;
                 }
             }
         }
