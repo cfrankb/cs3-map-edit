@@ -509,11 +509,20 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
     {
         const std::string item = list[i];
         std::string ref = item.length() > 0 ? str2upper(item.substr(1)) : "";
+        std::size_t j;
         switch (item.c_str()[0])
         {
         case '@':
             start = std::stoi(item.substr(1));
-            end = start + 1;
+            j = item.find(":");
+            if (j != std::string::npos)
+            {
+                end = std::stoi(item.substr(j + 1)) + 1;
+            }
+            else
+            {
+                end = start + 1;
+            }
             break;
         case 'x':
             ch.push_back(std::stoi(item.substr(1), 0, 16));
@@ -556,7 +565,6 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
                 Params &params = mapParams[item[0]];
                 if (params.map->count(ref) != 0)
                 {
-                    // printf("inner................. %s: %d\n", params.name.c_str(), (*params.map)[ref]);
                     if (params.combine)
                     {
                         *(params.dest) |= (*params.map)[ref];
@@ -565,7 +573,6 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
                     {
                         *(params.dest) = (*params.map)[ref];
                     }
-                    // printf("->%u\n", *params.dest);
                 }
                 else
                 {
@@ -576,7 +583,7 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
             {
                 useTileDefs = true;
                 tile.typeName = item;
-                if (constConfig["types"].count(ref) != 0)
+                if (constConfig["types"].count(item) == 0)
                 {
                     printf("unknown type: %s\n", ref.c_str());
                 }
@@ -603,7 +610,7 @@ void writeMapFile(const std::string section, const TileVector tileDefs, bool gen
         char tmp[tile.basename.length() + tile.typeName.length() + 32];
         if (generateHeader)
         {
-            sprintf(tmp, "%.2x %-20s %-10s %.2x\n", j, tile.basename.c_str(), tile.typeName.c_str(), tile.ch);
+            sprintf(tmp, "%.2x %-20s %-10s\n", j, tile.basename.c_str(), tile.typeName.c_str());
         }
         else
         {

@@ -8,6 +8,7 @@
 #define AI_ROUND                 0x02
 #define AI_CLASSIC               0x02
 #define AI_NEO                   0x03
+#define AI_FOCUS                 0x04
 
 #define FLAG_GODMODE             0x01
 #define FLAG_EXTRA_LIFE          0x02

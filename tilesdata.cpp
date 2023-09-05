@@ -103,7 +103,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_PICKUP, 66, 0, 0, 0, false, "tntstick.obl"},    // 5f TILES_TNTSTICK
     {0x00, TYPE_MONSTER, 0, -20, 4, 3, false, "alpha.obl"},     // 60 TILES_ALPHA
     {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "blueghos.obl"},   // 61 TILES_BLUEGHOS
-    {0x00, TYPE_MONSTER, 0, -4, 4, 3, false, "deico.obl"},      // 62 TILES_DEICO
+    {0x00, TYPE_MONSTER, 0, -4, 4, 7, false, "deico.obl"},      // 62 TILES_DEICO
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "forcef94.obl"},      // 63 TILES_FORCEF94
     {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "forcefih.obl"},       // 64 TILES_FORCEFIH
     {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "forcefiv.obl"},       // 65 TILES_FORCEFIV
@@ -114,8 +114,8 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "octopus.obl"},   // 6a TILES_OCTOPUS
     {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "ooo.obl"},        // 6b TILES_OOO
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "teddy93.obl"},   // 6c TILES_TEDDY93
-    {0x00, TYPE_VAMPLANT, 0, -1, 4, 0, false, "vamplant.obl"},  // 6d TILES_VAMPLANT
-    {0x00, TYPE_MONSTER, 0, -6, 4, 3, false, "yahoo.obl"},      // 6e TILES_YAHOO
+    {0x00, TYPE_VAMPLANT, 0, -1, 3, 0, false, "vamplant.obl"},  // 6d TILES_VAMPLANT
+    {0x00, TYPE_MONSTER, 0, -6, 4, 7, false, "yahoo.obl"},      // 6e TILES_YAHOO
     {0x00, TYPE_MONSTER, 0, -6, 4, 3, false, "yiga.obl"},       // 6f TILES_YIGA
     {0x00, TYPE_MONSTER, 0, -10, 4, 3, false, "yelkiller.obl"}, // 70 TILES_YELKILLER
     {0x00, TYPE_DRONE, 0, -5, 0, 0, true, "whteworm.obl"},      // 71 TILES_WHTEWORM

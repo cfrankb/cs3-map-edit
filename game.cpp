@@ -278,6 +278,9 @@ void CGame::manageMonsters(int ticks)
                 {
                     // apply health damages
                     addHealth(def.health);
+                    if (def.ai & AI_FOCUS) {
+                        actor.setAim(dirs[i]);
+                    }
                     break;
                 }
             }
