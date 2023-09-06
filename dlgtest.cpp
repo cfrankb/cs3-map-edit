@@ -163,14 +163,14 @@ void CDlgTest::preloadAssets()
         }
     }
 
-    const char fontName [] = ":/data/font.bin";
+    const char fontName [] = ":/data/bitfont.bin";
     int size = 0;
     if (file.open(fontName, "rb")) {
         size = file.getSize();
         m_fontData = new uint8_t[size];
         file.read(m_fontData, size);
         file.close();
-        qDebug("size: %d", size);
+        qDebug("loaded font: %d bytes", size);
     } else {
         qDebug("failed to open %s", fontName);
     }

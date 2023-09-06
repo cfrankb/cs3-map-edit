@@ -63,14 +63,14 @@ void CMapWidget::preloadAssets()
         }
     }
 
-    const char fontName [] = ":/data/font.bin";
+    const char fontName [] = ":/data/bitfont.bin";
     int size = 0;
     if (file.open(fontName, "rb")) {
         size = file.getSize();
         m_fontData = new uint8_t[size];
         file.read(m_fontData, size);
         file.close();
-        qDebug("size: %d", size);
+        qDebug("loading font: %d bytes", size);
     } else {
         qDebug("failed to open %s", fontName);
     }
@@ -194,30 +194,32 @@ void CMapWidget::drawFont(CFrame & frame, int x, int y, const char *text, const 
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.len();
     const int fontSize = static_cast<int>(FONT_SIZE);
-    const int fontOffset = fontSize * fontSize;
+    const int fontOffset = fontSize;
     const int textSize = strlen(text);
     for (int i=0; i < textSize; ++i) {
         const uint8_t c = static_cast<uint8_t>(text[i]) - ' ';
         uint8_t *font = m_fontData + c * fontOffset;
         if (alpha) {
             for (int yy=0; yy < fontSize; ++yy) {
+                uint8_t bitFilter = 1;
                 for (int xx=0; xx < fontSize; ++xx) {
                     uint8_t lb = 0;
-                    if (xx > 0) lb = font[xx-1];
-                    if (yy > 0 && lb == 0) lb = font[xx-fontSize];
-                    if (font[xx]) {
+                    if (xx > 0) lb = font[xx] & (bitFilter >> 1);
+                    if (yy > 0 && lb == 0) lb = font[xx - 1] & bitFilter;
+                    if (font[yy] & bitFilter) {
                         rgba[ (yy + y) * rowPixels + xx + x] = color;
                     } else if (lb) {
                         rgba[ (yy + y) * rowPixels + xx + x] = BLACK;
                     }
+                    bitFilter = bitFilter << 1;
                 }
-                font += fontSize;
             }
         } else {
             for (int yy=0; yy < fontSize; ++yy) {
+                uint8_t bitFilter = 1;
                 for (int xx=0; xx < fontSize; ++xx) {
-                    rgba[ (yy + y) * rowPixels + xx + x] = *font ? color : BLACK;
-                    ++font;
+                    rgba[ (yy + y) * rowPixels + xx + x] = font[yy] & bitFilter ? color : BLACK;
+                    bitFilter = bitFilter << 1;
                 }
             }
         }

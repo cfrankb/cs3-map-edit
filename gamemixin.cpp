@@ -51,15 +51,16 @@ void CGameMixin::drawFont(CFrame & frame, int x, int y, const char *text, const 
     uint32_t *rgba = frame.getRGB();
     const int rowPixels = frame.len();
     const int fontSize = 8;
-    const int fontOffset = fontSize * fontSize;
+    const int fontOffset = fontSize;
     const int textSize = strlen(text);
     for (int i=0; i < textSize; ++i) {
         const uint8_t c = static_cast<uint8_t>(text[i]) - ' ';
         uint8_t *font = m_fontData + c * fontOffset;
         for (int yy=0; yy < fontSize; ++yy) {
+            uint8_t bitFilter = 1;
             for (int xx=0; xx < fontSize; ++xx) {
-                rgba[ (yy + y) * rowPixels + xx + x] = *font ? color : BLACK;
-                ++font;
+                rgba[ (yy + y) * rowPixels + xx + x] = font[yy] & bitFilter ? color : BLACK;
+                bitFilter = bitFilter << 1;
             }
         }
         x+= fontSize;
