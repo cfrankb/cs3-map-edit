@@ -1,7 +1,11 @@
 #ifndef CGAMEMIXIN_H
 #define CGAMEMIXIN_H
 
+#ifdef USE_QFILE
 #include <QTimer>
+#endif
+#include <cstdint>
+
 class CFrameSet;
 class CGame;
 class CFrame;
@@ -15,7 +19,9 @@ public:
     virtual ~CGameMixin();
     void init(CMapArch *maparch, int index);
 
+#ifdef USE_QFILE
 protected slots:
+#endif
     void mainLoop();
     void changeZoom();
 
