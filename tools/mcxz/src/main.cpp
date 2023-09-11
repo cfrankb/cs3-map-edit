@@ -26,6 +26,8 @@ typedef struct
     uint8_t speed;        // SLOW, NORMAL, FAST
     uint8_t ai;           // ai
     bool hidden;          // hide tile in IDE
+    bool unused;          // is unused asset?
+    std::string notes;    // notes about this animation
 } Tile;
 
 typedef struct
@@ -33,6 +35,7 @@ typedef struct
     uint16_t pixelWidth;
     bool flipPixels;
     bool headerless;
+    bool outputPNG;
 } AppSettings;
 
 typedef std::vector<std::string> StringVector;
@@ -337,11 +340,9 @@ std::string getBasename(const char *filepath)
 
 bool generateHeader(const std::string section, const std::string sectionName, std::string const sectionBasename, TileVector &tileDefs, bool useTileDefs)
 {
-    char fnameHdr[section.length() + strlen("data.h") + 1];
-    sprintf(fnameHdr, "%s%s", section.c_str(), "data.h");
-
+    const std::string fnameHdr = section + "data.h";
     CFileWrap tfileHdr;
-    if (!tfileHdr.open(fnameHdr, "wb"))
+    if (!tfileHdr.open(fnameHdr.c_str(), "wb"))
     {
         printf("can't create %s\n", fnameHdr);
         return false;
@@ -393,10 +394,9 @@ bool generateHeader(const std::string section, const std::string sectionName, st
 
 bool generateData(const std::string section, std::string const sectionBasename, TileVector &tileDefs)
 {
-    char fnameData[section.length() + strlen("data.cpp") + 1];
-    sprintf(fnameData, "%s%s", section.c_str(), "data.cpp");
+    const std::string fnameData = section + "data.cpp";
     CFileWrap tfileData;
-    if (!tfileData.open(fnameData, "wb"))
+    if (!tfileData.open(fnameData.c_str(), "wb"))
     {
         printf("failed to create %s\n", fnameData);
         return false;
@@ -551,6 +551,10 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
                 {
                     tile.hidden = true;
                 }
+                else if (ref == "UNUSED")
+                {
+                    tile.unused = true;
+                }
                 else
                 {
                     printf("unknown directive: %s\n", ref.c_str());
@@ -599,11 +603,9 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
 
 void writeMapFile(const std::string section, const TileVector tileDefs, bool generateHeader)
 {
-    char fnameMap[section.length() + strlen(".map") + 1];
-    sprintf(fnameMap, "%s%s", section.c_str(), ".map");
-
+    const std::string fnameMap = section + ".map";
     CFileWrap tfileMap;
-    tfileMap.open(fnameMap, "wb");
+    tfileMap.open(fnameMap.c_str(), "wb");
     for (int j = 0; j < tileDefs.size(); ++j)
     {
         Tile tile = tileDefs[j];
@@ -628,21 +630,14 @@ bool processSection(
     const AppSettings &appSettings)
 {
     bool useTileDefs = false;
+    const std::string sectionName = formatTitleName(section.c_str());
+    const std::string sectionBasename = getBasename(section.c_str());
 
-    std::string sectionName = formatTitleName(section.c_str());
-    std::string sectionBasename = getBasename(section.c_str());
-
-    char fnameTiny[section.length() + strlen(".obl") + 1];
-    sprintf(fnameTiny, "%s%s", section.c_str(), ".obl");
-
-    char fnameT[section.length() + strlen(".mcz") + 1];
-    sprintf(fnameT, "%s%s", section.c_str(), ".mcz");
-
-    CFileWrap tfileTiny;
-    tfileTiny.open(fnameTiny, "wb");
+    const char *tinyExt = appSettings.outputPNG ? ".png" : ".obl";
+    const std::string fnameTiny = section + tinyExt;
+    const std::string fnameT = section + ".mcz";
 
     CFrameSet imagesTiny;
-
     int j = 0;
 
     TileVector tileDefs;
@@ -709,7 +704,26 @@ bool processSection(
             printf("failed to open: %s\n", fname);
         }
     }
-    imagesTiny.write(tfileTiny);
+
+    CFileWrap tfileTiny;
+    if (!tfileTiny.open(fnameTiny.c_str(), "wb"))
+    {
+        printf("can't open %s\n", fnameTiny.c_str());
+    }
+    else if (appSettings.outputPNG)
+    {
+        // output to png
+        unsigned char *data;
+        int size;
+        imagesTiny.toPng(data, size);
+        tfileTiny.write(data, size);
+        delete[] data;
+    }
+    else
+    {
+        // output to obl
+        imagesTiny.write(tfileTiny);
+    }
 
     // generate tileset
     CTileSet tiles(16, 16, imagesTiny.getSize(), appSettings.pixelWidth); // create tileset
@@ -740,7 +754,7 @@ bool processSection(
             tiles.set(i, rgb24);
         };
     }
-    tiles.write(fnameT, appSettings.flipPixels, appSettings.headerless);
+    tiles.write(fnameT.c_str(), appSettings.flipPixels, appSettings.headerless);
 
     // write MapFile
     writeMapFile(section, tileDefs, useTileDefs);
@@ -813,13 +827,14 @@ void showUsage(const char *cmd)
     printf(
         "mcxz tileset generator\n\n"
         "usage: \n"
-        "       %s [-2 -3 -r -f] file1.ini [file2.ini]\n"
+        "       %s [-2 -3 -r -f -p] file1.ini [file2.ini]\n"
         "\n"
         "filex.ini        job configuration \n"
         "-2               set pixelWidth to 2 (16bits)\n"
         "-3               set pixelWidth to 3 (18bits/24bits)\n"
         "-r               raw headerless generation\n"
         "-f               flip bytes (only applies to 16bits)\n"
+        "-p               output to png rather than obl"
         "-h               show help\n"
         "\n",
         cmd);
@@ -869,6 +884,11 @@ int main(int argc, char *argv[], char *envp[])
             else if (src[1] == 'r')
             {
                 appSettings.headerless = true;
+                continue;
+            }
+            else if (src[1] == 'p')
+            {
+                appSettings.outputPNG = true;
                 continue;
             }
 
