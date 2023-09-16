@@ -34,7 +34,7 @@ void CTileBox::setupToolbox(){
         qDebug("reading tiles");
         CFrameSet fs;
         if (fs.extract(file)) {
-            qDebug("exracted: %d", fs.getSize());
+            qDebug("extracted: %d", fs.getSize());
         }
         file.close();
 

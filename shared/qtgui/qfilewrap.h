@@ -30,28 +30,28 @@ class QFileWrap: public IFile
 public:
 
     QFileWrap();
-    virtual ~QFileWrap();
+    ~QFileWrap() override;
 
-    virtual QFileWrap & operator >> (std::string & str);
-    virtual QFileWrap & operator << (const std::string & str);
-    virtual QFileWrap & operator += (const std::string & str);
+    QFileWrap & operator >> (std::string & str) override;
+    QFileWrap & operator << (const std::string & str) override;
+    QFileWrap & operator += (const std::string & str) override;
 
-    virtual QFileWrap & operator >> (int & n);
-    virtual QFileWrap & operator << (int n);
+    QFileWrap & operator >> (int & n) override;
+    QFileWrap & operator << (int n) override;
 
-    virtual QFileWrap & operator >> (bool & b);
-    virtual QFileWrap & operator << (bool b);
-    virtual QFileWrap & operator += (const char *);
+    QFileWrap & operator >> (bool & b) override;
+    QFileWrap & operator << (bool b) override;
+    QFileWrap & operator += (const char *) override;
 
-    virtual bool open(const char *filename, const char *mode= "rb");
-    virtual bool open(const QString &filename, const char *mode= "rb");
-    virtual int read(void *buf, int size);
-    virtual int write(const void *buf, int size);
+    bool open(const char *filename, const char *mode= "rb") override;
+    bool open(const QString &filename, const char *mode= "rb");
+    int read(void *buf, int size) override;
+    int write(const void *buf, int size) override;
 
-    virtual void close();
-    virtual long getSize();
-    virtual void seek(long i);
-    virtual long tell();
+    void close() override;
+    long getSize() override;
+    void seek(long i) override;
+    long tell() override;
 
 protected:
     QFile * m_file;

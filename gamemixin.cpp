@@ -175,7 +175,7 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
             }
             else if (tileID == TILES_ANNIE2)
             {
-                tile = annie[game.player().getAim() * 4 + m_playerFrameOffset];
+                tile = annie[game.player().getAim() * 8 + m_playerFrameOffset];
             }
             else
             {
@@ -266,10 +266,10 @@ void CGameMixin::mainLoop()
 
     if (m_ticks % 3 == 0)
     {
-        if (game.health() < m_healthRef && m_playerFrameOffset != 3) {
-            m_playerFrameOffset = 3;
+        if (game.health() < m_healthRef && m_playerFrameOffset != 7) {
+            m_playerFrameOffset = 7;
         } else if (*(reinterpret_cast<uint32_t*>(m_joyState))){
-            m_playerFrameOffset = (m_playerFrameOffset + 1) % 3;
+            m_playerFrameOffset = (m_playerFrameOffset + 1) % 7;
         } else {
             m_playerFrameOffset = 0;
         }

@@ -67,7 +67,7 @@ CFrameSet *CDlgSelect::preloadTiles()
     if (file.open(":/data/tiles.obl", "rb")) {
         qDebug("reading tiles");
         if (fs->extract(file)) {
-            qDebug("exracted: %d", fs->getSize());
+            qDebug("extracted: %d", fs->getSize());
         }
         file.close();
     }

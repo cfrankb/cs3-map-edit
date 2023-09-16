@@ -162,16 +162,27 @@ int test()
     return EXIT_SUCCESS;
 }
 
-bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
+bool parseConfig(Config &conf, StrVector &list, const char *src)
 {
-    fseek(sfile, 0, SEEK_END);
-    long size = ftell(sfile);
-    char buf[size + 1];
-    buf[size] = 0;
-    fseek(sfile, 0, SEEK_SET);
-    fread(buf, size, 1, sfile);
-    fclose(sfile);
-    char *s = buf;
+    char *ptr = nullptr;
+    FILE *sfile = fopen(src, "rb");
+    if (sfile)
+    {
+        fseek(sfile, 0, SEEK_END);
+        long size = ftell(sfile);
+        // char buf[size + 1];
+        ptr = new char[size + 1];
+        ptr[size] = 0;
+        fseek(sfile, 0, SEEK_SET);
+        fread(ptr, size, 1, sfile);
+        fclose(sfile);
+    }
+    else
+    {
+        printf("can't open %s\n", src);
+        return false;
+    }
+    char *s = ptr;
 
     int line = 0;
     char *sName = nullptr;
@@ -245,6 +256,7 @@ bool parseConfig(Config &conf, StrVector &list, FILE *sfile)
         s = n;
     }
 
+    delete[] ptr;
     return true;
 }
 
@@ -774,13 +786,13 @@ bool processSection(
 
 bool runJob(const char *src, const AppSettings &appSettings)
 {
-    FILE *sfile = fopen(src, "rb");
-    if (sfile != NULL)
+    Config conf;
+    StrVector sectionList;
+    bool result;
+    if (result = parseConfig(conf, sectionList, src))
     {
         MapStrVal constConfig;
         Config constLists;
-        StrVector sectionList;
-        Config conf;
         std::map<std::string, std::string> sectionRefs = {
             {"types", "TYPE"},
             {"flags", "FLAG"},
@@ -788,7 +800,6 @@ bool runJob(const char *src, const AppSettings &appSettings)
             {"ai", "AI"},
         };
 
-        parseConfig(conf, sectionList, sfile);
         for (int i = 0; i < sectionList.size(); ++i)
         {
             std::string sectionName = sectionList[i];
@@ -813,13 +824,8 @@ bool runJob(const char *src, const AppSettings &appSettings)
         }
         writeConstFile(constLists);
     }
-    else
-    {
-        printf("can't open %s\n", src);
-        return false;
-    }
 
-    return true;
+    return result;
 }
 
 void showUsage(const char *cmd)
