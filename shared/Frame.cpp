@@ -1234,9 +1234,10 @@ const char *CFrame::getChunkType()
 
 void CFrame::fill(unsigned int rgba)
 {
-    for (int i = 0; i < m_nLen * m_nHei; ++i)
+    int i = m_nLen * m_nHei - 1;
+    while (i >= 0)
     {
-        m_rgb[i] = rgba;
+        m_rgb[i--] = rgba;
     }
 }
 

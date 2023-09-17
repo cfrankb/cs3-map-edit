@@ -18,6 +18,7 @@ public:
     explicit CGameMixin();
     virtual ~CGameMixin();
     void init(CMapArch *maparch, int index);
+    inline bool within(int val, int min, int max);
 
 #ifdef USE_QFILE
 protected slots:
@@ -48,6 +49,7 @@ protected:
         TILE_SIZE = 16,
         COUNTDOWN_INTRO = 1,
         COUNTDOWN_RESTART = 2,
+        FONT_SIZE = 8,
     };
 
     typedef struct

@@ -151,3 +151,8 @@ void CActor::setType(const uint8_t type)
 {
     m_type = type;
 }
+
+bool CActor::within(int x1, int y1, int x2, int y2) const
+{
+    return (m_x >= x1) && (m_x < x2) && (m_y >= y1) && (m_y < y2);
+}

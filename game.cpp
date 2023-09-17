@@ -544,6 +544,17 @@ int CGame::playerSpeed()
     return m_extraSpeedTimer ? FAST_PLAYER_SPEED : DEFAULT_PLAYER_SPEED;
 }
 
+void CGame::getMonsters(CActor * &monsters, int & count)
+{
+    monsters = m_monsters;
+    count = m_monsterCount;
+}
+
+CActor & CGame::getMonster(int i)
+{
+    return m_monsters[i];
+}
+
 void CGame::vDebug(const char *format, ...)
 {
     char buffer[256];

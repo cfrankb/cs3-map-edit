@@ -42,6 +42,8 @@ SOURCES += \
 
 HEADERS += \
     actor.h \
+    anniedata.h \
+    animzdata.h \
     animator.h \
     app_version.h \
     dlgattr.h \

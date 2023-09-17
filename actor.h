@@ -33,6 +33,7 @@ public:
     bool isPlayerThere(uint8_t aim);
     uint8_t tileAt(uint8_t aim);
     void setType(const uint8_t type);
+    bool within(int x1, int y1, int x2, int y2) const;
 
 protected:
     uint8_t m_x;

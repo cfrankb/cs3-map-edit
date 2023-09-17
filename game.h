@@ -42,6 +42,8 @@ public:
     int godModeTimer();
     int playerSpeed();
     static uint8_t *keys();
+    void getMonsters(CActor * &monsters, int & count);
+    CActor & getMonster(int i);
 
     enum
     {

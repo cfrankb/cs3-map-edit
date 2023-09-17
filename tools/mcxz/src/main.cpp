@@ -526,14 +526,12 @@ Tile parseFileParams(const StringVector &list, MapStrVal &constConfig, int &star
         {
         case '@':
             start = std::stoi(item.substr(1));
+            end = start + 1;
             j = item.find(":");
-            if (j != std::string::npos)
+            if (j != std::string::npos &&
+                !item.substr(j + 1).empty())
             {
                 end = std::stoi(item.substr(j + 1)) + 1;
-            }
-            else
-            {
-                end = start + 1;
             }
             break;
         case 'x':
