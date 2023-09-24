@@ -5,6 +5,10 @@
 #include "map.h"
 
 class CMapArch;
+class CSndArray;
+class IFile;
+class CSnd;
+class ISound;
 
 class CGame
 {
@@ -44,6 +48,11 @@ public:
     static uint8_t *keys();
     void getMonsters(CActor * &monsters, int & count);
     CActor & getMonster(int i);
+    bool readSndArch(IFile & file);
+    void playSound(int id);
+    void initSoundMap();
+    void playTileSound(int tileID);
+    void attackPlayer(int hp);
 
     enum
     {
@@ -69,7 +78,9 @@ protected:
     int m_monsterCount;
     int m_monsterMax;
     CActor m_player;
-    CMapArch *m_mapArch;
+    CMapArch *m_mapArch = nullptr;
+    ISound *m_sound = nullptr;
+    uint8_t m_soundMap[256];
 
     enum
     {

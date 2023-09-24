@@ -8,6 +8,10 @@
 #include "tilesdata.h"
 #include "maparch.h"
 #include <stdarg.h>
+#include "shared/interfaces/ISound.h"
+#include "shared/IFile.h"
+#include "shared/implementers/sn_sdl.h"
+#include "sounds.h"
 
 CMap map(30, 30);
 uint8_t CGame::m_keys[6];
@@ -21,6 +25,7 @@ CGame::CGame()
     m_level = 0;
     m_lives = DEFAULT_LIVES;
     m_score = 0;
+    m_sound = new CSndSDL();
 }
 
 CGame::~CGame()
@@ -28,6 +33,10 @@ CGame::~CGame()
     if (m_monsters)
     {
         delete[] m_monsters;
+    }
+
+    if (m_sound) {
+        delete m_sound;
     }
 }
 
@@ -55,7 +64,7 @@ bool CGame::move(int aim)
 
 void CGame::consume()
 {
-    uint8_t pu = m_player.getPU();
+    const uint8_t pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
 
     if (def.type == TYPE_PICKUP)
@@ -63,6 +72,7 @@ void CGame::consume()
         addPoints(def.score);
         m_player.setPU(TILES_BLANK);
         addHealth(def.health);
+        playTileSound(pu);
     }
     else if (def.type == TYPE_KEY)
     {
@@ -70,6 +80,7 @@ void CGame::consume()
         m_player.setPU(TILES_BLANK);
         addKey(pu);
         addHealth(def.health);
+        playSound(SOUND_KEY);
     }
     else if (def.type == TYPE_DIAMOND)
     {
@@ -77,6 +88,7 @@ void CGame::consume()
         m_player.setPU(TILES_BLANK);
         --m_diamonds;
         addHealth(def.health);
+        playTileSound(pu);
     }
     else if (def.type == TYPE_SWAMP)
     {
@@ -477,7 +489,7 @@ void CGame::setMode(int mode)
 int CGame::mode() const
 {
     return m_mode;
-};
+}
 
 bool CGame::isPlayerDead()
 {
@@ -563,3 +575,93 @@ void CGame::vDebug(const char *format, ...)
     vsprintf(buffer, format, args);
     va_end(args);
 }
+
+bool CGame::readSndArch(IFile &file)
+{
+    typedef struct
+    {
+        int ptr;
+        std::string name;
+        int filesize;
+    } fileinfo_t;
+
+    char name[32];
+    char tmp[5];
+    file.read(tmp, 4);
+    if (memcmp(tmp, "SNDX", 4) != 0)
+    {
+        tmp[4] = 0;
+        printf("wrong signature: %s\n", tmp);
+        return false;
+    }
+
+    int size = 0;
+    int indexPtr = 0;
+    int version = 0;
+    file.seek(4);
+    file.read(&version, 2);
+    if (version !=0) {
+        printf("wrong version: %x\n", version);
+        return false;
+    }
+
+    file.seek(6);
+    file.read(&size, 2);
+    file.read(&indexPtr, 4);
+
+    // read index
+    printf("\nReading index...\n\n");
+
+    file.seek(indexPtr);
+    for (int i = 0; i < size; ++i)
+    {
+        fileinfo_t fileInfo;
+        file.read(&fileInfo.ptr, 4);
+        int fnameSize = 0;
+        file.read(&fnameSize, 1);
+        file.read(name, fnameSize);
+        name[fnameSize] = 0;
+        fileInfo.name = name;
+        file.read(&fileInfo.filesize, 4);
+        if (fileInfo.filesize == 0) {
+            continue;
+        }
+
+        /*
+        printf("\n--------------------\nindex: %d\n",i);
+        printf("name: %s\n", fileInfo.name.c_str());
+        printf("ptr: 0x%.4x\n", fileInfo.ptr);
+        printf("size: 0x%.4x\n\n", fileInfo.filesize);
+        */
+
+        uint8_t *data = new uint8_t[fileInfo.filesize];
+        long curPos = file.tell();
+        file.seek(fileInfo.ptr);
+        file.read(data, fileInfo.filesize);
+        m_sound->add(data, fileInfo.filesize, i);
+        file.seek(curPos);
+    }
+
+    return true;
+}
+
+void CGame::playSound(int id)
+{
+    if (id != 0) {
+        m_sound->play(id);
+    }
+}
+
+void CGame::playTileSound(int tileID)
+{
+    int snd = SOUND_NONE;
+    switch (tileID) {
+    case TILES_FRUIT1:
+    case TILES_APPLE:
+        snd = SOUND_GRUUP;
+        break;
+    }
+    playSound(snd);
+}
+
+

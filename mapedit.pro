@@ -10,6 +10,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 
 INCLUDEPATH += shared/ headers/
 DEFINES += USE_QFILE=1
+#DEFINES += USE_SDL=1
 
 SOURCES += \
     actor.cpp \
@@ -35,6 +36,7 @@ SOURCES += \
     shared/PngMagic.cpp \
     shared/helper.cpp \
     map.cpp \
+    shared/implementers/sn_sdl.cpp \
     shared/qtgui/qfilewrap.cpp \
     shared/qtgui/qthelper.cpp \
     tilebox.cpp \
@@ -66,6 +68,8 @@ HEADERS += \
     shared/PngMagic.h \
     shared/helper.h \
     map.h \
+    shared/implementers/sn_sdl.h \
+    shared/interfaces/ISound.h \
     shared/qtgui/cheat.h \
     shared/qtgui/qfilewrap.h \
     shared/qtgui/qthelper.h \
@@ -91,6 +95,9 @@ RESOURCES += \
 
 unix:LIBS += -lz
 win32:LIBS += -L"libs" -lzlib
+contains(DEFINES, USE_SDL=1){
+    unix:LIBS += -lSDL2_mixer -lSDL2
+}
 
 QMAKE_CXXFLAGS_RELEASE += -std=c++17 -O3
 QMAKE_CXXFLAGS_DEBUG += -std=c++17 -g3

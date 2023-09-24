@@ -140,6 +140,7 @@ void CDlgTest::preloadAssets()
 {
     QFileWrap file;
 
+
     typedef struct {
         const char *filename;
         CFrameSet **frameset;
@@ -173,5 +174,15 @@ void CDlgTest::preloadAssets()
         qDebug("loaded font: %d bytes", size);
     } else {
         qDebug("failed to open %s", fontName);
+    }
+
+    const char soundArch [] = ":/data/sounds.dat";
+    if (file.open(soundArch)){
+        if (!m_game->readSndArch(file)) {
+            qDebug("failed loading sounds");
+        }
+        file.close();
+    } else {
+        qDebug("can't open %s", soundArch);
     }
 }
