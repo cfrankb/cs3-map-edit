@@ -25,22 +25,22 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},    // 11 TILES_WALL_BRICK_5
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},    // 12 TILES_WALL_BRICK_6
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},    // 13 TILES_WALL_BRICK_7
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 14 TILES_COLORWALLS
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 15 TILES_COLORWALLS_2
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 16 TILES_COLORWALLS_3
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 17 TILES_COLORWALLS_4
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 18 TILES_COLORWALLS_5
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 19 TILES_COLORWALLS_6
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 1a TILES_COLORWALLS_7
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 1b TILES_COLORWALLS_8
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 1c TILES_COLORWALLS_9
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 1d TILES_COLORWALLS_A
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 1e TILES_COLORWALLS_B
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 1f TILES_COLORWALLS_C
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 20 TILES_COLORWALLS_D
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 21 TILES_COLORWALLS_E
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 22 TILES_COLORWALLS_F
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, true, "colorwalls.obl"},     // 23 TILES_COLORWALLS_10
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 14 TILES_COLORWALLS
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 15 TILES_COLORWALLS_2
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 16 TILES_COLORWALLS_3
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 17 TILES_COLORWALLS_4
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 18 TILES_COLORWALLS_5
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 19 TILES_COLORWALLS_6
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 1a TILES_COLORWALLS_7
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 1b TILES_COLORWALLS_8
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 1c TILES_COLORWALLS_9
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 1d TILES_COLORWALLS_A
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 1e TILES_COLORWALLS_B
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 1f TILES_COLORWALLS_C
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 20 TILES_COLORWALLS_D
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 21 TILES_COLORWALLS_E
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 22 TILES_COLORWALLS_F
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "colorwalls.obl"},    // 23 TILES_COLORWALLS_10
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pinetree.png"},      // 24 TILES_PINETREE
     {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "plants.obl"},   // 25 TILES_PLANTS
     {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "plants.obl"},   // 26 TILES_PLANTS_2
@@ -140,8 +140,7 @@ const uint8_t chMap[] = {
     0x00, 0x30, 0x31, 0x33, 0x00, 0x00, 0x00, 0x4c,
     0x52, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
     0x24, 0x71, 0x58, 0x01, 0x37, 0x00, 0x6d, 0x40,
-    0x00, 0x5a, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
-};
+    0x00, 0x5a, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00};
 
 uint8_t getChTile(const uint8_t i)
 {
@@ -157,4 +156,3 @@ const TileDef &getTileDef(int i)
 {
   return tileDefs[i];
 }
-

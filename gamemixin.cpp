@@ -191,20 +191,20 @@ void CGameMixin::drawScreen(CFrame & bitmap) {
         }
     }
 
-    int offset = m_animator->offset() & 7;
+    const int offset = m_animator->offset() & 7;
     CActor *monsters;
     int count;
     game.getMonsters(monsters, count);
     for (int i = 0; i < count; ++i) {
         const CActor &monster = monsters[i];
         if (monster.within(mx, my, mx + cols, my + rows)) {
-            uint8_t tileID = map->at(monster.getX(), monster.getY());
+            const uint8_t tileID = map->at(monster.getX(), monster.getY());
             if (!m_animator->isSpecialCase(tileID)) {
                 continue;
             }
             // special case animations
-            int x = monster.getX() - mx;
-            int y = monster.getY() - my;
+            const int x = monster.getX() - mx;
+            const int y = monster.getY() - my;
             CFrame *tile = animz[monster.getAim() * 8 + ANIMZ_INSECT1 + offset];
             drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
         }

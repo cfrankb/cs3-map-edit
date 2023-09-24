@@ -247,8 +247,8 @@ void CGame::manageMonsters(int ticks)
     for (int i = 0; i < m_monsterCount; ++i)
     {
         CActor &actor = m_monsters[i];
-        uint8_t c = map.at(actor.getX(), actor.getY());
-        const TileDef &def = getTileDef(c);
+        uint8_t cs = map.at(actor.getX(), actor.getY());
+        const TileDef &def = getTileDef(cs);
         if (!speeds[def.speed])
         {
             continue;
@@ -312,8 +312,8 @@ void CGame::manageMonsters(int ticks)
             for (uint8_t i = 0; i < sizeof(dirs); ++i)
             {
                 Pos p = CGame::translate(Pos{actor.getX(), actor.getY()}, dirs[i]);
-                uint8_t c = map.at(p.x, p.y);
-                const TileDef &defT = getTileDef(c);
+                const uint8_t ct = map.at(p.x, p.y);
+                const TileDef &defT = getTileDef(ct);
                 if (defT.type == TYPE_PLAYER)
                 {
                     // apply damage from config
