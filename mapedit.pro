@@ -10,7 +10,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 
 INCLUDEPATH += shared/ headers/
 DEFINES += USE_QFILE=1
-#DEFINES += USE_SDL=1
+#DEFINES += USE_SDL_MIXER=1
 
 SOURCES += \
     actor.cpp \
@@ -95,7 +95,7 @@ RESOURCES += \
 
 unix:LIBS += -lz
 win32:LIBS += -L"libs" -lzlib
-contains(DEFINES, USE_SDL=1){
+contains(DEFINES, USE_SDL_MIXER=1){
     unix:LIBS += -lSDL2_mixer -lSDL2
 }
 

@@ -4,25 +4,45 @@
 #ifndef _ANNIE__HDR_H
 #define _ANNIE__HDR_H
 
-#define ANNIE_ANNIE2         0x00
-#define ANNIE_ANNIE2_2       0x01
-#define ANNIE_ANNIE2_3       0x02
-#define ANNIE_ANNIE2_4       0x03
-#define ANNIE_ANNIE2_5       0x04
-#define ANNIE_ANNIE2_6       0x05
-#define ANNIE_ANNIE2_7       0x06
-#define ANNIE_ANNIE2_8       0x07
-#define ANNIE_ANNIE2_9       0x08
-#define ANNIE_ANNIE2_A       0x09
-#define ANNIE_ANNIE2_B       0x0a
-#define ANNIE_ANNIE2_C       0x0b
-#define ANNIE_ANNIE2_D       0x0c
-#define ANNIE_ANNIE2_E       0x0d
-#define ANNIE_ANNIE2_F       0x0e
-#define ANNIE_ANNIE2_10      0x0f
-#define ANNIE_ANNIE2_11      0x10
-#define ANNIE_ANNIE2_12      0x11
-#define ANNIE_ANNIE2_13      0x12
-#define ANNIE_ANNIE2_14      0x13
+#define ANNIE_ANNIE_UP       0x00
+#define ANNIE_ANNIE_UP_2     0x01
+#define ANNIE_ANNIE_UP_3     0x02
+#define ANNIE_ANNIE_UP_4     0x03
+#define ANNIE_ANNIE_UP_5     0x04
+#define ANNIE_ANNIE_UP_6     0x05
+#define ANNIE_ANNIE_UP_7     0x06
+#define ANNIE_ANNIE_UP_8     0x07
+#define ANNIE_ANNIE_DOWN     0x08
+#define ANNIE_ANNIE_DOWN_2   0x09
+#define ANNIE_ANNIE_DOWN_3   0x0a
+#define ANNIE_ANNIE_DOWN_4   0x0b
+#define ANNIE_ANNIE_DOWN_5   0x0c
+#define ANNIE_ANNIE_DOWN_6   0x0d
+#define ANNIE_ANNIE_DOWN_7   0x0e
+#define ANNIE_ANNIE_DOWN_8   0x0f
+#define ANNIE_ANNIE_LEFT     0x10
+#define ANNIE_ANNIE_LEFT_2   0x11
+#define ANNIE_ANNIE_LEFT_3   0x12
+#define ANNIE_ANNIE_LEFT_4   0x13
+#define ANNIE_ANNIE_LEFT_5   0x14
+#define ANNIE_ANNIE_LEFT_6   0x15
+#define ANNIE_ANNIE_LEFT_7   0x16
+#define ANNIE_ANNIE_LEFT_8   0x17
+#define ANNIE_ANNIE_RIGHT    0x18
+#define ANNIE_ANNIE_RIGHT_2  0x19
+#define ANNIE_ANNIE_RIGHT_3  0x1a
+#define ANNIE_ANNIE_RIGHT_4  0x1b
+#define ANNIE_ANNIE_RIGHT_5  0x1c
+#define ANNIE_ANNIE_RIGHT_6  0x1d
+#define ANNIE_ANNIE_RIGHT_7  0x1e
+#define ANNIE_ANNIE_RIGHT_8  0x1f
+#define ANNIE_ANNIE_DEAD     0x20
+#define ANNIE_ANNIE_DEAD_2   0x21
+#define ANNIE_ANNIE_DEAD_3   0x22
+#define ANNIE_ANNIE_DEAD_4   0x23
+#define ANNIE_ANNIE_DEAD_5   0x24
+#define ANNIE_ANNIE_DEAD_6   0x25
+#define ANNIE_ANNIE_DEAD_7   0x26
+#define ANNIE_ANNIE_DEAD_8   0x27
 
 #endif

@@ -19,7 +19,7 @@
 #include <cstdio>
 #include "sn_sdl.h"
 
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #include <SDL2/SDL_mixer.h>
@@ -33,7 +33,7 @@ struct SND
 
 CSndSDL::CSndSDL()
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     m_valid = false;
     // Initialize all SDL subsystems
     if ( SDL_Init( SDL_INIT_EVERYTHING ) == -1 )  {
@@ -50,7 +50,7 @@ CSndSDL::CSndSDL()
 
 CSndSDL::~CSndSDL()
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     forget();
     SDL_CloseAudio();
 #endif
@@ -58,7 +58,7 @@ CSndSDL::~CSndSDL()
 
 void CSndSDL::forget()
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     for ( auto it = m_sounds.begin(); it != m_sounds.end(); ++it ) {
         unsigned int uid = it->first;
         stop(uid);
@@ -78,7 +78,7 @@ void CSndSDL::add(unsigned char *data, unsigned int size, unsigned int uid)
         printf("ADD: sound already added: %u", uid);
         return;
     }
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     SND *snd = new SND;
     snd->channel = -1;
     snd->chunk = nullptr;
@@ -111,7 +111,7 @@ void CSndSDL::replace(unsigned char *data, unsigned int size, unsigned int uid)
 
 void CSndSDL::remove(unsigned int uid)
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     if (m_sounds.find(uid) == m_sounds.end()) {
         printf("REMOVE: sound not found: %u", uid);
         return;
@@ -128,7 +128,7 @@ void CSndSDL::remove(unsigned int uid)
 
 void CSndSDL::play(unsigned int uid)
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     SND *snd = m_sounds[uid];
     if (snd->channel != -1
             && Mix_Playing(snd->channel)) {
@@ -145,7 +145,7 @@ void CSndSDL::play(unsigned int uid)
 
 void CSndSDL::stop(unsigned int uid)
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     SND * snd = m_sounds[uid];
     if (snd->channel!=-1) {
         Mix_HaltChannel(snd->channel);
@@ -156,7 +156,7 @@ void CSndSDL::stop(unsigned int uid)
 
 void CSndSDL::stopAll()
 {
-#ifdef USE_SDL
+#ifdef USE_SDL_MIXER
     Mix_HaltChannel(-1);
 #endif
 }

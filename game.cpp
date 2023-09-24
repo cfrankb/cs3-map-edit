@@ -118,7 +118,9 @@ void CGame::consume()
     if (attr != 0)
     {
         map.setAttr(x, y, 0);
-        clearAttr(attr);
+        if (clearAttr(attr)) {
+            playSound(SOUND_0009);
+        }
     }
 }
 
@@ -447,8 +449,9 @@ bool CGame::goalCount() const
     return m_diamonds;
 }
 
-void CGame::clearAttr(uint8_t attr)
+int CGame::clearAttr(uint8_t attr)
 {
+    int count = 0;
     for (int y = 0; y < map.hei(); ++y)
     {
         for (int x = 0; x < map.len(); ++x)
@@ -456,6 +459,7 @@ void CGame::clearAttr(uint8_t attr)
             const uint8_t tileAttr = map.getAttr(x, y);
             if (tileAttr == attr)
             {
+                ++count;
                 const uint8_t tile = map.at(x, y);
                 const TileDef def = getTileDef(tile);
                 if (def.type == TYPE_DIAMOND)
@@ -467,6 +471,7 @@ void CGame::clearAttr(uint8_t attr)
             }
         }
     }
+    return count;
 }
 
 void CGame::addHealth(int hp)
@@ -610,8 +615,6 @@ bool CGame::readSndArch(IFile &file)
     file.read(&indexPtr, 4);
 
     // read index
-    printf("\nReading index...\n\n");
-
     file.seek(indexPtr);
     for (int i = 0; i < size; ++i)
     {
@@ -647,7 +650,7 @@ bool CGame::readSndArch(IFile &file)
 
 void CGame::playSound(int id)
 {
-    if (id != 0) {
+    if (id != SOUND_NONE) {
         m_sound->play(id);
     }
 }
@@ -656,6 +659,13 @@ void CGame::playTileSound(int tileID)
 {
     int snd = SOUND_NONE;
     switch (tileID) {
+    case TILES_FLOWERS_2:
+    case TILES_CHEST:
+        snd = SOUND_COIN1;
+        break;
+    case TILES_NECKLESS:
+        snd = SOUND_OKAY;
+        break;
     case TILES_FRUIT1:
     case TILES_APPLE:
         snd = SOUND_GRUUP;
@@ -663,5 +673,3 @@ void CGame::playTileSound(int tileID)
     }
     playSound(snd);
 }
-
-

@@ -98,7 +98,7 @@ protected:
         FAST_PLAYER_SPEED = 2,
     };
 
-    void clearAttr(uint8_t attr);
+    int clearAttr(uint8_t attr);
     bool findMonsters();
     int addMonster(const CActor actor);
     int findMonsterAt(int x, int y);

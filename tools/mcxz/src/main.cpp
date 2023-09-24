@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <time.h>
 #include <unistd.h>
-#include <string.h>
+#include <string>
 #include <cstring>
 #include <unordered_map>
 #include <map>
@@ -698,6 +698,10 @@ bool processSection(
                         t->shiftDOWN();
                     }
                     t->shrink();
+                }
+                else if (t->hei() < 16 || t->len() < 16)
+                {
+                    t->resize(16, 16);
                 }
                 imagesTiny.add(t);
 
