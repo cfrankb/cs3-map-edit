@@ -36,7 +36,6 @@ SOURCES += \
     shared/PngMagic.cpp \
     shared/helper.cpp \
     map.cpp \
-    shared/implementers/sn_sdl.cpp \
     shared/qtgui/qfilewrap.cpp \
     shared/qtgui/qthelper.cpp \
     tilebox.cpp \
@@ -68,14 +67,13 @@ HEADERS += \
     shared/PngMagic.h \
     shared/helper.h \
     map.h \
-    shared/implementers/sn_sdl.h \
-    shared/interfaces/ISound.h \
     shared/qtgui/cheat.h \
     shared/qtgui/qfilewrap.h \
     shared/qtgui/qthelper.h \
     sprtypes.h \
     tilebox.h \
-    tilesdata.h
+    tilesdata.h \
+    sounds.h
 
 FORMS += \
     dlgattr.ui \
@@ -97,6 +95,9 @@ unix:LIBS += -lz
 win32:LIBS += -L"libs" -lzlib
 contains(DEFINES, USE_SDL_MIXER=1){
     unix:LIBS += -lSDL2_mixer -lSDL2
+    HEADERS += shared/implementers/sn_sdl.h \
+        shared/interfaces/ISound.h
+    SOURCES +=  shared/implementers/sn_sdl.cpp
 }
 
 QMAKE_CXXFLAGS_RELEASE += -std=c++17 -O3

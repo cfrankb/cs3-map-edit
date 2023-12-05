@@ -10,8 +10,10 @@
 #include <stdarg.h>
 #include "shared/interfaces/ISound.h"
 #include "shared/IFile.h"
-#include "shared/implementers/sn_sdl.h"
 #include "sounds.h"
+#ifdef USE_SDL_MIXER
+#include "shared/implementers/sn_sdl.h"
+#endif
 
 CMap map(30, 30);
 uint8_t CGame::m_keys[6];
@@ -25,7 +27,9 @@ CGame::CGame()
     m_level = 0;
     m_lives = DEFAULT_LIVES;
     m_score = 0;
+#ifdef USE_SDL_MIXER
     m_sound = new CSndSDL();
+#endif
 }
 
 CGame::~CGame()
@@ -650,7 +654,7 @@ bool CGame::readSndArch(IFile &file)
 
 void CGame::playSound(int id)
 {
-    if (id != SOUND_NONE) {
+    if (id != SOUND_NONE && m_sound) {
         m_sound->play(id);
     }
 }

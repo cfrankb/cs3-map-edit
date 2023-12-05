@@ -176,6 +176,7 @@ void CDlgTest::preloadAssets()
         qDebug("failed to open %s", fontName);
     }
 
+#ifdef USE_SDL_MIXER
     const char soundArch [] = ":/data/sounds.dat";
     if (file.open(soundArch)){
         if (!m_game->readSndArch(file)) {
@@ -185,4 +186,5 @@ void CDlgTest::preloadAssets()
     } else {
         qDebug("can't open %s", soundArch);
     }
+#endif
 }
