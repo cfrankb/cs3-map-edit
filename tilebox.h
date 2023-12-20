@@ -3,8 +3,9 @@
 
 #include <QToolBox>
 
-namespace Ui {
-class CTileBox;
+namespace Ui
+{
+    class CTileBox;
 }
 
 class QToolButton;
@@ -33,8 +34,9 @@ private:
     int m_tile;
     const QString &highlightStyle();
 
-    enum {
-        MAX_WIDTH =150,
+    enum
+    {
+        MAX_WIDTH = 150,
         MAX_HEIGHT = 400,
         MAX_COLS = 4,
         HIGHLIGHT_RED = 0x40,

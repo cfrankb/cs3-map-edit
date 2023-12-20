@@ -26,7 +26,7 @@ public:
     uint8_t getY() const;
     uint8_t getPU() const;
     void setPU(const uint8_t c);
-    void setXY(const Pos pos);
+    void setXY(const Pos &pos);
     uint8_t getAim() const;
     void setAim(const uint8_t aim);
     int findNextDir();

@@ -21,7 +21,8 @@ protected:
         uint8_t count;
     } animzSeq_t;
 
-    enum:uint32_t {
+    enum : uint32_t
+    {
         NO_ANIMZ = 255,
         MAX_TILES = 256
     };

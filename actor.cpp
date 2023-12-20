@@ -35,8 +35,8 @@ CActor::~CActor()
 bool CActor::canMove(int aim)
 {
     CMap &map = CGame::getMap();
-    const Pos pos = Pos{m_x, m_y};
-    const Pos newPos = CGame::translate(pos, aim);
+    const Pos &pos = Pos{m_x, m_y};
+    const Pos &newPos = CGame::translate(pos, aim);
     if (pos.x == newPos.x && pos.y == newPos.y)
     {
         return false;
@@ -102,7 +102,7 @@ void CActor::setPU(const uint8_t c)
     m_pu = c;
 }
 
-void CActor::setXY(const Pos pos)
+void CActor::setXY(const Pos &pos)
 {
     m_x = pos.x;
     m_y = pos.y;
@@ -136,14 +136,14 @@ void CActor::setAim(const uint8_t aim)
 bool CActor::isPlayerThere(uint8_t aim)
 {
     const uint8_t c = tileAt(aim);
-    const TileDef def = getTileDef(c);
+    const TileDef &def = getTileDef(c);
     return def.type == TYPE_PLAYER;
 }
 
 uint8_t CActor::tileAt(uint8_t aim)
 {
     CMap &map = CGame::getMap();
-    const Pos p = CGame::translate(Pos{m_x, m_y}, aim);
+    const Pos &p = CGame::translate(Pos{m_x, m_y}, aim);
     return map.at(p.x, p.y);
 }
 

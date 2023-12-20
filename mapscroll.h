@@ -19,19 +19,20 @@ signals:
 
 protected slots:
     void newMapSize(int len, int hei);
-    void newMap(CMap* map);
+    void newMap(CMap *map);
 
 protected:
-    virtual void resizeEvent(QResizeEvent * event) override;
+    virtual void resizeEvent(QResizeEvent *event) override;
     virtual void paintEvent(QPaintEvent *event) override;
     virtual void wheelEvent(QWheelEvent *) override;
-    virtual void mousePressEvent(QMouseEvent * event) override;
-    virtual void mouseReleaseEvent(QMouseEvent * event) override;
-    virtual void mouseMoveEvent(QMouseEvent * event) override;
+    virtual void mousePressEvent(QMouseEvent *event) override;
+    virtual void mouseReleaseEvent(QMouseEvent *event) override;
+    virtual void mouseMoveEvent(QMouseEvent *event) override;
 
     void updateScrollbars();
 
-    typedef struct {
+    typedef struct
+    {
         int x;
         int y;
         bool lButton;
@@ -42,7 +43,8 @@ protected:
 
     int m_mapLen;
     int m_mapHei;
-    enum {
+    enum
+    {
         GRID_SIZE = 32,
         STEPS = 4
     };

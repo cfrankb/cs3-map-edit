@@ -21,7 +21,7 @@ public:
     bool move(int dir);
     void manageMonsters(int ticks);
     void managePlayer(uint8_t *joystate);
-    static Pos translate(const Pos p, int aim);
+    static Pos translate(const Pos &p, int aim);
     void consume();
     static bool hasKey(uint8_t c);
     void addKey(uint8_t c);
@@ -46,9 +46,9 @@ public:
     int godModeTimer();
     int playerSpeed();
     static uint8_t *keys();
-    void getMonsters(CActor * &monsters, int & count);
-    CActor & getMonster(int i);
-    bool readSndArch(IFile & file);
+    void getMonsters(CActor *&monsters, int &count);
+    CActor &getMonster(int i);
+    bool readSndArch(IFile &file);
     void playSound(int id);
     void initSoundMap();
     void playTileSound(int tileID);
@@ -59,7 +59,7 @@ public:
         MODE_INTRO = 0,
         MODE_LEVEL = 1,
         MODE_RESTART = 2,
-        MODE_GAMEOVER =3,
+        MODE_GAMEOVER = 3,
     };
 
 protected:

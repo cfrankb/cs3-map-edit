@@ -2,9 +2,9 @@
 #include "map.h"
 #include <cstdio>
 
-CMapFile::CMapFile():CMapArch()
+CMapFile::CMapFile() : CMapArch()
 {
-    m_maps[0] = new CMap(64,64);
+    m_maps[0] = new CMap(64, 64);
     m_size = 1;
     m_currIndex = 0;
 }
@@ -27,10 +27,12 @@ bool CMapFile::write()
     {
         result = CMapArch::write(fname.c_str());
     }
-    else {
+    else
+    {
         // write single level
         result = m_maps[0]->write(fname.c_str());
-        if (!result) {
+        if (!result)
+        {
             m_lastError = m_maps[0]->lastError();
         }
     }
@@ -57,7 +59,8 @@ void CMapFile::setDirty(bool b)
     m_dirty = b;
 }
 
-bool CMapFile::isDirty(){
+bool CMapFile::isDirty()
+{
     return m_dirty;
 }
 
@@ -76,15 +79,19 @@ int CMapFile::currentIndex()
     return m_currIndex;
 }
 
-bool CMapFile::isMulti() {
-    return m_size > 1 ;
+bool CMapFile::isMulti()
+{
+    return m_size > 1;
 }
 
 bool CMapFile::isWrongExt()
 {
-    if (isMulti()) {
+    if (isMulti())
+    {
         return !m_filename.endsWith(".mapz");
-    } else {
+    }
+    else
+    {
         return !m_filename.endsWith(".dat");
     }
 }
@@ -95,11 +102,12 @@ void CMapFile::forget()
     m_currIndex = 0;
 }
 
-CMap* CMapFile::removeAt(int i)
+CMap *CMapFile::removeAt(int i)
 {
     CMap *map = CMapArch::removeAt(i);
-    if (currentIndex() >= m_size) {
-        setCurrentIndex(m_size -1);
+    if (currentIndex() >= m_size)
+    {
+        setCurrentIndex(m_size - 1);
     }
     return map;
 }

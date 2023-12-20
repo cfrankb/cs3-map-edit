@@ -6,7 +6,7 @@
 
 class CMap;
 
-class CMapFile: public CMapArch
+class CMapFile : public CMapArch
 {
 public:
     CMapFile();
@@ -24,7 +24,7 @@ public:
     bool isMulti();
     void forget();
     bool isWrongExt();
-    CMap* removeAt(int i);
+    CMap *removeAt(int i);
 
 protected:
     int m_currIndex;

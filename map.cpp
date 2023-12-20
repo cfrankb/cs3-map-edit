@@ -119,14 +119,15 @@ bool CMap::read(FILE *sfile)
         m_attrs.clear();
         uint16_t attrCount = 0;
         fread(&attrCount, sizeof(attrCount), 1, sfile);
-        for (int i=0; i < attrCount; ++i) {
+        for (int i = 0; i < attrCount; ++i)
+        {
             uint8_t x;
             uint8_t y;
             uint8_t a;
             fread(&x, sizeof(x), 1, sfile);
             fread(&y, sizeof(y), 1, sfile);
             fread(&a, sizeof(a), 1, sfile);
-            setAttr(x,y,a);
+            setAttr(x, y, a);
         }
     }
     return sfile != nullptr;
@@ -142,7 +143,7 @@ bool CMap::fromMemory(uint8_t *mem)
     }
 
     uint16_t ver = 0;
-    memcpy(mem+4, &ver, 2);
+    memcpy(mem + 4, &ver, 2);
     if (ver > VERSION)
     {
         m_lastError = "bad version";
@@ -161,12 +162,13 @@ bool CMap::fromMemory(uint8_t *mem)
     uint8_t *ptr = mem + 8 + mapSize;
     uint16_t attrCount = 0;
     memcpy(&attrCount, ptr, 2);
-    ptr +=2;
-    for (int i=0; i < attrCount; ++i) {
-        uint8_t x = *ptr ++;
-        uint8_t y = *ptr ++;
-        uint8_t a = *ptr ++;
-        setAttr(x,y,a);
+    ptr += 2;
+    for (int i = 0; i < attrCount; ++i)
+    {
+        uint8_t x = *ptr++;
+        uint8_t y = *ptr++;
+        uint8_t a = *ptr++;
+        setAttr(x, y, a);
     }
     return true;
 }
@@ -180,9 +182,10 @@ bool CMap::write(FILE *tfile)
         fwrite(&m_len, sizeof(uint8_t), 1, tfile);
         fwrite(&m_hei, sizeof(uint8_t), 1, tfile);
         fwrite(m_map, m_len * m_hei, 1, tfile);
-        size_t attrCount =  m_attrs.size();
+        size_t attrCount = m_attrs.size();
         fwrite(&attrCount, sizeof(uint16_t), 1, tfile);
-        for (auto& it: m_attrs) {
+        for (auto &it : m_attrs)
+        {
             uint16_t key = it.first;
             uint8_t x = key & 0xff;
             uint8_t y = key >> 8;
@@ -208,7 +211,8 @@ bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
 {
     len = std::min(len, MAX_SIZE);
     hei = std::min(hei, MAX_SIZE);
-    if (fast) {
+    if (fast)
+    {
         if (len * hei > m_size)
         {
             forget();
@@ -221,15 +225,18 @@ bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
             }
         }
         m_attrs.clear();
-    } else {
-        uint8_t * newMap = new uint8_t[len * hei];
+    }
+    else
+    {
+        uint8_t *newMap = new uint8_t[len * hei];
         memset(newMap, 0, len * hei);
-        for (int y=0; y < std::min(m_hei, hei); ++y) {
+        for (int y = 0; y < std::min(m_hei, hei); ++y)
+        {
             memcpy(newMap + y * len,
                    m_map + y * m_len,
                    std::min(len, m_len));
         }
-        delete [] m_map;
+        delete[] m_map;
         m_map = newMap;
     }
     m_size = len * hei;
@@ -311,67 +318,76 @@ const char *CMap::lastError()
     return m_lastError.c_str();
 }
 
-int CMap::size() {
+int CMap::size()
+{
     return m_size;
 }
 
-CMap & CMap::operator=(const CMap &map)
+CMap &CMap::operator=(const CMap &map)
 {
     forget();
     m_len = map.m_len;
     m_hei = map.m_hei;
-    m_size = map.m_len*map.m_hei;
+    m_size = map.m_len * map.m_hei;
     m_map = new uint8_t[m_size];
     memcpy(m_map, map.m_map, m_size);
     m_attrs = map.m_attrs;
     return *this;
 }
 
-void CMap::shift(int aim) {
+void CMap::shift(int aim)
+{
 
     uint8_t *tmp = new uint8_t[m_len];
-    switch (aim){
+    switch (aim)
+    {
     case UP:
         memcpy(tmp, m_map, m_len);
-        for (int y=1; y < m_hei; ++y) {
+        for (int y = 1; y < m_hei; ++y)
+        {
             memcpy(m_map + (y - 1) * m_len, m_map + y * m_len, m_len);
         }
-        memcpy(m_map + (m_hei -1)* m_len, tmp, m_len);
+        memcpy(m_map + (m_hei - 1) * m_len, tmp, m_len);
         break;
 
     case DOWN:
         memcpy(tmp, m_map + (m_hei - 1) * m_len, m_len);
-        for (int y=m_hei -2; y >= 0; --y) {
+        for (int y = m_hei - 2; y >= 0; --y)
+        {
             memcpy(m_map + (y + 1) * m_len, m_map + y * m_len, m_len);
         }
         memcpy(m_map, tmp, m_len);
         break;
 
     case LEFT:
-        for (int y=0; y < m_hei; ++y) {
+        for (int y = 0; y < m_hei; ++y)
+        {
             uint8_t *p = m_map + y * m_len;
             memcpy(tmp, p, m_len);
-            memcpy(p, tmp+1, m_len-1);
-            p[m_len-1] = tmp[0];
+            memcpy(p, tmp + 1, m_len - 1);
+            p[m_len - 1] = tmp[0];
         }
         break;
     case RIGHT:
-        for (int y=0; y < m_hei; ++y) {
+        for (int y = 0; y < m_hei; ++y)
+        {
             uint8_t *p = m_map + y * m_len;
             memcpy(tmp, p, m_len);
-            memcpy(p+1, tmp, m_len-1);
-            p[0] = tmp[m_len-1];
+            memcpy(p + 1, tmp, m_len - 1);
+            p[0] = tmp[m_len - 1];
         }
         break;
     };
 
     AttrMap tMap;
-    for (auto& it: m_attrs) {
+    for (auto &it : m_attrs)
+    {
         uint16_t key = it.first;
         uint16_t x = key & 0xff;
         uint16_t y = key >> 8;
         uint8_t a = it.second;
-        switch (aim){
+        switch (aim)
+        {
         case UP:
             y = y ? y - 1 : m_hei - 1;
             break;
@@ -388,7 +404,7 @@ void CMap::shift(int aim) {
         tMap[newKey] = a;
     }
     m_attrs = tMap;
-    delete []tmp;
+    delete[] tmp;
 }
 
 uint16_t CMap::toKey(const uint8_t x, const uint8_t y)
@@ -400,11 +416,12 @@ void CMap::debug()
 {
     printf("len: %d hei:%d\n", m_len, m_hei);
     printf("attrCount:%ld\n", m_attrs.size());
-    for (auto& it: m_attrs) {
+    for (auto &it : m_attrs)
+    {
         uint16_t key = it.first;
         uint8_t x = key & 0xff;
         uint8_t y = key >> 8;
         uint8_t a = it.second;
-        printf("key:%.4x x:%.2x y:%.2x a:%.2x\n", key,x,y,a);
+        printf("key:%.4x x:%.2x y:%.2x a:%.2x\n", key, x, y, a);
     }
 }

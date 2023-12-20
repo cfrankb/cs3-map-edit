@@ -66,7 +66,7 @@ void CTileBox::setupToolbox(){
         const int tiles =  fs.getSize();
         for (int i=0; i < tiles; ++i) {
              auto icon = frame2icon(* fs[i]);
-             const TileDef def =  getTileDef(i);
+             const TileDef &def = getTileDef(i);
              if (def.hidden) {
                  continue;
              }
@@ -106,7 +106,7 @@ void CTileBox::setTile(int tile)
     m_buttons[oldTile]->setStyleSheet("");
     m_tile = tile;
     m_buttons[m_tile]->setStyleSheet(highlightStyle());
-    const TileDef def = getTileDef(m_tile);
+    const TileDef & def = getTileDef(m_tile);
     setCurrentIndex(getTabId(def.type));
 }
 

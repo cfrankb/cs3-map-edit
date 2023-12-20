@@ -16,10 +16,10 @@ public:
     virtual ~CMapArch();
 
     int size();
-    const char* lastError();
+    const char *lastError();
     void forget();
     int add(CMap *map);
-    CMap* removeAt(int i);
+    CMap *removeAt(int i);
     void insertAt(int i, CMap *map);
     CMap *at(int i);
     bool read(const char *filename);
@@ -27,12 +27,13 @@ public:
     bool write(const char *filename);
     const char *signature();
     void removeAll();
-    static bool indexFromFile(const char *filename, IndexVector & index);
-    static bool indexFromMemory(uint8_t *ptr, IndexVector & index);
+    static bool indexFromFile(const char *filename, IndexVector &index);
+    static bool indexFromMemory(uint8_t *ptr, IndexVector &index);
 
 protected:
     void allocSpace();
-    enum {
+    enum
+    {
         GROW_BY = 5
     };
     int m_size;

@@ -23,16 +23,16 @@ CMapScroll::CMapScroll(QWidget *parent)
     update();
 }
 
-void CMapScroll::resizeEvent(QResizeEvent * event)
+void CMapScroll::resizeEvent(QResizeEvent *event)
 {
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
+    CMapWidget *glw = dynamic_cast<CMapWidget *>(viewport());
     glw->resizeEvent(event);
     updateScrollbars();
 }
 
 void CMapScroll::paintEvent(QPaintEvent *event)
 {
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
+    CMapWidget *glw = dynamic_cast<CMapWidget *>(viewport());
     glw->paintEvent(event);
 }
 
@@ -49,7 +49,7 @@ void CMapScroll::updateScrollbars()
     verticalScrollBar()->setPageStep(STEPS);
 }
 
-void CMapScroll::mousePressEvent(QMouseEvent * event)
+void CMapScroll::mousePressEvent(QMouseEvent *event)
 {
     switch (event->button())
     {
@@ -64,12 +64,13 @@ void CMapScroll::mousePressEvent(QMouseEvent * event)
     }
 
     setFocus();
-    if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0)) {
+    if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0))
+    {
         emit leftClickedAt(m_mouse.x, m_mouse.y);
     }
 }
 
-void CMapScroll::mouseReleaseEvent(QMouseEvent * event)
+void CMapScroll::mouseReleaseEvent(QMouseEvent *event)
 {
     switch (event->button())
     {
@@ -85,15 +86,16 @@ void CMapScroll::mouseReleaseEvent(QMouseEvent * event)
     setFocus();
 }
 
-void CMapScroll::mouseMoveEvent(QMouseEvent * event)
+void CMapScroll::mouseMoveEvent(QMouseEvent *event)
 {
     m_mouse.x = event->x() / GRID_SIZE + horizontalScrollBar()->value();
     m_mouse.y = event->y() / GRID_SIZE + verticalScrollBar()->value();
 
-    QString str = QString ("x: %1 y: %2").arg(m_mouse.x).arg(m_mouse.y);
+    QString str = QString("x: %1 y: %2").arg(m_mouse.x).arg(m_mouse.y);
     emit statusChanged(str);
 
-    if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0)) {
+    if (m_mouse.lButton && (m_mouse.x >= 0 && m_mouse.y >= 0))
+    {
         emit leftClickedAt(m_mouse.x, m_mouse.y);
     }
 }
@@ -103,23 +105,32 @@ void CMapScroll::wheelEvent(QWheelEvent *event)
     QPoint numPixels = event->pixelDelta();
     QPoint numDegrees = event->angleDelta() / 8;
 
-    enum {
-        NONE=0, UP=1, DOWN=2,
+    enum
+    {
+        NONE = 0,
+        UP = 1,
+        DOWN = 2,
     };
     int dir = NONE;
-    if (!numPixels.isNull()) {
-     dir = numPixels.ry() > 0 ? UP : DOWN;
-    } else {
-     dir = numDegrees.ry() > 0 ? UP : DOWN;
+    if (!numPixels.isNull())
+    {
+        dir = numPixels.ry() > 0 ? UP : DOWN;
+    }
+    else
+    {
+        dir = numDegrees.ry() > 0 ? UP : DOWN;
     }
 
     int val = verticalScrollBar()->value();
-    if (dir == UP) {
+    if (dir == UP)
+    {
         val -= STEPS;
         val = std::max(0, val);
-    } else if (dir == DOWN) {
-       val += STEPS;
-       val = std::min(val,  verticalScrollBar()->maximum());
+    }
+    else if (dir == DOWN)
+    {
+        val += STEPS;
+        val = std::min(val, verticalScrollBar()->maximum());
     }
     verticalScrollBar()->setValue(val);
     event->accept();
@@ -134,9 +145,9 @@ void CMapScroll::newMapSize(int len, int hei)
     verticalScrollBar()->setSliderPosition(0);
 }
 
-void CMapScroll::newMap(CMap* map)
+void CMapScroll::newMap(CMap *map)
 {
-    CMapWidget * glw = dynamic_cast<CMapWidget *>(viewport());
+    CMapWidget *glw = dynamic_cast<CMapWidget *>(viewport());
     glw->setMap(map);
     newMapSize(map->len(), map->hei());
 }
