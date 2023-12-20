@@ -3,15 +3,15 @@ name: Linux Release
 on:
   push:
     branches:
-      - 'master'
-      - 'continuous-integration'
-      - 'cross-platform'
+      - "master"
+      - "continuous-integration"
+      - "cross-platform"
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
-      - 'master'
-      - 'continuous-integration'
+      - "master"
+      - "continuous-integration"
 
 defaults:
   run:
@@ -19,8 +19,8 @@ defaults:
 
 env:
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 5.15.2
-  ARTIFACT: 'CS3MapEdit-x86_64.AppImage'
+  QT_VERSION: 6.5.3
+  ARTIFACT: "CS3MapEdit-x86_64.AppImage"
 
 jobs:
   build:

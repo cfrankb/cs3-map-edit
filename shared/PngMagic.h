@@ -22,7 +22,6 @@
 class CFrame;
 class CFrameSet;
 class IFile;
-//typedef struct CFrame png_IHDR;
 
 class CPngMagic
 {

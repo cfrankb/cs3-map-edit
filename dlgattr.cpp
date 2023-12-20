@@ -1,6 +1,7 @@
 #include "dlgattr.h"
 #include "ui_dlgattr.h"
 #include <QPushButton>
+#include <QRegularExpression>
 
 CDlgAttr::CDlgAttr(QWidget *parent) :
     QDialog(parent),
@@ -31,8 +32,9 @@ void CDlgAttr::on_line_AttrEdit_textChanged(const QString & text)
 {
     bool ok;
     int v = text.toUInt(&ok, 16);
-    QRegExp re("[0-9a-fA-F]+");
+    QRegularExpression re("[0-9a-fA-F]+");
+    auto result = re.match(text);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
-        !ok || v < 0 || v > 255 || !re.exactMatch(text));
+        !ok || v < 0 || v > 255 || !result.hasMatch());
 }
 

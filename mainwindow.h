@@ -71,7 +71,6 @@ private:
     void reloadRecentFileActions();
     void initFileMenu();
     void initTilebox();
-    void initShortcuts();
     void initMapShortcuts();
     void initToolBar();
     int currentTool();

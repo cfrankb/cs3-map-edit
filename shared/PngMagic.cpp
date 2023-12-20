@@ -19,9 +19,7 @@
 #include "Frame.h"
 #include "FrameSet.h"
 #include <zlib.h>
-#include <string>
 #include <cstring>
-#include <cstdio>
 #include <cmath>
 #include "CRC.h"
 #include "IFile.h"

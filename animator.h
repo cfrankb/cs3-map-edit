@@ -1,7 +1,7 @@
 #ifndef CANIMATOR_H
 #define CANIMATOR_H
 
-#include <inttypes.h>
+#include <stdint.h>
 
 class CAnimator
 {

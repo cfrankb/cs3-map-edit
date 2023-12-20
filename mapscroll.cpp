@@ -88,8 +88,8 @@ void CMapScroll::mouseReleaseEvent(QMouseEvent *event)
 
 void CMapScroll::mouseMoveEvent(QMouseEvent *event)
 {
-    m_mouse.x = event->x() / GRID_SIZE + horizontalScrollBar()->value();
-    m_mouse.y = event->y() / GRID_SIZE + verticalScrollBar()->value();
+    m_mouse.x = event->pos().x() / GRID_SIZE + horizontalScrollBar()->value();
+    m_mouse.y = event->pos().x() / GRID_SIZE + verticalScrollBar()->value();
 
     QString str = QString("x: %1 y: %2").arg(m_mouse.x).arg(m_mouse.y);
     emit statusChanged(str);

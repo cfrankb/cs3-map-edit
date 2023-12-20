@@ -3,14 +3,14 @@ name: Windows Release
 on:
   push:
     branches:
-      - 'master'
-      - 'continuous-integration'
+      - "master"
+      - "continuous-integration"
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
-      - 'master'
-      - 'continuous-integration'
+      - "master"
+      - "continuous-integration"
 
 defaults:
   run:
@@ -19,7 +19,7 @@ defaults:
 env:
   BUILD_TYPE: Release
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 5.15.2
+  QT_VERSION: 6.5.3
   ARTIFACT: CS3MapEdit_Win64
   ARCH: win64_msvc2019_64
   HOST: windows

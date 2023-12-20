@@ -2,7 +2,6 @@
 #include "tilesdata.h"
 #include "game.h"
 #include "sprtypes.h"
-#include <cstdio>
 
 uint8_t AIMS[] = {
     AIM_DOWN, AIM_RIGHT, AIM_UP, AIM_LEFT,

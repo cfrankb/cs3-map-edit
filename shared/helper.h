@@ -26,7 +26,6 @@ bool concat(const std::list<std::string> files, std::string out, std::string & m
 int upperClean(int c);
 #ifdef _WIN32
 #else
-    #include <stdlib.h>
     #include <linux/limits.h>
 #endif
 int compressData(unsigned char *in_data, unsigned long in_size, unsigned char **out_data, unsigned long & out_size);

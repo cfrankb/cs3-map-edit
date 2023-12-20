@@ -1,5 +1,4 @@
 #include <cstring>
-#include <string>
 #include <vector>
 #include "game.h"
 #include "map.h"
@@ -13,6 +12,8 @@
 #include "shared/interfaces/ISound.h"
 #include "shared/implementers/sn_sdl.h"
 #endif
+
+#define UNUSED(expr) do { (void)(expr); } while (0)
 
 CMap map(30, 30);
 uint8_t CGame::m_keys[6];
@@ -669,6 +670,8 @@ void CGame::playSound(int id)
     {
         m_sound->play(id);
     }
+#else
+    UNUSED(id);
 #endif
 }
 
