@@ -32,8 +32,8 @@ void CDlgAttr::on_line_AttrEdit_textChanged(const QString & text)
 {
     bool ok;
     int v = text.toUInt(&ok, 16);
-    QRegularExpression re("[0-9a-fA-F]+");
-    auto result = re.match(text);
+    static QRegularExpression re("^[\\da-fA-F]{1,2}$");
+    auto result = re.match(text, 0, QRegularExpression::NormalMatch, QRegularExpression::NoMatchOption);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setDisabled(
         !ok || v < 0 || v > 255 || !result.hasMatch());
 }
