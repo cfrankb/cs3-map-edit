@@ -19,6 +19,5 @@
         <file>data/animz.obl</file>
         <file>data/annie.obl</file>
         <file>data/bitfont.bin</file>
-        <file>data/sounds.dat</file>
     </qresource>
 </RCC>

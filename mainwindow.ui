@@ -402,6 +402,9 @@
    <property name="text">
     <string>Rename Map</string>
    </property>
+   <property name="statusTip">
+    <string>Change the name of this map.</string>
+   </property>
   </action>
  </widget>
  <resources>
