@@ -61,6 +61,7 @@
     <addaction name="actionEdit_Next_Map"/>
     <addaction name="actionEdit_Goto_Map"/>
     <addaction name="actionEdit_Test_Map"/>
+    <addaction name="actionEdit_Rename_Map"/>
     <addaction name="menuTools"/>
     <addaction name="separator"/>
     <addaction name="actionEdit_Add_Map"/>
@@ -395,6 +396,11 @@
    </property>
    <property name="statusTip">
     <string>Animate the mapview.</string>
+   </property>
+  </action>
+  <action name="actionEdit_Rename_Map">
+   <property name="text">
+    <string>Rename Map</string>
    </property>
   </action>
  </widget>

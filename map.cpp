@@ -4,8 +4,15 @@
 #include <algorithm>
 
 static const char SIG[] = "MAPZ";
+static const char XTR_SIG[] = "XTR";
+const char XTR_VER = 0;
 static const uint16_t VERSION = 0;
 static const uint16_t MAX_SIZE = 256;
+
+typedef struct  {
+    char sig[3];
+    char ver;
+} extrahdr_t;
 
 CMap::CMap(uint16_t len, uint16_t hei, uint8_t t)
 {
@@ -129,6 +136,24 @@ bool CMap::read(FILE *sfile)
             fread(&a, sizeof(a), 1, sfile);
             setAttr(x, y, a);
         }
+        extrahdr_t hdr;
+        memset(&hdr, 0, sizeof(hdr));
+        m_title = "";
+        // read title
+        uint16_t res = fread(&hdr, sizeof(hdr),1, sfile);
+        if (res != 0) {
+            if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER)) {
+                //printf("reading4: %s %d\n", hdr.sig, hdr.ver);
+                uint16_t size = 0;
+                if (fread(&size,1, 1, sfile) != 0) {
+                    char tmp[256];
+                    tmp[size] = 0;
+                    if (fread(tmp, size, 1, sfile) != 0) {
+                        m_title = tmp;
+                    }
+                }
+            }
+        }
     }
     return sfile != nullptr;
 }
@@ -193,6 +218,17 @@ bool CMap::write(FILE *tfile)
             fwrite(&x, sizeof(x), 1, tfile);
             fwrite(&y, sizeof(y), 1, tfile);
             fwrite(&a, sizeof(a), 1, tfile);
+        }
+
+        // write title
+        if (!m_title.empty() && m_title.size() < 255) {
+            extrahdr_t hdr;
+            memcpy(&hdr, XTR_SIG, 3);
+            hdr.ver = XTR_VER;
+            fwrite(&hdr, sizeof(hdr),1, tfile);
+            int size = m_title.size();
+            fwrite(&size,1, 1, tfile);
+            fwrite(m_title.c_str(), m_title.size(), 1, tfile);
         }
     }
     return tfile != nullptr;
@@ -337,7 +373,6 @@ CMap &CMap::operator=(const CMap &map)
 
 void CMap::shift(int aim)
 {
-
     uint8_t *tmp = new uint8_t[m_len];
     switch (aim)
     {
@@ -424,4 +459,14 @@ void CMap::debug()
         uint8_t a = it.second;
         printf("key:%.4x x:%.2x y:%.2x a:%.2x\n", key, x, y, a);
     }
+}
+
+const char * CMap::title()
+{
+    return m_title.c_str();
+}
+
+void  CMap::setTitle(const char *title)
+{
+    m_title = title;
 }

@@ -18,6 +18,7 @@
 #include "tilebox.h"
 #include "tilesdata.h"
 #include "map.h"
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -741,3 +742,16 @@ void MainWindow::on_actionFile_Export_Map_triggered()
     updateTitle();
     delete dlg;
 }
+
+void MainWindow::on_actionEdit_Rename_Map_triggered()
+{
+    bool ok;
+    QString text = QInputDialog::getText(0, tr("Rename Map"),
+                                         tr("Name:"), QLineEdit::Normal,
+                                         m_doc.map()->title(), &ok);
+    if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0) {
+        m_doc.map()->setTitle(text.toLatin1());
+        m_doc.setDirty(true);
+    }
+}
+

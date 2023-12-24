@@ -54,6 +54,7 @@ private slots:
     void on_actionEdit_Test_Map_triggered();
     void on_actionFile_Import_Maps_triggered();
     void on_actionFile_Export_Map_triggered();
+    void on_actionEdit_Rename_Map_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
@@ -76,7 +77,7 @@ private:
     int currentTool();
 
     enum {
-        MAX_RECENT_FILES = 8,
+        MAX_RECENT_FILES = 12,
         GRID_SIZE = 32,
         TOOL_SELECT = 0,
         TOOL_PAINT=1,

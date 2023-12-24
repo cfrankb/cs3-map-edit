@@ -110,3 +110,4 @@ CMap *CMapFile::removeAt(int i)
     }
     return map;
 }
+
