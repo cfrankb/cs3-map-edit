@@ -76,11 +76,10 @@ void MainWindow::initMapShortcuts()
 {
     connect(this, SIGNAL(resizeMap(int, int)), m_scrollArea, SLOT(newMapSize(int, int)));
     emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
-
-    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL), QKeyCombination(Qt::Key_Up)), this, SLOT(shiftUp()));
-    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL), QKeyCombination(Qt::Key_Down)), this, SLOT(shiftDown()));
-    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL), QKeyCombination(Qt::Key_Left)), this, SLOT(shiftLeft()));
-    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL), QKeyCombination(Qt::Key_Right)), this, SLOT(shiftRight()));
+    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Up)), this, SLOT(shiftUp()));
+    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Down)), this, SLOT(shiftDown()));
+    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Left)), this, SLOT(shiftLeft()));
+    new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Right)), this, SLOT(shiftRight()));
 }
 
 void MainWindow::initTilebox()
