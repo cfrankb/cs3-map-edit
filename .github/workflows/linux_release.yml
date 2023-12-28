@@ -69,6 +69,14 @@ jobs:
           ls -l
           mv CS3MapEdit*.AppImage ${{ env.SOURCE_DIR }}/build/release
 
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ env.SOURCE_DIR }}/build/release/*.AppImage
+            LICENSE
+
       - name: Linux artefact
         uses: actions/upload-artifact@v1
         with:

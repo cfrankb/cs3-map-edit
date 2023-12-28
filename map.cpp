@@ -5,9 +5,10 @@
 
 static const char SIG[] = "MAPZ";
 static const char XTR_SIG[] = "XTR";
-const char XTR_VER = 0;
+static const char XTR_VER = 0;
 static const uint16_t VERSION = 0;
 static const uint16_t MAX_SIZE = 256;
+static const uint16_t MAX_TITLE = 255;
 
 typedef struct  {
     char sig[3];
@@ -140,13 +141,12 @@ bool CMap::read(FILE *sfile)
         memset(&hdr, 0, sizeof(hdr));
         m_title = "";
         // read title
-        uint16_t res = fread(&hdr, sizeof(hdr),1, sfile);
-        if (res != 0) {
+        if (fread(&hdr, sizeof(hdr), 1, sfile) != 0) {
             if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER)) {
                 //printf("reading4: %s %d\n", hdr.sig, hdr.ver);
                 uint16_t size = 0;
                 if (fread(&size,1, 1, sfile) != 0) {
-                    char tmp[256];
+                    char tmp[MAX_TITLE + 1];
                     tmp[size] = 0;
                     if (fread(tmp, size, 1, sfile) != 0) {
                         m_title = tmp;
@@ -195,6 +195,19 @@ bool CMap::fromMemory(uint8_t *mem)
         uint8_t a = *ptr++;
         setAttr(x, y, a);
     }
+    m_title = "";
+    // read title
+    extrahdr_t hdr;
+    memcpy(&hdr, ptr, sizeof(hdr));
+    if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER)) {
+        ptr += sizeof(hdr);
+        uint8_t size = *ptr;
+        ++ptr;
+        char tmp[MAX_TITLE + 1];
+        memcpy(tmp, ptr, size);
+        tmp[size] = 0;
+        m_title = tmp;
+    }
     return true;
 }
 
@@ -221,9 +234,9 @@ bool CMap::write(FILE *tfile)
         }
 
         // write title
-        if (!m_title.empty() && m_title.size() < 255) {
+        if (!m_title.empty() && m_title.size() < MAX_TITLE) {
             extrahdr_t hdr;
-            memcpy(&hdr, XTR_SIG, 3);
+            memcpy(&hdr.sig, XTR_SIG, sizeof(hdr.sig));
             hdr.ver = XTR_VER;
             fwrite(&hdr, sizeof(hdr),1, tfile);
             int size = m_title.size();
@@ -336,6 +349,7 @@ uint8_t CMap::getAttr(const uint8_t x, const uint8_t y)
         return 0;
     }
 }
+
 void CMap::setAttr(const uint8_t x, const uint8_t y, const uint8_t a)
 {
     const uint16_t key = toKey(x, y);

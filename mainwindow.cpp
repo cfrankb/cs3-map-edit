@@ -748,10 +748,9 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
     QString text = QInputDialog::getText(this, tr("Rename Map"),
                                          tr("Name:"), QLineEdit::Normal,
                                          m_doc.map()->title(), &ok);
-    text = text.trimmed();
+    text = text.trimmed().mid(0, 254);
     if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0) {
         m_doc.map()->setTitle(text.toLatin1());
         m_doc.setDirty(true);
     }
 }
-

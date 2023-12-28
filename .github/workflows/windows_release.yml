@@ -114,6 +114,21 @@ jobs:
           del *.cpp
           del *.h
           del *.res
+          dir /s
+
+      - name: Compress to zip file
+        working-directory: ${{ runner.temp }}\build\release
+        run: |
+          7z a ${{ env.SOURCE_DIR }}\${{ env.ARTIFACT }}.zip *
+          dir /s ${{ env.SOURCE_DIR }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            LICENSE
+            *.zip
 
       - name: Save build artifact
         uses: actions/upload-artifact@master
