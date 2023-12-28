@@ -44,9 +44,8 @@ MainWindow::MainWindow(QWidget *parent)
     initMapShortcuts();
     initToolBar();
     updateMenus();
-    setWindowIcon(QIcon(":/linux/CS3MapEdit-icon.png"));
+    setWindowIcon(QIcon(":/data/icons/CS3MapEdit-icon.png"));
 }
-
 
 void MainWindow::shiftUp()
 {
@@ -749,7 +748,8 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
                                          tr("Name:"), QLineEdit::Normal,
                                          m_doc.map()->title(), &ok);
     text = text.trimmed().mid(0, 254);
-    if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0) {
+    if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0)
+    {
         m_doc.map()->setTitle(text.toLatin1());
         m_doc.setDirty(true);
     }

@@ -100,7 +100,7 @@ jobs:
       - name: Build
         working-directory: ${{ runner.temp }}\build
         run: |
-          qmake -r ${{ env.SOURCE_DIR }}\\mapedit.pro
+          qmake -r ${{ env.SOURCE_DIR }}\\src\\mapedit.pro
           cat Makefile.Release
           ${{ runner.temp }}\jom\jom -j2
           dir /s

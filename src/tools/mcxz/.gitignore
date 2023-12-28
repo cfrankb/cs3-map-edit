@@ -3,3 +3,5 @@ mcxz
 out/
 bin/QBASIC.*
 build/*
+__backup/*
+obl5/draft/*

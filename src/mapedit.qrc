@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>data/tiles.obl</file>
-        <file>linux/CS3MapEdit-icon.png</file>
+        <file>data/icons/CS3MapEdit-icon.png</file>
         <file>data/icons/colorpicker.png</file>
         <file>data/icons/current.gif</file>
         <file>data/icons/icons8-erase-40.png</file>

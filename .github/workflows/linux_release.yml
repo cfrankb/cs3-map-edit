@@ -49,7 +49,7 @@ jobs:
       - name: Build
         working-directory: ${{ env.SOURCE_DIR }}/build
         run: |
-          qmake -r ${{ env.SOURCE_DIR }}/mapedit.pro
+          qmake -r ${{ env.SOURCE_DIR }}/src/mapedit.pro
           make
 
       - name: AppImage

@@ -80,7 +80,7 @@
     <string/>
    </property>
    <property name="pixmap">
-    <pixmap resource="mapedit.qrc">:/linux/CS3MapEdit-icon.png</pixmap>
+    <pixmap resource="mapedit.qrc">:/data/icons/CS3MapEdit-icon.png</pixmap>
    </property>
   </widget>
   <widget class="QLabel" name="sAppVersion">
