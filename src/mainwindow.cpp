@@ -283,6 +283,8 @@ void MainWindow::updateMenus()
     ui->actionEdit_Delete_Map->setEnabled(m_doc.size() > 1);
     ui->actionEdit_Move_Map->setEnabled(m_doc.size() > 1);
     ui->actionEdit_Goto_Map->setEnabled(m_doc.size() > 1);
+    ui->actionEdit_First_Map->setEnabled(index > 0);
+    ui->actionEdit_Last_Map->setEnabled(index < m_doc.size() - 1);
 }
 
 void MainWindow::setStatus(const QString msg)
@@ -483,6 +485,8 @@ void MainWindow::initToolBar()
     ui->toolBar->addAction(ui->actionEdit_ResizeMap);
     ui->toolBar->addAction(ui->actionEdit_Previous_Map);
     ui->toolBar->addAction(ui->actionEdit_Next_Map);
+    ui->toolBar->addAction(ui->actionEdit_First_Map);
+    ui->toolBar->addAction(ui->actionEdit_Last_Map);
     ui->toolBar->addSeparator();
     ui->toolBar->addAction(ui->actionEdit_Add_Map);
     // ui->toolBar->addAction(ui->actionClear_Map);
@@ -752,5 +756,27 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
     {
         m_doc.map()->setTitle(text.toLatin1());
         m_doc.setDirty(true);
+    }
+}
+
+void MainWindow::on_actionEdit_Last_Map_triggered()
+{
+    int index = m_doc.currentIndex();
+    if (index < m_doc.size() - 1)
+    {
+        m_doc.setCurrentIndex(m_doc.size() - 1);
+        emit mapChanged(m_doc.map());
+        updateMenus();
+    }
+}
+
+void MainWindow::on_actionEdit_First_Map_triggered()
+{
+    int index = m_doc.currentIndex();
+    if (index > 0)
+    {
+        m_doc.setCurrentIndex(0);
+        emit mapChanged(m_doc.map());
+        updateMenus();
     }
 }

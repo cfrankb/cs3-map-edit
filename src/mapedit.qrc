@@ -19,5 +19,7 @@
         <file>data/animz.obl</file>
         <file>data/annie.obl</file>
         <file>data/bitfont.bin</file>
+        <file>data/icons/go-first.png</file>
+        <file>data/icons/go-last.png</file>
     </qresource>
 </RCC>

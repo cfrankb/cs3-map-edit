@@ -56,10 +56,20 @@
      <addaction name="actionTools_Select"/>
      <addaction name="actionTools_Erase"/>
     </widget>
+    <widget class="QMenu" name="menuGo_to">
+     <property name="title">
+      <string>Navigate</string>
+     </property>
+     <addaction name="actionEdit_Previous_Map"/>
+     <addaction name="actionEdit_Next_Map"/>
+     <addaction name="separator"/>
+     <addaction name="actionEdit_First_Map"/>
+     <addaction name="actionEdit_Last_Map"/>
+     <addaction name="separator"/>
+     <addaction name="actionEdit_Goto_Map"/>
+    </widget>
     <addaction name="actionEdit_ResizeMap"/>
-    <addaction name="actionEdit_Previous_Map"/>
-    <addaction name="actionEdit_Next_Map"/>
-    <addaction name="actionEdit_Goto_Map"/>
+    <addaction name="menuGo_to"/>
     <addaction name="actionEdit_Test_Map"/>
     <addaction name="actionEdit_Rename_Map"/>
     <addaction name="menuTools"/>
@@ -69,6 +79,7 @@
     <addaction name="actionEdit_Insert_Map"/>
     <addaction name="actionClear_Map"/>
     <addaction name="actionEdit_Delete_Map"/>
+    <addaction name="menuType_Here"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -404,6 +415,29 @@
    </property>
    <property name="statusTip">
     <string>Change the name of this map.</string>
+   </property>
+  </action>
+  <action name="actionEdit_Last_Map">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/go-last.png</normaloff>:/data/icons/go-last.png</iconset>
+   </property>
+   <property name="text">
+    <string>Last Map</string>
+   </property>
+  </action>
+  <action name="actionEdit_First_Map">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/go-first.png</normaloff>:/data/icons/go-first.png</iconset>
+   </property>
+   <property name="text">
+    <string>First Map</string>
+   </property>
+  </action>
+  <action name="actionResize_Map">
+   <property name="text">
+    <string>Resize Map</string>
    </property>
   </action>
  </widget>
