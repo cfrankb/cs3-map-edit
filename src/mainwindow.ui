@@ -79,7 +79,6 @@
     <addaction name="actionEdit_Insert_Map"/>
     <addaction name="actionClear_Map"/>
     <addaction name="actionEdit_Delete_Map"/>
-    <addaction name="menuType_Here"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -369,6 +368,9 @@
    </property>
    <property name="statusTip">
     <string>Go to another map</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
    </property>
   </action>
   <action name="actionEdit_Test_Map">

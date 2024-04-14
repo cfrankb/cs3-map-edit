@@ -19,6 +19,7 @@ SOURCES += \
     dlgresize.cpp \
     dlgabout.cpp \
     dlgselect.cpp \
+    dlgstat.cpp \
     dlgtest.cpp \
     game.cpp \
     gamemixin.cpp \
@@ -51,6 +52,7 @@ HEADERS += \
     dlgresize.h \
     dlgabout.h \
     dlgselect.h \
+    dlgstat.h \
     dlgtest.h \
     game.h \
     gamemixin.h \
@@ -80,6 +82,7 @@ FORMS += \
     dlgresize.ui \
     dlgabout.ui \
     dlgselect.ui \
+    dlgstat.ui \
     dlgtest.ui \
     mainwindow.ui
 

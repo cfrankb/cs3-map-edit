@@ -55,10 +55,9 @@ private slots:
     void on_actionFile_Import_Maps_triggered();
     void on_actionFile_Export_Map_triggered();
     void on_actionEdit_Rename_Map_triggered();
-
     void on_actionEdit_Last_Map_triggered();
-
     void on_actionEdit_First_Map_triggered();
+    void showStatDialog();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;

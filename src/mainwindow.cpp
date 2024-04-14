@@ -17,6 +17,7 @@
 #include "dlgtest.h"
 #include "tilebox.h"
 #include "tilesdata.h"
+#include "dlgstat.h"
 #include "map.h"
 #include <QInputDialog>
 
@@ -363,6 +364,10 @@ void MainWindow::showContextMenu(const QPoint &pos)
         connect(actionSetAttr, SIGNAL(triggered()),
                 this, SLOT(showAttrDialog()));
         menu.addAction(actionSetAttr);
+        QAction *actionStatAttr = new QAction(tr("see tile stats"), &menu);
+        connect(actionStatAttr, SIGNAL(triggered()),
+                this, SLOT(showStatDialog()));
+        menu.addAction(actionStatAttr);
         m_hx = x + mx;
         m_hy = y + my;
         menu.exec(m_scrollArea->mapToGlobal(pos));
@@ -381,6 +386,14 @@ void MainWindow::showAttrDialog()
         map.setAttr(m_hx, m_hy, a);
         m_doc.setDirty(true);
     }
+}
+
+void MainWindow::showStatDialog()
+{
+    CMap &map = *m_doc.map();
+    CDlgStat dlg(map.at(m_hx, m_hy), this);
+    dlg.setWindowTitle(tr("Tile Statistics"));
+    dlg.exec();
 }
 
 void MainWindow::changeTile(int tile)
