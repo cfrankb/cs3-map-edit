@@ -64,7 +64,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;© 2022, 2023 Francois Blanchette&lt;/p&gt;&lt;p&gt;All rights reserved.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;© 2022, 2024 Francois Blanchette&lt;/p&gt;&lt;p&gt;All rights reserved.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_3">

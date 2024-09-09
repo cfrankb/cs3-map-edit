@@ -12,6 +12,23 @@
 #include "../../../shared/Frame.h"
 #include "tileset.h"
 
+enum
+{
+    ENCODING_RGB565,  // 2 bytes
+    ENCODING_RGB555,  // 2 bytes
+    ENCODING_RGB332,  // 1 byte
+    ENCODING_RGB888,  // 3 byte
+    ENCODING_RGBX888, // 4 byte
+};
+
+const char *ENCODING_RGB[] = {
+    "565",
+    "555",
+    "332",
+    "888",
+    "X888",
+};
+
 typedef struct
 {
     uint8_t ch;           // char for ascii map (deprecated)
@@ -33,6 +50,7 @@ typedef struct
 typedef struct
 {
     uint16_t pixelWidth;
+    uint8_t encoding;
     bool flipPixels;
     bool headerless;
     bool outputPNG;
@@ -86,17 +104,59 @@ std::string str2upper(const std::string &in)
     return t;
 }
 
-uint16_t rgb888torgb565(uint8_t *rgb888Pixel)
+// RGB 565
+uint16_t rgb888torgb565(const uint8_t *rgb888Pixel)
 {
-    uint8_t red = rgb888Pixel[0];
-    uint8_t green = rgb888Pixel[1];
-    uint8_t blue = rgb888Pixel[2];
+    const uint8_t &red = rgb888Pixel[0];
+    const uint8_t &green = rgb888Pixel[1];
+    const uint8_t &blue = rgb888Pixel[2];
 
-    uint16_t b = (blue >> 3) & 0x1f;
-    uint16_t g = ((green >> 2) & 0x3f) << 5;
-    uint16_t r = ((red >> 3) & 0x1f) << 11;
-
+    const uint16_t b = (blue >> 3) & 0x1f;
+    const uint16_t g = ((green >> 2) & 0x3f) << 5;
+    const uint16_t r = ((red >> 3) & 0x1f) << 11;
     return (uint16_t)(r | g | b);
+}
+
+// RGB 555
+uint16_t rgb888torgb555(const uint8_t *rgb888Pixel)
+{
+    const uint8_t &red = rgb888Pixel[0];
+    const uint8_t &green = rgb888Pixel[1];
+    const uint8_t &blue = rgb888Pixel[2];
+
+    const uint16_t b = (blue >> 3) & 0x1f;
+    const uint16_t g = ((green >> 2) & 0x1f) << 5;
+    const uint16_t r = ((red >> 3) & 0x1f) << 10;
+    return (uint16_t)(r | g | b);
+}
+
+// RGB 332
+uint8_t rgb888torgb332(const uint8_t *rgb888Pixel)
+{
+    const uint8_t &red = rgb888Pixel[0];
+    const uint8_t &green = rgb888Pixel[1];
+    const uint8_t &blue = rgb888Pixel[2];
+
+    // bit
+    // 1     low red
+    // 2     low green
+    // 3     low blue
+    // 4     high red
+    // 5     high green
+    // 6     high blue
+    // 7     mid red
+    // 8     mid green
+
+    const uint8_t r = ((red & 0xc0) ? 0x08 : 0) |   // high
+                      ((red & 0x30) ? 0x01 : 0) |   // mid
+                      ((red & 0x0c) ? 0x40 : 0);    // low
+    const uint8_t g = ((green & 0xc0) ? 0x10 : 0) | // high
+                      ((green & 0x30) ? 0x02 : 0) | // mid
+                      ((green & 0x0c) ? 0x80 : 0);  // low
+    const uint8_t b = ((blue & 0xc0) ? 0x20 : 0) |  // high
+                      ((blue & 0x30) ? 0x04 : 0);   // mid
+
+    return (uint8_t)(r | g | b);
 }
 
 int test()
@@ -170,7 +230,6 @@ bool parseConfig(Config &conf, StrVector &list, const char *src)
     {
         fseek(sfile, 0, SEEK_END);
         long size = ftell(sfile);
-        // char buf[size + 1];
         ptr = new char[size + 1];
         ptr[size] = 0;
         fseek(sfile, 0, SEEK_SET);
@@ -744,18 +803,33 @@ bool processSection(
     for (int i = 0; i < imagesTiny.getSize(); ++i)
     {
         CFrame *frame = imagesTiny[i];
-        uint32_t *rgb888 = frame->getRGB();
+        uint32_t *rgbX888 = frame->getRGB();
         int pixels = frame->len() * frame->hei();
         int j;
+        uint8_t rgb332[pixels];
         uint16_t rgb565[pixels];
         rgb24_t rgb24[pixels];
 
         switch (appSettings.pixelWidth)
         {
+        case CTileSet::pixel8:
+            for (j = 0; j < pixels; ++j)
+            {
+                rgb332[j] = rgb888torgb332(reinterpret_cast<uint8_t *>(&rgbX888[j]));
+            }
+            tiles.set(i, rgb332);
+            break;
         case CTileSet::pixel16:
             for (j = 0; j < pixels; ++j)
             {
-                rgb565[j] = rgb888torgb565(reinterpret_cast<uint8_t *>(&rgb888[j]));
+                if (appSettings.encoding == ENCODING_RGB565)
+                {
+                    rgb565[j] = rgb888torgb565(reinterpret_cast<uint8_t *>(&rgbX888[j]));
+                }
+                else if (appSettings.encoding == ENCODING_RGB555)
+                {
+                    rgb565[j] = rgb888torgb555(reinterpret_cast<uint8_t *>(&rgbX888[j]));
+                }
             }
             tiles.set(i, rgb565);
             break;
@@ -763,9 +837,13 @@ bool processSection(
         case CTileSet::pixel24:
             for (j = 0; j < pixels; ++j)
             {
-                memcpy(&rgb24[j], &rgb888[j], 3);
+                memcpy(&rgb24[j], &rgbX888[j], 3);
             }
             tiles.set(i, rgb24);
+            break;
+
+        case CTileSet::pixel32:
+            tiles.set(i, rgbX888);
         };
     }
     tiles.write(fnameT.c_str(), appSettings.flipPixels, appSettings.headerless);
@@ -835,14 +913,18 @@ void showUsage(const char *cmd)
     printf(
         "mcxz tileset generator\n\n"
         "usage: \n"
-        "       %s [-2 -3 -r -f -p] file1.ini [file2.ini]\n"
+        "       %s [-e?999 -r -f -p] file1.ini [file2.ini]\n"
         "\n"
         "filex.ini        job configuration \n"
-        "-2               set pixelWidth to 2 (16bits)\n"
-        "-3               set pixelWidth to 3 (18bits/24bits)\n"
+        "-e?999           image encoding\n"
+        "                    565 (16bits, default)\n"
+        "                    555 (15bits)\n"
+        "                    888 (24 bits)\n"
+        "                    X888 (32 bits)\n"
+        "                    332 (8 bits)\n"
         "-r               raw headerless generation\n"
         "-f               flip bytes (only applies to 16bits)\n"
-        "-p               output to png rather than obl"
+        "-p               output to png rather than obl\n"
         "-h               show help\n"
         "\n",
         cmd);
@@ -852,6 +934,7 @@ int main(int argc, char *argv[], char *envp[])
 {
     AppSettings appSettings = AppSettings{
         .pixelWidth = CTileSet::pixel16,
+        .encoding = ENCODING_RGB565,
         .flipPixels = false,
         .headerless = false,
     };
@@ -867,14 +950,52 @@ int main(int argc, char *argv[], char *envp[])
                 showUsage(argv[0]);
                 return EXIT_SUCCESS;
             }
-
+            if (src[1] == 'e')
+            {
+                size_t size = sizeof(ENCODING_RGB[ENCODING_RGB565]);
+                if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB565]) == 0)
+                {
+                    appSettings.encoding = ENCODING_RGB565;
+                    appSettings.pixelWidth = 2;
+                }
+                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB555]) == 0)
+                {
+                    appSettings.encoding = ENCODING_RGB555;
+                    appSettings.pixelWidth = 2;
+                }
+                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB332]) == 0)
+                {
+                    appSettings.encoding = ENCODING_RGB332;
+                    appSettings.pixelWidth = 1;
+                }
+                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB888]) == 0)
+                {
+                    appSettings.encoding = ENCODING_RGB888;
+                    appSettings.pixelWidth = 3;
+                }
+                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGBX888]) == 0)
+                {
+                    appSettings.encoding = ENCODING_RGBX888;
+                    appSettings.pixelWidth = 4;
+                }
+                else if (src[2] == '\0')
+                {
+                    printf("missing encoding value\n", src);
+                    return EXIT_FAILURE;
+                }
+                else
+                {
+                    printf("invalid encoding: %s\n", src + 2);
+                    return EXIT_FAILURE;
+                }
+                continue;
+            }
             if (strlen(src) != 2)
             {
                 printf("invalid switch: %s\n", src);
                 return EXIT_FAILURE;
             }
-
-            if (src[1] == 'h')
+            else if (src[1] == 'h')
             {
                 showUsage(argv[0]);
                 return EXIT_SUCCESS;
@@ -898,16 +1019,6 @@ int main(int argc, char *argv[], char *envp[])
             {
                 appSettings.outputPNG = true;
                 continue;
-            }
-
-            if (isdigit(src[1]))
-            {
-                appSettings.pixelWidth = src[1] - '0';
-                if (appSettings.pixelWidth == CTileSet::pixel16 ||
-                    appSettings.pixelWidth == CTileSet::pixel24)
-                {
-                    continue;
-                }
             }
             printf("invalid switch: %s\n", src);
             return EXIT_FAILURE;
@@ -945,6 +1056,5 @@ int main(int argc, char *argv[], char *envp[])
             }
         }
     }
-
     return EXIT_SUCCESS;
 }

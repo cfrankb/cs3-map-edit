@@ -29,9 +29,11 @@ public:
 
     enum
     {
+        pixel8 = 1,
         pixel16 = 2,
         pixel18 = 3,
         pixel24 = 3,
+        pixel32 = 4,
     };
 
 protected:

@@ -3,12 +3,6 @@
 #include "game.h"
 #include "sprtypes.h"
 
-uint8_t AIMS[] = {
-    AIM_DOWN, AIM_RIGHT, AIM_UP, AIM_LEFT,
-    AIM_UP, AIM_LEFT, AIM_DOWN, AIM_RIGHT,
-    AIM_RIGHT, AIM_UP, AIM_LEFT, AIM_DOWN,
-    AIM_LEFT, AIM_DOWN, AIM_RIGHT, AIM_UP};
-
 CActor::CActor(uint8_t x, uint8_t y, uint8_t type, uint8_t aim)
 {
     m_x = x;
@@ -109,6 +103,12 @@ void CActor::setXY(const Pos &pos)
 
 int CActor::findNextDir()
 {
+    const static uint8_t AIMS[] = {
+          AIM_DOWN, AIM_RIGHT, AIM_UP, AIM_LEFT,
+          AIM_UP, AIM_LEFT, AIM_DOWN, AIM_RIGHT,
+          AIM_RIGHT, AIM_UP, AIM_LEFT, AIM_DOWN,
+          AIM_LEFT, AIM_DOWN, AIM_RIGHT, AIM_UP};
+
     int i = 3;
     while (i >= 0)
     {

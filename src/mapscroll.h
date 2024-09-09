@@ -2,7 +2,6 @@
 #define CMAPSCROLL_H
 
 #include <QAbstractScrollArea>
-class CMapWidgetGL;
 class QWidget;
 class CMap;
 
@@ -11,7 +10,6 @@ class CMapScroll : public QAbstractScrollArea
     Q_OBJECT
 public:
     explicit CMapScroll(QWidget *parent = nullptr);
-    CMapWidgetGL *m_widget;
 
 signals:
     void statusChanged(const QString str);

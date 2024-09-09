@@ -9,7 +9,7 @@ static const uint16_t VERSION = 0;
 CTileSet::CTileSet(int width, int height, int count, int pixelWidth)
 {
     m_pixelWidth = pixelWidth ? pixelWidth : pixel16;
-    assert(m_pixelWidth == pixel16 || m_pixelWidth == pixel24);
+    assert(m_pixelWidth == pixel16 || m_pixelWidth == pixel24 || m_pixelWidth == pixel32 || m_pixelWidth == pixel8);
     m_height = height;
     m_width = width;
     assert(m_width > 0 && m_height > 0);
@@ -34,7 +34,7 @@ void *CTileSet::operator[](int i)
 
 // set tile
 // i        index of target tile
-// pixels   16bits color array
+// pixels   color array
 void CTileSet::set(int i, const void *pixels)
 {
     memcpy(m_tiles + i * m_tileSize, pixels, m_tileSize);
@@ -77,9 +77,10 @@ bool CTileSet::read(const char *fname, bool flipByteOrder)
             return false;
         }
         m_pixelWidth = version >> 8 ? version >> 8 : pixel16;
-        if (m_pixelWidth != pixel16 && m_pixelWidth != pixel24)
+        if (m_pixelWidth != pixel16 && m_pixelWidth != pixel24 &&
+            m_pixelWidth != pixel8 && m_pixelWidth != pixel32)
         {
-            printf("wrong pixelWidth: %d\n", m_pixelWidth);
+            printf("invalid pixelWidth: %d\n", m_pixelWidth);
             return false;
         }
 
@@ -116,7 +117,8 @@ bool CTileSet::write(const char *fname, bool flipByteOrder, bool headerless)
     FILE *tfile = fopen(fname, "wb");
     if (tfile)
     {
-        if (!headerless) {
+        if (!headerless)
+        {
             fwrite(SIG, strlen(SIG), 1, tfile);
             uint16_t version = VERSION + (m_pixelWidth << 8);
             fwrite(&version, sizeof(version), 1, tfile);
@@ -128,18 +130,23 @@ bool CTileSet::write(const char *fname, bool flipByteOrder, bool headerless)
         }
         if (m_size)
         {
-            if (flipByteOrder && m_pixelWidth == pixel16) {
+            if (flipByteOrder && m_pixelWidth == pixel16)
+            {
                 int tilePixels = m_width * m_height;
-                uint16_t *tmpTile =  new uint16_t[tilePixels];
-                for (int i=0; i < m_size; ++i) {
+                uint16_t *tmpTile = new uint16_t[tilePixels];
+                for (int i = 0; i < m_size; ++i)
+                {
                     memcpy(tmpTile, m_tiles + m_tileSize * i, m_tileSize);
-                    for (int j=0; j < tilePixels; ++j) {
+                    for (int j = 0; j < tilePixels; ++j)
+                    {
                         tmpTile[j] = flipColor(tmpTile[j]);
                     }
                     fwrite(tmpTile, m_tileSize, 1, tfile);
                 }
-                delete []tmpTile;
-            } else {
+                delete[] tmpTile;
+            }
+            else
+            {
                 fwrite(m_tiles, m_size * m_tileSize, 1, tfile);
             }
         }

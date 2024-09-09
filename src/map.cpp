@@ -141,6 +141,7 @@ bool CMap::read(FILE *sfile)
         memset(&hdr, 0, sizeof(hdr));
         m_title = "";
         // read title
+        size_t ptr = ftell(sfile);
         if (fread(&hdr, sizeof(hdr), 1, sfile) != 0) {
             if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER)) {
                 //printf("reading4: %s %d\n", hdr.sig, hdr.ver);
@@ -152,6 +153,11 @@ bool CMap::read(FILE *sfile)
                         m_title = tmp;
                     }
                 }
+            }
+            else
+            {
+                // revert back to previous position
+                fseek(sfile, ptr, SEEK_SET);
             }
         }
     }
