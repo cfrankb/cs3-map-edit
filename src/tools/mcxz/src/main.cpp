@@ -14,15 +14,17 @@
 
 enum
 {
-    ENCODING_RGB565,  // 2 bytes
-    ENCODING_RGB555,  // 2 bytes
-    ENCODING_RGB332,  // 1 byte
-    ENCODING_RGB888,  // 3 byte
-    ENCODING_RGBX888, // 4 byte
+    ENCODING_RGB565,    // 2 bytes
+    ENCODING_RGB565BGR, // 2 bytes
+    ENCODING_RGB555,    // 2 bytes
+    ENCODING_RGB332,    // 1 byte
+    ENCODING_RGB888,    // 3 byte
+    ENCODING_RGBX888,   // 4 byte
 };
 
 const char *ENCODING_RGB[] = {
     "565",
+    "565BGR",
     "555",
     "332",
     "888",
@@ -826,6 +828,12 @@ bool processSection(
                 {
                     rgb565[j] = rgb888torgb565(reinterpret_cast<uint8_t *>(&rgbX888[j]));
                 }
+                if (appSettings.encoding == ENCODING_RGB565BGR)
+                {
+                    uint8_t *rgb = reinterpret_cast<uint8_t *>(&rgbX888[j]);
+                    uint8_t bgr[4]{rgb[2], rgb[1], rgb[0], rgb[3]};
+                    rgb565[j] = rgb888torgb565(bgr);
+                }
                 else if (appSettings.encoding == ENCODING_RGB555)
                 {
                     rgb565[j] = rgb888torgb555(reinterpret_cast<uint8_t *>(&rgbX888[j]));
@@ -918,6 +926,7 @@ void showUsage(const char *cmd)
         "filex.ini        job configuration \n"
         "-e?999           image encoding\n"
         "                    565 (16bits, default)\n"
+        "                    565BGR (16bits, default)\n"
         "                    555 (15bits)\n"
         "                    888 (24 bits)\n"
         "                    X888 (32 bits)\n"
@@ -956,6 +965,11 @@ int main(int argc, char *argv[], char *envp[])
                 if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB565]) == 0)
                 {
                     appSettings.encoding = ENCODING_RGB565;
+                    appSettings.pixelWidth = 2;
+                }
+                if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB565BGR]) == 0)
+                {
+                    appSettings.encoding = ENCODING_RGB565BGR;
                     appSettings.pixelWidth = 2;
                 }
                 else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB555]) == 0)
