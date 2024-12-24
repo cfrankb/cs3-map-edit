@@ -14,6 +14,11 @@
 
 https://github.com/cfrankb/esp-idf-cs3
 
+#### ESP32S3 VGA
+
+https://github.com/cfrankb/ESP32-S3-VGA-CS3
+
+
 ##### RP2040
 
 https://github.com/cfrankb/cs3_rp2040_pico

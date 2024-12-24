@@ -926,7 +926,7 @@ void showUsage(const char *cmd)
         "filex.ini        job configuration \n"
         "-e?999           image encoding\n"
         "                    565 (16bits, default)\n"
-        "                    565BGR (16bits, default)\n"
+        "                    565BGR (16bits)\n"
         "                    555 (15bits)\n"
         "                    888 (24 bits)\n"
         "                    X888 (32 bits)\n"
