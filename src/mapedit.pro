@@ -30,6 +30,7 @@ SOURCES += \
     mapfile.cpp \
     mapscroll.cpp \
     mapwidget.cpp \
+    report.cpp \
     shared/DotArray.cpp \
     shared/FileWrap.cpp \
     shared/Frame.cpp \
@@ -62,6 +63,7 @@ HEADERS += \
     mapfile.h \
     mapscroll.h \
     mapwidget.h \
+    report.h \
     shared/DotArray.h \
     shared/FileWrap.h \
     shared/Frame.h \

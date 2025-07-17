@@ -41,6 +41,7 @@ public:
     bool fromMemory(uint8_t *mem);
     const char *title();
     void setTitle(const char *title);
+    const AttrMap &attrs() {return m_attrs;}
 
     enum : uint16_t
     {

@@ -39,6 +39,8 @@
     <addaction name="actionFile_Save"/>
     <addaction name="actionFile_Save_as"/>
     <addaction name="separator"/>
+    <addaction name="actionFile_Generate_Report"/>
+    <addaction name="separator"/>
     <addaction name="actionFile_Import_Maps"/>
     <addaction name="actionFile_Export_Map"/>
     <addaction name="separator"/>
@@ -440,6 +442,11 @@
   <action name="actionResize_Map">
    <property name="text">
     <string>Resize Map</string>
+   </property>
+  </action>
+  <action name="actionFile_Generate_Report">
+   <property name="text">
+    <string>Generate Report</string>
    </property>
   </action>
  </widget>

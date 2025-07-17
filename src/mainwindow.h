@@ -58,6 +58,7 @@ private slots:
     void on_actionEdit_Last_Map_triggered();
     void on_actionEdit_First_Map_triggered();
     void showStatDialog();
+    void on_actionFile_Generate_Report_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;

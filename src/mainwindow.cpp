@@ -9,6 +9,7 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QScrollBar>
+#include <QInputDialog>
 #include "mapscroll.h"
 #include "mapwidget.h"
 #include "dlgattr.h"
@@ -19,7 +20,7 @@
 #include "tilesdata.h"
 #include "dlgstat.h"
 #include "map.h"
-#include <QInputDialog>
+#include "report.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -792,4 +793,34 @@ void MainWindow::on_actionEdit_First_Map_triggered()
         emit mapChanged(m_doc.map());
         updateMenus();
     }
+}
+
+void MainWindow::on_actionFile_Generate_Report_triggered()
+{
+    QStringList filters;
+    QString suffix = "txt";
+    QString fileName = "";
+
+    QFileDialog *dlg = new QFileDialog(this, tr("Generate Report"), "", m_allFilter);
+    dlg->setAcceptMode(QFileDialog::AcceptSave);
+
+    dlg->setNameFilters(filters);
+    dlg->setAcceptMode(QFileDialog::AcceptSave);
+    dlg->setDefaultSuffix(suffix);
+    dlg->selectFile(tr("report.txt"));
+    if (dlg->exec())
+    {
+        QStringList fileNames = dlg->selectedFiles();
+        if (fileNames.count() > 0)
+        {
+            fileName = fileNames[0];
+        }
+    }
+
+    if (!fileName.isEmpty())
+    {
+        generateReport(m_doc, fileName);
+    }
+
+    delete dlg;
 }
