@@ -41,7 +41,8 @@ SOURCES += \
     shared/qtgui/qfilewrap.cpp \
     shared/qtgui/qthelper.cpp \
     tilebox.cpp \
-    tilesdata.cpp
+    tilesdata.cpp \
+    states.cpp
 
 HEADERS += \
     actor.h \
@@ -77,7 +78,8 @@ HEADERS += \
     sprtypes.h \
     tilebox.h \
     tilesdata.h \
-    sounds.h
+    sounds.h \
+    states.h
 
 FORMS += \
     dlgattr.ui \

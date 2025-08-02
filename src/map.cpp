@@ -1,16 +1,36 @@
-#include "map.h"
+/*
+    cs3-runtime-sdl
+    Copyright (C) 2024  Francois Blanchette
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+#include "map.h"
+#include "shared/IFile.h"
+#include "states.h"
 
-static const char SIG[] = "MAPZ";
-static const char XTR_SIG[] = "XTR";
+static const char SIG[]{'M', 'A', 'P', 'Z'};
+static const char XTR_SIG[]{"XTR"};
 static const char XTR_VER = 0;
 static const uint16_t VERSION = 0;
 static const uint16_t MAX_SIZE = 256;
 static const uint16_t MAX_TITLE = 255;
 
-typedef struct  {
+typedef struct
+{
     char sig[3];
     char ver;
 } extrahdr_t;
@@ -28,11 +48,13 @@ CMap::CMap(uint16_t len, uint16_t hei, uint8_t t)
         m_size = m_len * m_hei;
         memset(m_map, t, m_size * sizeof(m_map[0]));
     }
+    m_states = new CStates;
 };
 
 CMap::~CMap()
 {
     forget();
+    delete m_states;
 };
 
 uint8_t &CMap::at(int x, int y)
@@ -60,6 +82,7 @@ void CMap::set(int x, int y, uint8_t t)
 
 void CMap::forget()
 {
+    m_states->clear();
     if (m_map != nullptr)
     {
         delete[] m_map;
@@ -96,77 +119,174 @@ bool CMap::write(const char *fname)
     return tfile != nullptr && result;
 }
 
-bool CMap::read(FILE *sfile)
+bool CMap::read(IFile &file)
 {
-    if (sfile)
+    auto readfile = [&file](auto ptr, auto size)
     {
-        char sig[4];
-        fread(sig, strlen(SIG), 1, sfile);
-        if (memcmp(sig, SIG, strlen(SIG)) != 0)
+        return file.read(ptr, size);
+    };
+
+    char sig[4];
+
+    readfile(sig, sizeof(SIG));
+    if (memcmp(sig, SIG, sizeof(SIG)) != 0)
+    {
+        m_lastError = "signature mismatch";
+        printf("%s\n", m_lastError.c_str());
+        return false;
+    }
+    uint16_t ver = 0;
+    readfile(&ver, sizeof(VERSION));
+    if (ver > VERSION)
+    {
+        m_lastError = "bad version";
+        printf("%s\n", m_lastError.c_str());
+        return false;
+    }
+    uint16_t len = 0;
+    uint16_t hei = 0;
+    readfile(&len, sizeof(uint8_t));
+    readfile(&hei, sizeof(uint8_t));
+    len = len ? len : MAX_SIZE;
+    hei = hei ? hei : MAX_SIZE;
+    resize(len, hei, true);
+    readfile(m_map, len * hei);
+    m_attrs.clear();
+    uint16_t attrCount = 0;
+    readfile(&attrCount, sizeof(attrCount));
+    for (int i = 0; i < attrCount; ++i)
+    {
+        uint8_t x;
+        uint8_t y;
+        uint8_t a;
+        readfile(&x, sizeof(x));
+        readfile(&y, sizeof(y));
+        readfile(&a, sizeof(a));
+        setAttr(x, y, a);
+    }
+
+    // Check for XTR Header
+    extrahdr_t hdr;
+    memset(&hdr, 0, sizeof(hdr));
+    m_title = "";
+    m_states->clear();
+    size_t ptr = file.tell();
+    if (readfile(&hdr, sizeof(hdr)))
+    {
+        if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0))
         {
-            m_lastError = "signature mismatch";
-            printf("%s\n", m_lastError.c_str());
-            return false;
-        }
-        uint16_t ver = 0;
-        fread(&ver, sizeof(VERSION), 1, sfile);
-        if (ver > VERSION)
-        {
-            m_lastError = "bad version";
-            printf("%s\n", m_lastError.c_str());
-            return false;
-        }
-        uint16_t len = 0;
-        uint16_t hei = 0;
-        fread(&len, sizeof(uint8_t), 1, sfile);
-        fread(&hei, sizeof(uint8_t), 1, sfile);
-        len = len ? len : MAX_SIZE;
-        hei = hei ? hei : MAX_SIZE;
-        resize(len, hei, true);
-        fread(m_map, len * hei, 1, sfile);
-        m_attrs.clear();
-        uint16_t attrCount = 0;
-        fread(&attrCount, sizeof(attrCount), 1, sfile);
-        for (int i = 0; i < attrCount; ++i)
-        {
-            uint8_t x;
-            uint8_t y;
-            uint8_t a;
-            fread(&x, sizeof(x), 1, sfile);
-            fread(&y, sizeof(y), 1, sfile);
-            fread(&a, sizeof(a), 1, sfile);
-            setAttr(x, y, a);
-        }
-        extrahdr_t hdr;
-        memset(&hdr, 0, sizeof(hdr));
-        m_title = "";
-        // read title
-        size_t ptr = ftell(sfile);
-        if (fread(&hdr, sizeof(hdr), 1, sfile) != 0) {
-            if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER)) {
-                //printf("reading4: %s %d\n", hdr.sig, hdr.ver);
-                uint16_t size = 0;
-                if (fread(&size,1, 1, sfile) != 0) {
-                    char tmp[MAX_TITLE + 1];
-                    tmp[size] = 0;
-                    if (fread(tmp, size, 1, sfile) != 0) {
-                        m_title = tmp;
-                    }
+            // printf("reading4: %s %d\n", hdr.sig, hdr.ver);
+            // read title
+            uint16_t size = 0;
+            if (readfile(&size, 1))
+            {
+                char tmp[MAX_TITLE + 1];
+                tmp[size] = 0;
+                if (readfile(tmp, size) != 0)
+                {
+                    m_title = tmp;
                 }
             }
-            else
+            // read states
+            if (hdr.ver >= XTR_VER1)
             {
-                // revert back to previous position
-                fseek(sfile, ptr, SEEK_SET);
+                m_states->read(file);
             }
         }
+        else
+        {
+            // revert back to previous position
+            file.seek(ptr);
+        }
     }
-    return sfile != nullptr;
+
+    return true;
+}
+
+bool CMap::read(FILE *sfile)
+{
+    auto readfile = [sfile](auto ptr, auto size)
+    {
+        return fread(ptr, size, 1, sfile) == 1;
+    };
+    char sig[4];
+    readfile(sig, sizeof(SIG));
+    if (memcmp(sig, SIG, sizeof(SIG)) != 0)
+    {
+        m_lastError = "signature mismatch";
+        printf("%s\n", m_lastError.c_str());
+        return false;
+    }
+    uint16_t ver = 0;
+    readfile(&ver, sizeof(VERSION));
+    if (ver > VERSION)
+    {
+        m_lastError = "bad version";
+        printf("%s\n", m_lastError.c_str());
+        return false;
+    }
+    uint16_t len = 0;
+    uint16_t hei = 0;
+    readfile(&len, sizeof(uint8_t));
+    readfile(&hei, sizeof(uint8_t));
+    len = len ? len : MAX_SIZE;
+    hei = hei ? hei : MAX_SIZE;
+    resize(len, hei, true);
+    readfile(m_map, len * hei);
+    m_attrs.clear();
+    uint16_t attrCount = 0;
+    readfile(&attrCount, sizeof(attrCount));
+    for (int i = 0; i < attrCount; ++i)
+    {
+        uint8_t x;
+        uint8_t y;
+        uint8_t a;
+        readfile(&x, sizeof(x));
+        readfile(&y, sizeof(y));
+        readfile(&a, sizeof(a));
+        setAttr(x, y, a);
+    }
+
+    // Check for XTR Header
+    extrahdr_t hdr;
+    memset(&hdr, 0, sizeof(hdr));
+    m_title = "";
+    m_states->clear();
+    size_t ptr = ftell(sfile);
+    if (readfile(&hdr, sizeof(hdr)))
+    {
+        if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0))
+        {
+            // printf("reading4: %s %d\n", hdr.sig, hdr.ver);
+            // read title
+            uint16_t size = 0;
+            if (readfile(&size, 1))
+            {
+                char tmp[MAX_TITLE + 1];
+                tmp[size] = 0;
+                if (readfile(tmp, size) != 0)
+                {
+                    m_title = tmp;
+                }
+            }
+            // read states
+            if (hdr.ver >= XTR_VER1)
+            {
+                m_states->read(sfile);
+            }
+        }
+        else
+        {
+            // revert back to previous position
+            fseek(sfile, ptr, SEEK_SET);
+        }
+    }
+    return true;
 }
 
 bool CMap::fromMemory(uint8_t *mem)
 {
-    if (memcmp(mem, SIG, strlen(SIG)) != 0)
+    if (memcmp(mem, SIG, sizeof(SIG)) != 0)
     {
         m_lastError = "signature mismatch";
         printf("%s\n", m_lastError.c_str());
@@ -205,7 +325,8 @@ bool CMap::fromMemory(uint8_t *mem)
     // read title
     extrahdr_t hdr;
     memcpy(&hdr, ptr, sizeof(hdr));
-    if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER)) {
+    if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER))
+    {
         ptr += sizeof(hdr);
         uint8_t size = *ptr;
         ++ptr;
@@ -221,7 +342,7 @@ bool CMap::write(FILE *tfile)
 {
     if (tfile)
     {
-        fwrite(SIG, strlen(SIG), 1, tfile);
+        fwrite(SIG, sizeof(SIG), 1, tfile);
         fwrite(&VERSION, sizeof(VERSION), 1, tfile);
         fwrite(&m_len, sizeof(uint8_t), 1, tfile);
         fwrite(&m_hei, sizeof(uint8_t), 1, tfile);
@@ -239,16 +360,20 @@ bool CMap::write(FILE *tfile)
             fwrite(&a, sizeof(a), 1, tfile);
         }
 
+        ////        if (!m_title.empty() && m_title.size() < MAX_TITLE)
+        //    {
         // write title
-        if (!m_title.empty() && m_title.size() < MAX_TITLE) {
-            extrahdr_t hdr;
-            memcpy(&hdr.sig, XTR_SIG, sizeof(hdr.sig));
-            hdr.ver = XTR_VER;
-            fwrite(&hdr, sizeof(hdr),1, tfile);
-            int size = m_title.size();
-            fwrite(&size,1, 1, tfile);
-            fwrite(m_title.c_str(), m_title.size(), 1, tfile);
-        }
+        extrahdr_t hdr;
+        memcpy(&hdr.sig, XTR_SIG, sizeof(hdr.sig));
+        hdr.ver = XTR_VER1;
+        fwrite(&hdr, sizeof(hdr), 1, tfile);
+        int size = m_title.size();
+        fwrite(&size, 1, 1, tfile);
+        fwrite(m_title.c_str(), m_title.size(), 1, tfile);
+
+        // write states
+        m_states->write(tfile);
+        //  }
     }
     return tfile != nullptr;
 }
@@ -388,6 +513,7 @@ CMap &CMap::operator=(const CMap &map)
     m_map = new uint8_t[m_size];
     memcpy(m_map, map.m_map, m_size);
     m_attrs = map.m_attrs;
+    m_title = map.m_title;
     return *this;
 }
 
@@ -481,12 +607,17 @@ void CMap::debug()
     }
 }
 
-const char * CMap::title()
+const char *CMap::title()
 {
     return m_title.c_str();
 }
 
-void  CMap::setTitle(const char *title)
+void CMap::setTitle(const char *title)
 {
     m_title = title;
+}
+
+CStates &CMap::states()
+{
+    return *m_states;
 }

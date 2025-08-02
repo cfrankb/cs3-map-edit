@@ -1,10 +1,27 @@
+/*
+    cs3-runtime-sdl
+    Copyright (C) 2024  Francois Blanchette
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#include <cstring>
 #include "maparch.h"
 #include "map.h"
 #include "level.h"
-#include <cstdio>
-#include <cstring>
+#include "shared/IFile.h"
 
-const char MAAZ_SIG[] = "MAAZ";
+constexpr const char MAAZ_SIG[]{'M', 'A', 'A', 'Z'};
 const uint16_t MAAZ_VERSION = 0;
 
 CMapArch::CMapArch()
@@ -12,6 +29,7 @@ CMapArch::CMapArch()
     m_max = GROW_BY;
     m_size = 0;
     m_maps = new CMap *[m_max];
+    memset(m_maps, 0, sizeof(CMap *) * m_max);
 }
 
 CMapArch::~CMapArch()
@@ -35,7 +53,8 @@ void CMapArch::forget()
     {
         for (int i = 0; i < m_size; ++i)
         {
-            delete m_maps[i];
+            if (m_maps[i])
+                delete m_maps[i];
         }
         delete[] m_maps;
         m_maps = nullptr;
@@ -93,6 +112,58 @@ CMap *CMapArch::at(int i)
     return m_maps[i];
 }
 
+bool CMapArch::read(IFile &file)
+{
+    auto readfile = [&file](auto ptr, auto size)
+    {
+        return file.read(ptr, size);
+    };
+
+    typedef struct
+    {
+        uint8_t sig[4];
+        uint16_t version;
+        uint16_t count;
+        uint32_t offset;
+    } Header;
+
+    Header hdr;
+    // read header
+    readfile(&hdr, 12);
+    // check signature
+    if (memcmp(hdr.sig, MAAZ_SIG, sizeof(MAAZ_SIG)) != 0)
+    {
+        m_lastError = "MAAZ signature is incorrect";
+        return false;
+    }
+    // check version
+    if (hdr.version != MAAZ_VERSION)
+    {
+        m_lastError = "MAAZ Version is incorrect";
+        return false;
+    }
+    // read index
+    file.seek(hdr.offset);
+    uint32_t *indexPtr = new uint32_t[hdr.count];
+    readfile(indexPtr, 4 * hdr.count);
+    forget();
+    m_maps = new CMap *[hdr.count];
+    m_size = hdr.count;
+    m_max = m_size;
+    // read levels
+    for (int i = 0; i < hdr.count; ++i)
+    {
+        file.seek(indexPtr[i]);
+        m_maps[i] = new CMap();
+        if (!m_maps[i]->read(file))
+        {
+            return false;
+        }
+    }
+    delete[] indexPtr;
+    return true;
+}
+
 bool CMapArch::read(const char *filename)
 {
     // read levelArch
@@ -105,13 +176,17 @@ bool CMapArch::read(const char *filename)
     } Header;
 
     FILE *sfile = fopen(filename, "rb");
+    auto readfile = [sfile](auto ptr, auto size)
+    {
+        return fread(ptr, size, 1, sfile) == 1;
+    };
     if (sfile)
     {
         Header hdr;
         // read header
-        fread(&hdr, 12, 1, sfile);
+        readfile(&hdr, sizeof(Header));
         // check signature
-        if (memcmp(hdr.sig, MAAZ_SIG, 4) != 0)
+        if (memcmp(hdr.sig, MAAZ_SIG, sizeof(MAAZ_SIG)) != 0)
         {
             m_lastError = "MAAZ signature is incorrect";
             return false;
@@ -125,7 +200,7 @@ bool CMapArch::read(const char *filename)
         // read index
         fseek(sfile, hdr.offset, SEEK_SET);
         uint32_t *indexPtr = new uint32_t[hdr.count];
-        fread(indexPtr, 4 * hdr.count, 1, sfile);
+        readfile(indexPtr, sizeof(uint32_t) * hdr.count);
         forget();
         m_maps = new CMap *[hdr.count];
         m_size = hdr.count;
@@ -142,7 +217,7 @@ bool CMapArch::read(const char *filename)
     }
     else
     {
-        m_lastError = "can't read file";
+        m_lastError = "can't read file[0]";
     }
     return sfile != nullptr;
 }
@@ -156,7 +231,7 @@ bool CMapArch::write(const char *filename)
     {
         std::vector<long> index;
         // write temp header
-        fwrite(MAAZ_SIG, 4, 1, tfile);
+        fwrite(MAAZ_SIG, sizeof(MAAZ_SIG), 1, tfile);
         fwrite("\0\0\0\0", 4, 1, tfile);
         fwrite("\0\0\0\0", 4, 1, tfile);
         for (int i = 0; i < m_size; ++i)
@@ -199,16 +274,20 @@ const char *CMapArch::signature()
 bool CMapArch::extract(const char *filename)
 {
     FILE *sfile = fopen(filename, "rb");
+    auto readfile = [sfile](auto ptr, auto size)
+    {
+        return fread(ptr, size, 1, sfile) == 1;
+    };
     if (!sfile)
     {
         m_lastError = "can't read header";
         return false;
     }
     char sig[4];
-    fread(sig, 4, 1, sfile);
+    readfile(sig, 4);
     fclose(sfile);
 
-    if (memcmp(sig, MAAZ_SIG, 4) == 0)
+    if (memcmp(sig, MAAZ_SIG, sizeof(MAAZ_SIG)) == 0)
     {
         return read(filename);
     }
@@ -230,18 +309,22 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     } Header;
 
     FILE *sfile = fopen(filename, "rb");
+    auto readfile = [sfile](auto ptr, auto size)
+    {
+        return fread(ptr, size, 1, sfile) == 1;
+    };
     if (sfile)
     {
         Header hdr;
-        fread(&hdr, 12, 1, sfile);
+        readfile(&hdr, sizeof(Header));
         // check signature
-        if (memcmp(hdr.sig, MAAZ_SIG, 4) != 0)
+        if (memcmp(hdr.sig, MAAZ_SIG, sizeof(MAAZ_SIG)) != 0)
         {
             return false;
         }
         fseek(sfile, hdr.offset, SEEK_SET);
         uint32_t *indexPtr = new uint32_t[hdr.count];
-        fread(indexPtr, 4 * hdr.count, 1, sfile);
+        readfile(indexPtr, sizeof(uint32_t) * hdr.count);
         index.clear();
         for (int i = 0; i < hdr.count; ++i)
         {
