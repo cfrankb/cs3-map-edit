@@ -40,7 +40,7 @@ jobs:
           git fetch --all --tags -f
 
       - name: Download JOM
-        uses: suisei-cn/actions-download-file@v1.4.0
+        uses: suisei-cn/actions-download-file@v1.6.0
         with:
           url: http://download.qt.io/official_releases/jom/jom.zip
           target: ${{ runner.temp }}\
@@ -63,7 +63,7 @@ jobs:
           dir /w zlib
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
           host: ${{ env.HOST }}
