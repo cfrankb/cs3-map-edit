@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - "master"
-      - "continuous-integration"
+     # - "continuous-integration"
     tags:
       - "v*"
   pull_request:
     branches:
       - "master"
-      - "continuous-integration"
+     # - "continuous-integration"
 
 defaults:
   run:
@@ -20,7 +20,7 @@ env:
   BUILD_TYPE: Release
   SOURCE_DIR: ${{ github.workspace }}
   #QT_VERSION: 6.5.3
-  QT_VERSION: 6.8.1
+  QT_VERSION: 6.7.1
   ARTIFACT: CS3MapEdit_Win64
   ARCH: win64_msvc2019_64
   HOST: windows
@@ -136,3 +136,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ runner.temp }}\build\release
+          expire_in: 1 week

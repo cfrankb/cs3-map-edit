@@ -19,8 +19,8 @@ defaults:
 
 env:
   SOURCE_DIR: ${{ github.workspace }}
-  #QT_VERSION: 6.5.3
-  QT_VERSION: 6.8.1
+  QT_VERSION: 6.5.3
+  #QT_VERSION: 6.8.3
   ARTIFACT: "CS3MapEdit-x86_64.AppImage"
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
           submodules: recursive
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
           host: linux
@@ -43,6 +43,8 @@ jobs:
           dir: ${{ runner.temp }}
           #modules: #qtcharts qt3d
           setup-python: false
+
+
 
       - name: Create build directory
         run: mkdir ${{ env.SOURCE_DIR }}/build
@@ -83,3 +85,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ env.SOURCE_DIR }}/build/release
+          expire_in: 1 week

@@ -111,5 +111,5 @@ contains(DEFINES, USE_SDL_MIXER=1){
     SOURCES +=  shared/implementers/sn_sdl.cpp
 }
 
-QMAKE_CXXFLAGS_RELEASE += -std=c++17 -O3
-QMAKE_CXXFLAGS_DEBUG += -std=c++17 -g3
+QMAKE_CXXFLAGS_RELEASE += -std=c++20 -O3
+QMAKE_CXXFLAGS_DEBUG += -std=c++20 -g3
