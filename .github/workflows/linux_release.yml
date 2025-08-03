@@ -19,7 +19,8 @@ defaults:
 
 env:
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 6.5.3
+  #QT_VERSION: 6.5.3
+  QT_VERSION: 6.8.1
   ARTIFACT: "CS3MapEdit-x86_64.AppImage"
 
 jobs:

@@ -17,6 +17,7 @@
 */
 #include "states.h"
 #include "shared/IFile.h"
+#include <format>
 
 CStates::CStates()
 {
@@ -200,5 +201,21 @@ void CStates::debug()
     for (const auto &[k, v] : m_stateS)
     {
         printf("[%d / 0x%.2x] => [%s]\n", k, k, v.c_str());
+    }
+}
+
+void CStates::getValues(std::vector<StateValuePair> & pairs)
+{
+    pairs.clear();
+    //char tmp[16];
+    for (const auto &[k, v] : m_stateU)
+    {
+        //sprintf(tmp, "0x%.2x", v);
+        pairs.push_back({k, v ? std::format("0x{:02x}", v) : ""});
+    }
+
+    for (const auto &[k, v] : m_stateS)
+    {
+        pairs.push_back({k, v});
     }
 }

@@ -2,7 +2,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++17
+CONFIG += c++20
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -42,7 +42,9 @@ SOURCES += \
     shared/qtgui/qthelper.cpp \
     tilebox.cpp \
     tilesdata.cpp \
-    states.cpp
+    states.cpp \
+    statedata.cpp \
+    keyvaluedialog.cpp
 
 HEADERS += \
     actor.h \
@@ -79,7 +81,9 @@ HEADERS += \
     tilebox.h \
     tilesdata.h \
     sounds.h \
-    states.h
+    states.h \
+    statedata.h \
+    keyvaluedialog.h
 
 FORMS += \
     dlgattr.ui \

@@ -81,6 +81,8 @@
     <addaction name="actionEdit_Insert_Map"/>
     <addaction name="actionClear_Map"/>
     <addaction name="actionEdit_Delete_Map"/>
+    <addaction name="separator"/>
+    <addaction name="actionEdit_Map_States"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -447,6 +449,11 @@
   <action name="actionFile_Generate_Report">
    <property name="text">
     <string>Generate Report</string>
+   </property>
+  </action>
+  <action name="actionEdit_Map_States">
+   <property name="text">
+    <string>Map States</string>
    </property>
   </action>
  </widget>

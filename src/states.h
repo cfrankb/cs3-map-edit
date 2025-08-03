@@ -21,6 +21,14 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
+
+struct StateValuePair
+{
+    uint16_t key;
+    std::string value;
+};
+
 
 class IFile;
 
@@ -43,6 +51,8 @@ public:
 
     void debug();
     void clear();
+
+    void getValues(std::vector<StateValuePair> & pairs);
 
 private:
     std::unordered_map<uint16_t, std::string> m_stateS;

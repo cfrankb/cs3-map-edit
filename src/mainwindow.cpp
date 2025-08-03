@@ -21,6 +21,8 @@
 #include "dlgstat.h"
 #include "map.h"
 #include "report.h"
+#include "keyvaluedialog.h"
+#include "statedata.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -823,4 +825,32 @@ void MainWindow::on_actionFile_Generate_Report_triggered()
     }
 
     delete dlg;
+}
+
+void MainWindow::on_actionEdit_Map_States_triggered()
+{
+    CStates & states = m_doc.map()->states();
+    //states.setU(TIMEOUT, 111);
+    //states.setS(MSG1,"Welcome");
+    //states.setS(MSG2,"Game Over");
+    //states.setS(MSG3,"Too Bad");
+    KeyValueDialog dialog(this);
+    std::vector<StateValuePair> data;
+    states.getValues(data);
+    dialog.populateData(data);
+    if (dialog.exec() == QDialog::Accepted) {
+        m_doc.setDirty(true);
+        const auto pairs = dialog.getKeyValuePairs();
+        // Process the key-value pairs
+        for (size_t i=0; i < pairs.size(); ++i) {
+            auto& p = pairs[i];
+            if (KeyValueDialog::getOptionType(p.key)== TYPE_U) {
+                bool ok;
+                uint16_t value = KeyValueDialog::parseStringToUint16(p.value, ok);
+                states.setU(p.key, value);
+            } else if (KeyValueDialog::getOptionType(p.key)== TYPE_S) {
+                states.setS(p.key, p.value);
+            }
+        }
+    }
 }

@@ -19,7 +19,8 @@ defaults:
 env:
   BUILD_TYPE: Release
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 6.5.3
+  #QT_VERSION: 6.5.3
+  QT_VERSION: 6.8.1
   ARTIFACT: CS3MapEdit_Win64
   ARCH: win64_msvc2019_64
   HOST: windows

@@ -60,6 +60,8 @@ private slots:
     void showStatDialog();
     void on_actionFile_Generate_Report_triggered();
 
+    void on_actionEdit_Map_States_triggered();
+
 private:
     virtual void closeEvent(QCloseEvent *event) override;
     bool maybeSave();
