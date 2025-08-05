@@ -58,7 +58,7 @@ void KeyValueDialog::syncComboBoxes()
     for (const auto &comboBox : m_comboBoxes)
     {
         connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, [=](int index)
+                this, [&](int index)
                 { handleComboBoxIndexChanged(i, index); });
         ++i;
     }
@@ -73,6 +73,7 @@ void KeyValueDialog::populateData(const std::vector<StateValuePair> &data)
         int index = comboBox->findData(data[i].key);
         if (index == -1)
         {
+            // add hex value for keys not in list
             char tmp[16];
             sprintf(tmp, "%.2x", data[i].key);
             comboBox->addItem(QString("%1").arg(tmp), data[i].key);
@@ -83,6 +84,7 @@ void KeyValueDialog::populateData(const std::vector<StateValuePair> &data)
         m_tableWidget->setCellWidget(i, 0, comboBox);
 
         QTableWidgetItem *valueItem = new QTableWidgetItem(data[i].value.c_str());
+        valueItem->setToolTip(data[i].tip.c_str());
         m_tableWidget->setItem(i, 1, valueItem);
     }
     syncComboBoxes();
@@ -124,7 +126,7 @@ std::vector<StateValuePair> KeyValueDialog::getKeyValuePairs() const
         if (comboBox && valueItem)
         {
             pairs.push_back({static_cast<uint16_t>(comboBox->currentData().toUInt()),
-                             valueItem->text().toStdString()});
+                             valueItem->text().toStdString(), ""});
         }
     }
     return pairs;
@@ -142,6 +144,12 @@ void KeyValueDialog::validateRow(int row)
         {
             bool ok;
             uint16_t value = parseStringToUint16(widget->text().toStdString().c_str(), ok);
+
+            // show tooltip
+            char tmp[32];
+            sprintf(tmp, "0x%.2x [%d]", value, value);
+            widget->setToolTip(tmp);
+
             // widget->text().toUShort(&ok);
             Q_UNUSED(value);
           //  qDebug("key: %u  / value :%u", key, value);
@@ -158,6 +166,7 @@ void KeyValueDialog::validateRow(int row)
         }
         else if (type == TYPE_S)
         {
+            widget->setToolTip("");
             widget->setBackground(QBrush());
             auto value = widget->text().toStdString();
          //   qDebug("key: %u  / value :%s", key, value.c_str());

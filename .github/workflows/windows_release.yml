@@ -136,4 +136,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ runner.temp }}\build\release
-          expire_in: 1 week
+          retention-days: 7

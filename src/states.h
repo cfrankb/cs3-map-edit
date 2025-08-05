@@ -20,15 +20,15 @@
 #include <cstdio>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 #include <vector>
+#include <unordered_map>
 
 struct StateValuePair
 {
     uint16_t key;
     std::string value;
+    std::string tip;
 };
-
 
 class IFile;
 
@@ -52,7 +52,8 @@ public:
     void debug();
     void clear();
 
-    void getValues(std::vector<StateValuePair> & pairs);
+    void getValues(std::vector<StateValuePair> &pairs);
+    void operator=(const CStates &s);
 
 private:
     std::unordered_map<uint16_t, std::string> m_stateS;

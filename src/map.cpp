@@ -514,6 +514,7 @@ CMap &CMap::operator=(const CMap &map)
     memcpy(m_map, map.m_map, m_size);
     m_attrs = map.m_attrs;
     m_title = map.m_title;
+    *m_states = *map.m_states;
     return *this;
 }
 
