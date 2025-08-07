@@ -697,7 +697,8 @@ bool processSection(
     StringVector &files,
     MapStrVal &constConfig,
     const AppSettings &appSettings,
-    Palette &colors)
+    Palette &colors,
+    int &errors)
 {
     bool useTileDefs = false;
     const std::string sectionName = formatTitleName(section.c_str());
@@ -776,6 +777,7 @@ bool processSection(
         else
         {
             printf("failed to open: %s\n", fname);
+            ++errors;
         }
     }
 
@@ -883,6 +885,9 @@ bool processSection(
         printf("palette: %lu\n", colors.size());
     }
 
+    if (errors)
+        printf("\n===>>>>> %d errors\n\n", errors);
+
     printf("\n");
     return true;
 }
@@ -935,6 +940,7 @@ bool writePalette(const std::string &lastTileSet,
 bool runJob(const char *src,
             const AppSettings &appSettings)
 {
+    int total_errors = 0;
     Config conf;
     Palette colors;
     std::string lastTileSet;
@@ -953,6 +959,7 @@ bool runJob(const char *src,
 
         for (int i = 0; i < sectionList.size(); ++i)
         {
+            int errors = 0;
             std::string sectionName = sectionList[i];
             StringVector files = conf[sectionName];
             if (sectionRefs.count(sectionName) != 0)
@@ -966,18 +973,22 @@ bool runJob(const char *src,
             else
             {
                 lastTileSet = sectionName;
-                puts(sectionName.c_str());
+                printf("[%s]\n", sectionName.c_str());
                 processSection(
                     sectionName,
                     files,
                     constConfig,
                     appSettings,
-                    colors);
+                    colors, 
+                    errors);
+                 total_errors += errors;
             }
         }
         writeConstFile(constLists);
     }
     writePalette(lastTileSet, colors);
+
+    printf("\n****>>>> total errors: %d\n", total_errors);
     return result;
 }
 

@@ -4,7 +4,7 @@ LIBS=-lm -lz
 BPATH=build
 EXT=.o
 TARGET=$(BPATH)/mcxz
-DEPS=$(BPATH)/main$(EXT) $(BPATH)/map$(EXT) $(BPATH)/tileset$(EXT) $(BPATH)/FileWrap$(EXT) $(BPATH)/Frame$(EXT) $(BPATH)/FrameSet$(EXT) $(BPATH)/PngMagic$(EXT) $(BPATH)/DotArray$(EXT) $(BPATH)/helper$(EXT)
+DEPS=$(BPATH)/main$(EXT) $(BPATH)/map$(EXT) $(BPATH)/tileset$(EXT) $(BPATH)/FileWrap$(EXT) $(BPATH)/Frame$(EXT) $(BPATH)/FrameSet$(EXT) $(BPATH)/PngMagic$(EXT) $(BPATH)/DotArray$(EXT) $(BPATH)/helper$(EXT) $(BPATH)/states$(EXT)
 
 all: $(TARGET)
 
@@ -33,6 +33,9 @@ $(BPATH)/DotArray$(EXT): ../../shared/DotArray.cpp ../../shared/DotArray.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BPATH)/helper$(EXT): ../../shared/helper.cpp ../../shared/helper.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BPATH)/states$(EXT): ../../states.cpp ../../states.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGET): $(DEPS)
