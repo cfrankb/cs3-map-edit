@@ -44,7 +44,7 @@ void CTileBox::setupToolbox(){
         };
         uint8_t icons[] = {
             TILES_PLANTS, TILES_ANNIE2, TILES_WALLS93_2,
-            TILES_CHEST, TILES_OCTOPUS, TILES_HEARTDOOR
+            TILES_CHEST, TILES_OCTOPUS, TILES_DOOR01
         };
 
         const int tabCount = sizeof(icons);

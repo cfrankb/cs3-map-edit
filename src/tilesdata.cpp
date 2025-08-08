@@ -53,11 +53,11 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "thisway.obl"},       // 2d TILES_THISWAY_2
     {0x00, TYPE_PICKUP, 3, 0, 0, 0, false, "fruit1.obl"},       // 2e TILES_FRUIT1
     {0x00, TYPE_PICKUP, 15, 8, 0, 0, false, "neckless.obl"},    // 2f TILES_NECKLESS
-    {0x00, TYPE_PICKUP, 20, 0, 0, 0, false, "apple.obl"},       // 30 TILES_APPLE
+    {0x00, TYPE_PICKUP, 20, 0, 0, 0, false, "apple.png"},       // 30 TILES_APPLE
     {0x00, TYPE_PICKUP, 12, 0, 0, 0, false, "book.obl"},        // 31 TILES_BOOK
     {0x00, TYPE_PICKUP, 30, 0, 0, 0, false, "ballon1.obl"},     // 32 TILES_BALLON1
-    {0x00, TYPE_PICKUP, 5, 0, 0, 0, true, "carotte.obl"},       // 33 TILES_CAROTTE
-    {0x00, TYPE_PICKUP, 5, 0, 0, 0, true, "carotte.obl"},       // 34 TILES_CAROTTE_2
+    {0x00, TYPE_PICKUP, 5, 0, 0, 0, false, "strawberry.png"},   // 33 TILES_STRAWBERRY
+    {0x00, TYPE_PICKUP, 5, 0, 0, 0, false, "kiwi.png"},         // 34 TILES_KIWI
     {0x00, TYPE_PICKUP, 50, 0, 0, 0, false, "chest.obl"},       // 35 TILES_CHEST
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "statue.obl"},        // 36 TILES_STATUE
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "tomb.obl"},          // 37 TILES_TOMB
@@ -69,10 +69,10 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pot.obl"},           // 3d TILES_POT
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pot.obl"},           // 3e TILES_POT_2
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "jar1.obl"},          // 3f TILES_JAR1
-    {0x00, TYPE_PICKUP, 16, 0, 0, 0, false, "watermel.obl"},    // 40 TILES_WATERMEL
+    {0x00, TYPE_PICKUP, 16, 0, 0, 0, false, "watermelon.png"},  // 40 TILES_WATERMELON
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},       // 41 TILES_BOULDER
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},       // 42 TILES_BOULDER_2
-    {0x00, TYPE_PICKUP, 21, 0, 0, 0, false, "magicbox.obl"},    // 43 TILES_MAGICBOX
+    {0x00, TYPE_PICKUP, 21, 0, 0, 0, false, "giftbox.png"},     // 43 TILES_GIFTBOX
     {0x00, TYPE_PICKUP, 40, 0, 0, 0, false, "magicbot.obl"},    // 44 TILES_MAGICBOT
     {0x00, TYPE_PICKUP, 22, 0, 0, 0, false, "lightbul.obl"},    // 45 TILES_LIGHTBUL
     {0x00, TYPE_PICKUP, 9, 0, 0, 0, false, "1st_aid.obl"},      // 46 TILES_1ST_AID
@@ -83,19 +83,19 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "vials.obl"},       // 4b TILES_VIALS_3
     {0x00, TYPE_PICKUP, 4, 0, 0, 0, false, "poire.obl"},        // 4c TILES_POIRE
     {0x00, TYPE_PICKUP, 45, 0, 0, 0, false, "clover.obl"},      // 4d TILES_CLOVER
-    {0x00, TYPE_PICKUP, 32, 0, 0, 0, false, "pumpkin.obl"},     // 4e TILES_PUMPKIN
+    {0x00, TYPE_PICKUP, 32, 0, 0, 0, false, "cherry.png"},      // 4e TILES_CHERRY
     {0x00, TYPE_PICKUP, 45, 4, 0, 0, false, "flowers.obl"},     // 4f TILES_FLOWERS
     {0x00, TYPE_PICKUP, 35, 4, 0, 0, false, "flowers.obl"},     // 50 TILES_FLOWERS_2
-    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "heartdoor.obl"},      // 51 TILES_HEARTDOOR
-    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "heartkey.obl"},       // 52 TILES_HEARTKEY
-    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "graydoor.obl"},       // 53 TILES_GRAYDOOR
-    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "graykey.obl"},        // 54 TILES_GRAYKEY
-    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "popdoor.obl"},        // 55 TILES_POPDOOR
-    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "popkey.obl"},         // 56 TILES_POPKEY
-    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "reddoor.obl"},        // 57 TILES_REDDOOR
-    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "redkey.obl"},         // 58 TILES_REDKEY
-    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "yeldoor.obl"},        // 59 TILES_YELDOOR
-    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "yelkey.obl"},         // 5a TILES_YELKEY
+    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "door03.png"},         // 51 TILES_DOOR03
+    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "key03.png"},          // 52 TILES_KEY03
+    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "door01.png"},         // 53 TILES_DOOR01
+    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "key01.png"},          // 54 TILES_KEY01
+    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "door02.png"},         // 55 TILES_DOOR02
+    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "key02.png"},          // 56 TILES_KEY02
+    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "door06.png"},         // 57 TILES_DOOR06
+    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "key06.png"},          // 58 TILES_KEY06
+    {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "door04.png"},         // 59 TILES_DOOR04
+    {0x00, TYPE_KEY, 50, 0, 0, 0, false, "key04.png"},          // 5a TILES_KEY04
     {0x00, TYPE_SWAMP, 0, -1, 0, 0, false, "swamp.obl"},        // 5b TILES_SWAMP
     {0x00, TYPE_DIAMOND, 10, 6, 0, 0, false, "diamond.obl"},    // 5c TILES_DIAMOND
     {0x00, TYPE_PICKUP, 99, 20, 0, 0, false, "triforce.obl"},   // 5d TILES_TRIFORCE
@@ -133,14 +133,14 @@ const uint8_t chMap[] = {
     0x00, 0x00, 0x44, 0x46, 0x0b, 0x00, 0x0a, 0x63,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x0c, 0x2c, 0x05, 0x2d, 0x43,
-    0x4f, 0x60, 0x32, 0x34, 0x62, 0x00, 0x50, 0x35,
-    0x51, 0x00, 0x3f, 0x11, 0x00, 0x68, 0x00, 0x5e,
-    0x02, 0x0f, 0x57, 0x48, 0x5d, 0x12, 0x00, 0x0e,
-    0x0d, 0x59, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x64,
-    0x00, 0x30, 0x31, 0x33, 0x00, 0x00, 0x00, 0x4c,
-    0x52, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
-    0x24, 0x71, 0x58, 0x01, 0x37, 0x00, 0x6d, 0x40,
-    0x00, 0x5a, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
+    0x4f, 0x60, 0x32, 0x00, 0x62, 0x00, 0x50, 0x35,
+    0x00, 0x00, 0x3f, 0x11, 0x00, 0x68, 0x00, 0x5e,
+    0x02, 0x0f, 0x00, 0x48, 0x5d, 0x12, 0x00, 0x0e,
+    0x0d, 0x00, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x64,
+    0x00, 0x30, 0x31, 0x00, 0x00, 0x00, 0x00, 0x4c,
+    0x00, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
+    0x24, 0x71, 0x00, 0x01, 0x37, 0x00, 0x6d, 0x40,
+    0x00, 0x00, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
 };
 
 uint8_t getChTile(const uint8_t i)
