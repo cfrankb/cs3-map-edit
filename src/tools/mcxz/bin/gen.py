@@ -46,9 +46,9 @@ def get_deps_blocks():
 
 def main():
     vars = [
-        'CXX=g++',
+        'CXX=g++ --std=c++20 -Wall',
         'CXXFLAGS=-g  -DQT_NOT_WANTED',
-        'LIBS=-lm -lz',
+        'LIBS=-lm -lz -lminizip',
         'BPATH=build',
         'EXT=.o',
         'TARGET=$(BPATH)/mcxz'

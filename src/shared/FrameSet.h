@@ -61,7 +61,6 @@ public:
     void forget();
     void removeAll ();
     bool extract (IFile & file, char *format=nullptr);
-    bool extractPNG(IFile & file);
 
     static char *ima2bitmap(char *ImaData, int len, int hei);
     static void bitmap2rgb(char *bitmap, uint32_t *rgb, int len, int hei, int err);
