@@ -1,24 +1,42 @@
+/*
+    cs3-runtime-sdl
+    Copyright (C) 2024  Francois Blanchette
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "animator.h"
 #include "tilesdata.h"
 #include "animzdata.h"
 #include <cstring>
 
 CAnimator::animzSeq_t CAnimator::m_animzSeq[] = {
-    {TILES_DIAMOND, ANIMZ_DIAMOND, 13},
-    {TILES_INSECT1, ANIMZ_INSECT1_DN, 8},
-    {TILES_SWAMP, ANIMZ_SWAMP, 2},
-    {TILES_ALPHA, ANIMZ_ALPHA, 2},
-    {TILES_FORCEF94, ANIMZ_FORCEF94, 8},
-    {TILES_VAMPLANT, ANIMZ_VAMPLANT, 2},
-    {TILES_ORB, ANIMZ_ORB, 4},
-    {TILES_TEDDY93, ANIMZ_TEDDY93, 2},
-    {TILES_LUTIN, ANIMZ_LUTIN, 2},
-    {TILES_OCTOPUS, ANIMZ_OCTOPUS, 2},
-    {TILES_TRIFORCE, ANIMZ_TRIFORCE, 4},
-    {TILES_YAHOO, ANIMZ_YAHOO, 2},
-    {TILES_YIGA, ANIMZ_YIGA, 2},
-    {TILES_YELKILLER, ANIMZ_YELKILLER, 2},
-    {TILES_MANKA, ANIMZ_MANKA, 2},
+    {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN},
+    {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN},
+    {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN},
+    {TILES_ALPHA, ANIMZ_ALPHA, ANIMZ_ALPHA_LEN},
+    {TILES_FORCEF94, ANIMZ_FORCEF94, ANIMZ_FORCEF94_LEN},
+    {TILES_VAMPLANT, ANIMZ_VAMPLANT, ANIMZ_VAMPLANT_LEN},
+    {TILES_ORB, ANIMZ_ORB, ANIMZ_ORB_LEN},
+    {TILES_TEDDY93, ANIMZ_TEDDY93, ANIMZ_TEDDY93_LEN},
+    {TILES_LUTIN, ANIMZ_LUTIN, ANIMZ_LUTIN_LEN},
+    {TILES_OCTOPUS, ANIMZ_OCTOPUS, ANIMZ_OCTOPUS_LEN},
+    {TILES_TRIFORCE, ANIMZ_TRIFORCE, ANIMZ_TRIFORCE_LEN},
+    {TILES_YAHOO, ANIMZ_YAHOO, ANIMZ_YAHOO_LEN},
+    {TILES_YIGA, ANIMZ_YIGA, ANIMZ_YIGA_LEN},
+    {TILES_YELKILLER, ANIMZ_YELKILLER, ANIMZ_YELKILLER_LEN},
+    {TILES_MANKA, ANIMZ_MANKA, ANIMZ_MANKA_LEN},
+    //  {TILES_DEVIL, ANIMZ_DEVIL, ANIMZ_DEVIL_LEN},
 };
 
 CAnimator::CAnimator()

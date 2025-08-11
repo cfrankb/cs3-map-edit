@@ -1,12 +1,14 @@
 # cs3-map-edit
 
+This is the official Map Editor for Creepspread III.
+
 ## Map Editor for CS3
 
-![alt text](images/Screenshot_2023-12-20_04-26-38.png)
+![alt text](images/Screenshot_2025-08-11_00-03-51.png)
 
 ### Preview map in the editor.
 
-![alt text](images/Screenshot_2023-12-20_04-29-08.png)
+![alt text](images/Screenshot_2025-08-11_00-05-50.png)
 
 ### Runtimes available
 
