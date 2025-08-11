@@ -84,7 +84,7 @@ const TileDef & getTileDef(int i);
 #define TILES_THISWAY        0x2c
 #define TILES_THISWAY_2      0x2d
 #define TILES_FRUIT1         0x2e
-#define TILES_NECKLESS       0x2f
+#define TILES_AMULET1        0x2f
 #define TILES_APPLE          0x30
 #define TILES_REDBOOK        0x31
 #define TILES_JELLYJAR       0x32
@@ -108,12 +108,12 @@ const TileDef & getTileDef(int i);
 #define TILES_MAGICBOT       0x44
 #define TILES_LIGHTBUL       0x45
 #define TILES_1ST_AID        0x46
-#define TILES_ROPE           0x47
+#define TILES_SCROLL1        0x47
 #define TILES_SHIELD         0x48
-#define TILES_VIALS          0x49
-#define TILES_VIALS_2        0x4a
-#define TILES_VIALS_3        0x4b
-#define TILES_POIRE          0x4c
+#define TILES_POTION1        0x49
+#define TILES_POTION2        0x4a
+#define TILES_POTION3        0x4b
+#define TILES_PEAR           0x4c
 #define TILES_CLOVER         0x4d
 #define TILES_CHERRY         0x4e
 #define TILES_FLOWERS        0x4f
@@ -153,4 +153,3 @@ const TileDef & getTileDef(int i);
 #define TILES_WHTEWORM       0x71
 #define TILES_ETURTLE        0x72
 #define TILES_DRAGO          0x73
-#define TILES_LEFTBIRD       0x74

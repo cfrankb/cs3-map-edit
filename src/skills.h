@@ -1,6 +1,6 @@
 /*
     cs3-runtime-sdl
-    Copyright (C) 2025 Francois Blanchette
+    Copyright (C) 2024  Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,19 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-enum SoundFx
-{
-    SOUND_NONE,
-    SOUND_GRUUP,
-    SOUND_KEY,
-    SOUND_0009,
-    SOUND_COIN1,
-    SOUND_OUCHFAST,
-    SOUND_POUF,
-    SOUND_POW,
-    SOUND_POWERUP,
-    SOUND_POWERUP2,
-    SOUND_POWERUP3,
-    SOUND_BONUS,
-    SOUND_BEEP,
-};
+#define SKILL_EASY 0
+#define SKILL_NORMAL 1
+#define SKILL_HARD 2
+#define SKILL_MAX SKILL_HARD

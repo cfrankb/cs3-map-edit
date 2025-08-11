@@ -44,7 +44,9 @@ SOURCES += \
     tilesdata.cpp \
     states.cpp \
     statedata.cpp \
-    keyvaluedialog.cpp
+    keyvaluedialog.cpp \
+    chars.cpp \
+    recorder.cpp
 
 HEADERS += \
     actor.h \
@@ -83,7 +85,11 @@ HEADERS += \
     sounds.h \
     states.h \
     statedata.h \
-    keyvaluedialog.h
+    keyvaluedialog.h \
+    skills.h \
+    events.h \
+    chars.h \
+    recorder.h
 
 FORMS += \
     dlgattr.ui \

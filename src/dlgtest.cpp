@@ -82,13 +82,21 @@ void CDlgTest::paintEvent(QPaintEvent *)
     CFrame bitmap(WIDTH, HEIGHT);
     switch (m_game->mode())
     {
-    case CGame::MODE_INTRO:
+    case CGame::MODE_TIMEOUT:
+    case CGame::MODE_LEVEL_INTRO:
     case CGame::MODE_RESTART:
     case CGame::MODE_GAMEOVER:
         drawLevelIntro(bitmap);
         break;
-    case CGame::MODE_LEVEL:
+    case CGame::MODE_PLAY:
         drawScreen(bitmap);
+        break;
+    case CGame::MODE_CLICKSTART:
+    case CGame::MODE_HELP:
+    case CGame::MODE_IDLE:
+    case CGame::MODE_HISCORES:
+    case CGame::MODE_TITLE:
+        break;
     }
 
     // show the screen
@@ -188,3 +196,6 @@ void CDlgTest::preloadAssets()
     }
 #endif
 }
+
+
+

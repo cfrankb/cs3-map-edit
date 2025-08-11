@@ -1,48 +1,69 @@
-#ifndef __ACTOR__H
-#define __ACTOR__H
-#include <stdint.h>
+/*
+    cs3-runtime-sdl
+    Copyright (C) 2024  Francois Blanchette
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#pragma once
+#include <stdio.h>
+#include <cstdint>
 #include "map.h"
 
-enum JoyAim
+enum JoyAim : uint8_t
 {
     AIM_UP = 0,
     AIM_DOWN = 1,
     AIM_LEFT = 2,
     AIM_RIGHT = 3,
-    AIM_NONE = -1
+    TOTAL_AIMS = 4,
+    AIM_NONE = 0xff,
 };
+
+JoyAim operator^=(JoyAim &aim, int i);
 
 class CActor
 {
 
 public:
-    CActor(uint8_t x = 0, uint8_t y = 0, uint8_t type = 0, uint8_t aim = 0);
-    CActor(const Pos &pos, uint8_t type = 0, uint8_t aim = 0);
+    CActor(const uint8_t x = 0, const uint8_t y = 0, const uint8_t type = 0, const JoyAim aim = AIM_UP);
+    CActor(const Pos &pos, uint8_t type = 0, JoyAim aim = AIM_UP);
     ~CActor();
 
-    bool canMove(int aim);
-    void move(const int aim);
+    bool canMove(const JoyAim aim);
+    void move(const JoyAim aim);
     uint8_t getX() const;
     uint8_t getY() const;
     uint8_t getPU() const;
     void setPU(const uint8_t c);
     void setXY(const Pos &pos);
-    uint8_t getAim() const;
-    void setAim(const uint8_t aim);
-    int findNextDir();
-    bool isPlayerThere(uint8_t aim);
-    uint8_t tileAt(uint8_t aim);
+    JoyAim getAim() const;
+    void setAim(const JoyAim aim);
+    JoyAim findNextDir(const bool reverse = false);
+    bool isPlayerThere(JoyAim aim) const;
+    uint8_t tileAt(JoyAim aim) const;
     void setType(const uint8_t type);
-    bool within(int x1, int y1, int x2, int y2) const;
+    bool within(const int x1, const int y1, const int x2, const int y2) const;
+    bool read(FILE *sfile);
+    bool write(FILE *tfile);
+    void reverveDir();
 
-protected:
+private:
     uint8_t m_x;
     uint8_t m_y;
     uint8_t m_type;
-    uint8_t m_aim;
+    JoyAim m_aim;
     uint8_t m_pu;
 
     friend class CGame;
 };
-
-#endif

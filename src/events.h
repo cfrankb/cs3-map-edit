@@ -16,19 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-enum SoundFx
-{
-    SOUND_NONE,
-    SOUND_GRUUP,
-    SOUND_KEY,
-    SOUND_0009,
-    SOUND_COIN1,
-    SOUND_OUCHFAST,
-    SOUND_POUF,
-    SOUND_POW,
-    SOUND_POWERUP,
-    SOUND_POWERUP2,
-    SOUND_POWERUP3,
-    SOUND_BONUS,
-    SOUND_BEEP,
-};
+#define EVENT_NONE 0
+#define EVENT_SECRET 1
+#define EVENT_EXTRA_LIFE 2
+#define EVENT_SUGAR_RUSH 3
+#define EVENT_GOD_MODE 4
+#define EVENT_SUGAR 5

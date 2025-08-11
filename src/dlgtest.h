@@ -6,8 +6,9 @@
 
 class CMapFile;
 
-namespace Ui {
-class CDlgTest;
+namespace Ui
+{
+    class CDlgTest;
 }
 
 class CDlgTest : public QDialog, public CGameMixin
@@ -20,19 +21,33 @@ public:
     virtual ~CDlgTest();
 
 protected slots:
-    void mainLoop();
+    void mainLoop() override;
     void changeZoom();
-    virtual void preloadAssets();
+    void preloadAssets() override;
 
 private:
     QTimer m_timer;
     Ui::CDlgTest *ui;
-    virtual void keyPressEvent(QKeyEvent *event);
-    virtual void keyReleaseEvent(QKeyEvent *event);
-    virtual void paintEvent(QPaintEvent *) ;
-    virtual void exitGame();
-    virtual void sanityTest();
-    virtual void setZoom(bool zoom);
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void paintEvent(QPaintEvent *) override;
+    void exitGame();
+    void sanityTest() override;
+    void setZoom(bool zoom) override;
+    void drawHelpScreen(CFrame &) override {}
+    bool loadScores() override { return true; }
+    bool saveScores() override { return true; }
+    void stopMusic() override {}
+    void startMusic() override {}
+    void openMusicForLevel(int) override {}
+    void setupTitleScreen() override {}
+    void takeScreenshot() override {}
+    void toggleFullscreen() override {}
+    void manageTitleScreen() override {}
+    void toggleGameMenu() override {};
+    void manageGameMenu() override {}
+    void load() override {}
+    void save() override {}
 };
 
 #endif // DLGTEST_H

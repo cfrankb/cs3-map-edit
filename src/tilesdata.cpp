@@ -32,9 +32,9 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls93.obl"},       // 07 TILES_WALLS93_5
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls93.obl"},       // 08 TILES_WALLS93_6
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls93.obl"},       // 09 TILES_WALLS93_7
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock1.obl"},         // 0a TILES_ROCK1
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock2.obl"},         // 0b TILES_ROCK2
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock3.obl"},         // 0c TILES_ROCK3
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock1.png"},         // 0a TILES_ROCK1
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock2.png"},         // 0b TILES_ROCK2
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock3.png"},         // 0c TILES_ROCK3
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},    // 0d TILES_WALL_BRICK
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},    // 0e TILES_WALL_BRICK_2
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},    // 0f TILES_WALL_BRICK_3
@@ -69,7 +69,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "thisway.obl"},       // 2c TILES_THISWAY
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "thisway.obl"},       // 2d TILES_THISWAY_2
     {0x00, TYPE_PICKUP, 3, 0, 0, 0, false, "fruit1.obl"},       // 2e TILES_FRUIT1
-    {0x00, TYPE_PICKUP, 15, 8, 0, 0, false, "neckless.obl"},    // 2f TILES_NECKLESS
+    {0x00, TYPE_PICKUP, 15, 8, 0, 0, false, "amulet1.png"},     // 2f TILES_AMULET1
     {0x00, TYPE_PICKUP, 20, 0, 0, 0, false, "apple.png"},       // 30 TILES_APPLE
     {0x00, TYPE_PICKUP, 12, 0, 0, 0, false, "redbook.png"},     // 31 TILES_REDBOOK
     {0x00, TYPE_PICKUP, 30, 0, 0, 0, false, "jellyjar.png"},    // 32 TILES_JELLYJAR
@@ -93,12 +93,12 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_PICKUP, 40, 0, 0, 0, false, "magicbot.obl"},    // 44 TILES_MAGICBOT
     {0x00, TYPE_PICKUP, 22, 0, 0, 0, false, "lightbul.obl"},    // 45 TILES_LIGHTBUL
     {0x00, TYPE_PICKUP, 9, 0, 0, 0, false, "1st_aid.obl"},      // 46 TILES_1ST_AID
-    {0x00, TYPE_PICKUP, 27, 0, 0, 0, false, "rope.obl"},        // 47 TILES_ROPE
+    {0x00, TYPE_PICKUP, 27, 0, 0, 0, false, "scroll1.png"},     // 47 TILES_SCROLL1
     {0x00, TYPE_PICKUP, 37, 0, 0, 0, false, "shield.obl"},      // 48 TILES_SHIELD
-    {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "vials.obl"},       // 49 TILES_VIALS
-    {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "vials.obl"},       // 4a TILES_VIALS_2
-    {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "vials.obl"},       // 4b TILES_VIALS_3
-    {0x00, TYPE_PICKUP, 4, 0, 0, 0, false, "poire.obl"},        // 4c TILES_POIRE
+    {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "potion1.png"},     // 49 TILES_POTION1
+    {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "potion2.png"},     // 4a TILES_POTION2
+    {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "potion3.png"},     // 4b TILES_POTION3
+    {0x00, TYPE_PICKUP, 4, 0, 0, 0, false, "pear.png"},         // 4c TILES_PEAR
     {0x00, TYPE_PICKUP, 45, 0, 0, 0, false, "clover.obl"},      // 4d TILES_CLOVER
     {0x00, TYPE_PICKUP, 32, 0, 0, 0, false, "cherry.png"},      // 4e TILES_CHERRY
     {0x00, TYPE_PICKUP, 45, 4, 0, 0, false, "flowers.obl"},     // 4f TILES_FLOWERS
@@ -137,8 +137,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -10, 4, 3, false, "yelkiller.obl"}, // 70 TILES_YELKILLER
     {0x00, TYPE_DRONE, 0, -5, 0, 0, true, "whteworm.obl"},      // 71 TILES_WHTEWORM
     {0x00, TYPE_DRONE, 0, -8, 0, 0, true, "eturtle.obl"},       // 72 TILES_ETURTLE
-    {0x00, TYPE_DRONE, 0, -9, 0, 0, true, "drago.obl"},         // 73 TILES_DRAGO
-    {0x00, TYPE_DRONE, 0, -10, 0, 0, true, "bird.obl"}          // 74 TILES_LEFTBIRD
+    {0x00, TYPE_DRONE, 0, -9, 0, 0, true, "drago.obl"}          // 73 TILES_DRAGO
 };
 
 const uint8_t chMap[] = {
@@ -155,7 +154,7 @@ const uint8_t chMap[] = {
     0x02, 0x0f, 0x00, 0x48, 0x5d, 0x12, 0x00, 0x0e,
     0x0d, 0x00, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x64,
     0x00, 0x30, 0x31, 0x00, 0x00, 0x00, 0x00, 0x4c,
-    0x00, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
+    0x00, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x00,
     0x24, 0x71, 0x00, 0x01, 0x37, 0x00, 0x6d, 0x40,
     0x00, 0x00, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
 };
