@@ -208,7 +208,7 @@ bool CActor::write(FILE *tfile)
     return true;
 }
 
-JoyAim operator^=(JoyAim &aim, int i)
+JoyAim operator^=(JoyAim &aim, int)
 {
     if (aim == AIM_UP)
     {

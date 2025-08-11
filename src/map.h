@@ -62,6 +62,7 @@ public:
     void setTitle(const char *title);
     const AttrMap &attrs() { return m_attrs; }
     CStates &states();
+    static uint16_t toKey(const uint8_t x, const uint8_t y);
 
     enum : uint16_t
     {
@@ -90,5 +91,4 @@ private:
     AttrMap m_attrs;
     std::string m_lastError;
     std::string m_title;
-    static uint16_t toKey(const uint8_t x, const uint8_t y);
 };

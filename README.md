@@ -33,6 +33,6 @@ source code: https://github.com/cfrankb/monstics/tree/master/src/msdos/games
 
 ##### Runtime V2
 
-online runtime: https://cfrankb.com/games/ems/cs3v2.html
+online runtime: https://cfrankb.itch.io/creepspread-iii
 
 source code: https://github.com/cfrankb/cs3-runtime-sdl

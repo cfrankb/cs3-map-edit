@@ -44,7 +44,7 @@ private:
     void takeScreenshot() override {}
     void toggleFullscreen() override {}
     void manageTitleScreen() override {}
-    void toggleGameMenu() override {};
+    void toggleGameMenu() override {}
     void manageGameMenu() override {}
     void load() override {}
     void save() override {}

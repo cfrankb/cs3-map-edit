@@ -24,11 +24,13 @@ protected slots:
 
 protected:
     virtual void paintEvent(QPaintEvent *) ;
-    enum:uint32_t {
+    enum:int32_t {
         FONT_SIZE = 8,
         NO_ANIMZ = 255,
         TICK_RATE = 24,
         TILE_SIZE = 16,
+    };
+    enum:uint32_t {
         ALPHA  = 0xff000000,
         WHITE  = 0x00ffffff | ALPHA,
         YELLOW = 0x0000ffff | ALPHA,
@@ -40,7 +42,16 @@ protected:
         DARKBLUE = 0x00440000 | ALPHA,
         LIGHTSLATEGRAY= 0x00998877 | ALPHA,
         LIGHTGRAY= 0x00DCDCDC | ALPHA,
-        GRIDCOLOR = 0x00bfa079 | ALPHA
+        GRIDCOLOR = 0x00bfa079 | ALPHA,
+        RED    = 0x0000ff | ALPHA,
+    };
+
+    using Rect = struct
+    {
+        int x;
+        int y;
+        int width;
+        int height;
     };
 
     void preloadAssets();
@@ -48,6 +59,7 @@ protected:
     inline void drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha);
     inline void drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha);
     inline void drawGrid(CFrame & bitmap);
+    void drawRect(CFrame &frame, const Rect &rect, const uint32_t color, bool fill);
 
     QTimer m_timer;
     CFrameSet *m_tiles = nullptr;

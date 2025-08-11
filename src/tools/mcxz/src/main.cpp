@@ -143,19 +143,12 @@ void splitString(const std::string str,
 
 std::string str2upper(const std::string &in)
 {
-    char t[in.length() + 1];
-    strcpy(t, in.c_str());
-    char *p = t;
-    while (*p)
-    {
-        if (*p == '.')
-        {
-            break;
-        }
-        *p = toupper(*p);
-        ++p;
-    }
-    return t;
+    // Convert to uppercase
+    std::string basename = in;
+    std::transform(basename.begin(), basename.end(), basename.begin(),
+                   [](unsigned char c)
+                   { return std::toupper(c); });
+    return basename;
 }
 
 // RGB 565
@@ -441,16 +434,9 @@ bool writeConstFile(const AppSettings &appSettings, Config &constLists)
  */
 std::string formatTitleName(const char *filepath)
 {
-    char t[256];
     const std::filesystem::path fsPath(filepath);
-    const std::string filename = fsPath.filename().string();
-    strcpy(t, filename.c_str());
-    char *d = strstr(t, ".");
-    if (d)
-    {
-        *d = 0;
-    }
-    return str2upper(t);
+    std::string basename = std::filesystem::path(filepath).stem().string();
+    return str2upper(basename);
 }
 
 /** get the basename from the filepath

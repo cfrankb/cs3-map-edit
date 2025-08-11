@@ -366,15 +366,45 @@ void MainWindow::showContextMenu(const QPoint &pos)
         QAction *actionSetAttr = new QAction(tr("set attribute"), &menu);
         connect(actionSetAttr, SIGNAL(triggered()),
                 this, SLOT(showAttrDialog()));
+        actionSetAttr->setStatusTip(tr("Set the attribute for this tile"));
         menu.addAction(actionSetAttr);
+
         QAction *actionStatAttr = new QAction(tr("see tile stats"), &menu);
         connect(actionStatAttr, SIGNAL(triggered()),
                 this, SLOT(showStatDialog()));
         menu.addAction(actionStatAttr);
+        actionStatAttr->setStatusTip(tr("Show the data information on this tile"));
+        menu.addSeparator();
+
+        QAction *actionSetStartPos = new QAction(tr("set start pos"), &menu);
+        connect(actionSetStartPos, SIGNAL(triggered()),
+                this, SLOT(on_setStartPos()));
+        actionSetStartPos->setStatusTip(tr("Set the start position for this map"));
+        menu.addAction(actionSetStartPos);
+
+        QAction *actionSetExitPos = new QAction(tr("set exit pos"), &menu);
+        connect(actionSetExitPos, SIGNAL(triggered()),
+                this, SLOT(on_setExitPos()));
+        actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
+        menu.addAction(actionSetExitPos);
         m_hx = x + mx;
         m_hy = y + my;
         menu.exec(m_scrollArea->mapToGlobal(pos));
     }
+}
+
+void MainWindow::on_setStartPos()
+{
+    CMap &map = *m_doc.map();
+    map.states().setU(POS_ORIGIN, CMap::toKey(m_hx, m_hy));
+    m_doc.setDirty(true);
+}
+
+void MainWindow::on_setExitPos()
+{
+    CMap &map = *m_doc.map();
+    map.states().setU(POS_EXIT, CMap::toKey(m_hx, m_hy));
+    m_doc.setDirty(true);
 }
 
 void MainWindow::showAttrDialog()

@@ -6,6 +6,8 @@
 #include "map.h"
 #include "mapscroll.h"
 #include "animator.h"
+#include "states.h"
+#include "statedata.h"
 #include <QScrollBar>
 
 CMapWidget::CMapWidget(QWidget *parent)
@@ -108,9 +110,42 @@ void CMapWidget::paintEvent(QPaintEvent *)
     p.end();
 }
 
+void CMapWidget::drawRect(CFrame &frame, const Rect &rect, const uint32_t color, bool fill)
+{
+    uint32_t *rgba = frame.getRGB();
+    const int rowPixels = frame.len();
+    if (fill)
+    {
+        for (int y = 0; y < rect.height; y++)
+        {
+            for (int x = 0; x < rect.width; x++)
+            {
+                rgba[(rect.y + y) * rowPixels + rect.x + x] = color;
+            }
+        }
+    }
+    else
+    {
+        for (int y = 0; y < rect.height; y++)
+        {
+            for (int x = 0; x < rect.width; x++)
+            {
+                if (y == 0 || y == rect.height - 1 || x == 0 || x == rect.width - 1)
+                {
+                    rgba[(rect.y + y) * rowPixels + rect.x + x] = color;
+                }
+            }
+        }
+    }
+}
+
 void CMapWidget::drawScreen(CFrame &bitmap)
 {
     CMap *map = m_map;
+    auto & states = map->states();
+    const uint16_t startPos = states.getU(POS_ORIGIN);
+    const uint16_t exitPos = states.getU(POS_EXIT);
+
     const int maxRows = bitmap.hei() / TILE_SIZE;
     const int maxCols = bitmap.len() / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
@@ -142,6 +177,13 @@ void CMapWidget::drawScreen(CFrame &bitmap)
                 tile = animz[j];
             }
             drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
+            if (startPos && startPos == CMap::toKey(mx+x, my+y)) {
+                drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, YELLOW, false);
+            }
+            if (exitPos && exitPos == CMap::toKey(mx+x, my+y)) {
+                drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, RED, false);
+            }
+
             uint8_t a = map->getAttr(mx+x, my+y);
             if (a) {
                 char s[3];
