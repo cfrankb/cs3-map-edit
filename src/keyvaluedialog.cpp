@@ -150,9 +150,7 @@ void KeyValueDialog::validateRow(int row)
             sprintf(tmp, "0x%.2x [%d]", value, value);
             widget->setToolTip(tmp);
 
-            // widget->text().toUShort(&ok);
             Q_UNUSED(value);
-          //  qDebug("key: %u  / value :%u", key, value);
             if (!ok)
             {
                 QColor lightRed(255, 200, 200);
@@ -169,7 +167,6 @@ void KeyValueDialog::validateRow(int row)
             widget->setToolTip("");
             widget->setBackground(QBrush());
             auto value = widget->text().toStdString();
-         //   qDebug("key: %u  / value :%s", key, value.c_str());
         }
     }
 }

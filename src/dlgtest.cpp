@@ -9,6 +9,8 @@
 #include "tilesdata.h"
 #include "Frame.h"
 #include "FrameSet.h"
+#include "statedata.h"
+#include "states.h"
 #include "shared/qtgui/qfilewrap.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
@@ -53,8 +55,11 @@ void CDlgTest::changeZoom()
 void CDlgTest::sanityTest()
 {
     CMap *map = m_maparch->at(m_game->level());
-    const Pos pos = map->findFirst(TILES_ANNIE2);
+    CStates & states = map->states();
+    const uint16_t startPos = states.getU(POS_ORIGIN);
+    const Pos pos = startPos != 0 ? CMap::toPos(startPos) :  map->findFirst(TILES_ANNIE2);
     QStringList listIssues;
+
     if ((pos.x == CMap::NOT_FOUND ) && (pos.y == CMap::NOT_FOUND )) {
         listIssues.push_back(tr("No player on map"));
     }

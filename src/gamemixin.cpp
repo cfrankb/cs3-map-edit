@@ -471,7 +471,8 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unorde
     else if (tileID == TILES_ANNIE2)
     {
         CFrameSet &annie = *m_annie;
-        tile = annie[game.playerConst().getAim() * PLAYER_FRAMES + m_playerFrameOffset];
+        const int aim = game.playerConst().getAim();
+        tile = annie[aim * PLAYER_FRAMES + m_playerFrameOffset];
         inverted = (m_playerFrameOffset & PLAYER_HIT_FRAME) == PLAYER_HIT_FRAME;
         if (m_game->hasExtraSpeed())
         {
@@ -573,7 +574,8 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
             CFrameSet &animz = *m_animz;
             const int x = monster.getX() - mx;
             const int y = monster.getY() - my;
-            CFrame *tile = animz[monster.getAim() * ANIMZ_INSECT1_FRAMES + ANIMZ_INSECT1 + offset];
+            const int aim = monster.getAim();
+            CFrame *tile = animz[aim * ANIMZ_INSECT1_FRAMES + ANIMZ_INSECT1 + offset];
 
             bool firstY = oy && y == 0;
             bool lastY = oy && y == rows;

@@ -44,6 +44,7 @@ protected:
         LIGHTGRAY= 0x00DCDCDC | ALPHA,
         GRIDCOLOR = 0x00bfa079 | ALPHA,
         RED    = 0x0000ff | ALPHA,
+        CYAN   = 0xffff00 | ALPHA,
     };
 
     using Rect = struct

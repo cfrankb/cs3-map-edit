@@ -63,6 +63,7 @@ public:
     const AttrMap &attrs() { return m_attrs; }
     CStates &states();
     static uint16_t toKey(const uint8_t x, const uint8_t y);
+    static Pos toPos(const uint16_t key);
 
     enum : uint16_t
     {

@@ -78,7 +78,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_PICKUP, 50, 0, 0, 0, false, "chest.png"},       // 35 TILES_CHEST
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "statue.obl"},        // 36 TILES_STATUE
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "tomb.obl"},          // 37 TILES_TOMB
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "skull.png"},         // 38 TILES_SKULL
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "mushroom.zip"},      // 38 TILES_MUSHROOM
     {0x02, TYPE_PICKUP, 25, 0, 0, 0, false, "small_mush.obl"},  // 39 TILES_SMALL_MUSH0
     {0x00, TYPE_PICKUP, 20, 0, 0, 0, false, "small_mush.obl"},  // 3a TILES_SMALL_MUSH1
     {0x01, TYPE_PICKUP, 15, 0, 0, 0, false, "small_mush.obl"},  // 3b TILES_SMALL_MUSH2
@@ -127,7 +127,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -6, 5, 1, false, "insect1_dn.obl"}, // 66 TILES_INSECT1
     {0x00, TYPE_MONSTER, 0, -7, 4, 2, false, "lutin.obl"},      // 67 TILES_LUTIN
     {0x00, TYPE_MONSTER, 0, -8, 4, 1, false, "manka.obl"},      // 68 TILES_MANKA
-    {0x00, TYPE_MONSTER, 0, -12, 4, 3, false, "maxkiller.obl"}, // 69 TILES_MAXKILLER
+    {0x00, TYPE_MONSTER, 0, -4, 5, 1, false, "mush-idle.zip"},  // 69 TILES_MUSH_IDLE
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "octopus.obl"},   // 6a TILES_OCTOPUS
     {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "ooo.obl"},        // 6b TILES_OOO
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "teddy93.obl"},   // 6c TILES_TEDDY93

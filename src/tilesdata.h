@@ -93,7 +93,7 @@ const TileDef & getTileDef(int i);
 #define TILES_CHEST          0x35
 #define TILES_STATUE         0x36
 #define TILES_TOMB           0x37
-#define TILES_SKULL          0x38
+#define TILES_MUSHROOM       0x38
 #define TILES_SMALL_MUSH0    0x39
 #define TILES_SMALL_MUSH1    0x3a
 #define TILES_SMALL_MUSH2    0x3b
@@ -142,7 +142,7 @@ const TileDef & getTileDef(int i);
 #define TILES_INSECT1        0x66
 #define TILES_LUTIN          0x67
 #define TILES_MANKA          0x68
-#define TILES_MAXKILLER      0x69
+#define TILES_MUSH_IDLE      0x69
 #define TILES_OCTOPUS        0x6a
 #define TILES_OOO            0x6b
 #define TILES_TEDDY93        0x6c

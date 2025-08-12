@@ -387,9 +387,26 @@ void MainWindow::showContextMenu(const QPoint &pos)
                 this, SLOT(on_setExitPos()));
         actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
         menu.addAction(actionSetExitPos);
+        menu.addSeparator();
+
+        QAction *actionDeleteTile = new QAction(tr("delete tile"), &menu);
+        connect(actionDeleteTile, SIGNAL(triggered()),
+                this, SLOT(on_deleteTile()));
+        menu.addAction(actionDeleteTile);
+        actionDeleteTile->setStatusTip(tr("delete this tile"));
+
         m_hx = x + mx;
         m_hy = y + my;
         menu.exec(m_scrollArea->mapToGlobal(pos));
+    }
+}
+
+void MainWindow::on_deleteTile()
+{
+    CMap &map = *m_doc.map();
+    if (map.at(m_hx, m_hy) != TILES_BLANK) {
+        map.set(m_hx, m_hy, TILES_BLANK);
+        m_doc.setDirty(true);
     }
 }
 
@@ -683,8 +700,10 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
     if (m_doc.size())
     {
         CMap *map = m_doc.map();
+        CStates & states = map->states();
+        const uint16_t startPos = states.getU(POS_ORIGIN);
         // Sanitycheck
-        const Pos pos = map->findFirst(TILES_ANNIE2);
+        const Pos pos = startPos !=0 ? CMap::toPos(startPos): map->findFirst(TILES_ANNIE2);
         QStringList listIssues;
         if ((pos.x == CMap::NOT_FOUND) && (pos.y == CMap::NOT_FOUND))
         {

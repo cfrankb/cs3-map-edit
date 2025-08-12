@@ -7,6 +7,8 @@
 #include "map.h"
 #include "mapfile.h"
 #include "tilesdata.h"
+#include "states.h"
+#include "statedata.h"
 
 CDlgSelect::CDlgSelect(QWidget *parent) :
     QDialog(parent),
@@ -30,7 +32,10 @@ void CDlgSelect::updatePreview(CMap *map)
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
 
-    const Pos pos = map->findFirst(TILES_ANNIE2);
+    CStates & states = map->states();
+    const uint16_t startPos = states.getU(POS_ORIGIN);
+
+    const Pos pos = startPos !=0 ? CMap::toPos(startPos): map->findFirst(TILES_ANNIE2);
     const bool isFound = pos.x != CMap::NOT_FOUND || pos.y != CMap::NOT_FOUND;
     const int lmx = std::max(0, isFound? pos.x - cols / 2 : 0);
     const int lmy = std::max(0, isFound? pos.y - rows / 2 : 0);

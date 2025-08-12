@@ -30,6 +30,7 @@ private slots:
     void showAttrDialog();
     void on_setStartPos();
     void on_setExitPos();
+    void on_deleteTile();
     void on_actionFile_New_File_triggered();
     void on_actionFile_Open_triggered();
     void on_actionFile_Save_triggered();
