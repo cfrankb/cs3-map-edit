@@ -600,7 +600,6 @@ Pos CMap::toPos(const uint16_t key)
                .y = static_cast<uint8_t>(key >> 8)};
 }
 
-
 void CMap::debug()
 {
     printf("len: %d hei:%d\n", m_len, m_hei);

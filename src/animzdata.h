@@ -43,6 +43,11 @@
 #define ANIMZ_ORB_LEN        0x04
 #define ANIMZ_TRIFORCE_LEN   0x04
 #define ANIMZ_SPARKLE_LEN    0x08
+#define ANIMZ_MUSHROOM_LEN   0x03
+#define ANIMZ_MUSH_DOWN_LEN  0x03
+#define ANIMZ_MUSH_LEFT_LEN  0x03
+#define ANIMZ_MUSH_RIGHT_LEN 0x03
+#define ANIMZ_MUSHROOM_IDLE_LEN 0x04
 
 #define ANIMZ_SWAMP          0x00
 #define ANIMZ_SWAMP_2        0x01
@@ -139,3 +144,19 @@
 #define ANIMZ_SPARKLE_6      0x5c
 #define ANIMZ_SPARKLE_7      0x5d
 #define ANIMZ_SPARKLE_8      0x5e
+#define ANIMZ_MUSHROOM       0x5f
+#define ANIMZ_MUSHROOM_2     0x60
+#define ANIMZ_MUSHROOM_3     0x61
+#define ANIMZ_MUSH_DOWN      0x62
+#define ANIMZ_MUSH_DOWN_2    0x63
+#define ANIMZ_MUSH_DOWN_3    0x64
+#define ANIMZ_MUSH_LEFT      0x65
+#define ANIMZ_MUSH_LEFT_2    0x66
+#define ANIMZ_MUSH_LEFT_3    0x67
+#define ANIMZ_MUSH_RIGHT     0x68
+#define ANIMZ_MUSH_RIGHT_2   0x69
+#define ANIMZ_MUSH_RIGHT_3   0x6a
+#define ANIMZ_MUSHROOM_IDLE  0x6b
+#define ANIMZ_MUSHROOM_IDLE_2 0x6c
+#define ANIMZ_MUSHROOM_IDLE_3 0x6d
+#define ANIMZ_MUSHROOM_IDLE_4 0x6e

@@ -416,21 +416,25 @@ void CGameMixin::drawScreen(CFrame &bitmap)
     }
 
     // draw bottom rect
-    drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, DARKGRAY, true);
+    const Color rectBG = m_currentEvent >= MSG0 ? WHITE : DARKGRAY;
+    drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, rectBG, true);
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
 
     // draw current event text
     drawEventText(bitmap);
 
-    // draw health bar
-    const int hpWidth = std::min(game.health() / 2, bitmap.len() - 4);
-    drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
-             game.isGodMode() ? WHITE : LIME, true);
-    drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
-             WHITE, false);
+    if (m_currentEvent < MSG0)
+    {
+        // draw health bar
+        const int hpWidth = std::min(game.health() / 2, bitmap.len() - 4);
+        drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
+                 game.isGodMode() ? WHITE : LIME, true);
+        drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
+                 WHITE, false);
 
-    // draw keys
-    drawKeys(bitmap);
+        // draw keys
+        drawKeys(bitmap);
+    }
 
     // draw timeout
     drawTimeout(bitmap);
@@ -556,7 +560,6 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
 
     // overlay special case monsters
     CGame &game = *m_game;
-    const int offset = m_animator->offset() & INSECT1_MAX_OFFSET;
     CActor *monsters;
     int count;
     game.getMonsters(monsters, count);
@@ -572,10 +575,11 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
             }
             // special case animations
             CFrameSet &animz = *m_animz;
+            const AnimzInfo info = m_animator->specialInfo(tileID);
             const int x = monster.getX() - mx;
             const int y = monster.getY() - my;
             const int aim = monster.getAim();
-            CFrame *tile = animz[aim * ANIMZ_INSECT1_FRAMES + ANIMZ_INSECT1 + offset];
+            CFrame *tile = animz[aim * info.frames + info.base + info.offset];
 
             bool firstY = oy && y == 0;
             bool lastY = oy && y == rows;
@@ -637,7 +641,6 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         }
     }
 
-    const int offset = m_animator->offset() & 7;
     CActor *monsters;
     int count;
     game.getMonsters(monsters, count);
@@ -652,9 +655,11 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
                 continue;
             }
             // special case animations
+            const AnimzInfo info = m_animator->specialInfo(tileID);
             const int x = monster.getX() - mx;
             const int y = monster.getY() - my;
-            CFrame *tile = animz[monster.getAim() * 8 + ANIMZ_INSECT1 + offset];
+            const int aim = monster.getAim();
+            CFrame *tile = animz[aim * info.frames + info.base + info.offset];
             drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
         }
     }
@@ -1549,6 +1554,13 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
         sprintf(tmp, "YUMMY %d/%d", m_game->sugar(), CGame::SUGAR_RUSH_LEVEL);
         return tmp;
     }
+    else if (m_currentEvent >= MSG0)
+    {
+        scaleX = 1;
+        scaleY = 1;
+        color = DARKGRAY;
+        return m_game->getMap().states().getS(m_currentEvent);
+    }
     else
     {
         return "";
@@ -1569,7 +1581,11 @@ void CGameMixin::manageCurrentEvent()
     else if (m_currentEvent == EVENT_NONE)
     {
         m_currentEvent = m_game->getEvent();
-        if (m_currentEvent)
+        if (m_currentEvent >= MSG0)
+        {
+            m_eventCountdown = MSG_COUNTDOWN_DELAY;
+        }
+        else if (m_currentEvent)
         {
             m_eventCountdown = EVENT_COUNTDOWN_DELAY;
         }

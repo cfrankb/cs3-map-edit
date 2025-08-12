@@ -43,6 +43,8 @@ public:
     void setS(const uint16_t k, const std::string &v);
     uint16_t getU(const uint16_t k);
     const char *getS(const uint16_t k);
+    bool hasU(const uint16_t k);
+    bool hasS(const uint16_t k);
 
     bool read(IFile &sfile);
     bool write(IFile &tfile);

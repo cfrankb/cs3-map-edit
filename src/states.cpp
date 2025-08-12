@@ -235,3 +235,13 @@ void CStates::operator=(const CStates &s)
         m_stateS[k] = v;
     }
 }
+
+bool CStates::hasU(const uint16_t k)
+{
+    return m_stateU.count(k) != 0;
+}
+
+bool CStates::hasS(const uint16_t k)
+{
+    return m_stateS.count(k) != 0;
+}

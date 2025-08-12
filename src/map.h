@@ -23,11 +23,19 @@
 #include <string>
 
 typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
-typedef struct
+struct Pos
 {
     uint16_t x;
     uint16_t y;
-} Pos;
+    bool operator==(const Pos &other) const
+    {
+        return x == other.x && y == other.y;
+    }
+    bool operator!=(const Pos &other) const
+    {
+        return x != other.x || y != other.y;
+    }
+};
 
 class IFile;
 class CStates;

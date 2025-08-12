@@ -19,24 +19,25 @@
 #include "tilesdata.h"
 #include "animzdata.h"
 #include <cstring>
+#include <vector>
 
 CAnimator::animzSeq_t CAnimator::m_animzSeq[] = {
-    {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN},
-    {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN},
-    {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN},
-    {TILES_ALPHA, ANIMZ_ALPHA, ANIMZ_ALPHA_LEN},
-    {TILES_FORCEF94, ANIMZ_FORCEF94, ANIMZ_FORCEF94_LEN},
-    {TILES_VAMPLANT, ANIMZ_VAMPLANT, ANIMZ_VAMPLANT_LEN},
-    {TILES_ORB, ANIMZ_ORB, ANIMZ_ORB_LEN},
-    {TILES_TEDDY93, ANIMZ_TEDDY93, ANIMZ_TEDDY93_LEN},
-    {TILES_LUTIN, ANIMZ_LUTIN, ANIMZ_LUTIN_LEN},
-    {TILES_OCTOPUS, ANIMZ_OCTOPUS, ANIMZ_OCTOPUS_LEN},
-    {TILES_TRIFORCE, ANIMZ_TRIFORCE, ANIMZ_TRIFORCE_LEN},
-    {TILES_YAHOO, ANIMZ_YAHOO, ANIMZ_YAHOO_LEN},
-    {TILES_YIGA, ANIMZ_YIGA, ANIMZ_YIGA_LEN},
-    {TILES_YELKILLER, ANIMZ_YELKILLER, ANIMZ_YELKILLER_LEN},
-    {TILES_MANKA, ANIMZ_MANKA, ANIMZ_MANKA_LEN},
-    //  {TILES_DEVIL, ANIMZ_DEVIL, ANIMZ_DEVIL_LEN},
+    {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, 0},
+    {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN, ANIMZ_INSECT1},
+    {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN, 0},
+    {TILES_ALPHA, ANIMZ_ALPHA, ANIMZ_ALPHA_LEN, 0},
+    {TILES_FORCEF94, ANIMZ_FORCEF94, ANIMZ_FORCEF94_LEN, 0},
+    {TILES_VAMPLANT, ANIMZ_VAMPLANT, ANIMZ_VAMPLANT_LEN, 0},
+    {TILES_ORB, ANIMZ_ORB, ANIMZ_ORB_LEN, 0},
+    {TILES_TEDDY93, ANIMZ_TEDDY93, ANIMZ_TEDDY93_LEN, 0},
+    {TILES_LUTIN, ANIMZ_LUTIN, ANIMZ_LUTIN_LEN, 0},
+    {TILES_OCTOPUS, ANIMZ_OCTOPUS, ANIMZ_OCTOPUS_LEN, 0},
+    {TILES_TRIFORCE, ANIMZ_TRIFORCE, ANIMZ_TRIFORCE_LEN, 0},
+    {TILES_YAHOO, ANIMZ_YAHOO, ANIMZ_YAHOO_LEN, 0},
+    {TILES_YIGA, ANIMZ_YIGA, ANIMZ_YIGA_LEN, 0},
+    {TILES_YELKILLER, ANIMZ_YELKILLER, ANIMZ_YELKILLER_LEN, 0},
+    {TILES_MANKA, ANIMZ_MANKA, ANIMZ_MANKA_LEN, 0},
+    {TILES_MUSH_IDLE, ANIMZ_MUSH_DOWN, ANIMZ_MUSHROOM_LEN, ANIMZ_MUSHROOM},
 };
 
 CAnimator::CAnimator()
@@ -70,12 +71,39 @@ uint8_t CAnimator::at(uint8_t tileID)
     return m_tileReplacement[tileID];
 }
 
-int CAnimator::offset()
+uint8_t CAnimator::offset()
 {
     return m_offset;
 }
 
 bool CAnimator::isSpecialCase(uint8_t tileID)
 {
-    return tileID == TILES_INSECT1;
+    std::vector<uint8_t> specialCases = {
+        TILES_INSECT1,
+        TILES_MUSH_IDLE,
+    };
+    for (const auto &ref : specialCases)
+    {
+        if (tileID == ref)
+            return true;
+    }
+    return false;
+}
+
+AnimzInfo CAnimator::specialInfo(const int tileID)
+{
+    const uint32_t seqCount = sizeof(m_animzSeq) / sizeof(animzSeq_t);
+    for (uint32_t i = 0; i < seqCount; ++i)
+    {
+        const animzSeq_t &seq = m_animzSeq[i];
+        if (seq.srcTile == tileID)
+        {
+            return AnimzInfo{
+                .frames = seq.count,
+                .base = seq.specialID,
+                .offset = static_cast<uint8_t>(m_offset % seq.count),
+            };
+        }
+    }
+    return AnimzInfo{};
 }

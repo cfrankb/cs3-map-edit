@@ -71,6 +71,7 @@ protected:
         INTRO_DELAY = TICK_RATE * 3,
         HISCORE_DELAY = 5 * TICK_RATE,
         EVENT_COUNTDOWN_DELAY = TICK_RATE,
+        MSG_COUNTDOWN_DELAY = 3 * TICK_RATE,
         _WIDTH = 320,
         _HEIGHT = 240,
         TILE_SIZE = 16,
