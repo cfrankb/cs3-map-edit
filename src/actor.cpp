@@ -228,3 +228,8 @@ JoyAim operator^=(JoyAim &aim, int)
     }
     return aim;
 }
+
+const Pos CActor::pos() const
+{
+    return Pos{.x = m_x, .y = m_y};
+}

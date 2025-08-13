@@ -49,7 +49,8 @@ private:
     enum : uint32_t
     {
         NO_ANIMZ = 255,
-        MAX_TILES = 256
+        MAX_TILES = 256,
+        NA = 0,
     };
 
     static animzSeq_t m_animzSeq[];

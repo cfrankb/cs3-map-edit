@@ -30,6 +30,7 @@
 #define WIDTH getWidth()
 #define HEIGHT getHeight()
 
+class CActor;
 class CFrameSet;
 class CGame;
 class CFrame;
@@ -94,7 +95,7 @@ protected:
         INSECT1_MAX_OFFSET = 7,
         CAMERA_MODE_STATIC = 0,
         CAMERA_MODE_DYNAMIC = 1,
-        FAZ_INV_SHIFT = 1,
+        FAZ_INV_BITSHIFT = 1,
     };
 
     enum Color : uint32_t
@@ -182,7 +183,7 @@ protected:
     uint8_t m_keyStates[Key_Count];
     uint8_t m_keyRepeters[Key_Count];
 
-    using Rect = struct
+    struct Rect
     {
         int x;
         int y;
@@ -190,10 +191,26 @@ protected:
         int height;
     };
 
-    using hiscore_t = struct
+    struct cameraContext_t
     {
-        int score;
-        int level;
+        int mx;
+        int ox;
+        int my;
+        int oy;
+    };
+
+    struct sprite_t
+    {
+        uint16_t x;
+        uint16_t y;
+        uint8_t tileID;
+        uint8_t aim;
+    };
+
+    struct hiscore_t
+    {
+        int32_t score;
+        int32_t level;
         char name[MAX_NAME_LENGTH];
     };
 
@@ -247,6 +264,7 @@ protected:
     inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const bool inverted = false, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const bool inverted = false, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     inline CFrame *tile2Frame(const uint8_t tileID, bool &inverted, std::unordered_map<uint32_t, uint32_t> *&colorMap);
+    CFrame *specialFrame(const int aim, const uint8_t tileID);
     void nextLevel();
     void restartLevel();
     void restartGame();
@@ -270,6 +288,8 @@ protected:
     void moveCamera();
     int cameraSpeed() const;
     void setCameraMode(const int mode);
+    void gatherSprites(std::vector<sprite_t> &sprites, const cameraContext_t &context);
+
     inline uint32_t fazFilter(int shift) const;
     inline int getWidth() const
     {

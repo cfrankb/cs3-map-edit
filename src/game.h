@@ -21,6 +21,7 @@
 #include <cstdio>
 #include "actor.h"
 #include "map.h"
+#include "gamesfx.h"
 
 class CMapArch;
 class ISound;
@@ -82,8 +83,9 @@ public:
     bool isGodMode() const;
     int playerSpeed() const;
     static uint8_t *keys();
-    void getMonsters(CActor *&monsters, int &count);
+    std::vector<CActor> &getMonsters();
     CActor &getMonster(int i);
+    std::vector<sfx_t> &getSfx();
     void playSound(const int id) const;
     void playTileSound(const int tileID) const;
     void setLives(const int lives);
@@ -94,12 +96,11 @@ public:
     void resetStats();
     void parseHints(const char *data);
     int getEvent();
+    void purgeSfx();
 
 private:
     enum
     {
-        DEFAULT_MAX_MONSTERS = 128,
-        GROWBY_MONSTERS = 64,
         MAX_HEALTH = 200,
         DEFAULT_HEALTH = 64,
         DEFAULT_LIVES = 5,
@@ -111,7 +112,7 @@ private:
         DEFAULT_PLAYER_SPEED = 3,
         FAST_PLAYER_SPEED = 2,
         INVALID = -1,
-        VERSION = (0x0200 << 16) + 0x0003,
+        VERSION = (0x0200 << 16) + 0x0004,
         SECRET_ATTR_MIN = 0x01,
         SECRET_ATTR_MAX = 0x7f,
     };
@@ -136,11 +137,8 @@ private:
     GameMode m_mode;
     int m_introHint = 0;
     std::vector<int> m_events;
-
-    // monsters
-    CActor *m_monsters;
-    int m_monsterCount;
-    int m_monsterMax;
+    std::vector<CActor> m_monsters;
+    std::vector<sfx_t> m_sfx;
     CActor m_player;
     CMapArch *m_mapArch = nullptr;
     ISound *m_sound = nullptr;

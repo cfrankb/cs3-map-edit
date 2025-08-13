@@ -558,6 +558,13 @@ void MainWindow::initToolBar()
     ui->toolBar->addAction(ui->actionTools_Paint);
     ui->toolBar->addAction(ui->actionTools_Erase);
     ui->toolBar->addAction(ui->actionTools_Select);
+    ui->toolBar->addSeparator();
+    m_cbSkill = new QComboBox(this);
+    m_cbSkill->addItem("Easy Mode");
+    m_cbSkill->addItem("Normal Mode");
+    m_cbSkill->addItem("Hard Mode");
+    m_cbSkill->setCurrentIndex(1);
+    ui->toolBar->addWidget(m_cbSkill);
 
     m_toolGroup = new QActionGroup(this);
     m_toolGroup->addAction(ui->actionTools_Paint);
@@ -723,9 +730,10 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
             QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
             return;
         }
+        int skill = m_cbSkill->currentIndex();
         CDlgTest dlg(this);
         dlg.setWindowTitle(tr("Test Map"));
-        dlg.init(&m_doc);
+        dlg.init(&m_doc, skill);
         dlg.exec();
     }
 }

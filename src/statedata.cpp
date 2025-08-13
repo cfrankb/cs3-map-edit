@@ -23,6 +23,7 @@ const std::vector<KeyOption> g_keyOptions = {
     DEF(TIMEOUT),
     DEF(POS_ORIGIN),
     DEF(POS_EXIT),
+    DEF(MAP_GOAL),
     DEF(MSG0),
     DEF(MSG1),
     DEF(MSG2),

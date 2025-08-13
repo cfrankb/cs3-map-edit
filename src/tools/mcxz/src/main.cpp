@@ -563,6 +563,9 @@ bool generateHeader(const AppSettings &appSettings,
         tfileHdr += std::format("#define {0:20s} 0x{1:02x}\n", tile.define, i);
     }
 
+    const std::string sectionCount = sectionName + "_TOTAL_COUNT";
+    tfileHdr += std::format("#define {0:20s} 0x{1:02x}\n", sectionCount, tileDefs.size());
+
     tfileHdr.close();
     return true;
 }
@@ -714,7 +717,8 @@ Tile parseFileParams(const StringVector &list,
     for (size_t i = 1; i < list.size(); ++i)
     {
         const std::string item = list[i];
-        const std::string ref = item.length() > 0 ? str2upper(item.substr(1)) : "";
+        const std::string xstring = item.length() > 0 ? item.substr(1) : "";
+        const std::string ref = str2upper(xstring);
         std::size_t j;
         switch (item.c_str()[0])
         {

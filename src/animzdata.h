@@ -48,6 +48,9 @@
 #define ANIMZ_MUSH_LEFT_LEN  0x03
 #define ANIMZ_MUSH_RIGHT_LEN 0x03
 #define ANIMZ_MUSHROOM_IDLE_LEN 0x04
+#define ANIMZ_WHTEWORM_LEN   0x04
+#define ANIMZ_ETURTLE_LEN    0x04
+#define ANIMZ_DRAGO_LEN      0x04
 
 #define ANIMZ_SWAMP          0x00
 #define ANIMZ_SWAMP_2        0x01
@@ -160,3 +163,16 @@
 #define ANIMZ_MUSHROOM_IDLE_2 0x6c
 #define ANIMZ_MUSHROOM_IDLE_3 0x6d
 #define ANIMZ_MUSHROOM_IDLE_4 0x6e
+#define ANIMZ_WHTEWORM       0x6f
+#define ANIMZ_WHTEWORM_2     0x70
+#define ANIMZ_WHTEWORM_3     0x71
+#define ANIMZ_WHTEWORM_4     0x72
+#define ANIMZ_ETURTLE        0x73
+#define ANIMZ_ETURTLE_2      0x74
+#define ANIMZ_ETURTLE_3      0x75
+#define ANIMZ_ETURTLE_4      0x76
+#define ANIMZ_DRAGO          0x77
+#define ANIMZ_DRAGO_2        0x78
+#define ANIMZ_DRAGO_3        0x79
+#define ANIMZ_DRAGO_4        0x7a
+#define ANIMZ_TOTAL_COUNT    0x7b

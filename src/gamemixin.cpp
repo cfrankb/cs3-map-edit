@@ -31,6 +31,7 @@
 #include "states.h"
 #include "statedata.h"
 #include "sounds.h"
+#include "sprtypes.h"
 
 // Check windows
 #ifdef _WIN64
@@ -217,7 +218,7 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
     }
     else
     {
-        const uint32_t colorFilter = fazFilter(FAZ_INV_SHIFT);
+        const uint32_t colorFilter = fazFilter(FAZ_INV_BITSHIFT);
         for (int row = 0; row < rect.height; ++row)
         {
             for (int col = 0; col < rect.width; ++col)
@@ -232,7 +233,7 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
                 if (inverted)
                 {
                     // color ^= 0x00ffffff;
-                    const uint32_t t = ((color >> FAZ_INV_SHIFT) & colorFilter) | ALPHA;
+                    const uint32_t t = ((color >> FAZ_INV_BITSHIFT) & colorFilter) | ALPHA;
                     color = t;
                 }
                 dest[col] = color;
@@ -249,7 +250,7 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
     uint32_t *dest = bitmap.getRGB() + x + y * width;
     if (alpha || inverted || colorMap)
     {
-        const uint32_t colorFilter = fazFilter(FAZ_INV_SHIFT);
+        const uint32_t colorFilter = fazFilter(FAZ_INV_BITSHIFT);
         for (uint32_t row = 0; row < TILE_SIZE; ++row)
         {
             for (uint32_t col = 0; col < TILE_SIZE; ++col)
@@ -264,7 +265,7 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
                 if (inverted)
                 {
                     // color ^= 0x00ffffff;
-                    const uint32_t t = ((color >> FAZ_INV_SHIFT) & colorFilter) | ALPHA;
+                    const uint32_t t = ((color >> FAZ_INV_BITSHIFT) & colorFilter) | ALPHA;
                     color = t;
                 }
                 dest[col] = color;
@@ -504,6 +505,48 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unorde
     return tile;
 }
 
+void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraContext_t &context)
+{
+    CGame &game = *m_game;
+    CMap *map = &m_game->getMap();
+    const int maxRows = HEIGHT / TILE_SIZE;
+    const int maxCols = WIDTH / TILE_SIZE;
+    const int rows = std::min(maxRows, map->hei());
+    const int cols = std::min(maxCols, map->len());
+    const int mx = context.mx; // m_cx / 2; // this is wrong for static camera
+    const int ox = context.ox; //  m_cx & 1; // TODO: fix this
+    const int my = context.my; // m_cy / 2;
+    const int oy = context.oy; // m_cy & 1;
+    const std::vector<CActor> &monsters = game.getMonsters();
+    for (const auto &monster : monsters)
+    {
+        const uint8_t &tileID = map->at(monster.getX(), monster.getY());
+        if (monster.within(mx, my, mx + cols + ox, my + rows + oy) &&
+            m_animator->isSpecialCase(tileID))
+        {
+            sprites.push_back(
+                {.x = monster.getX(),
+                 .y = monster.getY(),
+                 .tileID = tileID,
+                 .aim = monster.getAim()});
+        }
+    }
+
+    const std::vector<sfx_t> &sfxAll = m_game->getSfx();
+    for (const auto &sfx : sfxAll)
+    {
+        if (sfx.within(mx, my, mx + cols + ox, my + rows + oy))
+        {
+            sprites.push_back({
+                .x = sfx.x,
+                .y = sfx.y,
+                .tileID = sfx.sfx,
+                .aim = AIM_NONE,
+            });
+        }
+    }
+}
+
 void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
 {
     CMap *map = &m_game->getMap();
@@ -558,55 +601,41 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
         py += TILE_SIZE;
     }
 
+    /////////////////////////////////////////////////////////////////////////////
     // overlay special case monsters
-    CGame &game = *m_game;
-    CActor *monsters;
-    int count;
-    game.getMonsters(monsters, count);
-    for (int i = 0; i < count; ++i)
+
+    std::vector<sprite_t> sprites;
+    gatherSprites(sprites, {.mx = mx, .ox = ox, .my = my, .oy = oy});
+    for (const auto &sprite : sprites)
     {
-        const CActor &monster = monsters[i];
-        if (monster.within(mx, my, mx + cols + ox, my + rows + oy))
+        // special case animations
+        const int x = sprite.x - mx;
+        const int y = sprite.y - my;
+        CFrame *tile = specialFrame(sprite.aim, sprite.tileID);
+        bool firstY = oy && y == 0;
+        bool lastY = oy && y == rows;
+        bool firstX = ox && x == 0;
+        bool lastX = ox && x == cols;
+        int px = x * TILE_SIZE;
+        int py = y * TILE_SIZE;
+        if (x && ox)
+            px -= halfOffset;
+        if (y && oy)
+            py -= halfOffset;
+
+        if (firstX || firstY || lastX || lastY)
         {
-            const uint8_t tileID = map->at(monster.getX(), monster.getY());
-            if (!m_animator->isSpecialCase(tileID))
-            {
-                continue;
-            }
-            // special case animations
-            CFrameSet &animz = *m_animz;
-            const AnimzInfo info = m_animator->specialInfo(tileID);
-            const int x = monster.getX() - mx;
-            const int y = monster.getY() - my;
-            const int aim = monster.getAim();
-            CFrame *tile = animz[aim * info.frames + info.base + info.offset];
-
-            bool firstY = oy && y == 0;
-            bool lastY = oy && y == rows;
-            bool firstX = ox && x == 0;
-            bool lastX = ox && x == cols;
-
-            int px = x * TILE_SIZE;
-            int py = y * TILE_SIZE;
-            if (x && ox)
-                px -= halfOffset;
-            if (y && oy)
-                py -= halfOffset;
-
-            if (firstX || firstY || lastX || lastY)
-            {
-                Rect rect{
-                    .x = !firstX ? 0 : halfOffset,
-                    .y = !firstY ? 0 : halfOffset,
-                    .width = !(firstX || lastX) ? tileSize : halfOffset,
-                    .height = !(firstY || lastY) ? tileSize : halfOffset,
-                };
-                drawTile(bitmap, px, py, *tile, rect);
-            }
-            else
-            {
-                drawTile(bitmap, px, py, *tile, false);
-            }
+            Rect rect{
+                .x = !firstX ? 0 : halfOffset,
+                .y = !firstY ? 0 : halfOffset,
+                .width = !(firstX || lastX) ? tileSize : halfOffset,
+                .height = !(firstY || lastY) ? tileSize : halfOffset,
+            };
+            drawTile(bitmap, px, py, *tile, rect);
+        }
+        else
+        {
+            drawTile(bitmap, px, py, *tile, true);
         }
     }
 }
@@ -625,8 +654,6 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
     const int lmy = std::max(0, game.player().getY() - rows / 2);
     const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
     const int my = std::min(lmy, map->hei() > rows ? map->hei() - rows : 0);
-
-    CFrameSet &animz = *m_animz;
     bitmap.fill(BLACK);
     for (int y = 0; y < rows; ++y)
     {
@@ -641,27 +668,15 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         }
     }
 
-    CActor *monsters;
-    int count;
-    game.getMonsters(monsters, count);
-    for (int i = 0; i < count; ++i)
+    std::vector<sprite_t> sprites;
+    gatherSprites(sprites, {.mx = mx, .ox = 0, .my = my, .oy = 0});
+    for (const auto &sprite : sprites)
     {
-        const CActor &monster = monsters[i];
-        if (monster.within(mx, my, mx + cols, my + rows))
-        {
-            const uint8_t tileID = map->at(monster.getX(), monster.getY());
-            if (!m_animator->isSpecialCase(tileID))
-            {
-                continue;
-            }
-            // special case animations
-            const AnimzInfo info = m_animator->specialInfo(tileID);
-            const int x = monster.getX() - mx;
-            const int y = monster.getY() - my;
-            const int aim = monster.getAim();
-            CFrame *tile = animz[aim * info.frames + info.base + info.offset];
-            drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
-        }
+        // special case animations
+        const int x = sprite.x - mx;
+        const int y = sprite.y - my;
+        CFrame *tile = specialFrame(sprite.aim, sprite.tileID);
+        drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true);
     }
 }
 
@@ -749,9 +764,13 @@ void CGameMixin::mainLoop()
             m_recordScore = false;
             saveScores();
         }
+        [[fallthrough]];
     case CGame::MODE_LEVEL_INTRO:
+        [[fallthrough]];
     case CGame::MODE_RESTART:
+        [[fallthrough]];
     case CGame::MODE_GAMEOVER:
+        [[fallthrough]];
     case CGame::MODE_TIMEOUT:
         if (m_countdown)
         {
@@ -898,6 +917,7 @@ void CGameMixin::manageGamePlay()
 
     manageCurrentEvent();
     manageTimer();
+    game.purgeSfx();
 
     if (m_ticks % game.playerSpeed() == 0 && !game.isPlayerDead())
     {
@@ -945,9 +965,10 @@ void CGameMixin::manageGamePlay()
         }
     }
 
-    if (!game.isGameOver())
+    if (!game.isGameOver() && game.goalCount() == 0)
     {
-        if (game.goalCount() == 0)
+        const uint16_t exitKey = m_game->getMap().states().getU(POS_EXIT);
+        if (exitKey == 0 || m_game->player().pos() == CMap::toPos(exitKey))
         {
             nextLevel();
         }
@@ -1646,4 +1667,17 @@ void CGameMixin::drawSugarMeter(CFrame &bitmap, const int bx)
         else
             drawRect(bitmap, rect, WHITE, false);
     }
+}
+
+CFrame *CGameMixin::specialFrame(const int aim, const uint8_t tileID)
+{
+    CFrameSet &animz = *m_animz;
+    const AnimzInfo info = m_animator->specialInfo(tileID);
+    int saim = tileID < TILES_TOTAL_COUNT ? aim : 0;
+    const TileDef &def = getTileDef(tileID);
+    if (def.type == TYPE_DRONE)
+    {
+        saim &= 1;
+    }
+    return animz[saim * info.frames + info.base + info.offset];
 }

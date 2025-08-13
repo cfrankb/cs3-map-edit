@@ -135,9 +135,9 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -6, 4, 7, false, "yahoo.obl"},      // 6e TILES_YAHOO
     {0x00, TYPE_MONSTER, 0, -6, 4, 3, false, "yiga.obl"},       // 6f TILES_YIGA
     {0x00, TYPE_MONSTER, 0, -10, 4, 3, false, "yelkiller.obl"}, // 70 TILES_YELKILLER
-    {0x00, TYPE_DRONE, 0, -5, 0, 0, true, "whteworm.obl"},      // 71 TILES_WHTEWORM
-    {0x00, TYPE_DRONE, 0, -8, 0, 0, true, "eturtle.obl"},       // 72 TILES_ETURTLE
-    {0x00, TYPE_DRONE, 0, -9, 0, 0, true, "drago.obl"}          // 73 TILES_DRAGO
+    {0x00, TYPE_DRONE, 0, -5, 4, 0, true, "whteworm.obl"},      // 71 TILES_WHTEWORM
+    {0x00, TYPE_DRONE, 0, -8, 4, 0, true, "eturtle.obl"},       // 72 TILES_ETURTLE
+    {0x00, TYPE_DRONE, 0, -9, 4, 0, true, "drago.obl"}          // 73 TILES_DRAGO
 };
 
 const uint8_t chMap[] = {

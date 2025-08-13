@@ -29,10 +29,12 @@ CDlgTest::~CDlgTest()
     delete ui;
 }
 
-void CDlgTest::init(CMapFile *mapfile)
+void CDlgTest::init(CMapFile *mapfile, const int skill)
 {
     setZoom(true);
+    m_game->setSkill(skill);
     CGameMixin::init(mapfile, mapfile->currentIndex());
+    //m_cameraMode = CAMERA_MODE_DYNAMIC;
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(mainLoop()));
 }
 
@@ -188,18 +190,6 @@ void CDlgTest::preloadAssets()
     } else {
         qDebug("failed to open %s", fontName);
     }
-
-#ifdef USE_SDL_MIXER
-    const char soundArch [] = ":/data/sounds.dat";
-    if (file.open(soundArch)){
-        if (!m_game->readSndArch(file)) {
-            qDebug("failed loading sounds");
-        }
-        file.close();
-    } else {
-        qDebug("can't open %s", soundArch);
-    }
-#endif
 }
 
 

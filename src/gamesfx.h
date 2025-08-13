@@ -17,48 +17,19 @@
 */
 #pragma once
 #include <cstdint>
-#include <vector>
-#include <string>
 
-enum StateValue : uint16_t
+struct sfx_t
 {
-    TIMEOUT = 0x01,
-    POS_ORIGIN = 0x02,
-    POS_EXIT = 0x03,
-    MAP_GOAL = 0x04,
-    USERDEF1 = 0x80,
-    USERDEF2,
-    USERDEF3,
-    USERDEF4,
-    MSG0 = 0xf0,
-    MSG1,
-    MSG2,
-    MSG3,
-    MSG4,
-    MSG5,
-    MSG6,
-    MSG7,
-    MSG8,
-    MSG9,
-    MSGA,
-    MSGB,
-    MSGC,
-    MSGD,
-    MSGE,
-    MSGF
+    uint16_t x;
+    uint16_t y;
+    uint8_t sfx;
+    uint16_t timeout;
+
+    bool within(const int x1, const int y1, const int x2, const int y2) const
+    {
+        return (x >= x1) && (x < x2) && (y >= y1) && (y < y2);
+    }
 };
 
-enum StateType
-{
-    TYPE_X,
-    TYPE_U,
-    TYPE_S,
-};
-
-struct KeyOption
-{
-    std::string display;
-    uint16_t value;
-};
-
-const std::vector<KeyOption> &getKeyOptions();
+#define SFX_SPARKLE 0xf0
+#define SPARKLE_TIMEOUT 200

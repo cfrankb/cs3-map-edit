@@ -6,6 +6,7 @@
 #include "qactiongroup.h"
 
 class CMapScroll;
+class QComboBox;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -97,6 +98,7 @@ private:
     QString m_allFilter = tr("All Supported Maps (*.dat *.cs3 *.map *.mapz)");
     Ui::MainWindow *ui;
     CMapScroll *m_scrollArea;
+    QComboBox *m_cbSkill;
     CMapFile m_doc;
     int m_hx = -1;
     int m_hy = -1;

@@ -57,6 +57,7 @@ public:
     bool read(FILE *sfile);
     bool write(FILE *tfile);
     void reverveDir();
+    const Pos pos() const;
 
 private:
     uint8_t m_x;
