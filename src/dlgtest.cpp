@@ -29,11 +29,11 @@ CDlgTest::~CDlgTest()
     delete ui;
 }
 
-void CDlgTest::init(CMapFile *mapfile, const int skill)
+void CDlgTest::init(CMapArch *mapfile, const int skill)
 {
     setZoom(true);
     m_game->setSkill(skill);
-    CGameMixin::init(mapfile, mapfile->currentIndex());
+    CGameMixin::init(mapfile,  reinterpret_cast<CMapFile*>(mapfile)->currentIndex());
     //m_cameraMode = CAMERA_MODE_DYNAMIC;
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(mainLoop()));
 }

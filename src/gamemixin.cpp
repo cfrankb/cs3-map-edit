@@ -524,7 +524,7 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unorde
         }
         else if (!game.goalCount() && game.isClosure())
         {
-            tile = annie[AIM_DOWN * PLAYER_FRAMES + m_playerFrameOffset];
+            tile = annie[static_cast<uint8_t>(AIM_DOWN) * PLAYER_FRAMES + m_playerFrameOffset];
         }
         else
         {
@@ -1088,7 +1088,7 @@ void CGameMixin::startCountdown(int f)
     m_countdown = f * INTRO_DELAY;
 }
 
-void CGameMixin::init(CMapArch *maparch, const int index)
+void CGameMixin::init(CMapArch *maparch, int index)
 {
     if (!m_assetPreloaded)
     {

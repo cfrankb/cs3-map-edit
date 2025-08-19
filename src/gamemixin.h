@@ -46,7 +46,7 @@ class CGameMixin
 public:
     explicit CGameMixin();
     virtual ~CGameMixin();
-    virtual void init(CMapArch *maparch, const int index);
+    virtual void init(CMapArch *maparch, int index);
     inline bool isWithin(int val, int min, int max);
     void enableHiScore();
     void setSkill(uint8_t skill);

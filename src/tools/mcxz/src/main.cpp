@@ -157,7 +157,8 @@ void splitString(const std::string str,
     {
         if (isspace(str[j]))
         {
-            list.push_back(str.substr(i, j - i));
+            const std::string tmp = str.substr(i, j - i);
+            list.push_back(tmp);
             while (isspace(str[j]) && j < str.length())
             {
                 ++j;
@@ -469,7 +470,6 @@ bool writeConstFile(const AppSettings &appSettings, Config &constLists)
  */
 std::string formatTitleName(const std::string &filepath)
 {
-    const std::filesystem::path fsPath(filepath);
     std::string basename = std::filesystem::path(filepath).stem().string();
     for (auto &c : basename)
     {
@@ -556,7 +556,7 @@ bool generateHeader(const AppSettings &appSettings,
     {
         for (auto &filestat : fileStats)
         {
-            tfileHdr += std::format("#define {0:20s} 0x{1:02x}\n", filestat.name + "_LEN", filestat.count);
+            tfileHdr += std::format("#define {0:25s} 0x{1:02x}\n", filestat.name + "_LEN", filestat.count);
         }
         tfileHdr += "\n";
     }
@@ -564,11 +564,11 @@ bool generateHeader(const AppSettings &appSettings,
     for (size_t i = 0; i < tileDefs.size(); ++i)
     {
         Tile &tile = tileDefs[i];
-        tfileHdr += std::format("#define {0:20s} 0x{1:02x}\n", tile.define, i);
+        tfileHdr += std::format("#define {0:25s} 0x{1:02x}\n", tile.define, i);
     }
 
     const std::string sectionCount = sectionName + "_TOTAL_COUNT";
-    tfileHdr += std::format("#define {0:20s} 0x{1:02x}\n", sectionCount, tileDefs.size());
+    tfileHdr += std::format("#define {0:25s} 0x{1:02x}\n", sectionCount, tileDefs.size());
 
     tfileHdr.close();
     return true;
