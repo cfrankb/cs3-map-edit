@@ -46,6 +46,7 @@ private:
     void manageTitleScreen() override {}
     void toggleGameMenu() override {}
     void manageGameMenu() override {}
+    void manageOptionScreen() override {};
     void load() override {}
     void save() override {}
 };

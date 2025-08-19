@@ -80,7 +80,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "tomb.obl"},          // 37 TILES_TOMB
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "mushroom.zip"},      // 38 TILES_MUSHROOM
     {0x02, TYPE_PICKUP, 25, 0, 0, 0, false, "small_mush.obl"},  // 39 TILES_SMALL_MUSH0
-    {0x00, TYPE_PICKUP, 20, 0, 0, 0, false, "small_mush.obl"},  // 3a TILES_SMALL_MUSH1
+    {0x08, TYPE_PICKUP, 20, 0, 0, 0, false, "small_mush.obl"},  // 3a TILES_SMALL_MUSH1
     {0x01, TYPE_PICKUP, 15, 0, 0, 0, false, "small_mush.obl"},  // 3b TILES_SMALL_MUSH2
     {0x04, TYPE_PICKUP, 30, 0, 0, 0, false, "small_mush.obl"},  // 3c TILES_SMALL_MUSH3
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pot.obl"},           // 3d TILES_POT
@@ -114,7 +114,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_DOOR, 0, 0, 0, 0, false, "door04.png"},         // 59 TILES_DOOR04
     {0x00, TYPE_KEY, 50, 0, 0, 0, false, "key04.png"},          // 5a TILES_KEY04
     {0x00, TYPE_SWAMP, 0, -1, 0, 0, false, "swamp.obl"},        // 5b TILES_SWAMP
-    {0x00, TYPE_DIAMOND, 10, 6, 0, 0, false, "diamond.obl"},    // 5c TILES_DIAMOND
+    {0x00, TYPE_DIAMOND, 10, 6, 0, 0, false, "jewel-blue.zip"}, // 5c TILES_DIAMOND
     {0x00, TYPE_PICKUP, 99, 20, 0, 0, false, "triforce.obl"},   // 5d TILES_TRIFORCE
     {0x00, TYPE_PICKUP, 67, 10, 0, 0, false, "orb.obl"},        // 5e TILES_ORB
     {0x00, TYPE_PICKUP, 66, 0, 0, 0, false, "tntstick.obl"},    // 5f TILES_TNTSTICK
@@ -137,7 +137,8 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -10, 4, 3, false, "yelkiller.obl"}, // 70 TILES_YELKILLER
     {0x00, TYPE_DRONE, 0, -5, 4, 0, true, "whteworm.obl"},      // 71 TILES_WHTEWORM
     {0x00, TYPE_DRONE, 0, -8, 4, 0, true, "eturtle.obl"},       // 72 TILES_ETURTLE
-    {0x00, TYPE_DRONE, 0, -9, 4, 0, true, "drago.obl"}          // 73 TILES_DRAGO
+    {0x00, TYPE_DRONE, 0, -9, 4, 0, true, "drago.obl"},         // 73 TILES_DRAGO
+    {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, true, "doors_leaf.zip"} // 74 TILES_DOORS_LEAF
 };
 
 const uint8_t chMap[] = {
@@ -150,12 +151,12 @@ const uint8_t chMap[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x0c, 0x2c, 0x05, 0x2d, 0x43,
     0x4f, 0x60, 0x32, 0x00, 0x62, 0x00, 0x50, 0x35,
-    0x00, 0x00, 0x3f, 0x11, 0x00, 0x68, 0x00, 0x5e,
-    0x02, 0x0f, 0x00, 0x48, 0x5d, 0x12, 0x00, 0x0e,
+    0x51, 0x00, 0x3f, 0x11, 0x00, 0x68, 0x00, 0x5e,
+    0x02, 0x0f, 0x57, 0x48, 0x5d, 0x12, 0x00, 0x0e,
     0x0d, 0x00, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x64,
     0x00, 0x30, 0x31, 0x00, 0x00, 0x00, 0x00, 0x4c,
-    0x00, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x00,
-    0x24, 0x71, 0x00, 0x01, 0x37, 0x00, 0x6d, 0x40,
+    0x52, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
+    0x24, 0x71, 0x58, 0x01, 0x37, 0x00, 0x6d, 0x40,
     0x00, 0x00, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
 };
 

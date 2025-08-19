@@ -42,18 +42,24 @@ public:
 
     bool canMove(const JoyAim aim);
     void move(const JoyAim aim);
-    uint8_t getX() const;
-    uint8_t getY() const;
+    inline uint8_t getX() const
+    {
+        return m_x;
+    }
+    inline uint8_t getY() const
+    {
+        return m_y;
+    }
     uint8_t getPU() const;
     void setPU(const uint8_t c);
-    void setXY(const Pos &pos);
+    void setPos(const Pos &pos);
     JoyAim getAim() const;
     void setAim(const JoyAim aim);
     JoyAim findNextDir(const bool reverse = false);
     bool isPlayerThere(JoyAim aim) const;
     uint8_t tileAt(JoyAim aim) const;
     void setType(const uint8_t type);
-    bool within(const int x1, const int y1, const int x2, const int y2) const;
+    bool isWithin(const int x1, const int y1, const int x2, const int y2) const;
     bool read(FILE *sfile);
     bool write(FILE *tfile);
     void reverveDir();

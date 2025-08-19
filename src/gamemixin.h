@@ -46,11 +46,13 @@ class CGameMixin
 public:
     explicit CGameMixin();
     virtual ~CGameMixin();
-    void init(CMapArch *maparch, int index);
-    inline bool within(int val, int min, int max);
+    virtual void init(CMapArch *maparch, const int index);
+    inline bool isWithin(int val, int min, int max);
     void enableHiScore();
     void setSkill(uint8_t skill);
     static int tickRate();
+    void setWidth(int w);
+    void setHeight(int h);
 
 #ifdef USE_QFILE
 protected slots:
@@ -73,8 +75,6 @@ protected:
         HISCORE_DELAY = 5 * TICK_RATE,
         EVENT_COUNTDOWN_DELAY = TICK_RATE,
         MSG_COUNTDOWN_DELAY = 3 * TICK_RATE,
-        _WIDTH = 320,
-        _HEIGHT = 240,
         TILE_SIZE = 16,
         COUNTDOWN_INTRO = 1,
         COUNTDOWN_RESTART = 2,
@@ -96,6 +96,7 @@ protected:
         CAMERA_MODE_STATIC = 0,
         CAMERA_MODE_DYNAMIC = 1,
         FAZ_INV_BITSHIFT = 1,
+        INDEX_ANNIE_DEAD = 4,
     };
 
     enum Color : uint32_t
@@ -237,7 +238,8 @@ protected:
     bool m_scoresLoaded = false;
     bool m_hiscoreEnabled = false;
     bool m_paused = false;
-    bool m_musicMuted = false;
+    // Note: this has to be an int
+    int m_musicMuted = false;
     Prompt m_prompt = PROMPT_NONE;
     int m_optionCooldown = 0;
     bool m_gameMenuActive = false;
@@ -248,6 +250,8 @@ protected:
     int m_currentEvent;
     int m_eventCountdown;
     int m_timer;
+    int _WIDTH = 320;
+    int _HEIGHT = 240;
 
     void drawPreScreen(CFrame &bitmap);
     void drawScreen(CFrame &bitmap);
@@ -299,6 +303,7 @@ protected:
     {
         return _HEIGHT;
     }
+
     virtual void preloadAssets() = 0;
     virtual void sanityTest() = 0;
     virtual void drawHelpScreen(CFrame &bitmap);
@@ -316,6 +321,8 @@ protected:
     virtual void manageTitleScreen() = 0;
     virtual void toggleGameMenu() = 0;
     virtual void manageGameMenu() = 0;
+
+    virtual void manageOptionScreen() = 0;
 
 private:
     void stopRecorder();

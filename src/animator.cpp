@@ -42,6 +42,7 @@ CAnimator::animzSeq_t CAnimator::m_animzSeq[] = {
     {TILES_WHTEWORM, ANIMZ_WHTEWORM, ANIMZ_WHTEWORM_LEN / 2, ANIMZ_WHTEWORM},
     {TILES_ETURTLE, ANIMZ_ETURTLE, ANIMZ_ETURTLE_LEN / 2, ANIMZ_ETURTLE},
     {TILES_DRAGO, ANIMZ_DRAGO, ANIMZ_DRAGO_LEN / 2, ANIMZ_DRAGO},
+    {TILES_DOORS_LEAF, ANIMZ_DOORS_LEAF, ANIMZ_DOORS_LEAF_LEN, NA},
     {SFX_SPARKLE, ANIMZ_SPARKLE, ANIMZ_SPARKLE_LEN, ANIMZ_SPARKLE},
 };
 
@@ -76,7 +77,7 @@ uint8_t CAnimator::at(uint8_t tileID)
     return m_tileReplacement[tileID];
 }
 
-uint8_t CAnimator::offset()
+uint16_t CAnimator::offset()
 {
     return m_offset;
 }

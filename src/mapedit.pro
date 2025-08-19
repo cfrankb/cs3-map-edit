@@ -46,7 +46,8 @@ SOURCES += \
     statedata.cpp \
     keyvaluedialog.cpp \
     chars.cpp \
-    recorder.cpp
+    recorder.cpp \
+    gamestats.cpp
 
 HEADERS += \
     actor.h \
@@ -89,7 +90,9 @@ HEADERS += \
     skills.h \
     events.h \
     chars.h \
-    recorder.h
+    recorder.h \
+    gamesfx.h \
+    gamestats.h
 
 FORMS += \
     dlgattr.ui \

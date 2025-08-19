@@ -33,7 +33,7 @@ public:
     ~CAnimator();
     void animate();
     uint8_t at(uint8_t tileID);
-    uint8_t offset();
+    uint16_t offset();
     bool isSpecialCase(uint8_t tileID);
     AnimzInfo specialInfo(const int tileID);
 
@@ -56,5 +56,5 @@ private:
     static animzSeq_t m_animzSeq[];
     uint8_t m_tileReplacement[MAX_TILES];
     int32_t *m_seqIndex = nullptr;
-    uint8_t m_offset = 0;
+    uint16_t m_offset = 0;
 };

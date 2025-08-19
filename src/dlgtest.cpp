@@ -103,6 +103,7 @@ void CDlgTest::paintEvent(QPaintEvent *)
     case CGame::MODE_IDLE:
     case CGame::MODE_HISCORES:
     case CGame::MODE_TITLE:
+    case CGame::MODE_OPTIONS:
         break;
     }
 

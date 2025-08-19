@@ -22,14 +22,14 @@ struct sfx_t
 {
     uint16_t x;
     uint16_t y;
-    uint8_t sfx;
+    uint8_t sfxID;
     uint16_t timeout;
 
-    bool within(const int x1, const int y1, const int x2, const int y2) const
+    bool isWithin(const int x1, const int y1, const int x2, const int y2) const
     {
         return (x >= x1) && (x < x2) && (y >= y1) && (y < y2);
     }
 };
 
 #define SFX_SPARKLE 0xf0
-#define SPARKLE_TIMEOUT 200
+#define SFX_SPARKLE_TIMEOUT 200
