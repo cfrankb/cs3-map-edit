@@ -315,3 +315,16 @@ const Pos CActor::pos() const
 {
     return Pos{.x = m_x, .y = m_y};
 }
+
+/**
+ * @brief Calculate the distance between two actors
+ *
+ * @param actor
+ * @return int
+ */
+int CActor::distance(const CActor &actor)
+{
+    int dx = std::abs(actor.m_x - m_x);
+    int dy = std::abs(actor.m_y - m_y);
+    return std::max(dx, dy);
+}

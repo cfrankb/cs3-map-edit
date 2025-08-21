@@ -8,6 +8,8 @@ class CFrame;
 class CFrameSet;
 class CAnimator;
 
+#define RGBA(R, G, B) (R | (G << 8) | (B << 16) | 0xff000000)
+
 class CMapWidget : public QWidget
 {
     Q_OBJECT
@@ -45,6 +47,17 @@ protected:
         GRIDCOLOR = 0x00bfa079 | ALPHA,
         RED    = 0x0000ff | ALPHA,
         CYAN   = 0xffff00 | ALPHA,
+        PINK = RGBA(0xff, 0xc0, 0xcb),      // #ffc0cb
+        HOTPINK = RGBA(0xff, 0x69, 0xb4),   // #ff69b4
+        DEEPPINK = RGBA(0xff, 0x14, 0x93),  // #ff1493
+        ORANGE = RGBA(0xff, 0xaf,0x00),     // #ffaf00
+        DARKORANGE = RGBA(0xff,0x8c,0x00),  // #ff8c00
+        CORAL = RGBA(0xff, 0x7f, 0x50),     // #ff7f50
+        OLIVE = RGBA(0x80, 0x80, 0x00),     // #808000
+        MEDIUMSEAGREEN= RGBA(0x3C,0xB3, 0x71), // #3CB371
+        SEAGREEN = RGBA(0x2E, 0x8B, 0x57),  // #2E8B57
+        BLUEVIOLET = RGBA(0x8A, 0x2B, 0xE2),// #8A2BE2
+        DEEPSKYBLUE = RGBA(0x00, 0xBF, 0xFF), // #00BFFF
     };
 
     using Rect = struct
@@ -61,6 +74,7 @@ protected:
     inline void drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha);
     inline void drawGrid(CFrame & bitmap);
     void drawRect(CFrame &frame, const Rect &rect, const uint32_t color, bool fill);
+    uint32_t attr2color(const uint8_t attr);
 
     QTimer m_timer;
     CFrameSet *m_tiles = nullptr;

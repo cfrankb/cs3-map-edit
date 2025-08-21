@@ -23,3 +23,5 @@
 #define EVENT_GOD_MODE 4
 #define EVENT_SUGAR 5
 #define EVENT_RAGE 6
+#define EVENT_FREEZE 7
+#define EVENT_TRAP 8

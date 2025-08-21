@@ -27,6 +27,11 @@ class CGameStats;
 class CMapArch;
 class ISound;
 
+#define ATTR_WAIT 0xe0        // 0xe0 monster wait
+#define ATTR_FREEZE_TRAP 0xe1 // 0xe1 freeze trap
+#define ATTR_TRAP 0xe2        // 0xe2 trap
+#define ATTR_MSG0 0xf0        // 0xf0
+
 class CGame
 {
 public:
@@ -103,6 +108,7 @@ public:
     int closusureTimer() const;
     void checkClosure();
     void decClosure();
+    bool isFrozen() const;
 
 private:
     enum
@@ -117,12 +123,15 @@ private:
         EXTRASPEED_TIMER = 200,
         CLOSURE_TIMER = 7,
         RAGE_TIMER = 150,
+        FREEZE_TIMER = 80,
+        TRAP_DAMAGE = -16,
         DEFAULT_PLAYER_SPEED = 3,
         FAST_PLAYER_SPEED = 2,
         INVALID = -1,
         VERSION = (0x0200 << 16) + 0x0005,
-        SECRET_ATTR_MIN = 0x01,
-        SECRET_ATTR_MAX = 0x7f,
+        SECRET_ATTR_MIN = 0x01, // 0x01
+        SECRET_ATTR_MAX = 0x7f, // 0x7f
+        WAIT_DISTANCE = 5,
     };
 
     struct MapReport

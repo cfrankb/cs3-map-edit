@@ -64,6 +64,7 @@ public:
     bool write(FILE *tfile);
     void reverveDir();
     const Pos pos() const;
+    int distance(const CActor &actor);
 
 private:
     uint8_t m_x;

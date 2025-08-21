@@ -29,11 +29,12 @@ CDlgTest::~CDlgTest()
     delete ui;
 }
 
-void CDlgTest::init(CMapArch *mapfile, const int skill)
+void CDlgTest::init(CMapArch *mapfile,  const int level, const int skill)
 {
+    qDebug("CDlgTest::init");
     setZoom(true);
+    CGameMixin::init(mapfile, level);
     m_game->setSkill(skill);
-    CGameMixin::init(mapfile,  reinterpret_cast<CMapFile*>(mapfile)->currentIndex());
     //m_cameraMode = CAMERA_MODE_DYNAMIC;
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(mainLoop()));
 }

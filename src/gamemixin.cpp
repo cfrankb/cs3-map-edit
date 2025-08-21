@@ -33,6 +33,7 @@
 #include "sounds.h"
 #include "sprtypes.h"
 #include "gamestats.h"
+#include "anniedata.h"
 
 // Check windows
 #ifdef _WIN64
@@ -87,6 +88,33 @@ std::unordered_map<uint32_t, uint32_t> g_annieRedColors = {
     {0xff0a6afa, 0xff4053bf},
 };
 
+// color-patch
+std::unordered_map<uint32_t, uint32_t> g_annieGreyColors = {
+    {0xffb8d6fa, 0xffd8d8d8},
+    {0xff233edf, 0xff6a6a6a},
+    {0xff63a4db, 0xffa0a0a0},
+    {0xffeae0da, 0xffe1e1e1},
+    {0xff2a20b4, 0xff545454},
+    {0xff52528e, 0xff666666},
+    {0xff803a79, 0xff666666},
+    {0xff9cd2f4, 0xffcbcbcb},
+    {0xff202012, 0xff1b1b1b},
+    {0xff2ea014, 0xff4b4b4b},
+    {0xff131014, 0xff121212},
+    {0xff4775bb, 0xff7d7d7d},
+    {0xffc45c28, 0xff6d6d6d},
+    {0xff643414, 0xff393939},
+    {0xff342224, 0xff282828},
+    {0xff3b4171, 0xff4f4f4f},
+    {0xff2d1773, 0xff3d3d3d},
+    {0xff0a6afa, 0xff7a7a7a},
+    {0xff25173b, 0xff272727},
+    {0xff3b5224, 0xff3b3b3b},
+    {0xff413933, 0xff393939},
+    {0xff533340, 0xff424242},
+    {0xff332442, 0xff333333},
+};
+
 CGameMixin::CGameMixin()
 {
     m_game = CGame::getGame();
@@ -108,10 +136,11 @@ CGameMixin::~CGameMixin()
         delete m_animator;
     }
 
+    /*
     if (m_game)
     {
         delete m_game;
-    }
+    }*/
 
     if (m_tiles)
     {
@@ -516,8 +545,8 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unorde
     }
     else if (tileID == TILES_ANNIE2)
     {
-        CFrameSet &annie = *m_annie;
         const int aim = game.playerConst().getAim();
+        CFrameSet &annie = *m_annie;
         if (!game.health())
         {
             tile = annie[INDEX_ANNIE_DEAD * PLAYER_FRAMES + m_playerFrameOffset];
@@ -526,13 +555,24 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unorde
         {
             tile = annie[static_cast<uint8_t>(AIM_DOWN) * PLAYER_FRAMES + m_playerFrameOffset];
         }
+        else if (aim == AIM_DOWN && game.m_gameStats->get(S_IDLE_TIME) > IDLE_ACTIVATION)
+        {
+            const int idleTime = game.m_gameStats->get(S_IDLE_TIME);
+            const int idleFrame = ANNIE_ANNIE_IDLE + ((idleTime >> 4) & 3);
+            const int frame = idleTime & 0x08 ? idleFrame : ANNIE_ANNIE_DOWN;
+            tile = annie[frame];
+        }
         else
         {
             tile = annie[aim * PLAYER_FRAMES + m_playerFrameOffset];
             inverted = (m_playerFrameOffset & PLAYER_HIT_FRAME) == PLAYER_HIT_FRAME;
         }
 
-        if (m_game->hasExtraSpeed())
+        if (m_game->isFrozen())
+        {
+            colorMap = &g_annieGreyColors;
+        }
+        else if (m_game->hasExtraSpeed())
         {
             colorMap = &g_annieYellowColors;
         }
@@ -581,11 +621,14 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
         if (monster.isWithin(mx, my, mx + cols + ox, my + rows + oy) &&
             m_animator->isSpecialCase(tileID))
         {
+            const Pos pos = monster.pos();
+            const uint8_t attr = map->getAttr(pos.x, pos.y);
             sprites.push_back(
                 {.x = monster.getX(),
                  .y = monster.getY(),
                  .tileID = tileID,
-                 .aim = monster.getAim()});
+                 .aim = monster.getAim(),
+                 .attr = attr});
         }
     }
 
@@ -599,6 +642,7 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
                 .y = sfx.y,
                 .tileID = sfx.sfxID,
                 .aim = AIM_NONE,
+                .attr = 0,
             });
         }
     }
@@ -659,7 +703,7 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
     }
 
     /////////////////////////////////////////////////////////////////////////////
-    // overlay special case monsters
+    // overlay special case monsters and sfx
 
     std::vector<sprite_t> sprites;
     gatherSprites(sprites, {.mx = mx, .ox = ox, .my = my, .oy = oy});
@@ -668,7 +712,7 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
         // special case animations
         const int x = sprite.x - mx;
         const int y = sprite.y - my;
-        CFrame *tile = specialFrame(sprite.aim, sprite.tileID);
+        CFrame *tile = specialFrame(sprite);
         bool firstY = oy && y == 0;
         bool lastY = oy && y == rows;
         bool firstX = ox && x == 0;
@@ -732,7 +776,7 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         // special case animations
         const int x = sprite.x - mx;
         const int y = sprite.y - my;
-        CFrame *tile = specialFrame(sprite.aim, sprite.tileID);
+        CFrame *tile = specialFrame(sprite);
         drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true);
     }
 }
@@ -979,14 +1023,25 @@ void CGameMixin::manageGamePlay()
     manageCurrentEvent();
     manageTimer();
     game.purgeSfx();
-
+    game.decTimers();
     if (m_ticks % game.playerSpeed() == 0 && game.closusureTimer())
     {
         game.decClosure();
     }
-    else if (m_ticks % game.playerSpeed() == 0 && !game.isPlayerDead())
+    else if (m_ticks % game.playerSpeed() == 0 &&
+             !game.isPlayerDead() &&
+             !game.isFrozen())
     {
-        game.managePlayer(joyState);
+        if (game.managePlayer(joyState) != AIM_NONE)
+        {
+            game.m_gameStats->set(S_IDLE_TIME, 0);
+        }
+        else
+        {
+            int &idleTime = game.m_gameStats->inc(S_IDLE_TIME);
+            if (idleTime >= MAX_IDLE_CYCLES)
+                idleTime = 0;
+        }
     }
 
     if (m_ticks % cameraSpeed() == 0)
@@ -994,26 +1049,29 @@ void CGameMixin::manageGamePlay()
         moveCamera();
     }
 
-    if (m_ticks % 3 == 0 && !game.isClosure())
+    if (!game.isFrozen() && m_ticks % 3 == 0)
     {
-        if (game.health() < m_healthRef && m_playerFrameOffset != PLAYER_HIT_FRAME)
+        if (!game.isClosure())
         {
-            m_playerFrameOffset = PLAYER_HIT_FRAME;
-        }
-        else if (*(reinterpret_cast<uint32_t *>(joyState)))
-        {
-            m_playerFrameOffset = (m_playerFrameOffset + 1) % PLAYER_STD_FRAMES;
+            if (game.health() < m_healthRef && m_playerFrameOffset != PLAYER_HIT_FRAME)
+            {
+                m_playerFrameOffset = PLAYER_HIT_FRAME;
+            }
+            else if (*(reinterpret_cast<uint32_t *>(joyState)))
+            {
+                m_playerFrameOffset = (m_playerFrameOffset + 1) % PLAYER_STD_FRAMES;
+            }
+            else
+            {
+                m_playerFrameOffset = 0;
+            }
+            m_healthRef = game.health();
+            m_animator->animate();
         }
         else
         {
-            m_playerFrameOffset = 0;
+            m_playerFrameOffset = (m_playerFrameOffset + 1) % PLAYER_STD_FRAMES;
         }
-        m_healthRef = game.health();
-        m_animator->animate();
-    }
-    else if (m_ticks % 3 == 0)
-    {
-        m_playerFrameOffset = (m_playerFrameOffset + 1) % PLAYER_STD_FRAMES;
     }
 
     game.manageMonsters(m_ticks);
@@ -1088,7 +1146,7 @@ void CGameMixin::startCountdown(int f)
     m_countdown = f * INTRO_DELAY;
 }
 
-void CGameMixin::init(CMapArch *maparch, int index)
+void CGameMixin::init(CMapArch *maparch, const int index)
 {
     if (!m_assetPreloaded)
     {
@@ -1667,7 +1725,7 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
     else if (m_currentEvent == EVENT_GOD_MODE)
     {
         scaleX = 2;
-        color = WHITE;
+        color = BLACK;
         return "GOD MODE !";
     }
     else if (m_currentEvent == EVENT_SUGAR)
@@ -1688,11 +1746,24 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
     else if (m_currentEvent == EVENT_RAGE)
     {
         scaleX = 2;
+        color = DARKORANGE;
+        return "RAGE !!!";
+    }
+    else if (m_currentEvent == EVENT_FREEZE)
+    {
+        scaleX = 2;
+        color = WHITE;
+        return "FREEZE TRAP";
+    }
+    else if (m_currentEvent == EVENT_TRAP)
+    {
+        scaleX = 2;
         color = RED;
-        return "RAGE MODE !";
+        return "TRAP";
     }
     else
     {
+        printf("unhandled event: 0x%.2x\n", m_currentEvent);
         return "";
     }
 }
@@ -1714,6 +1785,10 @@ void CGameMixin::manageCurrentEvent()
         if (m_currentEvent >= MSG0)
         {
             m_eventCountdown = MSG_COUNTDOWN_DELAY;
+        }
+        else if (m_currentEvent == EVENT_TRAP || m_currentEvent == EVENT_FREEZE)
+        {
+            m_eventCountdown = TRAP_MSG_COUNTDOWN_DELAY;
         }
         else if (m_currentEvent)
         {
@@ -1782,21 +1857,26 @@ void CGameMixin::drawSugarMeter(CFrame &bitmap, const int bx)
     }
 }
 
-CFrame *CGameMixin::specialFrame(const int aim, const uint8_t tileID)
+CFrame *CGameMixin::specialFrame(const sprite_t &sprite)
 {
-    CFrameSet &animz = *m_animz;
-    const AnimzInfo info = m_animator->specialInfo(tileID);
-    int saim = 0;
-    // safeguard
-    if (tileID < TILES_TOTAL_COUNT)
+    if (sprite.attr == ATTR_WAIT)
     {
-        saim = aim;
-        const TileDef &def = getTileDef(tileID);
+        CFrameSet &tiles = *m_tiles;
+        return tiles[sprite.tileID];
+    }
+    // safeguard
+    int saim = 0;
+    if (sprite.tileID < TILES_TOTAL_COUNT)
+    {
+        saim = sprite.aim;
+        const TileDef &def = getTileDef(sprite.tileID);
         if (def.type == TYPE_DRONE)
         {
             saim &= 1;
         }
     }
+    CFrameSet &animz = *m_animz;
+    const AnimzInfo info = m_animator->specialInfo(sprite.tileID);
     return animz[saim * info.frames + info.base + info.offset];
 }
 

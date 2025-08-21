@@ -103,7 +103,7 @@ const TileDef & getTileDef(int i);
 #define TILES_JAR1                0x3f
 #define TILES_WATERMELON          0x40
 #define TILES_BOULDER             0x41
-#define TILES_BOULDER_2           0x42
+#define TILES_BOULDER2            0x42
 #define TILES_GIFTBOX             0x43
 #define TILES_MAGICBOT            0x44
 #define TILES_LIGHTBUL            0x45

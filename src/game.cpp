@@ -42,6 +42,8 @@
 #define printf qDebug
 #endif
 
+#define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
+
 CMap g_map(30, 30);
 uint8_t CGame::m_keys[MAX_KEYS];
 static constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
@@ -187,8 +189,7 @@ void CGame::consume()
         m_gameStats->set(S_GOD_MODE_TIMER, GODMODE_TIMER);
         m_events.push_back(EVENT_GOD_MODE);
     }
-
-    if (def.flags & FLAG_EXTRA_SPEED || m_gameStats->get(S_SUGAR) == MAX_SUGAR_RUSH_LEVEL)
+    else if (def.flags & FLAG_EXTRA_SPEED || m_gameStats->get(S_SUGAR) == MAX_SUGAR_RUSH_LEVEL)
     {
         if (!m_gameStats->get(S_EXTRA_SPEED_TIMER))
             playSound(SOUND_POWERUP2);
@@ -196,8 +197,7 @@ void CGame::consume()
         m_events.push_back(EVENT_SUGAR_RUSH);
         m_gameStats->set(S_SUGAR, 0);
     }
-
-    if (def.flags & FLAG_RAGE)
+    else if (def.flags & FLAG_RAGE)
     {
         if (!m_gameStats->get(S_RAGE_TIMER))
             playSound(SOUND_POWERUP3);
@@ -209,19 +209,30 @@ void CGame::consume()
     int x = m_player.getX();
     int y = m_player.getY();
     uint8_t attr = g_map.getAttr(x, y);
-    if (attr != 0)
+
+    g_map.setAttr(x, y, 0);
+    if (attr == ATTR_FREEZE_TRAP)
     {
-        g_map.setAttr(x, y, 0);
-        if (attr >= MSG0 && g_map.states().hasS(attr))
-        {
-            // Messsage Event (scrolls, books etc)
-            m_events.push_back(attr);
-        }
-        else if (clearAttr(attr))
+        m_gameStats->set(S_FREEZE_TIMER, FREEZE_TIMER);
+        m_events.push_back(EVENT_FREEZE);
+    }
+    else if (attr == ATTR_TRAP)
+    {
+        m_events.push_back(EVENT_TRAP);
+        addHealth(TRAP_DAMAGE);
+    }
+    else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
+    {
+        if (clearAttr(attr))
         {
             playSound(SOUND_0009);
             m_events.push_back(EVENT_SECRET);
         }
+    }
+    else if (attr >= MSG0 && g_map.states().hasS(attr))
+    {
+        // Messsage Event (scrolls, books etc)
+        m_events.push_back(attr);
     }
 }
 
@@ -299,6 +310,7 @@ void CGame::restartLevel()
     m_events.clear();
     resetStats();
     loadLevel(MODE_RESTART);
+    m_gameStats->set(S_SUGAR, 0);
 }
 
 /**
@@ -312,6 +324,7 @@ void CGame::restartGame()
     m_nextLife = calcScoreLife();
     m_score = 0;
     m_lives = DEFAULT_LIVES;
+    m_gameStats->set(S_SUGAR, 0);
 }
 
 /**
@@ -320,9 +333,16 @@ void CGame::restartGame()
  */
 void CGame::decTimers()
 {
-    m_gameStats->dec(S_GOD_MODE_TIMER);
-    m_gameStats->dec(S_EXTRA_SPEED_TIMER);
-    m_gameStats->dec(S_RAGE_TIMER);
+    std::vector<GameStat> stats = {
+        S_GOD_MODE_TIMER,
+        S_EXTRA_SPEED_TIMER,
+        S_RAGE_TIMER,
+        S_FREEZE_TIMER,
+    };
+    for (const auto &stat : stats)
+    {
+        m_gameStats->dec(stat);
+    }
 }
 
 /**
@@ -331,13 +351,20 @@ void CGame::decTimers()
  */
 void CGame::resetStats()
 {
-    m_gameStats->set(S_GOD_MODE_TIMER, 0);
-    m_gameStats->set(S_EXTRA_SPEED_TIMER, 0);
-    m_gameStats->set(S_RAGE_TIMER, 0);
-    m_gameStats->set(S_SUGAR, 0);
-    m_gameStats->set(S_CLOSURE, 0);
-    m_gameStats->set(S_CLOSURE_TIMER, 0);
-    m_gameStats->set(S_REVEAL_EXIT, 0);
+    std::vector<GameStat> stats = {
+        S_GOD_MODE_TIMER,
+        S_EXTRA_SPEED_TIMER,
+        S_RAGE_TIMER,
+        S_CLOSURE,
+        S_CLOSURE_TIMER,
+        S_REVEAL_EXIT,
+        S_IDLE_TIME,
+        S_FREEZE_TIMER,
+    };
+    for (const auto &stat : stats)
+    {
+        m_gameStats->set(stat, 0);
+    }
 }
 
 /**
@@ -450,7 +477,17 @@ void CGame::manageMonsters(int ticks)
     for (size_t i = 0; i < m_monsters.size(); ++i)
     {
         CActor &actor = m_monsters[i];
-        const uint8_t cs = g_map.at(actor.getX(), actor.getY());
+        const Pos pos = actor.pos();
+        const uint8_t cs = g_map.at(pos.x, pos.y);
+        uint8_t attr = g_map.getAttr(pos.x, pos.y);
+        if (attr == ATTR_WAIT)
+        {
+            if (actor.distance(m_player) < WAIT_DISTANCE)
+                g_map.setAttr(pos.x, pos.y, 0);
+            else
+                continue;
+        }
+
         const TileDef &def = getTileDef(cs);
         if (!speeds[def.speed])
         {
@@ -503,15 +540,19 @@ void CGame::manageMonsters(int ticks)
             {
                 // apply health damages
                 addHealth(def.health);
+                if (def.ai & AI_STICKY)
+                {
+                    continue;
+                }
             }
             if (actor.canMove(aim))
             {
                 actor.move(aim);
             }
+            else if (aim == AIM_LEFT)
+                aim = AIM_RIGHT;
             else
-            {
-                aim ^= 1;
-            }
+                aim = AIM_LEFT;
             actor.setAim(aim);
         }
         else if (def.type == TYPE_VAMPLANT)
@@ -555,7 +596,6 @@ void CGame::manageMonsters(int ticks)
 
 uint8_t CGame::managePlayer(const uint8_t *joystate)
 {
-    decTimers();
     auto const pu = m_player.getPU();
     if (pu == TILES_SWAMP)
     {
@@ -1383,4 +1423,9 @@ int CGame::closusureTimer() const
 void CGame::decClosure()
 {
     m_gameStats->dec(S_CLOSURE_TIMER);
+}
+
+bool CGame::isFrozen() const
+{
+    return m_gameStats->get(S_FREEZE_TIMER) != 0;
 }

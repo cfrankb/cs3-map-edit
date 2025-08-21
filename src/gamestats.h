@@ -33,6 +33,8 @@ enum GameStat : uint16_t
     S_CLOSURE,
     S_CLOSURE_TIMER,
     S_REVEAL_EXIT,
+    S_IDLE_TIME,
+    S_FREEZE_TIMER,
 };
 
 class CGameStats
@@ -43,7 +45,8 @@ public:
 
     int &get(const GameStat key);
     void set(const GameStat key, int value);
-    void dec(const GameStat key);
+    int &dec(const GameStat key);
+    int &inc(const GameStat key);
 
     bool read(FILE *sfile);
     bool write(FILE *tfile);

@@ -88,7 +88,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "jar1.obl"},          // 3f TILES_JAR1
     {0x00, TYPE_PICKUP, 16, 0, 0, 0, false, "watermelon.png"},  // 40 TILES_WATERMELON
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},       // 41 TILES_BOULDER
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},       // 42 TILES_BOULDER_2
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},       // 42 TILES_BOULDER2
     {0x00, TYPE_PICKUP, 21, 0, 0, 0, false, "giftbox.png"},     // 43 TILES_GIFTBOX
     {0x00, TYPE_PICKUP, 40, 0, 0, 0, false, "magicbot.obl"},    // 44 TILES_MAGICBOT
     {0x00, TYPE_PICKUP, 22, 0, 0, 0, false, "lightbul.obl"},    // 45 TILES_LIGHTBUL
@@ -127,7 +127,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -6, 5, 1, false, "insect1_dn.obl"}, // 66 TILES_INSECT1
     {0x00, TYPE_MONSTER, 0, -7, 4, 2, false, "lutin.obl"},      // 67 TILES_LUTIN
     {0x00, TYPE_MONSTER, 0, -8, 4, 1, false, "manka.obl"},      // 68 TILES_MANKA
-    {0x00, TYPE_MONSTER, 0, -4, 5, 1, false, "mush-idle.zip"},  // 69 TILES_MUSH_IDLE
+    {0x00, TYPE_MONSTER, 0, -6, 4, 3, false, "mush-idle.zip"},  // 69 TILES_MUSH_IDLE
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "octopus.obl"},   // 6a TILES_OCTOPUS
     {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "ooo.obl"},        // 6b TILES_OOO
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "teddy93.obl"},   // 6c TILES_TEDDY93

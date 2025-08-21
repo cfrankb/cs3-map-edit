@@ -845,7 +845,7 @@ void writeMapFile(const std::string &section,
     tfileMap.open(fnameMap.c_str(), "wb");
     for (size_t j = 0; j < tileDefs.size(); ++j)
     {
-        Tile tile = tileDefs[j];
+        const Tile &tile = tileDefs[j];
         std::string tmp;
         if (generateHeader)
         {

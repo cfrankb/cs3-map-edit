@@ -51,13 +51,26 @@ void CGameStats::set(const GameStat key, int value)
  * @brief Decrement value associated with given key. Doesn't decrement values below zero
  *
  * @param key
+ * @return int& new value
  */
-void CGameStats::dec(const GameStat key)
+int &CGameStats::dec(const GameStat key)
 {
     if (m_stats[key] > 0)
     {
         --m_stats[key];
     }
+    return m_stats[key];
+}
+
+/**
+ * @brief Increment value associated with given key.
+ *
+ * @param key
+ * @return int& new value
+ */
+int &CGameStats::inc(const GameStat key)
+{
+    return ++m_stats[key];
 }
 
 /**

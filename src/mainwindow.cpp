@@ -731,9 +731,10 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
             return;
         }
         int skill = m_cbSkill->currentIndex();
+        qDebug("starting test");
         CDlgTest dlg(this);
         dlg.setWindowTitle(tr("Test Map"));
-        dlg.init(&m_doc, skill);
+        dlg.init(&m_doc, m_doc.currentIndex(), skill);
         dlg.exec();
     }
 }

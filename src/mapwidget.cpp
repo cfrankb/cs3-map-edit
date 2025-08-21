@@ -8,6 +8,7 @@
 #include "animator.h"
 #include "states.h"
 #include "statedata.h"
+#include "game.h"
 #include <QScrollBar>
 
 CMapWidget::CMapWidget(QWidget *parent)
@@ -190,9 +191,26 @@ void CMapWidget::drawScreen(CFrame &bitmap)
                 s[0] = hexchar[a >> 4];
                 s[1] = hexchar[a & 0xf];
                 s[2] = 0;
-                drawFont(bitmap, x*TILE_SIZE, y*TILE_SIZE + 4, s, YELLOW, true);
+                drawFont(bitmap, x*TILE_SIZE, y*TILE_SIZE + 4, s, attr2color(a), true);
             }
         }
+    }
+}
+
+uint32_t CMapWidget::attr2color(const uint8_t attr)
+{
+    if (attr >= MSG0) {
+        return CYAN;
+    } else if (attr == ATTR_WAIT) {
+        return PURPLE;
+    } else if (attr == ATTR_FREEZE_TRAP) {
+        return LIGHTGRAY;
+    } else if (attr == ATTR_TRAP) {
+        return RED;
+    } else if (attr >= 0x7f) {
+        return LIME;
+    } else {
+        return YELLOW;
     }
 }
 
