@@ -17,7 +17,7 @@ class CDlgTest : public QDialog, public CGameMixin
 
 public:
     explicit CDlgTest(QWidget *parent = nullptr);
-    void init(CMapArch *mapfile, const int level, const int skill);
+    void init(CMapArch *mapfile, const int level) override;
     virtual ~CDlgTest();
 
 protected slots:

@@ -44,7 +44,7 @@
 
 #define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
 
-CMap g_map(30, 30);
+CMap CGame::m_map(30, 30);
 uint8_t CGame::m_keys[MAX_KEYS];
 static constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
 CGame *g_game = nullptr;
@@ -88,7 +88,7 @@ CGame::~CGame()
  */
 CMap &CGame::getMap()
 {
-    return g_map;
+    return m_map;
 }
 
 /**
@@ -208,9 +208,9 @@ void CGame::consume()
     // trigger key
     int x = m_player.getX();
     int y = m_player.getY();
-    uint8_t attr = g_map.getAttr(x, y);
+    uint8_t attr = m_map.getAttr(x, y);
 
-    g_map.setAttr(x, y, 0);
+    m_map.setAttr(x, y, 0);
     if (attr == ATTR_FREEZE_TRAP)
     {
         m_gameStats->set(S_FREEZE_TIMER, FREEZE_TIMER);
@@ -229,7 +229,7 @@ void CGame::consume()
             m_events.push_back(EVENT_SECRET);
         }
     }
-    else if (attr >= MSG0 && g_map.states().hasS(attr))
+    else if (attr >= MSG0 && m_map.states().hasS(attr))
     {
         // Messsage Event (scrolls, books etc)
         m_events.push_back(attr);
@@ -249,7 +249,7 @@ bool CGame::loadLevel(const GameMode mode)
     setMode(mode);
 
     // extract level from MapArch
-    g_map = *(m_mapArch->at(m_level));
+    m_map = *(m_mapArch->at(m_level));
 
     printf("level loaded\n");
     if (m_hints.size() == 0)
@@ -260,21 +260,21 @@ bool CGame::loadLevel(const GameMode mode)
     m_events.clear();
 
     // Use origin pos if available
-    CStates &states = g_map.states();
+    CStates &states = m_map.states();
     const uint16_t origin = states.getU(POS_ORIGIN);
     Pos pos;
     if (origin != 0)
     {
         pos = CMap::toPos(origin);
-        g_map.set(pos.x, pos.y, TILES_ANNIE2);
+        m_map.set(pos.x, pos.y, TILES_ANNIE2);
     }
     else
     {
-        pos = g_map.findFirst(TILES_ANNIE2);
+        pos = m_map.findFirst(TILES_ANNIE2);
     }
     printf("Player at: %d %d\n", pos.x, pos.y);
     m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
-    m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : g_map.count(TILES_DIAMOND);
+    m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : m_map.count(TILES_DIAMOND);
     memset(m_keys, 0, sizeof(m_keys));
     m_health = DEFAULT_HEALTH;
     findMonsters();
@@ -290,7 +290,7 @@ bool CGame::loadLevel(const GameMode mode)
 void CGame::nextLevel()
 {
     addPoints(LEVEL_BONUS + m_health);
-    addPoints(g_map.states().getU(TIMEOUT) * 2);
+    addPoints(m_map.states().getU(TIMEOUT) * 2);
     if (m_level != m_mapArch->size() - 1)
     {
         ++m_level;
@@ -406,11 +406,11 @@ void CGame::setMapArch(CMapArch *arch)
 bool CGame::findMonsters()
 {
     m_monsters.clear();
-    for (int y = 0; y < g_map.hei(); ++y)
+    for (int y = 0; y < m_map.hei(); ++y)
     {
-        for (int x = 0; x < g_map.len(); ++x)
+        for (int x = 0; x < m_map.len(); ++x)
         {
-            uint8_t c = g_map.at(x, y);
+            uint8_t c = m_map.at(x, y);
             const TileDef &def = getTileDef(c);
             if (def.type == TYPE_MONSTER ||
                 def.type == TYPE_VAMPLANT ||
@@ -478,12 +478,12 @@ void CGame::manageMonsters(int ticks)
     {
         CActor &actor = m_monsters[i];
         const Pos pos = actor.pos();
-        const uint8_t cs = g_map.at(pos.x, pos.y);
-        uint8_t attr = g_map.getAttr(pos.x, pos.y);
+        const uint8_t cs = m_map.at(pos.x, pos.y);
+        uint8_t attr = m_map.getAttr(pos.x, pos.y);
         if (attr == ATTR_WAIT)
         {
             if (actor.distance(m_player) < WAIT_DISTANCE)
-                g_map.setAttr(pos.x, pos.y, 0);
+                m_map.setAttr(pos.x, pos.y, 0);
             else
                 continue;
         }
@@ -505,7 +505,8 @@ void CGame::manageMonsters(int ticks)
                 }
             }
 
-            JoyAim aim = actor.findNextDir();
+            bool reverse = def.ai & AI_REVERSE;
+            JoyAim aim = actor.findNextDir(reverse);
             if (aim != AIM_NONE)
             {
                 actor.move(aim);
@@ -560,7 +561,7 @@ void CGame::manageMonsters(int ticks)
             for (uint8_t i = 0; i < sizeof(dirs); ++i)
             {
                 const Pos p = CGame::translate(Pos{actor.getX(), actor.getY()}, dirs[i]);
-                const uint8_t ct = g_map.at(p.x, p.y);
+                const uint8_t ct = m_map.at(p.x, p.y);
                 const TileDef &defT = getTileDef(ct);
                 if (defT.type == TYPE_PLAYER)
                 {
@@ -569,7 +570,7 @@ void CGame::manageMonsters(int ticks)
                 }
                 else if (defT.type == TYPE_SWAMP)
                 {
-                    g_map.set(p.x, p.y, TILES_VAMPLANT);
+                    m_map.set(p.x, p.y, TILES_VAMPLANT);
                     newMonsters.push_back(CActor(p.x, p.y, TYPE_VAMPLANT));
                     break;
                 }
@@ -580,7 +581,7 @@ void CGame::manageMonsters(int ticks)
                         continue;
                     CActor &m = m_monsters[j];
                     m.setType(TYPE_VAMPLANT);
-                    g_map.set(p.x, p.y, TILES_VAMPLANT);
+                    m_map.set(p.x, p.y, TILES_VAMPLANT);
                     break;
                 }
             }
@@ -635,7 +636,7 @@ Pos CGame::translate(const Pos &p, const int aim)
         }
         break;
     case AIM_DOWN:
-        if (t.y < g_map.hei() - 1)
+        if (t.y < m_map.hei() - 1)
         {
             ++t.y;
         }
@@ -647,7 +648,7 @@ Pos CGame::translate(const Pos &p, const int aim)
         }
         break;
     case AIM_RIGHT:
-        if (t.x < g_map.len() - 1)
+        if (t.x < m_map.len() - 1)
         {
             ++t.x;
         }
@@ -717,7 +718,7 @@ int CGame::clearAttr(const uint8_t attr)
 {
     std::vector<uint16_t> keys;
     int count = 0;
-    for (const auto &[key, tileAttr] : g_map.attrs())
+    for (const auto &[key, tileAttr] : m_map.attrs())
     {
         if (tileAttr == attr)
             keys.push_back(key);
@@ -729,15 +730,15 @@ int CGame::clearAttr(const uint8_t attr)
         const uint8_t x = pos.x;
         const uint8_t y = pos.y;
         ++count;
-        const uint8_t tile = g_map.at(x, y);
+        const uint8_t tile = m_map.at(x, y);
         const TileDef &def = getTileDef(tile);
         if (def.type == TYPE_DIAMOND)
         {
             --m_diamonds;
             checkClosure();
         }
-        g_map.set(x, y, TILES_BLANK);
-        g_map.setAttr(x, y, 0);
+        m_map.set(x, y, TILES_BLANK);
+        m_map.setAttr(x, y, 0);
         m_sfx.push_back(sfx_t{.x = x, .y = y, .sfxID = SFX_SPARKLE, .timeout = SFX_SPARKLE_TIMEOUT});
     }
     return count;
@@ -778,14 +779,14 @@ void CGame::checkClosure()
     }
     else if (!isClosure() && !m_diamonds)
     {
-        const uint16_t exitKey = g_map.states().getU(POS_EXIT);
+        const uint16_t exitKey = m_map.states().getU(POS_EXIT);
         if (exitKey != 0)
         {
             const bool revealExit = m_gameStats->get(S_REVEAL_EXIT) != 0;
             const Pos exitPos = CMap::toPos(exitKey);
             if (!revealExit)
             {
-                g_map.set(exitPos.x, exitPos.y, TILES_DOORS_LEAF);
+                m_map.set(exitPos.x, exitPos.y, TILES_DOORS_LEAF);
                 m_gameStats->set(S_REVEAL_EXIT, 1);
             }
             doClosure = m_player.pos() == exitPos;
@@ -1349,17 +1350,17 @@ int CGame::sugar() const
 void CGame::generateMapReport(MapReport &report)
 {
     std::unordered_map<uint8_t, int> tiles;
-    for (int y = 0; y < g_map.hei(); ++y)
+    for (int y = 0; y < m_map.hei(); ++y)
     {
-        for (int x = 0; x < g_map.len(); ++x)
+        for (int x = 0; x < m_map.len(); ++x)
         {
-            const auto &tile = g_map.at(x, y);
+            const auto &tile = m_map.at(x, y);
             tiles[tile] += 1;
         }
     }
 
     std::unordered_map<uint8_t, int> secrets;
-    const AttrMap &attrs = g_map.attrs();
+    const AttrMap &attrs = m_map.attrs();
     for (const auto &[k, v] : attrs)
     {
         if (v >= SECRET_ATTR_MIN &&
@@ -1428,4 +1429,11 @@ void CGame::decClosure()
 bool CGame::isFrozen() const
 {
     return m_gameStats->get(S_FREEZE_TIMER) != 0;
+}
+
+void CGame::destroy()
+{
+    if (g_game)
+        delete g_game;
+    g_game = nullptr;
 }

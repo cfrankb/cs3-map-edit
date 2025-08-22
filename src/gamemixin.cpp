@@ -136,12 +136,6 @@ CGameMixin::~CGameMixin()
         delete m_animator;
     }
 
-    /*
-    if (m_game)
-    {
-        delete m_game;
-    }*/
-
     if (m_tiles)
     {
         delete m_tiles;
@@ -765,7 +759,16 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
             std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
             CFrame *tile = tile2Frame(tileID, inverted, colorMap);
             if (tile)
-                drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
+            {
+                if (colorMap != nullptr || inverted)
+                {
+                    drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false, inverted, colorMap);
+                }
+                else
+                {
+                    drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
+                }
+            }
         }
     }
 
@@ -1066,13 +1069,15 @@ void CGameMixin::manageGamePlay()
                 m_playerFrameOffset = 0;
             }
             m_healthRef = game.health();
-            m_animator->animate();
         }
         else
         {
             m_playerFrameOffset = (m_playerFrameOffset + 1) % PLAYER_STD_FRAMES;
         }
     }
+
+    if (m_ticks % 3 == 0)
+        m_animator->animate();
 
     game.manageMonsters(m_ticks);
     const uint16_t exitKey = m_game->getMap().states().getU(POS_EXIT);

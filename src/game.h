@@ -109,6 +109,7 @@ public:
     void checkClosure();
     void decClosure();
     bool isFrozen() const;
+    static void destroy();
 
 private:
     enum
@@ -176,6 +177,7 @@ private:
     bool isBonusItem(const uint8_t tileID) const;
     void generateMapReport(MapReport &report);
     CGameStats &stats();
+    static CMap m_map;
 
     friend class CGameMixin;
 };

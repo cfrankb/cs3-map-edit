@@ -12,6 +12,7 @@
 #include "statedata.h"
 #include "states.h"
 #include "shared/qtgui/qfilewrap.h"
+#include "skills.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),
@@ -22,6 +23,7 @@ CDlgTest::CDlgTest(QWidget *parent) :
     new QShortcut(QKeySequence(Qt::Key_F11), this, SLOT(changeZoom()));
     m_timer.setInterval(1000 / TICK_RATE);
     m_timer.start();
+    setSkill(SKILL_NORMAL);
 }
 
 CDlgTest::~CDlgTest()
@@ -29,12 +31,11 @@ CDlgTest::~CDlgTest()
     delete ui;
 }
 
-void CDlgTest::init(CMapArch *mapfile,  const int level, const int skill)
+void CDlgTest::init(CMapArch *mapfile,  const int level)
 {
     qDebug("CDlgTest::init");
     setZoom(true);
     CGameMixin::init(mapfile, level);
-    m_game->setSkill(skill);
     //m_cameraMode = CAMERA_MODE_DYNAMIC;
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(mainLoop()));
 }

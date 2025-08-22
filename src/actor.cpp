@@ -27,6 +27,26 @@ const JoyAim g_aims[] = {
     AIM_RIGHT, AIM_UP, AIM_LEFT, AIM_DOWN,
     AIM_LEFT, AIM_DOWN, AIM_RIGHT, AIM_UP};
 
+/**
+ * @brief Reverse a given direction
+ *
+ * @param aim
+ * @return JoyAim
+ */
+JoyAim reverseDir(const JoyAim aim)
+{
+    if (aim == AIM_UP)
+        return AIM_DOWN;
+    else if (aim == AIM_DOWN)
+        return AIM_UP;
+    else if (aim == AIM_RIGHT)
+        return AIM_LEFT;
+    else if (aim == AIM_LEFT)
+        return AIM_RIGHT;
+    else
+        return aim;
+}
+
 CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAim aim)
 {
     m_x = x;
@@ -150,16 +170,21 @@ void CActor::setPos(const Pos &pos)
 /**
  * @brief Find Next Director (monsters)
  *
- * @param reverse, search order
+ * @param reverse, flip search order
  * @return JoyAim
  */
 JoyAim CActor::findNextDir(const bool reverse)
 {
-    const int aim = m_aim ^ (1 & reverse);
+    const int aim = m_aim;
     int i = TOTAL_AIMS - 1;
     while (i >= 0)
     {
-        const JoyAim &newAim = g_aims[aim * TOTAL_AIMS + i];
+        const bool isRevered = (i & 1) && reverse;
+        JoyAim newAim = g_aims[aim * TOTAL_AIMS + i];
+        if (isRevered)
+        {
+            newAim = ::reverseDir(newAim);
+        }
         if (canMove(newAim))
         {
             return newAim;

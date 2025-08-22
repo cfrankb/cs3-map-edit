@@ -31,6 +31,7 @@ enum JoyAim : uint8_t
 };
 
 JoyAim operator^=(JoyAim &aim, int i);
+JoyAim reverseDir(const JoyAim aim);
 
 class CActor
 {

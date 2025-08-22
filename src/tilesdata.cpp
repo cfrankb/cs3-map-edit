@@ -127,7 +127,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_MONSTER, 0, -6, 5, 1, false, "insect1_dn.obl"}, // 66 TILES_INSECT1
     {0x00, TYPE_MONSTER, 0, -7, 4, 2, false, "lutin.obl"},      // 67 TILES_LUTIN
     {0x00, TYPE_MONSTER, 0, -8, 4, 1, false, "manka.obl"},      // 68 TILES_MANKA
-    {0x00, TYPE_MONSTER, 0, -6, 4, 3, false, "mush-idle.zip"},  // 69 TILES_MUSH_IDLE
+    {0x00, TYPE_MONSTER, 0, -6, 4, 11, false, "mush-idle.zip"}, // 69 TILES_MUSH_IDLE
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "octopus.obl"},   // 6a TILES_OCTOPUS
     {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "ooo.obl"},        // 6b TILES_OOO
     {0x00, TYPE_MONSTER, 0, -10, 4, 2, false, "teddy93.obl"},   // 6c TILES_TEDDY93
