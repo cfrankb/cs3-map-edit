@@ -753,13 +753,11 @@ void CGame::addHealth(const int hp)
 {
     if (isClosure())
         return;
-
     const auto skill = m_gameStats->get(S_SKILL);
     if (hp > 0)
     {
-        const int maxHealth = static_cast<int>(MAX_HEALTH) / (1 + 1 * skill);
         const int hpToken = hp / (1 + 1 * skill);
-        m_health = std::min(m_health + hpToken, maxHealth);
+        m_health = std::min(m_health + hpToken, maxHealth());
     }
     else if (hp < 0 && !m_gameStats->get(S_GOD_MODE_TIMER))
     {
@@ -1382,11 +1380,20 @@ void CGame::generateMapReport(MapReport &report)
     }
 }
 
+/**
+ * @brief Get Soecual effect locations
+ *
+ * @return std::vector<sfx_t>&
+ */
 std::vector<sfx_t> &CGame::getSfx()
 {
     return m_sfx;
 }
 
+/**
+ * @brief Purge Expired Special effects
+ *
+ */
 void CGame::purgeSfx()
 {
     m_sfx.erase(std::remove_if(m_sfx.begin(), m_sfx.end(), [](auto &sfx)
@@ -1411,29 +1418,75 @@ CGame *CGame::getGame()
     return g_game;
 }
 
+/**
+ * @brief Determines if the level closure is initiated
+ *
+ * @return true
+ * @return false
+ */
 bool CGame::isClosure() const
 {
     return m_gameStats->get(S_CLOSURE) != 0;
 }
 
+/**
+ * @brief Raw Closure Timer for the current level
+ *
+ * @return int
+ */
 int CGame::closusureTimer() const
 {
     return m_gameStats->get(S_CLOSURE_TIMER);
 }
 
+/**
+ * @brief Decrement Closure Timer
+ *
+ */
 void CGame::decClosure()
 {
     m_gameStats->dec(S_CLOSURE_TIMER);
 }
 
+/**
+ * @brief Determines if the player is frozen
+ *
+ * @return true
+ * @return false
+ */
 bool CGame::isFrozen() const
 {
     return m_gameStats->get(S_FREEZE_TIMER) != 0;
 }
 
+/**
+ * @brief Destroy Game Singleton
+ *
+ */
 void CGame::destroy()
 {
     if (g_game)
         delete g_game;
     g_game = nullptr;
+}
+
+/**
+ * @brief Calculate MaxHealth for the current Skill Context
+ *
+ * @return int
+ */
+int CGame::maxHealth() const
+{
+    const auto skill = m_gameStats->get(S_SKILL);
+    return static_cast<int>(MAX_HEALTH) / (1 + 1 * skill);
+}
+
+int CGame::getUserID() const
+{
+    return m_gameStats->get(S_USER);
+}
+
+void CGame::setUserID(const int userID) const
+{
+    m_gameStats->set(S_USER, userID);
 }

@@ -43,3 +43,5 @@ const uint8_t * getCustomChars();
 #define CHARS_WALL             0x92
 #define CHARS_CRUSHER          0x93
 #define CHARS_COPYRIGHT        0x94
+#define CHARS_HEART            0x95
+#define CHARS_DIAMOND2         0x96

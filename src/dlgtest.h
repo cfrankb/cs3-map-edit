@@ -32,6 +32,7 @@ private:
     void keyReleaseEvent(QKeyEvent *event) override;
     void paintEvent(QPaintEvent *) override;
     void exitGame();
+    void loadColorMaps();
     void sanityTest() override;
     void setZoom(bool zoom) override;
     void drawHelpScreen(CFrame &) override {}
@@ -49,6 +50,7 @@ private:
     void manageOptionScreen() override {};
     void load() override {}
     void save() override {}
+    void manageUserMenu() override {};
 };
 
 #endif // DLGTEST_H

@@ -24,6 +24,7 @@ CDlgTest::CDlgTest(QWidget *parent) :
     m_timer.setInterval(1000 / TICK_RATE);
     m_timer.start();
     setSkill(SKILL_NORMAL);
+    m_healthBar = HEALTHBAR_HEARTHS;
 }
 
 CDlgTest::~CDlgTest()
@@ -106,6 +107,7 @@ void CDlgTest::paintEvent(QPaintEvent *)
     case CGame::MODE_HISCORES:
     case CGame::MODE_TITLE:
     case CGame::MODE_OPTIONS:
+    case CGame::MODE_USERSELECT:
         break;
     }
 
@@ -167,7 +169,7 @@ void CDlgTest::preloadAssets()
     asset_t assets[] = {
         {":/data/tiles.obl", &m_tiles},
         {":/data/animz.obl", &m_animz},
-        {":/data/annie.obl", &m_annie},
+        {":/data/annie.obl", &m_users},
     };
 
     for (int i=0; i < 3; ++i) {
@@ -193,7 +195,21 @@ void CDlgTest::preloadAssets()
     } else {
         qDebug("failed to open %s", fontName);
     }
+
+    loadColorMaps();
 }
 
-
-
+void CDlgTest::loadColorMaps()
+{
+    const char path[] = ":/data/Annie.ini";
+    QFileWrap file;
+    if (file.open(path, "rb"))
+    {
+        parseColorMaps(file, m_colormaps);
+        file.close();
+    }
+    else
+    {
+        qDebug("can't read %s\n", path);
+    }
+}

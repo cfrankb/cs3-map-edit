@@ -24,6 +24,7 @@ signals:
     void resizeMap(int, int);   // notify of a map resize
     void mapChanged(CMap *);    // notify of a map change
     void newTile(int);          // select a diffent tile in the tilebox
+    void setHighlight(uint8_t); // set attr to highlight
 
 private slots:
     void loadFile(const QString & filename);
@@ -63,8 +64,8 @@ private slots:
     void on_actionEdit_First_Map_triggered();
     void showStatDialog();
     void on_actionFile_Generate_Report_triggered();
-
     void on_actionEdit_Map_States_triggered();
+    void on_highlight();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;

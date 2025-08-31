@@ -47,7 +47,10 @@ SOURCES += \
     keyvaluedialog.cpp \
     chars.cpp \
     recorder.cpp \
-    gamestats.cpp
+    gamestats.cpp \
+    colormap.cpp \
+    strhelper.cpp
+
 
 HEADERS += \
     actor.h \
@@ -92,7 +95,9 @@ HEADERS += \
     chars.h \
     recorder.h \
     gamesfx.h \
-    gamestats.h
+    gamestats.h \
+    colormap.h \
+    strhelper.h
 
 FORMS += \
     dlgattr.ui \

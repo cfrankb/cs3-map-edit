@@ -21,5 +21,6 @@
         <file>data/bitfont.bin</file>
         <file>data/icons/go-first.png</file>
         <file>data/icons/go-last.png</file>
+        <file>data/Annie.ini</file>
     </qresource>
 </RCC>

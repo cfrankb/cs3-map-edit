@@ -56,7 +56,7 @@ def main():
         with open('inputs/chars.ini') as sfile:
             data = sfile.read()
             for line in data.split():
-                name = line.strip()
+                name = line.strip().upper()
                 if name:
                     tfile.write(f'#define CHARS_{name:16} {hex(i)}\n')
                 i +=1

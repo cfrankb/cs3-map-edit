@@ -101,8 +101,8 @@ bool CAnimator::isSpecialCase(uint8_t tileID)
 
 AnimzInfo CAnimator::specialInfo(const int tileID)
 {
-    const uint32_t seqCount = sizeof(m_animzSeq) / sizeof(animzSeq_t);
-    for (uint32_t i = 0; i < seqCount; ++i)
+    const size_t seqCount = sizeof(m_animzSeq) / sizeof(animzSeq_t);
+    for (size_t i = 0; i < seqCount; ++i)
     {
         const animzSeq_t &seq = m_animzSeq[i];
         if (seq.srcTile == tileID)

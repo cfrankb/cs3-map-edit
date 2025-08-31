@@ -193,6 +193,10 @@ void CMapWidget::drawScreen(CFrame &bitmap)
                 s[2] = 0;
                 drawFont(bitmap, x*TILE_SIZE, y*TILE_SIZE + 4, s, attr2color(a), true);
             }
+            if (a != 0 && a == m_attr) {
+                bool alt = ((m_ticks >> 2) & 1) == 1;
+                drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, alt ? PINK : CYAN, false);
+            }
         }
     }
 }
@@ -207,8 +211,10 @@ uint32_t CMapWidget::attr2color(const uint8_t attr)
         return LIGHTGRAY;
     } else if (attr == ATTR_TRAP) {
         return RED;
-    } else if (attr >= 0x7f) {
-        return LIME;
+    } else if (attr >= 0x80) {
+        return WHITE;
+    } else if (attr >= 0x40) {
+        return GREEN;
     } else {
         return YELLOW;
     }
@@ -329,3 +335,9 @@ void CMapWidget::drawTile(CFrame & bitmap, const int x, const int y, CFrame & ti
         }
     }
 }
+
+void CMapWidget::highlight(uint8_t attr)
+{
+    m_attr = attr;
+}
+

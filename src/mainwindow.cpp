@@ -41,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, SIGNAL(mapChanged(CMap *)), m_scrollArea, SLOT(newMap(CMap *)));
     connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showContextMenu(const QPoint &)));
+    connect(this, SIGNAL(setHighlight(uint8_t)), glw, SLOT(highlight(uint8_t)));
 
     updateTitle();
     initTilebox();
@@ -363,11 +364,17 @@ void MainWindow::showContextMenu(const QPoint &pos)
     if (x >= 0 && y >= 0 && x + mx < map.len() && y + my < map.hei())
     {
         QMenu menu(this);
-        QAction *actionSetAttr = new QAction(tr("set attribute"), &menu);
+        QAction *actionSetAttr = new QAction(tr("set raw attribute"), &menu);
         connect(actionSetAttr, SIGNAL(triggered()),
                 this, SLOT(showAttrDialog()));
-        actionSetAttr->setStatusTip(tr("Set the attribute for this tile"));
+        actionSetAttr->setStatusTip(tr("Set the raw attribute for this tile"));
         menu.addAction(actionSetAttr);
+
+        QAction *actionHighlight =  new QAction(tr("highlight attribute"), &menu);
+        connect(actionHighlight, SIGNAL(triggered()),
+                this, SLOT(on_highlight()));
+        menu.addAction(actionHighlight);
+        actionHighlight->setStatusTip(tr("hightlight this attribute"));
 
         QAction *actionStatAttr = new QAction(tr("see tile stats"), &menu);
         connect(actionStatAttr, SIGNAL(triggered()),
@@ -399,6 +406,13 @@ void MainWindow::showContextMenu(const QPoint &pos)
         m_hy = y + my;
         menu.exec(m_scrollArea->mapToGlobal(pos));
     }
+}
+
+void MainWindow::on_highlight()
+{
+    CMap &map = *m_doc.map();
+    uint8_t attr = map.getAttr(m_hx, m_hy);
+    emit setHighlight(attr);
 }
 
 void MainWindow::on_deleteTile()

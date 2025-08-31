@@ -17,41 +17,17 @@
 */
 #pragma once
 
-#include <cstdint>
-#include <cstdio>
 #include <unordered_map>
+#include <cstdint>
 
 class IFile;
+typedef std::unordered_map<uint32_t, uint32_t> colorMap_t;
 
-enum GameStat : uint16_t
+struct ColorMaps
 {
-    S_GOD_MODE_TIMER = 1,
-    S_EXTRA_SPEED_TIMER,
-    S_SUGAR,
-    S_SKILL,
-    S_RAGE_TIMER,
-    S_CLOSURE,
-    S_CLOSURE_TIMER,
-    S_REVEAL_EXIT,
-    S_IDLE_TIME,
-    S_FREEZE_TIMER,
-    S_USER,
+    colorMap_t sugarRush;
+    colorMap_t godMode;
+    colorMap_t rage;
 };
 
-class CGameStats
-{
-public:
-    CGameStats();
-    ~CGameStats();
-
-    int &get(const GameStat key);
-    void set(const GameStat key, int value);
-    int &dec(const GameStat key);
-    int &inc(const GameStat key);
-
-    bool read(FILE *sfile);
-    bool write(FILE *tfile);
-
-private:
-    std::unordered_map<uint16_t, int32_t> m_stats;
-};
+bool parseColorMaps(IFile &file, ColorMaps &colorMaps);

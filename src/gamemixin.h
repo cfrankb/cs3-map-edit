@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "colormap.h"
 
 #define WIDTH getWidth()
 #define HEIGHT getHeight()
@@ -53,6 +54,11 @@ public:
     static int tickRate();
     void setWidth(int w);
     void setHeight(int h);
+    enum : int32_t
+    {
+        DEFAULT_WIDTH = 320,
+        DEFAULT_HEIGHT = 240,
+    };
 
 #ifdef USE_QFILE
 protected slots:
@@ -92,18 +98,40 @@ protected:
         PLAYER_FRAMES = 8,
         PLAYER_HIT_FRAME = 7,
         PLAYER_STD_FRAMES = 7,
+        PLAYER_DOWN_INDEX = 8,
+        PLAYER_TOTAL_FRAMES = 44,
+        PLAYER_IDLE_BASE = 0x28,
         ANIMZ_INSECT1_FRAMES = 8,
         INSECT1_MAX_OFFSET = 7,
         CAMERA_MODE_STATIC = 0,
         CAMERA_MODE_DYNAMIC = 1,
         FAZ_INV_BITSHIFT = 1,
-        INDEX_ANNIE_DEAD = 4,
+        INDEX_PLAYER_DEAD = 4,
+        HEALTHBAR_CLASSIC = 0,
+        HEALTHBAR_HEARTHS = 1,
+    };
+
+    enum
+    {
+        Annie,
+        Lisa,
+        Alana,
+        Paul
     };
 
     enum : int32_t
     {
         MAX_IDLE_CYCLES = 0x100,
         IDLE_ACTIVATION = 0x40,
+        MIN_WIDTH_FULL = 320,
+    };
+
+    enum ColorMask : uint8_t
+    {
+        COLOR_NOCHANGE,
+        COLOR_FADE,
+        COLOR_INVERTED,
+        COLOR_GRAYSCALE
     };
 
     enum Color : uint32_t
@@ -241,7 +269,7 @@ protected:
     CAnimator *m_animator;
     CFrameSet *m_tiles = nullptr;
     CFrameSet *m_animz = nullptr;
-    CFrameSet *m_annie = nullptr;
+    CFrameSet *m_users = nullptr;
     uint8_t *m_fontData = nullptr;
     CGame *m_game = nullptr;
     CMapArch *m_maparch = nullptr;
@@ -257,8 +285,7 @@ protected:
     bool m_scoresLoaded = false;
     bool m_hiscoreEnabled = false;
     bool m_paused = false;
-    // Note: this has to be an int
-    int m_musicMuted = false;
+    int m_musicMuted = false; // Note: this has to be an int
     Prompt m_prompt = PROMPT_NONE;
     int m_optionCooldown = 0;
     bool m_gameMenuActive = false;
@@ -266,11 +293,13 @@ protected:
     int m_cx;
     int m_cy;
     int m_cameraMode = CAMERA_MODE_STATIC;
+    int m_healthBar = HEALTHBAR_CLASSIC;
     int m_currentEvent;
     int m_eventCountdown;
     int m_timer;
-    int _WIDTH = 320;
-    int _HEIGHT = 240;
+    int _WIDTH = DEFAULT_WIDTH;
+    int _HEIGHT = DEFAULT_HEIGHT;
+    ColorMaps m_colormaps;
 
     void drawPreScreen(CFrame &bitmap);
     void drawScreen(CFrame &bitmap);
@@ -284,10 +313,12 @@ protected:
     inline void drawTimeout(CFrame &bitmap);
     inline void drawKeys(CFrame &bitmap);
     inline void drawSugarMeter(CFrame &bitmap, const int bx);
-    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const bool inverted = false, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
-    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const bool inverted = false, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
-    inline CFrame *tile2Frame(const uint8_t tileID, bool &inverted, std::unordered_map<uint32_t, uint32_t> *&colorMap);
-    CFrame *specialFrame(const sprite_t &sprite); //  const int aim, const uint8_t tileID);
+    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    inline CFrame *tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
+    void drawHealthBar(CFrame &bitmap);
+    void drawGameStatus(CFrame &bitmap);
+    CFrame *specialFrame(const sprite_t &sprite);
     void nextLevel();
     void restartLevel();
     void restartGame();
@@ -340,8 +371,9 @@ protected:
     virtual void manageTitleScreen() = 0;
     virtual void toggleGameMenu() = 0;
     virtual void manageGameMenu() = 0;
-
     virtual void manageOptionScreen() = 0;
+
+    virtual void manageUserMenu() = 0;
 
 private:
     void stopRecorder();

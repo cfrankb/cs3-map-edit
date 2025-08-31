@@ -33,7 +33,6 @@
 #include "sounds.h"
 #include "sprtypes.h"
 #include "gamestats.h"
-#include "anniedata.h"
 
 // Check windows
 #ifdef _WIN64
@@ -57,63 +56,6 @@
 #include <QDebug>
 #define printf qDebug
 #endif
-
-// Color Maps
-std::unordered_map<uint32_t, uint32_t> g_annieWhiteColors = {
-    {0xff233edf, 0xff96999a},
-    {0xff2a20b4, 0xff7b7677},
-    {0xffc45c28, 0xffac4191},
-    {0xff643414, 0xff833561},
-    {0xff2d1773, 0xff645c5e},
-    {0xff0a6afa, 0xffbcbfc0},
-};
-
-std::unordered_map<uint32_t, uint32_t> g_annieYellowColors = {
-    {0xff233edf, 0xff0aa5e5},
-    {0xff2a20b4, 0xff48a3ff},
-    {0xffc45c28, 0xff89e357},
-    {0xff643414, 0xff7ec22e},
-    {0xff342224, 0xff69a226},
-    {0xff2d1773, 0xff645c5e},
-    {0xff0a6afa, 0xff2dd3f6},
-};
-
-// color-patch
-std::unordered_map<uint32_t, uint32_t> g_annieRedColors = {
-    {0xff233edf, 0xff2d1da5},
-    {0xff9cd2f4, 0xff5161f6},
-    {0xffc45c28, 0xff5161f6},
-    {0xff643414, 0xff241be0},
-    {0xff342224, 0xff2d1da5},
-    {0xff0a6afa, 0xff4053bf},
-};
-
-// color-patch
-std::unordered_map<uint32_t, uint32_t> g_annieGreyColors = {
-    {0xffb8d6fa, 0xffd8d8d8},
-    {0xff233edf, 0xff6a6a6a},
-    {0xff63a4db, 0xffa0a0a0},
-    {0xffeae0da, 0xffe1e1e1},
-    {0xff2a20b4, 0xff545454},
-    {0xff52528e, 0xff666666},
-    {0xff803a79, 0xff666666},
-    {0xff9cd2f4, 0xffcbcbcb},
-    {0xff202012, 0xff1b1b1b},
-    {0xff2ea014, 0xff4b4b4b},
-    {0xff131014, 0xff121212},
-    {0xff4775bb, 0xff7d7d7d},
-    {0xffc45c28, 0xff6d6d6d},
-    {0xff643414, 0xff393939},
-    {0xff342224, 0xff282828},
-    {0xff3b4171, 0xff4f4f4f},
-    {0xff2d1773, 0xff3d3d3d},
-    {0xff0a6afa, 0xff7a7a7a},
-    {0xff25173b, 0xff272727},
-    {0xff3b5224, 0xff3b3b3b},
-    {0xff413933, 0xff393939},
-    {0xff533340, 0xff424242},
-    {0xff332442, 0xff333333},
-};
 
 CGameMixin::CGameMixin()
 {
@@ -146,9 +88,9 @@ CGameMixin::~CGameMixin()
         delete m_animz;
     }
 
-    if (m_annie)
+    if (m_users)
     {
-        delete m_annie;
+        delete m_users;
     }
 
     if (m_fontData)
@@ -244,22 +186,22 @@ void CGameMixin::drawRect(CFrame &frame, const Rect &rect, const Color color, bo
 }
 
 /**
- * @brief draw a tile into pixmap buffer. this a special variant that can draw partial tiles
+ * @brief draw a tile into a pixmap buffer. this a special variant that can draw partial tiles and perform dynamic recoloring
  *
  * @param bitmap
  * @param x
  * @param y
  * @param tile
  * @param rect
- * @param inverted
+ * @param colorMask
  * @param colorMap
  */
 
-void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const bool inverted, std::unordered_map<uint32_t, uint32_t> *colorMap)
+void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const ColorMask colorMask, std::unordered_map<uint32_t, uint32_t> *colorMap)
 {
     const int width = bitmap.len();
     uint32_t *dest = bitmap.getRGB() + x + y * width;
-    if (!inverted && !colorMap)
+    if (!colorMask && !colorMap)
     {
         for (int row = 0; row < rect.height; ++row)
         {
@@ -284,10 +226,19 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
                 {
                     color = (*colorMap)[color];
                 }
-                if (inverted)
+                if (colorMask == COLOR_FADE)
                 {
-                    // color ^= 0x00ffffff;
                     color = ((color >> FAZ_INV_BITSHIFT) & colorFilter) | ALPHA;
+                }
+                else if (colorMask == COLOR_INVERTED)
+                {
+                    color ^= 0x00ffffff;
+                }
+                else if (colorMask == COLOR_GRAYSCALE)
+                {
+                    uint8_t *c = reinterpret_cast<uint8_t *>(&color);
+                    const uint16_t avg = (c[0] + c[1] + c[2]) / 3;
+                    c[0] = c[1] = c[2] = avg;
                 }
                 dest[col] = color;
             }
@@ -297,23 +248,23 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
 }
 
 /**
- * @brief draw a tile into pixmap buffer
+ * @brief draw a tile into pixmap buffer. this version is optimized for speed and can only draw complete tiles
  *
  * @param bitmap
  * @param x
  * @param y
  * @param tile
  * @param alpha
- * @param inverted
+ * @param colorMask
  * @param colorMap
  */
 
-void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const bool inverted, std::unordered_map<uint32_t, uint32_t> *colorMap)
+void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask, std::unordered_map<uint32_t, uint32_t> *colorMap)
 {
     const int width = bitmap.len();
     const uint32_t *tileData = tile.getRGB();
     uint32_t *dest = bitmap.getRGB() + x + y * width;
-    if (alpha || inverted || colorMap)
+    if (alpha || colorMask || colorMap)
     {
         const uint32_t colorFilter = fazFilter(FAZ_INV_BITSHIFT);
         for (uint32_t row = 0; row < TILE_SIZE; ++row)
@@ -327,10 +278,19 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
                 {
                     color = (*colorMap)[color];
                 }
-                if (inverted)
+                if (colorMask == COLOR_FADE)
                 {
-                    // color ^= 0x00ffffff;
                     color = ((color >> FAZ_INV_BITSHIFT) & colorFilter) | ALPHA;
+                }
+                else if (colorMask == COLOR_INVERTED)
+                {
+                    color ^= 0x00ffffff;
+                }
+                else if (colorMask == COLOR_GRAYSCALE)
+                {
+                    uint8_t *c = reinterpret_cast<uint8_t *>(&color);
+                    const uint16_t avg = (c[0] + c[1] + c[2]) / 3;
+                    c[0] = c[1] = c[2] = avg;
                 }
                 dest[col] = color;
             }
@@ -409,7 +369,6 @@ void CGameMixin::drawKeys(CFrame &bitmap)
 void CGameMixin::drawScreen(CFrame &bitmap)
 {
     // draw viewport
-    CGame &game = *m_game;
     if (m_cameraMode == CAMERA_MODE_DYNAMIC)
         drawViewPortDynamic(bitmap);
     else if (m_cameraMode == CAMERA_MODE_STATIC)
@@ -424,78 +383,21 @@ void CGameMixin::drawScreen(CFrame &bitmap)
     }
 
     // draw game status
-    char tmp[32];
-    if (m_paused)
-    {
-        drawFont(bitmap, 0, Y_STATUS, "PRESS [F4] TO RESUME PLAYING...", LIGHTGRAY);
-    }
-    else if (m_prompt == PROMPT_ERASE_SCORES)
-    {
-        drawFont(bitmap, 0, Y_STATUS, "ERASE HIGH SCORES, CONFIRM (Y/N)?", LIGHTGRAY);
-    }
-    else if (m_prompt == PROMPT_RESTART_GAME)
-    {
-        drawFont(bitmap, 0, Y_STATUS, "RESTART GAME, CONFIRM (Y/N)?", LIGHTGRAY);
-    }
-    else if (m_prompt == PROMPT_LOAD)
-    {
-        drawFont(bitmap, 0, Y_STATUS, "LOAD PREVIOUS SAVEGAME, CONFIRM (Y/N)?", LIGHTGRAY);
-    }
-    else if (m_prompt == PROMPT_SAVE)
-    {
-        drawFont(bitmap, 0, Y_STATUS, "SAVE GAME, CONFIRM (Y/N)?", LIGHTGRAY);
-    }
-    else if (m_prompt == PROMPT_HARDCORE)
-    {
-        drawFont(bitmap, 0, Y_STATUS, "HARDCORE MODE, CONFIRM (Y/N)?", LIGHTGRAY);
-    }
-    else if (m_prompt == PROMPT_TOGGLE_MUSIC)
-    {
-        drawFont(bitmap, 0, Y_STATUS,
-                 m_musicMuted ? "PLAY MUSIC, CONFIRM (Y/N)?"
-                              : "MUTE MUSIC, CONFIRM (Y/N)?",
-                 LIGHTGRAY);
-    }
-    else
-    {
-        int tx;
-        int bx = 0;
-        tx = sprintf(tmp, "%.8d ", game.score());
-        drawFont(bitmap, 0, Y_STATUS, tmp, WHITE);
-        bx += tx;
-        tx = sprintf(tmp, "DIAMONDS %.2d ", game.goalCount());
-        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, YELLOW);
-        bx += tx;
-        tx = sprintf(tmp, "LIVES %.2d ", game.lives());
-        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, PURPLE);
-        bx += tx;
-        if (m_recorder->isRecording())
-        {
-            drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, "REC!", WHITE, RED);
-        }
-        else if (m_recorder->isReading())
-        {
-            drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, "PLAY", WHITE, DARKGREEN);
-        }
-        drawSugarMeter(bitmap, bx);
-    }
+    drawGameStatus(bitmap);
 
     // draw bottom rect
-    const Color rectBG = m_currentEvent >= MSG0 ? WHITE : DARKGRAY;
+    const bool isFullWidth = _WIDTH >= MIN_WIDTH_FULL;
+    const Color rectBG = isFullWidth && m_currentEvent >= MSG0 ? WHITE : DARKGRAY;
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, rectBG, true);
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
 
     // draw current event text
     drawEventText(bitmap);
 
-    if (m_currentEvent < MSG0)
+    if (!isFullWidth || m_currentEvent < MSG0)
     {
-        // draw health bar
-        const int hpWidth = std::min(game.health() / 2, bitmap.len() - 4);
-        drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
-                 game.isGodMode() ? WHITE : LIME, true);
-        drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
-                 WHITE, false);
+        // draw Healthbar
+        drawHealthBar(bitmap);
 
         // draw keys
         drawKeys(bitmap);
@@ -528,7 +430,7 @@ void CGameMixin::drawTimeout(CFrame &bitmap)
     }
 }
 
-CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unordered_map<uint32_t, uint32_t> *&colorMap)
+CFrame *CGameMixin::tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap)
 {
     const CGame &game = *m_game;
     CFrame *tile;
@@ -539,44 +441,46 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, bool &inverted, std::unorde
     }
     else if (tileID == TILES_ANNIE2)
     {
+        const uint8_t userID = game.getUserID();
+        const uint32_t userBaseFrame = PLAYER_TOTAL_FRAMES * userID;
         const int aim = game.playerConst().getAim();
-        CFrameSet &annie = *m_annie;
+        CFrameSet &annie = *m_users;
         if (!game.health())
         {
-            tile = annie[INDEX_ANNIE_DEAD * PLAYER_FRAMES + m_playerFrameOffset];
+            tile = annie[INDEX_PLAYER_DEAD * PLAYER_FRAMES + m_playerFrameOffset + userBaseFrame];
         }
         else if (!game.goalCount() && game.isClosure())
         {
-            tile = annie[static_cast<uint8_t>(AIM_DOWN) * PLAYER_FRAMES + m_playerFrameOffset];
+            tile = annie[static_cast<uint8_t>(AIM_DOWN) * PLAYER_FRAMES + m_playerFrameOffset + userBaseFrame];
         }
         else if (aim == AIM_DOWN && game.m_gameStats->get(S_IDLE_TIME) > IDLE_ACTIVATION)
         {
             const int idleTime = game.m_gameStats->get(S_IDLE_TIME);
-            const int idleFrame = ANNIE_ANNIE_IDLE + ((idleTime >> 4) & 3);
-            const int frame = idleTime & 0x08 ? idleFrame : ANNIE_ANNIE_DOWN;
-            tile = annie[frame];
+            const int idleFrame = PLAYER_IDLE_BASE + ((idleTime >> 4) & 3);
+            const int frame = idleTime & 0x08 ? idleFrame : static_cast<int>(PLAYER_DOWN_INDEX);
+            tile = annie[frame + userBaseFrame];
         }
         else
         {
-            tile = annie[aim * PLAYER_FRAMES + m_playerFrameOffset];
-            inverted = (m_playerFrameOffset & PLAYER_HIT_FRAME) == PLAYER_HIT_FRAME;
+            tile = annie[aim * PLAYER_FRAMES + m_playerFrameOffset + userBaseFrame];
+            colorMask = (m_playerFrameOffset & PLAYER_HIT_FRAME) == PLAYER_HIT_FRAME ? COLOR_FADE : COLOR_NOCHANGE;
         }
 
         if (m_game->isFrozen())
         {
-            colorMap = &g_annieGreyColors;
+            colorMask = COLOR_GRAYSCALE;
         }
         else if (m_game->hasExtraSpeed())
         {
-            colorMap = &g_annieYellowColors;
+            colorMap = &m_colormaps.sugarRush;
         }
         else if (m_game->isGodMode())
         {
-            colorMap = &g_annieWhiteColors;
+            colorMap = &m_colormaps.godMode;
         }
         else if (m_game->isRageMode())
         {
-            colorMap = &g_annieRedColors;
+            colorMap = &m_colormaps.rage;
         }
     }
     else
@@ -668,9 +572,9 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
             bool firstX = ox && x == 0;
             bool lastX = ox && x == cols;
             uint8_t tileID = map->at(x + mx, y + my);
-            bool inverted = false;
+            ColorMask colorMask = COLOR_NOCHANGE;
             std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
-            CFrame *tile = tile2Frame(tileID, inverted, colorMap);
+            CFrame *tile = tile2Frame(tileID, colorMask, colorMap);
             if (tile)
             {
                 if (firstX || firstY || lastX || lastY)
@@ -684,11 +588,11 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
                     drawTile(bitmap,
                              !firstX ? px : 0,
                              !firstY ? py : 0,
-                             *tile, rect, inverted, colorMap);
+                             *tile, rect, colorMask, colorMap);
                 }
                 else
                 {
-                    drawTile(bitmap, px, py, *tile, false, inverted, colorMap);
+                    drawTile(bitmap, px, py, *tile, false, colorMask, colorMap);
                 }
             }
             px += TILE_SIZE;
@@ -755,7 +659,7 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         for (int x = 0; x < cols; ++x)
         {
             uint8_t tileID = map->at(x + mx, y + my);
-            bool inverted = false;
+            ColorMask inverted = COLOR_NOCHANGE;
             std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
             CFrame *tile = tile2Frame(tileID, inverted, colorMap);
             if (tile)
@@ -838,7 +742,7 @@ void CGameMixin::drawLevelIntro(CFrame &bitmap)
         drawFont(bitmap, x, y + 3 * FONT_SIZE, t, WHITE);
     }
 
-    if (mode != CGame::MODE_GAMEOVER)
+    if (mode != CGame::MODE_GAMEOVER && _WIDTH >= MIN_WIDTH_FULL)
     {
         const char *hint = m_game->getHintText();
         const int x = (WIDTH - strlen(hint) * FONT_SIZE) / 2;
@@ -935,6 +839,9 @@ void CGameMixin::mainLoop()
         return;
     case CGame::MODE_OPTIONS:
         manageOptionScreen();
+        return;
+    case CGame::MODE_USERSELECT:
+        manageUserMenu();
         return;
     case CGame::MODE_PLAY:
         manageGamePlay();
@@ -1242,7 +1149,7 @@ void CGameMixin::drawScores(CFrame &bitmap)
     int x = (WIDTH - strlen(t) * scaleX * FONT_SIZE) / 2;
     drawFont(bitmap, x, y * FONT_SIZE, t, WHITE, BLACK, scaleX, scaleY);
     y += scaleX;
-    strcpy(t, std::string(strlen(t), '=').c_str());
+    strncpy(t, std::string(strlen(t), '=').c_str(), sizeof(t) - 1);
     x = (WIDTH - strlen(t) * scaleX * FONT_SIZE) / 2;
     drawFont(bitmap, x, y * FONT_SIZE, t, WHITE, BLACK, scaleX, scaleY);
     y += scaleX;
@@ -1481,7 +1388,7 @@ bool CGameMixin::handleInputString(char *inputDest, const size_t limit)
         }
         m_keyRepeters[k] = KEY_REPETE_DELAY;
         char s[2] = {c, 0};
-        strcat(inputDest, s);
+        strncat(inputDest, s, limit);
     }
     return false;
 }
@@ -1746,7 +1653,7 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
         scaleX = 1;
         scaleY = 1;
         color = DARKGRAY;
-        return m_game->getMap().states().getS(m_currentEvent);
+        return _WIDTH >= MIN_WIDTH_FULL ? m_game->getMap().states().getS(m_currentEvent) : "";
     }
     else if (m_currentEvent == EVENT_RAGE)
     {
@@ -1869,10 +1776,10 @@ CFrame *CGameMixin::specialFrame(const sprite_t &sprite)
         CFrameSet &tiles = *m_tiles;
         return tiles[sprite.tileID];
     }
-    // safeguard
     int saim = 0;
     if (sprite.tileID < TILES_TOTAL_COUNT)
     {
+        // safeguard
         saim = sprite.aim;
         const TileDef &def = getTileDef(sprite.tileID);
         if (def.type == TYPE_DRONE)
@@ -1893,4 +1800,108 @@ void CGameMixin::setWidth(int w)
 void CGameMixin::setHeight(int h)
 {
     _HEIGHT = h;
+}
+
+void CGameMixin::drawHealthBar(CFrame &bitmap)
+{
+    const uint32_t color = m_game->isGodMode() ? WHITE : RED;
+    auto drawHearth = [&bitmap, color](auto bx, auto by, auto health)
+    {
+        const uint8_t *hearth = getCustomChars() + (CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;
+        for (uint32_t y = 0; y < FONT_SIZE; ++y)
+        {
+            for (uint32_t x = 0; x < FONT_SIZE; ++x)
+            {
+                const uint8_t bit = hearth[y] & (1 << x);
+                if (bit)
+                    bitmap.at(bx + x, by + y) = x < (uint32_t)health ? color : BLACK;
+            }
+        }
+    };
+
+    // draw health bar
+    CGame &game = *m_game;
+    if (m_healthBar == HEALTHBAR_HEARTHS)
+    {
+        int step = FONT_SIZE;
+        const int maxHealth = game.maxHealth() / 2 / FONT_SIZE;
+        int health = game.health() / 2;
+        int bx = 2;
+        int by = bitmap.hei() - 12;
+        for (int i = 0; i < maxHealth; ++i)
+        {
+            drawHearth(bx, by, health > 0 ? health : 0);
+            bx += FONT_SIZE;
+            health -= step;
+        }
+    }
+    else
+    {
+        const int hpWidth = std::min(game.health() / 2, bitmap.len() - 4);
+        drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
+                 game.isGodMode() ? WHITE : LIME, true);
+        drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
+                 WHITE, false);
+    }
+}
+
+void CGameMixin::drawGameStatus(CFrame &bitmap)
+{
+    CGame &game = *m_game;
+    char tmp[32];
+    if (m_paused)
+    {
+        drawFont(bitmap, 0, Y_STATUS, "PRESS [F4] TO RESUME PLAYING...", LIGHTGRAY);
+    }
+    else if (m_prompt == PROMPT_ERASE_SCORES)
+    {
+        drawFont(bitmap, 0, Y_STATUS, "ERASE HIGH SCORES, CONFIRM (Y/N)?", LIGHTGRAY);
+    }
+    else if (m_prompt == PROMPT_RESTART_GAME)
+    {
+        drawFont(bitmap, 0, Y_STATUS, "RESTART GAME, CONFIRM (Y/N)?", LIGHTGRAY);
+    }
+    else if (m_prompt == PROMPT_LOAD)
+    {
+        drawFont(bitmap, 0, Y_STATUS, "LOAD PREVIOUS SAVEGAME, CONFIRM (Y/N)?", LIGHTGRAY);
+    }
+    else if (m_prompt == PROMPT_SAVE)
+    {
+        drawFont(bitmap, 0, Y_STATUS, "SAVE GAME, CONFIRM (Y/N)?", LIGHTGRAY);
+    }
+    else if (m_prompt == PROMPT_HARDCORE)
+    {
+        drawFont(bitmap, 0, Y_STATUS, "HARDCORE MODE, CONFIRM (Y/N)?", LIGHTGRAY);
+    }
+    else if (m_prompt == PROMPT_TOGGLE_MUSIC)
+    {
+        drawFont(bitmap, 0, Y_STATUS,
+                 m_musicMuted ? "PLAY MUSIC, CONFIRM (Y/N)?"
+                              : "MUTE MUSIC, CONFIRM (Y/N)?",
+                 LIGHTGRAY);
+    }
+    else
+    {
+        int tx;
+        int bx = 0;
+        tx = sprintf(tmp, "%.8d ", game.score());
+        drawFont(bitmap, 0, Y_STATUS, tmp, WHITE);
+        bx += tx;
+        tx = sprintf(tmp, "DIAMONDS %.2d ", game.goalCount());
+        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, YELLOW);
+        bx += tx;
+        tx = sprintf(tmp, "LIVES %.2d ", game.lives());
+        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, PURPLE);
+        bx += tx;
+        if (m_recorder->isRecording())
+        {
+            drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, "REC!", WHITE, RED);
+        }
+        else if (m_recorder->isReading())
+        {
+            drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, "PLAY", WHITE, DARKGREEN);
+        }
+        if (_WIDTH >= MIN_WIDTH_FULL)
+            drawSugarMeter(bitmap, bx);
+    }
 }

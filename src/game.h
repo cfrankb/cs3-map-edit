@@ -30,7 +30,7 @@ class ISound;
 #define ATTR_WAIT 0xe0        // 0xe0 monster wait
 #define ATTR_FREEZE_TRAP 0xe1 // 0xe1 freeze trap
 #define ATTR_TRAP 0xe2        // 0xe2 trap
-#define ATTR_MSG0 0xf0        // 0xf0
+#define ATTR_MSG0 0xf0        // 0xf0 .. 0xff message string
 
 class CGame
 {
@@ -48,6 +48,7 @@ public:
         MODE_TITLE,
         MODE_TIMEOUT,
         MODE_OPTIONS,
+        MODE_USERSELECT,
     };
 
     enum : uint32_t
@@ -109,7 +110,10 @@ public:
     void checkClosure();
     void decClosure();
     bool isFrozen() const;
+    int maxHealth() const;
     static void destroy();
+    int getUserID() const;
+    void setUserID(const int userID) const;
 
 private:
     enum
@@ -178,6 +182,5 @@ private:
     void generateMapReport(MapReport &report);
     CGameStats &stats();
     static CMap m_map;
-
     friend class CGameMixin;
 };

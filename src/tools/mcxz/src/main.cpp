@@ -30,13 +30,19 @@ enum
     ENCODING_RGBX888,   // 4 byte
 };
 
-const char *ENCODING_RGB[] = {
-    "565",
-    "565BGR",
-    "X555",
-    "X888P",
-    "888",
-    "X888",
+struct encoding_t
+{
+    const char *encoding;
+    uint8_t width;
+};
+
+encoding_t ENCODING_RGB[] = {
+    {"565", 2},
+    {"565BGR", 2},
+    {"X555", 2},
+    {"X888P", 1},
+    {"888", 3},
+    {"X888", 4},
 };
 
 typedef struct
@@ -849,11 +855,11 @@ void writeMapFile(const std::string &section,
         std::string tmp;
         if (generateHeader)
         {
-            tmp = std::format("0x{0:02x} {1:20s} {2:10s}\n", j, tile.basename, tile.typeName);
+            tmp = std::format("{0:02x} {1:20s} {2:10s}\n", j, tile.basename, tile.typeName);
         }
         else
         {
-            tmp = std::format("0x{0:02x} {1:20s}\n", j, tile.basename);
+            tmp = std::format("{0:02x} {1:20s}\n", j, tile.basename);
         }
         tfileMap += tmp;
     }
@@ -1355,36 +1361,19 @@ int main(int argc, char *argv[], char *envp[])
             }
             else if (src[1] == 'e')
             {
-                if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB565]) == 0)
+                bool found = false;
+                for (size_t j = 0; j < sizeof(ENCODING_RGB) / sizeof(ENCODING_RGB[0]); ++j)
                 {
-                    appSettings.encoding = ENCODING_RGB565;
-                    appSettings.pixelWidth = 2;
+                    if (strcmp(&src[2], ENCODING_RGB[j].encoding) == 0)
+                    {
+                        appSettings.encoding = j;
+                        appSettings.pixelWidth = ENCODING_RGB[j].width;
+                        found = true;
+                        break;
+                    }
                 }
-                if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB565BGR]) == 0)
-                {
-                    appSettings.encoding = ENCODING_RGB565BGR;
-                    appSettings.pixelWidth = 2;
-                }
-                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGBX555]) == 0)
-                {
-                    appSettings.encoding = ENCODING_RGBX555;
-                    appSettings.pixelWidth = 2;
-                }
-                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGBX888P]) == 0)
-                {
-                    appSettings.encoding = ENCODING_RGBX888P;
-                    appSettings.pixelWidth = 1;
-                }
-                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGB888]) == 0)
-                {
-                    appSettings.encoding = ENCODING_RGB888;
-                    appSettings.pixelWidth = 3;
-                }
-                else if (strcmp(&src[2], ENCODING_RGB[ENCODING_RGBX888]) == 0)
-                {
-                    appSettings.encoding = ENCODING_RGBX888;
-                    appSettings.pixelWidth = 4;
-                }
+                if (found)
+                    continue;
                 else if (src[2] == '\0')
                 {
                     fprintf(stderr, "missing encoding value: %s\n", src);
@@ -1395,7 +1384,6 @@ int main(int argc, char *argv[], char *envp[])
                     fprintf(stderr, "invalid encoding: %s\n", src + 2);
                     return EXIT_FAILURE;
                 }
-                continue;
             }
             if (strlen(src) != 2)
             {
