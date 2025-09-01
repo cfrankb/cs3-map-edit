@@ -364,39 +364,39 @@ void MainWindow::showContextMenu(const QPoint &pos)
     if (x >= 0 && y >= 0 && x + mx < map.len() && y + my < map.hei())
     {
         QMenu menu(this);
-        QAction *actionSetAttr = new QAction(tr("set raw attribute"), &menu);
+        QAction *actionSetAttr = new QAction(tr("set raw attribute"), this);
         connect(actionSetAttr, SIGNAL(triggered()),
                 this, SLOT(showAttrDialog()));
         actionSetAttr->setStatusTip(tr("Set the raw attribute for this tile"));
         menu.addAction(actionSetAttr);
 
-        QAction *actionHighlight =  new QAction(tr("highlight attribute"), &menu);
+        QAction *actionHighlight =  new QAction(tr("highlight attribute"), this);
         connect(actionHighlight, SIGNAL(triggered()),
                 this, SLOT(on_highlight()));
         menu.addAction(actionHighlight);
         actionHighlight->setStatusTip(tr("hightlight this attribute"));
 
-        QAction *actionStatAttr = new QAction(tr("see tile stats"), &menu);
+        QAction *actionStatAttr = new QAction(tr("see tile stats"), this);
         connect(actionStatAttr, SIGNAL(triggered()),
                 this, SLOT(showStatDialog()));
         menu.addAction(actionStatAttr);
         actionStatAttr->setStatusTip(tr("Show the data information on this tile"));
         menu.addSeparator();
 
-        QAction *actionSetStartPos = new QAction(tr("set start pos"), &menu);
+        QAction *actionSetStartPos = new QAction(tr("set start pos"), this);
         connect(actionSetStartPos, SIGNAL(triggered()),
                 this, SLOT(on_setStartPos()));
         actionSetStartPos->setStatusTip(tr("Set the start position for this map"));
         menu.addAction(actionSetStartPos);
 
-        QAction *actionSetExitPos = new QAction(tr("set exit pos"), &menu);
+        QAction *actionSetExitPos = new QAction(tr("set exit pos"), this);
         connect(actionSetExitPos, SIGNAL(triggered()),
                 this, SLOT(on_setExitPos()));
         actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
         menu.addAction(actionSetExitPos);
         menu.addSeparator();
 
-        QAction *actionDeleteTile = new QAction(tr("delete tile"), &menu);
+        QAction *actionDeleteTile = new QAction(tr("delete tile"), this);
         connect(actionDeleteTile, SIGNAL(triggered()),
                 this, SLOT(on_deleteTile()));
         menu.addAction(actionDeleteTile);

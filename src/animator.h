@@ -32,7 +32,7 @@ public:
     CAnimator();
     ~CAnimator();
     void animate();
-    uint8_t at(uint8_t tileID);
+    uint16_t at(uint8_t tileID);
     uint16_t offset();
     bool isSpecialCase(uint8_t tileID);
     AnimzInfo specialInfo(const int tileID);

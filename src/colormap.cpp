@@ -38,7 +38,6 @@ bool parseColorMaps(IFile &file, ColorMaps &colorMaps)
     char *tmp = new char[size + 1];
     file.read(tmp, size);
     tmp[size] = '\0';
-    file.close();
 
     // clear maps
     colorMaps.godMode.clear();
