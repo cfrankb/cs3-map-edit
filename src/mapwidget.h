@@ -45,6 +45,7 @@ protected:
         DARKBLUE = 0x00440000 | ALPHA,
         LIGHTSLATEGRAY= 0x00998877 | ALPHA,
         LIGHTGRAY= 0x00DCDCDC | ALPHA,
+        DARKGRAY = RGBA(0x40,0x40,0x40),   // #404040
         GRIDCOLOR = 0x00bfa079 | ALPHA,
         RED    = 0x0000ff | ALPHA,
         CYAN   = 0xffff00 | ALPHA,

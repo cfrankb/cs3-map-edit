@@ -57,6 +57,8 @@
 #define printf qDebug
 #endif
 
+#define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
+
 CGameMixin::CGameMixin()
 {
     m_game = CGame::getGame();
@@ -1618,6 +1620,12 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
         color = CYAN;
         return "SECRET !";
     }
+    else if (m_currentEvent == EVENT_PASSAGE)
+    {
+        scaleX = 2;
+        color = LIGHTGRAY;
+        return "PASSAGE";
+    }
     else if (m_currentEvent == EVENT_EXTRA_LIFE)
     {
         scaleX = 2;
@@ -1771,7 +1779,7 @@ void CGameMixin::drawSugarMeter(CFrame &bitmap, const int bx)
 
 CFrame *CGameMixin::specialFrame(const sprite_t &sprite)
 {
-    if (sprite.attr == ATTR_WAIT)
+    if (RANGE(sprite.attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX))
     {
         CFrameSet &tiles = *m_tiles;
         return tiles[sprite.tileID];

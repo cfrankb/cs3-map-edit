@@ -222,9 +222,18 @@ protected:
         BUTTON_B,
         BUTTON_X,
         BUTTON_Y,
-        BUTTON_START,
         BUTTON_BACK,
+        BUTTON_GUIDE,
+        BUTTON_START,
+        LEFTSTICK,
+        RIGHTSTICK,
+        LEFTSHOULDER,
+        RIGHTSHOULDER,
         Button_Count,
+        DPAD_UP = 12,
+        DPAD_DOWN = 13,
+        DPAD_LEFT = 14,
+        DPAD_RIGHT = 15,
     };
 
     uint8_t m_keyStates[Key_Count];
@@ -372,7 +381,6 @@ protected:
     virtual void toggleGameMenu() = 0;
     virtual void manageGameMenu() = 0;
     virtual void manageOptionScreen() = 0;
-
     virtual void manageUserMenu() = 0;
 
 private:

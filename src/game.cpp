@@ -221,12 +221,15 @@ void CGame::consume()
         m_events.push_back(EVENT_TRAP);
         addHealth(TRAP_DAMAGE);
     }
-    else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
+    else if (RANGE(attr, PASSAGE_ATTR_MIN, PASSAGE_ATTR_MAX))
     {
         if (clearAttr(attr))
         {
             playSound(SOUND_0009);
-            m_events.push_back(EVENT_SECRET);
+            if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
+                m_events.push_back(EVENT_SECRET);
+            else
+                m_events.push_back(EVENT_PASSAGE);
         }
     }
     else if (attr >= MSG0 && m_map.states().hasS(attr))
@@ -479,10 +482,11 @@ void CGame::manageMonsters(int ticks)
         CActor &actor = m_monsters[i];
         const Pos pos = actor.pos();
         const uint8_t cs = m_map.at(pos.x, pos.y);
-        uint8_t attr = m_map.getAttr(pos.x, pos.y);
-        if (attr == ATTR_WAIT)
+        const uint8_t attr = m_map.getAttr(pos.x, pos.y);
+        if (RANGE(attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX))
         {
-            if (actor.distance(m_player) < WAIT_DISTANCE)
+            const uint8_t distance = (attr & 0xf) + 1;
+            if (actor.distance(m_player) <= distance)
                 m_map.setAttr(pos.x, pos.y, 0);
             else
                 continue;
@@ -504,7 +508,6 @@ void CGame::manageMonsters(int ticks)
                     continue;
                 }
             }
-
             bool reverse = def.ai & AI_REVERSE;
             JoyAim aim = actor.findNextDir(reverse);
             if (aim != AIM_NONE)
@@ -1361,8 +1364,7 @@ void CGame::generateMapReport(MapReport &report)
     const AttrMap &attrs = m_map.attrs();
     for (const auto &[k, v] : attrs)
     {
-        if (v >= SECRET_ATTR_MIN &&
-            v <= SECRET_ATTR_MAX)
+        if (RANGE(v, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
             ++secrets[v];
     }
     report.bonuses = 0;
@@ -1481,11 +1483,22 @@ int CGame::maxHealth() const
     return static_cast<int>(MAX_HEALTH) / (1 + 1 * skill);
 }
 
+/**
+ * @brief return userID associated with player sprite character
+ *
+ * @return int
+ */
+
 int CGame::getUserID() const
 {
     return m_gameStats->get(S_USER);
 }
 
+/**
+ * @brief Set the UserID for the player sprite
+ *
+ * @param userID
+ */
 void CGame::setUserID(const int userID) const
 {
     m_gameStats->set(S_USER, userID);

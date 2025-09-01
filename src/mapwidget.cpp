@@ -11,6 +11,8 @@
 #include "game.h"
 #include <QScrollBar>
 
+#define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
+
 CMapWidget::CMapWidget(QWidget *parent)
     : QWidget{parent}
 {
@@ -203,20 +205,22 @@ void CMapWidget::drawScreen(CFrame &bitmap)
 
 uint32_t CMapWidget::attr2color(const uint8_t attr)
 {
-    if (attr >= MSG0) {
+    if (RANGE(attr, ATTR_MSG_MIN, ATTR_MSG_MAX)) {
         return CYAN;
-    } else if (attr == ATTR_WAIT) {
-        return PURPLE;
+    } else if (RANGE(attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX)) {
+        return HOTPINK;
     } else if (attr == ATTR_FREEZE_TRAP) {
         return LIGHTGRAY;
     } else if (attr == ATTR_TRAP) {
         return RED;
-    } else if (attr >= 0x80) {
-        return WHITE;
-    } else if (attr >= 0x40) {
+    } else if (attr > PASSAGE_ATTR_MAX) {
+        return OLIVE; // undefined behavior
+    } else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX)) {
         return GREEN;
-    } else {
+    } else if (RANGE(attr, PASSAGE_REG_MIN, PASSAGE_REG_MAX)) {
         return YELLOW;
+    } else {
+        return WHITE;
     }
 }
 

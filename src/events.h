@@ -25,3 +25,4 @@
 #define EVENT_RAGE 6
 #define EVENT_FREEZE 7
 #define EVENT_TRAP 8
+#define EVENT_PASSAGE 9
