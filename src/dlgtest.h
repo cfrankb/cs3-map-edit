@@ -47,10 +47,13 @@ private:
     void manageTitleScreen() override {}
     void toggleGameMenu() override {}
     void manageGameMenu() override {}
-    void manageOptionScreen() override {};
+    void manageOptionScreen() override {}
     void load() override {}
     void save() override {}
-    void manageUserMenu() override {};
+    void manageUserMenu() override {}
+    void manageLevelSummary() override{}
+    void initLevelSummary() override {}
+    void changeMoodMusic(CGame::GameMode) override{}
 };
 
 #endif // DLGTEST_H

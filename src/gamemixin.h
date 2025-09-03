@@ -27,13 +27,13 @@
 #include <vector>
 #include <unordered_map>
 #include "colormap.h"
+#include "game.h"
 
 #define WIDTH getWidth()
 #define HEIGHT getHeight()
 
 class CActor;
 class CFrameSet;
-class CGame;
 class CFrame;
 class CMapArch;
 class CAnimator;
@@ -293,6 +293,7 @@ protected:
     bool m_assetPreloaded = false;
     bool m_scoresLoaded = false;
     bool m_hiscoreEnabled = false;
+    bool m_summaryEnabled = false;
     bool m_paused = false;
     int m_musicMuted = false; // Note: this has to be an int
     Prompt m_prompt = PROMPT_NONE;
@@ -322,7 +323,7 @@ protected:
     inline void drawTimeout(CFrame &bitmap);
     inline void drawKeys(CFrame &bitmap);
     inline void drawSugarMeter(CFrame &bitmap, const int bx);
-    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     inline CFrame *tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap);
@@ -346,12 +347,15 @@ protected:
     void clearButtonStates();
     void manageGamePlay();
     void handleFunctionKeys();
+    void handleFunctionKeys_Game(int k);
+    void handleFunctionKeys_General(int k);
     bool handlePrompts();
     void centerCamera();
     void moveCamera();
     int cameraSpeed() const;
     void setCameraMode(const int mode);
     void gatherSprites(std::vector<sprite_t> &sprites, const cameraContext_t &context);
+    void beginLevelIntro(CGame::GameMode mode);
 
     inline uint32_t fazFilter(int shift) const;
     inline int getWidth() const
@@ -382,6 +386,10 @@ protected:
     virtual void manageGameMenu() = 0;
     virtual void manageOptionScreen() = 0;
     virtual void manageUserMenu() = 0;
+
+    virtual void manageLevelSummary() = 0;
+    virtual void initLevelSummary() = 0;
+    virtual void changeMoodMusic(CGame::GameMode mode) = 0;
 
 private:
     void stopRecorder();

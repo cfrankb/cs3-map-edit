@@ -453,7 +453,16 @@
   </action>
   <action name="actionEdit_Map_States">
    <property name="text">
-    <string>Edit Map States</string>
+    <string>Edit Map Meta Data</string>
+   </property>
+   <property name="iconText">
+    <string>Edit Map Meta Data</string>
+   </property>
+   <property name="toolTip">
+    <string>Edit Map Meta Data</string>
+   </property>
+   <property name="statusTip">
+    <string>Modify the raw map meta data</string>
    </property>
   </action>
  </widget>

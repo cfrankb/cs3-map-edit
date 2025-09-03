@@ -7,6 +7,7 @@
 
 class CMapScroll;
 class QComboBox;
+class QLabel;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -66,6 +67,7 @@ private slots:
     void on_actionFile_Generate_Report_triggered();
     void on_actionEdit_Map_States_triggered();
     void on_highlight();
+    void updateStatus();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;
@@ -77,7 +79,6 @@ private:
     void open(QString);
     bool updateTitle();
     void updateMenus();
-    void updateStatus();
     bool isDirty();
     void updateRecentFileActions();
     void reloadRecentFileActions();
@@ -106,5 +107,7 @@ private:
     QActionGroup *m_toolGroup;
     uint8_t m_currTile = 0;
     QAction *m_recentFileActs[MAX_RECENT_FILES];
+    QLabel *m_label;
+    QLabel *m_label0;
 };
 #endif // MAINWINDOW_H

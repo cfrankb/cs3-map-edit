@@ -757,6 +757,7 @@ void CGameMixin::drawLevelIntro(CFrame &bitmap)
 
 void CGameMixin::mainLoop()
 {
+    handleFunctionKeys();
     ++m_ticks;
     CGame &game = *m_game;
     if (game.mode() != CGame::MODE_CLICKSTART &&
@@ -848,6 +849,8 @@ void CGameMixin::mainLoop()
     case CGame::MODE_PLAY:
         manageGamePlay();
         return;
+    case CGame::MODE_LEVEL_SUMMARY:
+        manageLevelSummary();
     }
 }
 
@@ -925,7 +928,7 @@ void CGameMixin::manageGamePlay()
         return;
     }
 
-    handleFunctionKeys();
+    // handleFunctionKeys();
     if (m_paused)
     {
         stopRecorder();
@@ -1009,6 +1012,7 @@ void CGameMixin::manageGamePlay()
             {
                 startCountdown(COUNTDOWN_INTRO);
                 game.setMode(CGame::MODE_GAMEOVER);
+                changeMoodMusic(CGame::MODE_GAMEOVER);
             }
         }
 
@@ -1016,7 +1020,18 @@ void CGameMixin::manageGamePlay()
         {
             if (exitKey == 0 || m_game->player().pos() == CMap::toPos(exitKey))
             {
-                nextLevel();
+                if (m_summaryEnabled)
+                {
+                    clearButtonStates();
+                    clearJoyStates();
+                    initLevelSummary();
+                    m_game->setMode(CGame::MODE_LEVEL_SUMMARY);
+                    startCountdown(1 * COUNTDOWN_INTRO);
+                }
+                else
+                {
+                    nextLevel();
+                }
             }
         }
     }
@@ -1032,26 +1047,23 @@ void CGameMixin::nextLevel()
     m_healthRef = 0;
     m_game->nextLevel();
     sanityTest();
-    startCountdown(COUNTDOWN_INTRO);
-    m_game->loadLevel(CGame::MODE_LEVEL_INTRO);
+    beginLevelIntro(CGame::MODE_LEVEL_INTRO);
     openMusicForLevel(m_game->level());
-    centerCamera();
 }
 
 void CGameMixin::restartLevel()
 {
     m_game->restartLevel();
-    startCountdown(COUNTDOWN_INTRO);
-    centerCamera();
+    beginLevelIntro(CGame::MODE_RESTART);
+    changeMoodMusic(CGame::MODE_RESTART);
 }
 
 void CGameMixin::restartGame()
 {
     m_paused = false;
-    startCountdown(COUNTDOWN_RESTART);
     m_game->restartGame();
     sanityTest();
-    m_game->loadLevel(CGame::MODE_LEVEL_INTRO);
+    beginLevelIntro(CGame::MODE_LEVEL_INTRO);
     setupTitleScreen();
 }
 
@@ -1071,9 +1083,7 @@ void CGameMixin::init(CMapArch *maparch, const int index)
     m_game->setMapArch(maparch);
     m_game->setLevel(index);
     sanityTest();
-    m_countdown = INTRO_DELAY;
-    m_game->loadLevel(CGame::MODE_LEVEL_INTRO);
-    centerCamera();
+    beginLevelIntro(CGame::MODE_LEVEL_INTRO);
 }
 
 void CGameMixin::changeZoom()
@@ -1273,54 +1283,81 @@ void CGameMixin::handleFunctionKeys()
             continue;
         }
 
-        switch (k)
+        if (m_game->mode() == CGame::MODE_PLAY)
         {
-        case Key_F1:
-            m_game->setMode(CGame::MODE_HELP);
-            m_keyRepeters[k] = KEY_NO_REPETE;
-            break;
-        case Key_F2: // restart game
-            m_prompt = PROMPT_RESTART_GAME;
-            break;
-        case Key_F3: // erase scores
-            m_prompt = PROMPT_ERASE_SCORES;
-            break;
-        case Key_F4:
-            m_paused = !m_paused;
-            m_keyRepeters[k] = KEY_NO_REPETE;
-            break;
-
-#ifndef __EMSCRIPTEN__
-        case Key_F5:
-            toggleFullscreen();
-            m_keyRepeters[k] = KEY_NO_REPETE;
-            break;
-        case Key_F6:
-            playbackGame();
-            m_keyRepeters[k] = KEY_NO_REPETE;
-            break;
-        case Key_F7:
-            recordGame();
-            m_keyRepeters[k] = KEY_NO_REPETE;
-            break;
-        case Key_F8:
-            takeScreenshot();
-            m_keyRepeters[k] = KEY_NO_REPETE;
-            break;
-#endif
-        case Key_F9:
-            m_prompt = PROMPT_LOAD;
-            break;
-        case Key_F10:
-            m_prompt = PROMPT_SAVE;
-            break;
-        case Key_F11:
-            m_prompt = PROMPT_TOGGLE_MUSIC;
-            break;
-        case Key_F12:
-            m_prompt = PROMPT_HARDCORE;
+            handleFunctionKeys_Game(k);
+        }
+        else
+        {
+            handleFunctionKeys_General(k);
         }
     }
+}
+
+void CGameMixin::handleFunctionKeys_Game(int k)
+{
+    switch (k)
+    {
+    case Key_F1:
+        m_game->setMode(CGame::MODE_HELP);
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+    case Key_F2: // restart game
+        m_prompt = PROMPT_RESTART_GAME;
+        break;
+    case Key_F3: // erase scores
+        m_prompt = PROMPT_ERASE_SCORES;
+        break;
+    case Key_F4:
+        m_paused = !m_paused;
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+
+#ifndef __EMSCRIPTEN__
+    case Key_F5:
+        toggleFullscreen();
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+    case Key_F6:
+        playbackGame();
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+    case Key_F7:
+        recordGame();
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+    case Key_F8:
+        takeScreenshot();
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+#endif
+    case Key_F9:
+        m_prompt = PROMPT_LOAD;
+        break;
+    case Key_F10:
+        m_prompt = PROMPT_SAVE;
+        break;
+    case Key_F11:
+        m_prompt = PROMPT_TOGGLE_MUSIC;
+        break;
+    case Key_F12:
+        m_prompt = PROMPT_HARDCORE;
+    }
+}
+
+void CGameMixin::handleFunctionKeys_General(int k)
+{
+#ifdef __EMSCRIPTEN__
+    (void)k;
+#else
+    switch (k)
+    {
+    case Key_F8:
+        takeScreenshot();
+        m_keyRepeters[k] = KEY_NO_REPETE;
+        break;
+    }
+#endif
 }
 
 bool CGameMixin::handleInputString(char *inputDest, const size_t limit)
@@ -1730,6 +1767,7 @@ void CGameMixin::manageTimer()
     }
     else
     {
+        game.incTimeTaken();
         m_timer = TICK_RATE;
         CStates &states = game.getMap().states();
         uint16_t timeout = states.getU(TIMEOUT);
@@ -1739,12 +1777,11 @@ void CGameMixin::manageTimer()
             if (game.isGameOver())
             {
                 game.setMode(CGame::MODE_GAMEOVER);
+                changeMoodMusic(CGame::MODE_GAMEOVER);
             }
             else
             {
-                startCountdown(COUNTDOWN_INTRO);
-                game.loadLevel(CGame::MODE_TIMEOUT);
-                centerCamera();
+                beginLevelIntro(CGame::MODE_TIMEOUT);
                 m_timer = TICK_RATE;
             }
         }
@@ -1912,4 +1949,16 @@ void CGameMixin::drawGameStatus(CFrame &bitmap)
         if (_WIDTH >= MIN_WIDTH_FULL)
             drawSugarMeter(bitmap, bx);
     }
+}
+
+/**
+ * @brief Start Level Intro
+ *
+ * @param mode  MODE_INTRO, MODE_RESTART or MODE_TIMEOUT
+ */
+void CGameMixin::beginLevelIntro(CGame::GameMode mode)
+{
+    startCountdown(COUNTDOWN_INTRO);
+    m_game->loadLevel(mode);
+    centerCamera();
 }

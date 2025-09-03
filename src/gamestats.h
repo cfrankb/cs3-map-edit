@@ -36,6 +36,7 @@ enum GameStat : uint16_t
     S_IDLE_TIME,
     S_FREEZE_TIMER,
     S_USER,
+    S_TIME_TAKEN
 };
 
 class CGameStats

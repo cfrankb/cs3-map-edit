@@ -10,6 +10,7 @@
 #include <QSettings>
 #include <QScrollBar>
 #include <QInputDialog>
+#include <QLabel>
 #include "mapscroll.h"
 #include "mapwidget.h"
 #include "dlgattr.h"
@@ -39,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
     connect(m_scrollArea, SIGNAL(leftClickedAt(int, int)), this, SLOT(onLeftClick(int, int)));
     connect(this, SIGNAL(mapChanged(CMap *)), m_scrollArea, SLOT(newMap(CMap *)));
+    connect(this, SIGNAL(mapChanged(CMap *)), this, SLOT(updateStatus()));
     connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showContextMenu(const QPoint &)));
     connect(this, SIGNAL(setHighlight(uint8_t)), glw, SLOT(highlight(uint8_t)));
@@ -50,6 +52,18 @@ MainWindow::MainWindow(QWidget *parent)
     initToolBar();
     updateMenus();
     setWindowIcon(QIcon(":/data/icons/CS3MapEdit-icon.png"));
+    m_label = new QLabel("", ui->statusbar);
+    m_label->setAlignment(Qt::AlignRight);
+    m_label0 = new QLabel("", ui->statusbar);
+    ui->statusbar->addWidget(m_label0);
+    ui->statusbar->addWidget(m_label, 64);
+    updateStatus();
+}
+
+void MainWindow::updateStatus()
+{
+    QString s = QString(tr("%1 of %2")).arg(m_doc.currentIndex()+1).arg(m_doc.size());
+    m_label->setText(s);
 }
 
 void MainWindow::shiftUp()
@@ -294,7 +308,8 @@ void MainWindow::updateMenus()
 
 void MainWindow::setStatus(const QString msg)
 {
-    ui->statusbar->showMessage(msg);
+    //ui->statusbar->showMessage(msg);
+    m_label0->setText(msg);
 }
 
 void MainWindow::on_actionFile_New_File_triggered()
@@ -903,10 +918,6 @@ void MainWindow::on_actionFile_Generate_Report_triggered()
 void MainWindow::on_actionEdit_Map_States_triggered()
 {
     CStates & states = m_doc.map()->states();
-    //states.setU(TIMEOUT, 111);
-    //states.setS(MSG1,"Welcome");
-    //states.setS(MSG2,"Game Over");
-    //states.setS(MSG3,"Too Bad");
     KeyValueDialog dialog(this);
     std::vector<StateValuePair> data;
     states.getValues(data);
@@ -915,6 +926,7 @@ void MainWindow::on_actionEdit_Map_States_triggered()
         m_doc.setDirty(true);
         const auto pairs = dialog.getKeyValuePairs();
         // Process the key-value pairs
+        states.clear();
         for (size_t i=0; i < pairs.size(); ++i) {
             auto& p = pairs[i];
             if (KeyValueDialog::getOptionType(p.key)== TYPE_U) {

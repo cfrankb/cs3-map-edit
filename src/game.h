@@ -30,7 +30,7 @@ class ISound;
 #define ATTR_WAIT_MIN 0xe0    // 0xe0 monster wait
 #define ATTR_WAIT_MAX 0xe9    // 0xe9 monster wait
 #define ATTR_FREEZE_TRAP 0xea // 0xea freeze trap
-#define ATTR_TRAP 0xeb        // 0xen trap
+#define ATTR_TRAP 0xeb        // 0xeb trap
 #define ATTR_MSG_MIN 0xf0     // 0xf0 .. 0xff message string
 #define ATTR_MSG_MAX 0xff     // 0xff .. 0xff message string
 #define PASSAGE_ATTR_MIN 0x01 // 0x01
@@ -39,6 +39,19 @@ class ISound;
 #define PASSAGE_REG_MAX 0x1f  // 0x1f
 #define SECRET_ATTR_MIN 0x40  // 0x40
 #define SECRET_ATTR_MAX 0x4f  // 0x4f
+
+struct MapReport
+{
+    int fruits;
+    int bonuses;
+    int secrets;
+    void debug()
+    {
+        printf("fruits: %d\n", fruits);
+        printf("bonuses: %d\n", bonuses);
+        printf("secrets: %d\n", secrets);
+    }
+};
 
 class CGame
 {
@@ -57,6 +70,7 @@ public:
         MODE_TIMEOUT,
         MODE_OPTIONS,
         MODE_USERSELECT,
+        MODE_LEVEL_SUMMARY,
     };
 
     enum : uint32_t
@@ -122,6 +136,10 @@ public:
     static void destroy();
     int getUserID() const;
     void setUserID(const int userID) const;
+    MapReport generateMapReport();
+    const MapReport &originalMapReport();
+    int timeTaken();
+    void incTimeTaken();
 
 private:
     enum
@@ -146,13 +164,6 @@ private:
         WAIT_DISTANCE = 5,
     };
 
-    struct MapReport
-    {
-        int fruits;
-        int bonuses;
-        int secrets;
-    };
-
     int m_lives = 0;
     int m_health = 0;
     int m_level = 0;
@@ -170,6 +181,7 @@ private:
     ISound *m_sound = nullptr;
     std::vector<std::string> m_hints;
     CGameStats *m_gameStats;
+    MapReport m_report;
 
     CGame();
     ~CGame();
@@ -186,7 +198,6 @@ private:
     const char *getHintText();
     bool isFruit(const uint8_t tileID) const;
     bool isBonusItem(const uint8_t tileID) const;
-    void generateMapReport(MapReport &report);
     CGameStats &stats();
     static CMap m_map;
     friend class CGameMixin;
