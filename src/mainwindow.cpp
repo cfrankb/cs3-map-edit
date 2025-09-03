@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::updateStatus()
 {
-    QString s = QString(tr("%1 of %2")).arg(m_doc.currentIndex()+1).arg(m_doc.size());
+    QString s = QString(tr("%1 of %2 ")).arg(m_doc.currentIndex()+1).arg(m_doc.size());
     m_label->setText(s);
 }
 
@@ -919,8 +919,7 @@ void MainWindow::on_actionEdit_Map_States_triggered()
 {
     CStates & states = m_doc.map()->states();
     KeyValueDialog dialog(this);
-    std::vector<StateValuePair> data;
-    states.getValues(data);
+    std::vector<StateValuePair> data = states.getValues();
     dialog.populateData(data);
     if (dialog.exec() == QDialog::Accepted) {
         m_doc.setDirty(true);
@@ -935,7 +934,29 @@ void MainWindow::on_actionEdit_Map_States_triggered()
                 states.setU(p.key, value);
             } else if (KeyValueDialog::getOptionType(p.key)== TYPE_S) {
                 states.setS(p.key, p.value);
+            } else {
+                qDebug("unhandled key: %.2x", p.key);
             }
         }
     }
 }
+
+void MainWindow::on_actionExport_Screenshots_triggered()
+{
+    QString folder = QFileDialog::getExistingDirectory(
+        this,
+        tr("Select Destination Folder"),
+        QDir::homePath(),  // default path
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+    );
+
+    if (!folder.isEmpty()) {
+        QMessageBox::information(this, "Export", "Exporting to:\n" + folder);
+        for (int i=0; i < m_doc.size();++i) {
+            CMap *map = m_doc.at(i);
+            const QString filename = folder + QString("/level%1.png").arg(i + 1, 2, 10, QLatin1Char('0')) ;
+            generateScreenshot(filename, map, 24,24);
+        }
+    }
+}
+

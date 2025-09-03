@@ -124,6 +124,12 @@ QFileWrap & QFileWrap::operator += (const char *s)
     return *this;
 }
 
+QFileWrap & QFileWrap::operator += (const QString & str)
+{
+    m_file->write(str.toUtf8(), str.size());
+    return *this;
+}
+
 bool QFileWrap::open(const char* fileName, const char *mode)
 {
     return open(QString(fileName), mode);

@@ -136,7 +136,8 @@ public:
     static void destroy();
     int getUserID() const;
     void setUserID(const int userID) const;
-    MapReport generateMapReport();
+    static MapReport generateMapReport(CMap &map);
+    MapReport currentMapReport();
     const MapReport &originalMapReport();
     int timeTaken();
     void incTimeTaken();
@@ -196,8 +197,8 @@ private:
     bool write(FILE *tfile);
     int calcScoreLife() const;
     const char *getHintText();
-    bool isFruit(const uint8_t tileID) const;
-    bool isBonusItem(const uint8_t tileID) const;
+    static bool isFruit(const uint8_t tileID) ;
+    static bool isBonusItem(const uint8_t tileID) ;
     CGameStats &stats();
     static CMap m_map;
     friend class CGameMixin;

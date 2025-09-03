@@ -33,13 +33,20 @@
      </property>
      <addaction name="actionNothing_yet"/>
     </widget>
+    <widget class="QMenu" name="menuGenerate">
+     <property name="title">
+      <string>Generate</string>
+     </property>
+     <addaction name="actionFile_Generate_Report"/>
+     <addaction name="actionExport_Screenshots"/>
+    </widget>
     <addaction name="actionFile_New_File"/>
     <addaction name="actionFile_Open"/>
     <addaction name="menuRecent_Maps"/>
     <addaction name="actionFile_Save"/>
     <addaction name="actionFile_Save_as"/>
     <addaction name="separator"/>
-    <addaction name="actionFile_Generate_Report"/>
+    <addaction name="menuGenerate"/>
     <addaction name="separator"/>
     <addaction name="actionFile_Import_Maps"/>
     <addaction name="actionFile_Export_Map"/>
@@ -450,6 +457,9 @@
    <property name="text">
     <string>Generate Report</string>
    </property>
+   <property name="statusTip">
+    <string>Generate  information reports for all the maps</string>
+   </property>
   </action>
   <action name="actionEdit_Map_States">
    <property name="text">
@@ -463,6 +473,14 @@
    </property>
    <property name="statusTip">
     <string>Modify the raw map meta data</string>
+   </property>
+  </action>
+  <action name="actionExport_Screenshots">
+   <property name="text">
+    <string>Export Screenshots</string>
+   </property>
+   <property name="statusTip">
+    <string>Export screenshots of all the maps</string>
    </property>
   </action>
  </widget>

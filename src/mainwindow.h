@@ -69,6 +69,8 @@ private slots:
     void on_highlight();
     void updateStatus();
 
+    void on_actionExport_Screenshots_triggered();
+
 private:
     virtual void closeEvent(QCloseEvent *event) override;
     bool maybeSave();

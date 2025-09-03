@@ -54,7 +54,7 @@ public:
     void debug();
     void clear();
 
-    void getValues(std::vector<StateValuePair> &pairs);
+    std::vector<StateValuePair> getValues();
     void operator=(const CStates &s);
 
 private:

@@ -42,6 +42,7 @@ public:
     QFileWrap & operator >> (bool & b) override;
     QFileWrap & operator << (bool b) override;
     QFileWrap & operator += (const char *) override;
+    QFileWrap & operator += (const QString & str);
 
     bool open(const char *filename, const char *mode= "rb") override;
     bool open(const QString &filename, const char *mode= "rb");

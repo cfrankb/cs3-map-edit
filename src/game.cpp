@@ -283,7 +283,7 @@ bool CGame::loadLevel(const GameMode mode)
     findMonsters();
     m_sfx.clear();
     resetStats();
-    m_report = generateMapReport();
+    m_report = currentMapReport();
     return true;
 }
 
@@ -1290,7 +1290,7 @@ int CGame::getEvent()
  * @return true
  * @return false
  */
-bool CGame::isFruit(const uint8_t tileID) const
+bool CGame::isFruit(const uint8_t tileID)
 {
     const uint8_t fruits[] = {
         TILES_APPLE,
@@ -1310,7 +1310,7 @@ bool CGame::isFruit(const uint8_t tileID) const
     return false;
 }
 
-bool CGame::isBonusItem(const uint8_t tileID) const
+bool CGame::isBonusItem(const uint8_t tileID)
 {
     const uint8_t treasures[] = {
         TILES_AMULET1,
@@ -1354,26 +1354,37 @@ int CGame::sugar() const
 }
 
 /**
+ * @brief get a mapReport for the current map
+ *
+ * @return MapReport
+ */
+
+MapReport CGame::currentMapReport()
+{
+    return generateMapReport(m_map);
+}
+
+/**
  * @brief Generate a statistical report for the map
  *
  * @param report
  */
 
-MapReport CGame::generateMapReport()
+MapReport CGame::generateMapReport(CMap &map)
 {
     MapReport report;
     std::unordered_map<uint8_t, int> tiles;
-    for (int y = 0; y < m_map.hei(); ++y)
+    for (int y = 0; y < map.hei(); ++y)
     {
-        for (int x = 0; x < m_map.len(); ++x)
+        for (int x = 0; x < map.len(); ++x)
         {
-            const auto &tile = m_map.at(x, y);
+            const auto &tile = map.at(x, y);
             tiles[tile] += 1;
         }
     }
 
     std::unordered_map<uint8_t, int> secrets;
-    const AttrMap &attrs = m_map.attrs();
+    const AttrMap &attrs = map.attrs();
     for (const auto &[k, v] : attrs)
     {
         if (RANGE(v, SECRET_ATTR_MIN, SECRET_ATTR_MAX))

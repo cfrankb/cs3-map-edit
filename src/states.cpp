@@ -203,8 +203,9 @@ void CStates::debug()
     }
 }
 
-void CStates::getValues(std::vector<StateValuePair> &pairs)
+std::vector<StateValuePair> CStates::getValues()
 {
+    std::vector<StateValuePair> pairs;
     // C++ 20 not supported yet
     // std::format("0x{:02x}", v)
     pairs.clear();
@@ -212,7 +213,10 @@ void CStates::getValues(std::vector<StateValuePair> &pairs)
     char tmp2[16];
     for (const auto &[k, v] : m_stateU)
     {
-        sprintf(tmp1, "0x%.2x", v);
+        if (v <= 0xff)
+            sprintf(tmp1, "0x%.2x", v);
+        else
+            sprintf(tmp1, "0x%.4x", v);
         sprintf(tmp2, "%d", v);
         pairs.push_back({k, v ? tmp1 : "", v ? tmp2 : ""});
     }
@@ -221,6 +225,7 @@ void CStates::getValues(std::vector<StateValuePair> &pairs)
     {
         pairs.push_back({k, v, ""});
     }
+    return pairs;
 }
 
 void CStates::operator=(const CStates &s)
