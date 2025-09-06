@@ -28,6 +28,7 @@ enum StateValue : uint16_t
     MAP_GOAL = 0x04,
     PAR_TIME = 0x05,
     YEAR = 0x06,
+    PRIVATE = 0x7f,
     USERDEF1 = 0x80,
     USERDEF2,
     USERDEF3,

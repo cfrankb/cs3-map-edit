@@ -47,6 +47,7 @@ const std::vector<KeyOption> g_keyOptions = {
     DEF(USERDEF2),
     DEF(USERDEF3),
     DEF(USERDEF4),
+    DEF(PRIVATE),
 };
 
 const std::vector<KeyOption> &getKeyOptions()

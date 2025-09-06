@@ -313,7 +313,7 @@ void CGame::restartLevel()
 {
     m_events.clear();
     resetStats();
-    m_gameStats->set(S_SUGAR, 0);
+    resetSugar();
 }
 
 /**
@@ -327,6 +327,15 @@ void CGame::restartGame()
     m_nextLife = calcScoreLife();
     m_score = 0;
     m_lives = DEFAULT_LIVES;
+    resetSugar();
+}
+
+/**
+ * @brief Reset SugarMeter to 0.
+ *
+ */
+void CGame::resetSugar()
+{
     m_gameStats->set(S_SUGAR, 0);
 }
 
@@ -1358,7 +1367,6 @@ int CGame::sugar() const
  *
  * @return MapReport
  */
-
 MapReport CGame::currentMapReport()
 {
     return generateMapReport(m_map);

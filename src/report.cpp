@@ -17,6 +17,13 @@
 #define BLACK 0xff000000
 
 bool generateReport(CMapFile & mf, const QString & filename) {
+    QFileWrap file;
+    const int BUFSIZE = 4095;
+    char *tmp = new char[BUFSIZE + 1];
+    auto writeItem = [&file, tmp](auto str, auto v) {
+        sprintf(tmp, "  -- %-15s: %d\n", str, static_cast<int>(v));
+        file += tmp;
+    };
 
     std::unordered_map<uint16_t, std::string> labels;
     const auto & keyOptions = getKeyOptions();
@@ -25,9 +32,6 @@ bool generateReport(CMapFile & mf, const QString & filename) {
     }
 
     typedef std::unordered_map<uint8_t, uint32_t>  StatMap;
-    const int BUFSIZE = 4095;
-    char *tmp = new char[BUFSIZE + 1];
-    QFileWrap file;
     if (!file.open(filename, "wb")) {
         delete []tmp;
         return false;
@@ -68,26 +72,17 @@ bool generateReport(CMapFile & mf, const QString & filename) {
                 }
             }
         }
-        //QVector<QString> list;
         sprintf(tmp, "Level %.2d: %s\n", i + 1, map->title());
         file += tmp;
-        //list.append(tmp);
-        sprintf(tmp, "  -- Unique tiles: %lu\n", usage.size());
-        file += tmp;
-        sprintf(tmp, "  -- Monsters: %d\n", monsters);
-        file += tmp;
-        sprintf(tmp, "  -- Attributs: %lu\n", map->attrs().size());
-        file += tmp;
-        sprintf(tmp, "  -- Stops: %d\n", stops);
-        file += tmp;
+        writeItem("Unique tiles", usage.size());
+        writeItem("Monsters", monsters);
+        writeItem("Attributs", map->attrs().size());
+        writeItem("Stops", stops);
         sprintf(tmp, "  -- Size: %d x %d\n", map->len(), map->hei());
         file += tmp;
-        sprintf(tmp, "  -- fruits : %d\n", report.fruits);
-        file += tmp;
-        sprintf(tmp, "  -- treasures : %d\n", report.bonuses);
-        file += tmp;
-        sprintf(tmp, "  -- secrets : %d\n", report.secrets);
-        file += tmp;
+        writeItem("fruits", report.fruits);
+        writeItem("treasures", report.bonuses);
+        writeItem("secrets", report.secrets);
 
         CStates &states = map->states();
         std::vector<StateValuePair> pairs = states.getValues();

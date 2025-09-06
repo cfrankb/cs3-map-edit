@@ -376,7 +376,8 @@ void CGameMixin::drawScreen(CFrame &bitmap)
     else if (m_cameraMode == CAMERA_MODE_STATIC)
         drawViewPortStatic(bitmap);
 
-    if (m_playerFrameOffset == PLAYER_HIT_FRAME)
+    const bool isPlayerHurt = m_playerFrameOffset == PLAYER_HIT_FRAME;
+    if (isPlayerHurt)
     {
         bitmap.shiftLEFT(false);
         bitmap.shiftLEFT(false);
@@ -390,8 +391,9 @@ void CGameMixin::drawScreen(CFrame &bitmap)
     // draw bottom rect
     const bool isFullWidth = _WIDTH >= MIN_WIDTH_FULL;
     const Color rectBG = isFullWidth && m_currentEvent >= MSG0 ? WHITE : DARKGRAY;
+    const Color rectBorder = isPlayerHurt ? PINK : LIGHTGRAY;
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, rectBG, true);
-    drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, LIGHTGRAY, false);
+    drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, rectBorder, false);
 
     // draw current event text
     drawEventText(bitmap);
@@ -399,7 +401,7 @@ void CGameMixin::drawScreen(CFrame &bitmap)
     if (!isFullWidth || m_currentEvent < MSG0)
     {
         // draw Healthbar
-        drawHealthBar(bitmap);
+        drawHealthBar(bitmap, isPlayerHurt);
 
         // draw keys
         drawKeys(bitmap);
@@ -1847,9 +1849,10 @@ void CGameMixin::setHeight(int h)
     _HEIGHT = h;
 }
 
-void CGameMixin::drawHealthBar(CFrame &bitmap)
+void CGameMixin::drawHealthBar(CFrame &bitmap, const bool isPlayerHurt)
 {
-    const uint32_t color = m_game->isGodMode() ? WHITE : RED;
+    const uint32_t color = m_game->isGodMode() ? WHITE : isPlayerHurt ? PINK
+                                                                      : RED;
     auto drawHearth = [&bitmap, color](auto bx, auto by, auto health)
     {
         const uint8_t *hearth = getCustomChars() + (CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;
@@ -1893,6 +1896,10 @@ void CGameMixin::drawHealthBar(CFrame &bitmap)
 void CGameMixin::drawGameStatus(CFrame &bitmap)
 {
     CGame &game = *m_game;
+    static int rGoalCount = 0;
+    bool diamondShimer = game.goalCount() < rGoalCount;
+    rGoalCount = game.goalCount();
+
     char tmp[32];
     if (m_paused)
     {
@@ -1933,7 +1940,7 @@ void CGameMixin::drawGameStatus(CFrame &bitmap)
         drawFont(bitmap, 0, Y_STATUS, tmp, WHITE);
         bx += tx;
         tx = sprintf(tmp, "DIAMONDS %.2d ", game.goalCount());
-        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, YELLOW);
+        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, diamondShimer ? DEEPSKYBLUE : YELLOW);
         bx += tx;
         tx = sprintf(tmp, "LIVES %.2d ", game.lives());
         drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, PURPLE);
