@@ -103,6 +103,23 @@ bool generateReport(CMapFile & mf, const QString & filename) {
         file += "\n-----------------------------------\n";
         file += "\n";
     }
+
+    file += "Par time\n";
+    file += "==================\n\n";
+    for (int i=0; i < mf.size(); ++i) {
+        CMap *map = mf.at(i);
+        CStates &states = map->states();
+        uint16_t parTime= states.getU(PAR_TIME);
+        if (parTime == 0)
+            continue;
+        sprintf(tmp, "Level %.2d: %s\n", i + 1, map->title());
+        file += tmp;
+        const int seconds = parTime % 60;
+        const int minutes = parTime / 60;
+        sprintf(tmp, "   PAR TIME:   %.2d:%.2d\n\n", minutes , seconds);
+        file += tmp;
+    }
+
     sprintf(tmp, "\nGlobal Unique tiles: %lu\n", globalUsage.size());
     file += tmp;
     file.close();

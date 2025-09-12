@@ -36,4 +36,5 @@ enum SoundFx
     SOUND_EXPLOSION1,
     SOUND_EXIT,
     SOUND_DEATH,
+    SOUND_BELLS1
 };

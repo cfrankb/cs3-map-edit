@@ -124,6 +124,8 @@ protected:
         MAX_IDLE_CYCLES = 0x100,
         IDLE_ACTIVATION = 0x40,
         MIN_WIDTH_FULL = 320,
+        SUGAR_CUBES = 5,
+        SCREEN_SHAKES = 4,
     };
 
     enum ColorMask : uint8_t
@@ -131,7 +133,8 @@ protected:
         COLOR_NOCHANGE,
         COLOR_FADE,
         COLOR_INVERTED,
-        COLOR_GRAYSCALE
+        COLOR_GRAYSCALE,
+        COLOR_ALL_WHITE,
     };
 
     enum Color : uint32_t
@@ -264,6 +267,21 @@ protected:
         uint8_t attr;
     };
 
+    struct visualCues_t
+    {
+        bool diamondShimmer;
+        bool livesShimmer;
+    };
+
+    struct visualStates_t
+    {
+        int rGoalCount = 0;
+        int rLives = 0;
+        int rSugar = 0;
+        int sugarFx = 0;
+        uint8_t sugarCubes[SUGAR_CUBES];
+    };
+
     struct hiscore_t
     {
         int32_t score;
@@ -310,6 +328,7 @@ protected:
     int _WIDTH = DEFAULT_WIDTH;
     int _HEIGHT = DEFAULT_HEIGHT;
     ColorMaps m_colormaps;
+    visualStates_t m_visualStates;
 
     void drawPreScreen(CFrame &bitmap);
     void drawScreen(CFrame &bitmap);
@@ -323,12 +342,13 @@ protected:
     inline void drawTimeout(CFrame &bitmap);
     inline void drawKeys(CFrame &bitmap);
     inline void drawSugarMeter(CFrame &bitmap, const int bx);
-    void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    void drawTileFaz(CFrame &bitmap, const int x, const int y, CFrame &tile, int fazBitShift = 0, const ColorMask colorMask = COLOR_NOCHANGE);
     inline CFrame *tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap, const bool isPlayerHurt);
-    void drawGameStatus(CFrame &bitmap);
-    CFrame *specialFrame(const sprite_t &sprite);
+    void drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues);
+    CFrame *calcSpecialFrame(const sprite_t &sprite);
     void nextLevel();
     void restartLevel();
     void restartGame();
@@ -356,8 +376,15 @@ protected:
     void setCameraMode(const int mode);
     void gatherSprites(std::vector<sprite_t> &sprites, const cameraContext_t &context);
     void beginLevelIntro(CGame::GameMode mode);
+    void clearVisualStates();
 
-    inline uint32_t fazFilter(int shift) const;
+    constexpr inline uint32_t fazFilter(const int bitShift) const
+    {
+        return (0xff >> bitShift) << 16 |
+               (0xff >> bitShift) << 8 |
+               0xff >> bitShift;
+    }
+
     inline int getWidth() const
     {
         return _WIDTH;

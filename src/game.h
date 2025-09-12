@@ -77,6 +77,13 @@ public:
     {
         MAX_SUGAR_RUSH_LEVEL = 5,
         MAX_KEYS = 6,
+        MAX_KEY_STATE = 5,
+    };
+
+    struct userKeys_t
+    {
+        uint8_t tiles[MAX_KEYS];
+        uint8_t indicators[MAX_KEYS];
     };
 
     bool loadLevel(const GameMode mode);
@@ -110,7 +117,7 @@ public:
     bool isGodMode() const;
     bool isRageMode() const;
     int playerSpeed() const;
-    static uint8_t *keys();
+    static userKeys_t &keys();
     std::vector<CActor> &getMonsters();
     CActor &getMonster(int i);
     std::vector<sfx_t> &getSfx();
@@ -142,6 +149,7 @@ public:
     int timeTaken();
     void incTimeTaken();
     void resetSugar();
+    void decKeyIndicators();
 
 private:
     enum
@@ -162,8 +170,6 @@ private:
         FAST_PLAYER_SPEED = 2,
         INVALID = -1,
         VERSION = (0x0200 << 16) + 0x0005,
-
-        WAIT_DISTANCE = 5,
     };
 
     int m_lives = 0;
@@ -172,7 +178,7 @@ private:
     int m_score = 0;
     int m_nextLife = SCORE_LIFE;
     int m_diamonds = 0;
-    static uint8_t m_keys[MAX_KEYS];
+    static userKeys_t m_keys;
     GameMode m_mode;
     int m_introHint = 0;
     std::vector<int> m_events;
@@ -184,6 +190,8 @@ private:
     std::vector<std::string> m_hints;
     CGameStats *m_gameStats;
     MapReport m_report;
+    void resetKeys();
+    void clearKeyIndicators();
 
     CGame();
     ~CGame();

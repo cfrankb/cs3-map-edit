@@ -45,7 +45,7 @@
 #define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
 
 CMap CGame::m_map(30, 30);
-uint8_t CGame::m_keys[MAX_KEYS];
+CGame::userKeys_t CGame::m_keys;
 static constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
 CGame *g_game = nullptr;
 
@@ -278,7 +278,7 @@ bool CGame::loadLevel(const GameMode mode)
     printf("Player at: %d %d\n", pos.x, pos.y);
     m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
     m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : m_map.count(TILES_DIAMOND);
-    memset(m_keys, 0, sizeof(m_keys));
+    resetKeys();
     m_health = DEFAULT_HEALTH;
     findMonsters();
     m_sfx.clear();
@@ -687,7 +687,7 @@ bool CGame::hasKey(const uint8_t c)
 {
     for (uint32_t i = 0; i < sizeof(m_keys); ++i)
     {
-        if (m_keys[i] == c)
+        if (m_keys.tiles[i] == c)
         {
             return true;
         }
@@ -704,13 +704,14 @@ void CGame::addKey(const uint8_t c)
 {
     for (uint32_t i = 0; i < sizeof(m_keys); ++i)
     {
-        if (m_keys[i] == c)
+        if (m_keys.tiles[i] == c)
         {
             break;
         }
-        if (m_keys[i] == '\0')
+        if (m_keys.tiles[i] == '\0')
         {
-            m_keys[i] = c;
+            m_keys.tiles[i] = c;
+            m_keys.indicators[i] = MAX_KEY_STATE;
             break;
         }
     }
@@ -809,6 +810,7 @@ void CGame::checkClosure()
             {
                 m_map.set(exitPos.x, exitPos.y, TILES_DOORS_LEAF);
                 m_gameStats->set(S_REVEAL_EXIT, 1);
+                playSound(SOUND_BELLS1);
             }
             doClosure = m_player.pos() == exitPos;
         }
@@ -915,9 +917,9 @@ int CGame::health() const
 /**
  * @brief return player list of keys
  *
- * @return uint8_t* tileID for each key
+ * @return userKeys_t& tileID for each key
  */
-uint8_t *CGame::keys()
+CGame::userKeys_t &CGame::keys()
 {
     return m_keys;
 }
@@ -1044,7 +1046,8 @@ bool CGame::read(FILE *sfile)
     readfile(&m_level, sizeof(m_level));
     readfile(&m_nextLife, sizeof(m_nextLife));
     readfile(&m_diamonds, sizeof(m_diamonds));
-    readfile(m_keys, sizeof(m_keys));
+    readfile(m_keys.tiles, sizeof(m_keys.tiles));
+    clearKeyIndicators();
     readfile(&m_score, sizeof(m_score));
     m_player.read(sfile);
     m_gameStats->read(sfile);
@@ -1101,7 +1104,7 @@ bool CGame::write(FILE *tfile)
     writefile(&m_level, sizeof(m_level));
     writefile(&m_nextLife, sizeof(m_nextLife));
     writefile(&m_diamonds, sizeof(m_diamonds));
-    writefile(m_keys, sizeof(m_keys));
+    writefile(m_keys.tiles, sizeof(m_keys.tiles));
     writefile(&m_score, sizeof(m_score));
     m_player.write(tfile);
     m_gameStats->write(tfile);
@@ -1564,4 +1567,23 @@ int CGame::timeTaken()
 void CGame::incTimeTaken()
 {
     m_gameStats->inc(S_TIME_TAKEN);
+}
+
+void CGame::resetKeys()
+{
+    memset(&m_keys, '\0', sizeof(m_keys));
+}
+
+void CGame::decKeyIndicators()
+{
+    for (size_t i = 0; i < MAX_KEYS; ++i)
+    {
+        uint8_t &u = m_keys.indicators[i];
+        u ? --u : 0;
+    }
+}
+
+void CGame::clearKeyIndicators()
+{
+    memset(m_keys.indicators, '\0', sizeof(m_keys.indicators));
 }

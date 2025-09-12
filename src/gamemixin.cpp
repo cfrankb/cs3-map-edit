@@ -242,6 +242,10 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
                     const uint16_t avg = (c[0] + c[1] + c[2]) / 3;
                     c[0] = c[1] = c[2] = avg;
                 }
+                else if (colorMask == COLOR_ALL_WHITE)
+                {
+                    color = WHITE;
+                }
                 dest[col] = color;
             }
             dest += width;
@@ -293,6 +297,10 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
                     uint8_t *c = reinterpret_cast<uint8_t *>(&color);
                     const uint16_t avg = (c[0] + c[1] + c[2]) / 3;
                     c[0] = c[1] = c[2] = avg;
+                }
+                else if (colorMask == COLOR_ALL_WHITE)
+                {
+                    color = WHITE;
                 }
                 dest[col] = color;
             }
@@ -350,26 +358,71 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
     }
 }
 
+void CGameMixin::drawTileFaz(CFrame &bitmap, const int x, const int y, CFrame &tile, int fazBitShift, const ColorMask colorMask)
+{
+    const int width = bitmap.len();
+    const uint32_t *tileData = tile.getRGB();
+    uint32_t *dest = bitmap.getRGB() + x + y * width;
+    const uint32_t colorFilter = fazBitShift ? fazFilter(fazBitShift) : 0;
+    for (uint32_t row = 0; row < TILE_SIZE; ++row)
+    {
+        for (uint32_t col = 0; col < TILE_SIZE; ++col)
+        {
+            uint32_t color = tileData[col];
+            if (!color)
+                continue;
+            if (fazBitShift)
+                color = ((color >> fazBitShift) & colorFilter) | ALPHA;
+            if (colorMask == COLOR_INVERTED)
+            {
+                color ^= 0x00ffffff;
+            }
+            else if (colorMask == COLOR_GRAYSCALE)
+            {
+                uint8_t *c = reinterpret_cast<uint8_t *>(&color);
+                const uint16_t avg = (c[0] + c[1] + c[2]) / 3;
+                c[0] = c[1] = c[2] = avg;
+            }
+            else if (colorMask == COLOR_ALL_WHITE)
+            {
+                color = WHITE;
+            }
+            dest[col] = color;
+        }
+        dest += width;
+        tileData += TILE_SIZE;
+    }
+}
+
 void CGameMixin::drawKeys(CFrame &bitmap)
 {
     CGame &game = *m_game;
     CFrameSet &tiles = *m_tiles;
-    int y = HEIGHT - TILE_SIZE;
+    const int y = HEIGHT - TILE_SIZE;
     int x = WIDTH - TILE_SIZE;
-    const uint8_t *keys = game.keys();
+    const CGame::userKeys_t &keys = game.keys();
     for (size_t i = 0; i < CGame::MAX_KEYS; ++i)
     {
-        uint8_t k = keys[i];
+        const uint8_t &k = keys.tiles[i];
+        const uint8_t &u = keys.indicators[i];
         if (k)
         {
-            drawTile(bitmap, x, y, *tiles[k], true);
+            // add visual sfx for key pickup
+            if (u == CGame::MAX_KEY_STATE)
+                drawTileFaz(bitmap, x, y, *tiles[k], 0, COLOR_ALL_WHITE);
+            else
+                drawTileFaz(bitmap, x, y, *tiles[k], u);
             x -= TILE_SIZE;
         }
     }
+    if ((m_ticks >> 1) & 1)
+        game.decKeyIndicators();
 }
 
 void CGameMixin::drawScreen(CFrame &bitmap)
 {
+    const CGame &game = *m_game;
+
     // draw viewport
     if (m_cameraMode == CAMERA_MODE_DYNAMIC)
         drawViewPortDynamic(bitmap);
@@ -378,20 +431,26 @@ void CGameMixin::drawScreen(CFrame &bitmap)
 
     const bool isPlayerHurt = m_playerFrameOffset == PLAYER_HIT_FRAME;
     if (isPlayerHurt)
-    {
-        bitmap.shiftLEFT(false);
-        bitmap.shiftLEFT(false);
-        bitmap.shiftLEFT(false);
-        bitmap.shiftLEFT(false);
-    }
+        for (int i = 0; i < SCREEN_SHAKES; ++i)
+            bitmap.shiftLEFT(false);
+
+    // visual cues
+    const visualCues_t visualcues{
+        .diamondShimmer = game.goalCount() < m_visualStates.rGoalCount,
+        .livesShimmer = game.lives() > m_visualStates.rLives,
+    };
+    m_visualStates.rGoalCount = game.goalCount();
+    m_visualStates.rLives = game.lives();
 
     // draw game status
-    drawGameStatus(bitmap);
+    drawGameStatus(bitmap, visualcues);
 
     // draw bottom rect
     const bool isFullWidth = _WIDTH >= MIN_WIDTH_FULL;
     const Color rectBG = isFullWidth && m_currentEvent >= MSG0 ? WHITE : DARKGRAY;
-    const Color rectBorder = isPlayerHurt ? PINK : LIGHTGRAY;
+    const Color rectBorder = isPlayerHurt              ? PINK
+                             : visualcues.livesShimmer ? GREEN
+                                                       : LIGHTGRAY;
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, rectBG, true);
     drawRect(bitmap, Rect{0, bitmap.hei() - 16, WIDTH, TILE_SIZE}, rectBorder, false);
 
@@ -614,7 +673,7 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
         // special case animations
         const int x = sprite.x - mx;
         const int y = sprite.y - my;
-        CFrame *tile = specialFrame(sprite);
+        CFrame *tile = calcSpecialFrame(sprite);
         bool firstY = oy && y == 0;
         bool lastY = oy && y == rows;
         bool firstX = ox && x == 0;
@@ -687,7 +746,7 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         // special case animations
         const int x = sprite.x - mx;
         const int y = sprite.y - my;
-        CFrame *tile = specialFrame(sprite);
+        CFrame *tile = calcSpecialFrame(sprite);
         drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true);
     }
 }
@@ -1475,6 +1534,7 @@ bool CGameMixin::read(FILE *sfile, std::string &name)
     clearButtonStates();
     clearJoyStates();
     clearKeyStates();
+    clearVisualStates();
     m_paused = false;
     m_prompt = PROMPT_NONE;
     readfile(&m_ticks, sizeof(m_ticks));
@@ -1546,13 +1606,6 @@ void CGameMixin::fazeScreen(CFrame &bitmap, const int bitShift)
                 ((bitmap.at(x, y) >> bitShift) & colorFilter) | ALPHA;
         }
     }
-}
-
-inline uint32_t CGameMixin::fazFilter(int bitShift) const
-{
-    return (0xff >> bitShift) << 16 |
-           (0xff >> bitShift) << 8 |
-           0xff >> bitShift;
 }
 
 void CGameMixin::stopRecorder()
@@ -1798,10 +1851,40 @@ void CGameMixin::manageTimer()
     }
 }
 
+/**
+ * @brief Draw Sugar Meter and Sugar SFX
+ *
+ * @param bitmap
+ * @param bx
+ */
 void CGameMixin::drawSugarMeter(CFrame &bitmap, const int bx)
 {
+    constexpr const Color sugarColors[] = {
+        RED,
+        DEEPPINK,
+        HOTPINK,
+        ORANGE,
+        PINK,
+        BLACK,
+        BLACK,
+        YELLOW,
+    };
+    const bool updateNow = ((m_ticks >> 1) & 1);
+    const int MAX_FX_COLOR = sizeof(sugarColors) / sizeof(sugarColors[0]) - 1;
     CGame &game = *m_game;
     const int sugar = game.sugar();
+    if ((sugar > m_visualStates.rSugar || game.hasExtraSpeed()) &&
+        !m_visualStates.sugarFx)
+    {
+        if (sugar > 0)
+            m_visualStates.sugarCubes[sugar - 1] = MAX_FX_COLOR;
+        m_visualStates.sugarFx = MAX_FX_COLOR;
+    }
+    else if (m_visualStates.sugarFx && updateNow)
+    {
+        --m_visualStates.sugarFx;
+    }
+    m_visualStates.rSugar = sugar;
     for (int i = 0; i < (int)CGame::MAX_SUGAR_RUSH_LEVEL; ++i)
     {
         const Rect rect{
@@ -1809,14 +1892,40 @@ void CGameMixin::drawSugarMeter(CFrame &bitmap, const int bx)
             .y = Y_STATUS + 2,
             .width = 4,
             .height = 4};
-        if (static_cast<int>(i) < sugar)
-            drawRect(bitmap, rect, RED, true);
+        if (static_cast<int>(i) < sugar || game.hasExtraSpeed())
+        {
+            if (sugar < SUGAR_CUBES && !game.hasExtraSpeed())
+            {
+                const uint8_t &idx = m_visualStates.sugarCubes[i];
+                drawRect(bitmap, rect, sugarColors[idx], true);
+            }
+            else
+            {
+                drawRect(bitmap, rect, sugarColors[m_visualStates.sugarFx], true);
+            }
+        }
         else
+        {
             drawRect(bitmap, rect, WHITE, false);
+        }
+    }
+    if (updateNow)
+    {
+        for (int i = 0; i < SUGAR_CUBES; ++i)
+        {
+            if (m_visualStates.sugarCubes[i])
+                --m_visualStates.sugarCubes[i];
+        }
     }
 }
 
-CFrame *CGameMixin::specialFrame(const sprite_t &sprite)
+/**
+ * @brief Calculate Special Frame for Special Case Animations (Sprites)
+ *
+ * @param sprite
+ * @return CFrame*
+ */
+CFrame *CGameMixin::calcSpecialFrame(const sprite_t &sprite)
 {
     if (RANGE(sprite.attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX))
     {
@@ -1839,28 +1948,44 @@ CFrame *CGameMixin::specialFrame(const sprite_t &sprite)
     return animz[saim * info.frames + info.base + info.offset];
 }
 
+/**
+ * @brief Set Texture Width
+ *
+ * @param w
+ */
 void CGameMixin::setWidth(int w)
 {
     _WIDTH = w;
 }
 
+/**
+ * @brief Set Texture Height
+ *
+ * @param h
+ */
 void CGameMixin::setHeight(int h)
 {
     _HEIGHT = h;
 }
 
+/**
+ * @brief Draw Player Health Bar
+ *
+ * @param bitmap
+ * @param isPlayerHurt
+ */
 void CGameMixin::drawHealthBar(CFrame &bitmap, const bool isPlayerHurt)
 {
     const uint32_t color = m_game->isGodMode() ? WHITE : isPlayerHurt ? PINK
                                                                       : RED;
     auto drawHearth = [&bitmap, color](auto bx, auto by, auto health)
     {
-        const uint8_t *hearth = getCustomChars() + (CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;
+        const uint8_t *heart = getCustomChars() + (CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;
         for (uint32_t y = 0; y < FONT_SIZE; ++y)
         {
             for (uint32_t x = 0; x < FONT_SIZE; ++x)
             {
-                const uint8_t bit = hearth[y] & (1 << x);
+                const uint8_t bit = heart[y] & (1 << x);
                 if (bit)
                     bitmap.at(bx + x, by + y) = x < (uint32_t)health ? color : BLACK;
             }
@@ -1885,21 +2010,25 @@ void CGameMixin::drawHealthBar(CFrame &bitmap, const bool isPlayerHurt)
     }
     else
     {
+        const Color hpColor = game.isGodMode() ? WHITE : isPlayerHurt ? PINK
+                                                                      : LIME;
         const int hpWidth = std::min(game.health() / 2, bitmap.len() - 4);
         drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
-                 game.isGodMode() ? WHITE : LIME, true);
+                 hpColor, true);
         drawRect(bitmap, Rect{4, bitmap.hei() - 12, hpWidth, 8},
                  WHITE, false);
     }
 }
 
-void CGameMixin::drawGameStatus(CFrame &bitmap)
+/**
+ * @brief Draw Top Line Status Bar Overlay on Game Screen
+ *
+ * @param bitmap
+ * @param visualcues
+ */
+void CGameMixin::drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues)
 {
     CGame &game = *m_game;
-    static int rGoalCount = 0;
-    bool diamondShimer = game.goalCount() < rGoalCount;
-    rGoalCount = game.goalCount();
-
     char tmp[32];
     if (m_paused)
     {
@@ -1940,10 +2069,10 @@ void CGameMixin::drawGameStatus(CFrame &bitmap)
         drawFont(bitmap, 0, Y_STATUS, tmp, WHITE);
         bx += tx;
         tx = sprintf(tmp, "DIAMONDS %.2d ", game.goalCount());
-        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, diamondShimer ? DEEPSKYBLUE : YELLOW);
+        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, visualcues.diamondShimmer ? DEEPSKYBLUE : YELLOW);
         bx += tx;
         tx = sprintf(tmp, "LIVES %.2d ", game.lives());
-        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, PURPLE);
+        drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, visualcues.livesShimmer ? GREEN : PURPLE);
         bx += tx;
         if (m_recorder->isRecording())
         {
@@ -1968,4 +2097,18 @@ void CGameMixin::beginLevelIntro(CGame::GameMode mode)
     startCountdown(COUNTDOWN_INTRO);
     m_game->loadLevel(mode);
     centerCamera();
+    clearVisualStates();
+}
+
+/**
+ * @brief Clear Visual Cue Indicators reset all to zero
+ *
+ */
+void CGameMixin::clearVisualStates()
+{
+    m_visualStates.rGoalCount = 0;
+    m_visualStates.rLives = 0;
+    m_visualStates.rSugar = 0;
+    m_visualStates.sugarFx = 0;
+    memset(m_visualStates.sugarCubes, '\0', sizeof(m_visualStates.sugarCubes));
 }
