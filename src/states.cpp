@@ -42,18 +42,20 @@ void CStates::setS(const uint16_t k, const std::string &v)
         m_stateS.erase(k);
 }
 
-uint16_t CStates::getU(const uint16_t k)
+uint16_t CStates::getU(const uint16_t k) const
 {
-    if (m_stateU.count(k))
-        return m_stateU[k];
+    const auto &it = m_stateU.find(k);
+    if (it != m_stateU.end())
+        return it->second;
     else
         return 0;
 }
 
-const char *CStates::getS(const uint16_t k)
+const char *CStates::getS(const uint16_t k) const
 {
-    if (m_stateS.count(k))
-        return m_stateS[k].c_str();
+    const auto &it = m_stateS.find(k);
+    if (it != m_stateS.end())
+        return it->second.c_str();
     else
         return "";
 }
@@ -93,7 +95,7 @@ bool CStates::read(IFile &sfile)
     return true;
 }
 
-bool CStates::write(IFile &tfile)
+bool CStates::write(IFile &tfile) const
 {
     auto writefile = [&tfile](auto ptr, auto size)
     {
@@ -155,7 +157,7 @@ bool CStates::read(FILE *sfile)
     return true;
 }
 
-bool CStates::write(FILE *tfile)
+bool CStates::write(FILE *tfile) const
 {
     auto writefile = [tfile](auto ptr, auto size)
     {
@@ -188,7 +190,7 @@ void CStates::clear()
     m_stateU.clear();
 }
 
-void CStates::debug()
+void CStates::debug() const
 {
     printf("\n**** m_stateU: %ld\n\n", m_stateU.size());
     for (const auto &[k, v] : m_stateU)
@@ -203,7 +205,7 @@ void CStates::debug()
     }
 }
 
-std::vector<StateValuePair> CStates::getValues()
+std::vector<StateValuePair> CStates::getValues() const
 {
     std::vector<StateValuePair> pairs;
     // C++ 20 not supported yet
@@ -241,12 +243,12 @@ void CStates::operator=(const CStates &s)
     }
 }
 
-bool CStates::hasU(const uint16_t k)
+bool CStates::hasU(const uint16_t k) const
 {
     return m_stateU.count(k) != 0;
 }
 
-bool CStates::hasS(const uint16_t k)
+bool CStates::hasS(const uint16_t k) const
 {
     return m_stateS.count(k) != 0;
 }

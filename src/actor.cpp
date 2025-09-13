@@ -19,6 +19,7 @@
 #include "tilesdata.h"
 #include "game.h"
 #include "sprtypes.h"
+#include "attr.h"
 #include <cstdio>
 
 const JoyAim g_aims[] = {
@@ -107,6 +108,11 @@ bool CActor::canMove(const JoyAim aim)
         {
             return CGame::hasKey(c + 1);
         }
+    }
+    else if (RANGE(m_type, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
+    {
+        if (def.type == TYPE_PLAYER)
+            return true;
     }
     return false;
 }

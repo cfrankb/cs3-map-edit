@@ -33,6 +33,7 @@
 #include "sounds.h"
 #include "sprtypes.h"
 #include "gamestats.h"
+#include "attr.h"
 
 // Check windows
 #ifdef _WIN64
@@ -56,8 +57,6 @@
 #include <QDebug>
 #define printf qDebug
 #endif
-
-#define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
 
 CGameMixin::CGameMixin()
 {

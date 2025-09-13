@@ -41,20 +41,20 @@ public:
 
     void setU(const uint16_t k, const uint16_t v);
     void setS(const uint16_t k, const std::string &v);
-    uint16_t getU(const uint16_t k);
-    const char *getS(const uint16_t k);
-    bool hasU(const uint16_t k);
-    bool hasS(const uint16_t k);
+    uint16_t getU(const uint16_t k) const;
+    const char *getS(const uint16_t k) const;
+    bool hasU(const uint16_t k) const;
+    bool hasS(const uint16_t k) const;
 
     bool read(IFile &sfile);
-    bool write(IFile &tfile);
+    bool write(IFile &tfile) const;
     bool read(FILE *sfile);
-    bool write(FILE *tfile);
+    bool write(FILE *tfile) const;
 
-    void debug();
+    void debug() const;
     void clear();
 
-    std::vector<StateValuePair> getValues();
+    std::vector<StateValuePair> getValues() const;
     void operator=(const CStates &s);
 
 private:

@@ -36,13 +36,12 @@
 #include "states.h"
 #include "statedata.h"
 #include "gamestats.h"
+#include "attr.h"
 
 #ifdef USE_QFILE
 #include <QDebug>
 #define printf qDebug
 #endif
-
-#define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
 
 CMap CGame::m_map(30, 30);
 CGame::userKeys_t CGame::m_keys;
@@ -433,6 +432,24 @@ bool CGame::findMonsters()
             }
         }
     }
+
+    std::vector<Pos> removed;
+    for (const auto &[key, attr] : m_map.attrs())
+    {
+        if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
+        {
+            const Pos &pos = CMap::toPos(key);
+            const JoyAim aim = attr < ATTR_CRUSHERH_MIN ? AIM_UP : AIM_LEFT;
+            addMonster(CActor(pos, attr, aim));
+            removed.push_back(pos);
+        }
+    }
+
+    for (const auto &pos : removed)
+    {
+        m_map.setAttr(pos.x, pos.y, 0);
+    }
+
     printf("%lu monsters found.\n", m_monsters.size());
     return true;
 }
@@ -475,7 +492,7 @@ int CGame::findMonsterAt(const int x, const int y) const
  * @param ticks clock ticks since start
  */
 
-void CGame::manageMonsters(int ticks)
+void CGame::manageMonsters(const int ticks)
 {
     const int speedCount = 9;
     bool speeds[speedCount];
@@ -507,7 +524,7 @@ void CGame::manageMonsters(int ticks)
         {
             continue;
         }
-        if (def.type == TYPE_MONSTER)
+        if (actor.type() == TYPE_MONSTER)
         {
             if (actor.isPlayerThere(actor.getAim()))
             {
@@ -543,7 +560,7 @@ void CGame::manageMonsters(int ticks)
                 }
             }
         }
-        else if (def.type == TYPE_DRONE)
+        else if (actor.type() == TYPE_DRONE)
         {
             JoyAim aim = actor.getAim();
             if (aim < AIM_LEFT)
@@ -569,7 +586,7 @@ void CGame::manageMonsters(int ticks)
                 aim = AIM_LEFT;
             actor.setAim(aim);
         }
-        else if (def.type == TYPE_VAMPLANT)
+        else if (actor.type() == TYPE_VAMPLANT)
         {
             for (uint8_t i = 0; i < sizeof(dirs); ++i)
             {
@@ -598,6 +615,31 @@ void CGame::manageMonsters(int ticks)
                     break;
                 }
             }
+        }
+        else if (RANGE(actor.type(), ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
+        {
+            const uint8_t speed = (actor.type() & CRUSHER_SPEED_MASK) + SPEED_VERYFAST;
+            if (!speeds[speed])
+            {
+                continue;
+            }
+            JoyAim aim = actor.getAim();
+            if (actor.isPlayerThere(actor.getAim()))
+            {
+                // apply health damages
+                addHealth(-1024);
+            }
+            if (actor.canMove(aim))
+                actor.move(aim);
+            else if (aim == AIM_LEFT)
+                aim = AIM_RIGHT;
+            else if (aim == AIM_RIGHT)
+                aim = AIM_LEFT;
+            else if (aim == AIM_DOWN)
+                aim = AIM_UP;
+            else if (aim == AIM_UP)
+                aim = AIM_DOWN;
+            actor.setAim(aim);
         }
     }
 

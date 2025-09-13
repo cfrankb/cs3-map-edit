@@ -470,7 +470,7 @@ void MainWindow::showAttrDialog()
 void MainWindow::showStatDialog()
 {
     CMap &map = *m_doc.map();
-    CDlgStat dlg(map.at(m_hx, m_hy), this);
+    CDlgStat dlg(map.at(m_hx, m_hy), map.getAttr(m_hx, m_hy), this);
     dlg.setWindowTitle(tr("Tile Statistics"));
     dlg.exec();
 }

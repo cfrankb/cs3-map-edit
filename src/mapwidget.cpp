@@ -8,7 +8,7 @@
 #include "animator.h"
 #include "states.h"
 #include "statedata.h"
-#include "game.h"
+#include "attr.h"
 #include <QScrollBar>
 
 #define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
@@ -213,6 +213,8 @@ uint32_t CMapWidget::attr2color(const uint8_t attr)
         return LIGHTGRAY;
     } else if (attr == ATTR_TRAP) {
         return RED;
+    } else if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX)) {
+        return ORANGE;
     } else if (attr > PASSAGE_ATTR_MAX) {
         return OLIVE; // undefined behavior
     } else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX)) {

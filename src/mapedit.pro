@@ -42,6 +42,7 @@ SOURCES += \
     shared/qtgui/qthelper.cpp \
     tilebox.cpp \
     tilesdata.cpp \
+    tilesdebug.cpp \
     states.cpp \
     statedata.cpp \
     keyvaluedialog.cpp \
@@ -86,6 +87,7 @@ HEADERS += \
     sprtypes.h \
     tilebox.h \
     tilesdata.h \
+    tilesdebug.h \
     sounds.h \
     states.h \
     statedata.h \
@@ -97,7 +99,8 @@ HEADERS += \
     gamesfx.h \
     gamestats.h \
     colormap.h \
-    strhelper.h
+    strhelper.h \
+    attr.h
 
 FORMS += \
     dlgattr.ui \

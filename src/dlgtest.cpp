@@ -25,6 +25,7 @@ CDlgTest::CDlgTest(QWidget *parent) :
     m_timer.start();
     setSkill(SKILL_NORMAL);
     m_healthBar = HEALTHBAR_HEARTHS;
+    m_game->restartGame();
 }
 
 CDlgTest::~CDlgTest()

@@ -51,6 +51,10 @@ public:
     {
         return m_y;
     }
+    inline uint8_t type() const
+    {
+        return m_type;
+    }
     uint8_t getPU() const;
     void setPU(const uint8_t c);
     void setPos(const Pos &pos);

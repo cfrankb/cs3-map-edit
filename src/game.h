@@ -27,19 +27,6 @@ class CGameStats;
 class CMapArch;
 class ISound;
 
-#define ATTR_WAIT_MIN 0xe0    // 0xe0 monster wait
-#define ATTR_WAIT_MAX 0xe9    // 0xe9 monster wait
-#define ATTR_FREEZE_TRAP 0xea // 0xea freeze trap
-#define ATTR_TRAP 0xeb        // 0xeb trap
-#define ATTR_MSG_MIN 0xf0     // 0xf0 .. 0xff message string
-#define ATTR_MSG_MAX 0xff     // 0xff .. 0xff message string
-#define PASSAGE_ATTR_MIN 0x01 // 0x01
-#define PASSAGE_ATTR_MAX 0x7f // 0x7f
-#define PASSAGE_REG_MIN 0x01  // 0x01
-#define PASSAGE_REG_MAX 0x1f  // 0x1f
-#define SECRET_ATTR_MIN 0x40  // 0x40
-#define SECRET_ATTR_MAX 0x4f  // 0x4f
-
 struct MapReport
 {
     int fruits;
@@ -168,6 +155,7 @@ private:
         TRAP_DAMAGE = -16,
         DEFAULT_PLAYER_SPEED = 3,
         FAST_PLAYER_SPEED = 2,
+        CRUSHER_SPEED_MASK = 3,
         INVALID = -1,
         VERSION = (0x0200 << 16) + 0x0005,
     };

@@ -468,12 +468,13 @@ void CMap::clear(uint8_t ch)
     m_attrs.clear();
 }
 
-uint8_t CMap::getAttr(const uint8_t x, const uint8_t y)
+uint8_t CMap::getAttr(const uint8_t x, const uint8_t y) const
 {
     const uint16_t key = toKey(x, y);
-    if (m_attrs.size() > 0 && m_attrs.count(key) != 0)
+    const auto &it = m_attrs.find(key);
+    if (it != m_attrs.end())
     {
-        return m_attrs[key];
+        return it->second;
     }
     else
     {

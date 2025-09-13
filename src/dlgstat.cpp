@@ -4,101 +4,86 @@
 #include "sprtypes.h"
 #include <qlistwidget.h>
 #include <qstringlist.h>
+#include "tilesdebug.h"
+#include "attr.h"
 
-CDlgStat::CDlgStat(int tileID, QWidget *parent)
+CDlgStat::CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::CDlgStat)
 {
-    const QString types[] = {
-        tr("TYPE_BACKGROUND"),
-        tr("TYPE_STOP"),
-        tr("TYPE_PLAYER"),
-        tr("TYPE_WALLS"),
-        tr("TYPE_PICKUP"),
-        tr("TYPE_DOOR"),
-        tr("TYPE_KEY"),
-        tr("TYPE_SWAMP"),
-        tr("TYPE_MONSTER"),
-        tr("TYPE_DRONE"),
-        tr("TYPE_VAMPLANT"),
-        tr("TYPE_DIAMOND")
-    };
     ui->setupUi(this);
 
     const TileDef & def = getTileDef(tileID);
     ui->sName->setText(def.basename);
     QListWidget * w = ui->listWidget;
+
+    w->addItem(QString("%1 [0x%2]").arg(get_tileNames(tileID).c_str()).arg(tileID,2, 16, QChar('0')));
     if (def.hidden) {
         w->addItem(tr("hidden"));
     }
 
     if (def.ai) {
-        QString s = tr("AI:");
-        if (def.ai & AI_ROUND) {
-            s += QString(" ") + tr("ROUND");
+        auto const &map = get_aiNamesMap();
+        for (const auto & [val, name]: map) {
+            if ((def.ai & val) == val) {
+                w->addItem(name.c_str());
+            }
         }
-
-        if (def.ai & AI_STICKY) {
-            s += QString(" ") + tr("STICKY");
-        }
-
-        if (def.ai & AI_FOCUS) {
-            s += QString(" ") + tr("FOCUS");
-        }
-        w->addItem(s);
     }
 
     if (def.flags) {
-        QString s = tr("Flags:");
-        if (def.flags & FLAG_EXTRA_LIFE)
-        {
-            s += QString(" ") + tr("EXTRA_LIFE");
+        auto const &map = get_flagsNamesMap();
+        for (const auto & [val, name]: map) {
+            if ((def.flags & val) == val) {
+                w->addItem(name.c_str());
+            }
         }
-
-        if (def.flags & FLAG_GODMODE)
-        {
-            s += QString(" ") + tr("GODMODE");
-        }
-
-        if (def.flags & FLAG_EXTRA_SPEED)
-        {
-            s += QString(" ") + tr("EXTRA_SPEED");
-        }
-        w->addItem(s);
     }
 
     if (def.health) {
-        QString s = tr("Health: %1 hp").arg(def.health);
+        QString s = tr("HEALTH: %1%2 hp").arg(def.health < 0 ? "-" : "").arg(def.health);
         w->addItem(s);
     }
 
     if (def.score) {
-        w->addItem(tr("Points: +%1").arg(def.score));
+        w->addItem(tr("SCORE: +%1").arg(def.score));
     }
 
     if (def.speed) {
-        QString s;
-        switch (def.speed) {
-        case SPEED_FAST:
-            s = "FAST" ;
-            break;
-        case SPEED_NORMAL:
-            s = "NORMAL" ;
-            break;
-        case SPEED_SLOW:
-            s = "SLOW" ;
-            break;
-        case SPEED_VERYSLOW:
-            s = "VERYSLOW" ;
-            break;
-        default:
-            s = QString("%1").arg(def.speed);
-        }
-
-        w->addItem(tr("Speed %1").arg(s));
+        QString s = get_speedsNames(def.speed).c_str();
+        if (s.isEmpty())
+            s = QString(tr("SPEED %1")).arg(def.speed);
+        w->addItem(s);
     }
 
-    ui->label->setText(types[def.type]);
+    if (attr) {
+        QString s = tr("ATTR: %1 [0x%2]").arg(attr2text(attr)).arg(attr,2, 16, QChar('0'));
+        w->addItem(s);
+    }
+
+    ui->label->setText(get_typesNames(def.type).c_str());
+}
+
+QString CDlgStat::attr2text(const uint8_t attr) {
+    if (RANGE(attr, ATTR_MSG_MIN, ATTR_MSG_MAX)) {
+        return "Message";
+    } else if (RANGE(attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX)) {
+        return tr("Wait");
+    } else if (attr == ATTR_FREEZE_TRAP) {
+        return tr("Freeze Trap");
+    } else if (attr == ATTR_TRAP) {
+        return tr("Trap");
+    } else if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX)) {
+        return tr("Crusher");
+    } else if (attr > PASSAGE_ATTR_MAX) {
+        return tr("undefined behavior"); // undefined behavior
+    } else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX)) {
+        return tr("secret");
+    } else if (RANGE(attr, PASSAGE_REG_MIN, PASSAGE_REG_MAX)) {
+        return tr("passage");
+    } else {
+        return tr("???");
+    }
 }
 
 CDlgStat::~CDlgStat()
