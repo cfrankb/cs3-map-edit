@@ -28,7 +28,7 @@ QFileWrap::QFileWrap()
 
 QFileWrap::~QFileWrap()
 {
-    close();
+    QFileWrap::close();
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -36,12 +36,12 @@ QFileWrap::~QFileWrap()
 
 int QFileWrap::read(void *buf, int size)
 {
-    return m_file->read( (char*) buf, size);
+    return m_file->read( (char*) buf, size) == size ? 1 : 0;
 }
 
 int QFileWrap::write(const void *buf, int size)
 {
-    return m_file->write( (char*) buf, size);
+    return m_file->write( (char*) buf, size) == size ? 1 : 0;
 }
 
 QFileWrap & QFileWrap::operator >> (int & n)

@@ -15,8 +15,11 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define LOG_TAG "states"
 #include "states.h"
 #include "shared/IFile.h"
+#include "logger.h"
+#include <cstring>
 
 CStates::CStates()
 {
@@ -62,125 +65,156 @@ const char *CStates::getS(const uint16_t k) const
 
 bool CStates::read(IFile &sfile)
 {
-    auto readfile = [&sfile](auto ptr, auto size)
+    auto readfile = [&sfile](auto ptr, auto size) -> bool
     {
-        return sfile.read(reinterpret_cast<void *>(ptr), size);
+        return sfile.read(reinterpret_cast<void *>(ptr), size) == 1;
     };
 
-    size_t count = 0;
-    readfile(&count, COUNT_BYTES);
-    m_stateU.clear();
-    for (size_t i = 0; i < count; ++i)
-    {
-        uint16_t k = 0;
-        uint16_t v = 0;
-        readfile(&k, sizeof(k));
-        readfile(&v, sizeof(v));
-        m_stateU[k] = v;
-    }
-    char *v = new char[MAX_STRING];
-    readfile(&count, COUNT_BYTES);
-    m_stateS.clear();
-    for (size_t i = 0; i < count; ++i)
-    {
-        uint16_t k = 0;
-        uint16_t len = 0;
-        readfile(&k, sizeof(k));
-        readfile(&len, sizeof(len));
-        v[len] = '\0';
-        readfile(v, len);
-        m_stateS[k] = v;
-    }
-    delete[] v;
-    return true;
-}
-
-bool CStates::write(IFile &tfile) const
-{
-    auto writefile = [&tfile](auto ptr, auto size)
-    {
-        return tfile.write(ptr, size);
-    };
-
-    size_t count = m_stateU.size();
-    writefile(&count, COUNT_BYTES);
-    for (const auto &[k, v] : m_stateU)
-    {
-        writefile(&k, sizeof(k));
-        writefile(&v, sizeof(v));
-    }
-
-    count = m_stateS.size();
-    writefile(&count, COUNT_BYTES);
-    for (const auto &[k, v] : m_stateS)
-    {
-        writefile(&k, sizeof(k));
-        size_t len = v.size();
-        writefile(&len, LEN_BYTES);
-        writefile(v.c_str(), len);
-    }
-    return true;
+    return readCommon(readfile);
 }
 
 bool CStates::read(FILE *sfile)
 {
-    auto readfile = [sfile](auto ptr, auto size)
+    if (!sfile)
+        return false;
+
+    auto readfile = [sfile](auto ptr, auto size) -> bool
     {
         return fread(ptr, size, 1, sfile) == 1;
     };
 
+    return readCommon(readfile);
+}
+
+template <typename ReadFunc>
+bool CStates::readCommon(ReadFunc readfile)
+{
     size_t count = 0;
-    readfile(&count, COUNT_BYTES);
+    if (!readfile(&count, COUNT_BYTES))
+        return false;
+
     m_stateU.clear();
     for (size_t i = 0; i < count; ++i)
     {
         uint16_t k = 0;
         uint16_t v = 0;
-        readfile(&k, sizeof(k));
-        readfile(&v, sizeof(v));
+        if (!readfile(&k, sizeof(k)))
+            return false;
+        if (!readfile(&v, sizeof(v)))
+            return false;
         m_stateU[k] = v;
     }
+
     char *v = new char[MAX_STRING];
-    readfile(&count, COUNT_BYTES);
+    if (!v)
+        return false;
+
+    if (!readfile(&count, COUNT_BYTES))
+    {
+        delete[] v;
+        return false;
+    }
+
     m_stateS.clear();
     for (size_t i = 0; i < count; ++i)
     {
         uint16_t k = 0;
         uint16_t len = 0;
-        readfile(&k, sizeof(k));
-        readfile(&len, sizeof(len));
+        if (!readfile(&k, sizeof(k)))
+        {
+            delete[] v;
+            return false;
+        }
+        if (!readfile(&len, sizeof(len)))
+        {
+            delete[] v;
+            return false;
+        }
+
+        if (len >= MAX_STRING)
+        {
+            delete[] v;
+            return false;
+        }
+
         v[len] = '\0';
-        readfile(v, len);
+        if (!readfile(v, len))
+        {
+            delete[] v;
+            return false;
+        }
         m_stateS[k] = v;
     }
+
     delete[] v;
     return true;
 }
 
+bool CStates::fromMemory(uint8_t *ptr)
+{
+    auto copyData = [&ptr](auto dest, auto size)
+    {
+        memcpy(dest, ptr, size);
+        ptr += size;
+        return true;
+    };
+    return readCommon(copyData);
+}
+
+bool CStates::write(IFile &tfile) const
+{
+    auto writefile = [&tfile](auto ptr, auto size) -> bool
+    {
+        return tfile.write(ptr, size) == 1;
+    };
+
+    return writeCommon(writefile);
+}
+
 bool CStates::write(FILE *tfile) const
 {
-    auto writefile = [tfile](auto ptr, auto size)
+    if (!tfile)
+        return false;
+
+    auto writefile = [tfile](auto ptr, auto size) -> bool
     {
         return fwrite(ptr, size, 1, tfile) == 1;
     };
 
+    return writeCommon(writefile);
+}
+
+template <typename WriteFunc>
+bool CStates::writeCommon(WriteFunc writefile) const
+{
     size_t count = m_stateU.size();
-    writefile(&count, COUNT_BYTES);
+    if (!writefile(&count, COUNT_BYTES))
+        return false;
+
     for (const auto &[k, v] : m_stateU)
     {
-        writefile(&k, sizeof(k));
-        writefile(&v, sizeof(v));
+        if (!writefile(&k, sizeof(k)))
+            return false;
+        if (!writefile(&v, sizeof(v)))
+            return false;
     }
 
     count = m_stateS.size();
-    writefile(&count, COUNT_BYTES);
+    if (!writefile(&count, COUNT_BYTES))
+        return false;
+
     for (const auto &[k, v] : m_stateS)
     {
-        writefile(&k, sizeof(k));
+        if (!writefile(&k, sizeof(k)))
+            return false;
+
         size_t len = v.size();
-        writefile(&len, LEN_BYTES);
-        writefile(v.c_str(), len);
+        if (!writefile(&len, LEN_BYTES))
+            return false;
+        if (!writefile(v.c_str(), len))
+            return false;
     }
+
     return true;
 }
 
@@ -192,23 +226,23 @@ void CStates::clear()
 
 void CStates::debug() const
 {
-    printf("\n**** m_stateU: %ld\n\n", m_stateU.size());
+    LOGI("\n**** m_stateU: %zu\n\n", m_stateU.size());
     for (const auto &[k, v] : m_stateU)
     {
-        printf("[%d / 0x%.2x] => [%d / 0x%.2x]\n", k, k, v, v);
+        LOGI("[%d / 0x%.2x] => [%d / 0x%.2x]\n", k, k, v, v);
     }
 
-    printf("\n***** m_stateS: %ld\n\n", m_stateS.size());
+    LOGI("\n***** m_stateS: %zu\n\n", m_stateS.size());
     for (const auto &[k, v] : m_stateS)
     {
-        printf("[%d / 0x%.2x] => [%s]\n", k, k, v.c_str());
+        LOGI("[%d / 0x%.2x] => [%s]\n", k, k, v.c_str());
     }
 }
 
 std::vector<StateValuePair> CStates::getValues() const
 {
     std::vector<StateValuePair> pairs;
-    // C++ 20 not supported yet
+    // TODO: C++ 20 not supported yet by appImage
     // std::format("0x{:02x}", v)
     pairs.clear();
     char tmp1[16];
@@ -216,10 +250,10 @@ std::vector<StateValuePair> CStates::getValues() const
     for (const auto &[k, v] : m_stateU)
     {
         if (v <= 0xff)
-            sprintf(tmp1, "0x%.2x", v);
+            snprintf(tmp1, sizeof(tmp1), "0x%.2x", v);
         else
-            sprintf(tmp1, "0x%.4x", v);
-        sprintf(tmp2, "%d", v);
+            snprintf(tmp1, sizeof(tmp1), "0x%.4x", v);
+        snprintf(tmp2, sizeof(tmp2), "%d", v);
         pairs.push_back({k, v ? tmp1 : "", v ? tmp2 : ""});
     }
 
@@ -228,19 +262,6 @@ std::vector<StateValuePair> CStates::getValues() const
         pairs.push_back({k, v, ""});
     }
     return pairs;
-}
-
-void CStates::operator=(const CStates &s)
-{
-    for (const auto &[k, v] : s.m_stateU)
-    {
-        m_stateU[k] = v;
-    }
-
-    for (const auto &[k, v] : s.m_stateS)
-    {
-        m_stateS[k] = v;
-    }
 }
 
 bool CStates::hasU(const uint16_t k) const

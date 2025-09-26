@@ -16,13 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#define EVENT_NONE 0
-#define EVENT_SECRET 1
-#define EVENT_EXTRA_LIFE 2
-#define EVENT_SUGAR_RUSH 3
-#define EVENT_GOD_MODE 4
-#define EVENT_SUGAR 5
-#define EVENT_RAGE 6
-#define EVENT_FREEZE 7
-#define EVENT_TRAP 8
-#define EVENT_PASSAGE 9
+enum Event
+{
+    EVENT_NONE = 0,
+    EVENT_SECRET,
+    EVENT_EXTRA_LIFE,
+    EVENT_SUGAR_RUSH,
+    EVENT_GOD_MODE,
+    EVENT_SUGAR,
+    EVENT_RAGE,
+    EVENT_FREEZE,
+    EVENT_TRAP,
+    EVENT_PASSAGE,
+    EVENT_EXIT_OPENED,
+};

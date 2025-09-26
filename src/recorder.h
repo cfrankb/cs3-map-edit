@@ -19,6 +19,7 @@
 
 #include <cinttypes>
 #include <cstdio>
+#include "shared/IFile.h"
 
 class CRecorder
 {
@@ -26,7 +27,7 @@ public:
     CRecorder(const size_t bufSize = MAX_ENTRIES);
     ~CRecorder();
 
-    bool start(FILE *file, bool isWrite);
+    bool start(IFile *file, bool isWrite);
     void append(const uint8_t *input);
     bool get(uint8_t *output);
     void stop();
@@ -54,7 +55,7 @@ private:
     uint32_t m_batchSize;
     uint8_t *m_buffer = nullptr;
     size_t m_bufSize;
-    FILE *m_file = nullptr;
+    IFile *m_file = nullptr;
     size_t m_offset;
 
     void decode(uint8_t *output, uint8_t data);

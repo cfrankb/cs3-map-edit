@@ -35,6 +35,8 @@ void CTileBox::setupToolbox(){
         CFrameSet fs;
         if (fs.extract(file)) {
             qDebug("extracted: %d", fs.getSize());
+        } else{
+            qDebug("extracting tiles failed: %s", fs.getLastError());
         }
         file.close();
 

@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <unordered_map>
 #include <string>
+#include <functional>
 
 typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
 struct Pos
@@ -44,6 +45,7 @@ class CMap
 {
 public:
     CMap(uint16_t len = 0, uint16_t hei = 0, uint8_t t = 0);
+    CMap(const CMap &map);
     ~CMap();
     uint8_t &at(int x, int y);
     uint8_t *row(int y);
@@ -53,13 +55,14 @@ public:
     bool read(FILE *sfile);
     bool read(IFile &file);
     bool write(FILE *tfile);
-    void forget();
+    bool write(IFile &tfile);
+    void clear();
     int len() const;
     int hei() const;
     bool resize(uint16_t len, uint16_t hei, bool fast);
     const Pos findFirst(uint8_t tileId);
     int count(uint8_t tileId);
-    void clear(uint8_t ch = 0);
+    void fill(uint8_t ch = 0);
     uint8_t getAttr(const uint8_t x, const uint8_t y) const;
     void setAttr(const uint8_t x, const uint8_t y, const uint8_t a);
     int size();
@@ -86,6 +89,11 @@ public:
     void debug();
 
 private:
+    template <typename WriteFunc>
+    bool writeCommon(WriteFunc writefile);
+    template <typename ReadFunc>
+    bool readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates);
+
     enum
     {
         XTR_VER0 = 0,

@@ -62,7 +62,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_BRICKS_E),
     _S(TILES_BRICKS_F),
     _S(TILES_BRICKS_10),
-    _S(TILES_PINETREE),
+    _S(TILES_TREE),
     _S(TILES_PLANTS),
     _S(TILES_PLANTS_2),
     _S(TILES_PLANTS_3),
@@ -72,7 +72,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_PLANTS_7),
     _S(TILES_THISWAY),
     _S(TILES_THISWAY_2),
-    _S(TILES_FRUIT1),
+    _S(TILES_POMEGRENADE),
     _S(TILES_AMULET1),
     _S(TILES_APPLE),
     _S(TILES_REDBOOK),
@@ -97,7 +97,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_MAGICBOT),
     _S(TILES_LIGHTBUL),
     _S(TILES_1ST_AID),
-    _S(TILES_SCROLL1),
+    _S(TILES_SCROLL),
     _S(TILES_SHIELD),
     _S(TILES_POTION1),
     _S(TILES_POTION2),
@@ -162,6 +162,7 @@ static const std::unordered_map<uint16_t, std::string> g_flagsNames = {
 };
 
 static const std::unordered_map<uint16_t, std::string> g_speedsNames = {
+    _S(SPEED_VERYFAST),
     _S(SPEED_FAST),
     _S(SPEED_NORMAL),
     _S(SPEED_SLOW),

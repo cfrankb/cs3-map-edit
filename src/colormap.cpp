@@ -15,16 +15,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define LOG_TAG "colormap"
 #include "colormap.h"
 #include "shared/IFile.h"
 #include "strhelper.h"
 #include <cstring>
+#include "logger.h"
 
 bool parseListKV(std::vector<std::string> &list, uint32_t &k, uint32_t &v, const int line)
 {
     if (list.size() != 2)
     {
-        fprintf(stderr, "list expected to be 2 items. found %zu on line %d", list.size(), line);
+        LOGE("list expected to be 2 items. found %zu on line %d\n", list.size(), line);
         return false;
     }
     k = std::stoul(list[0].substr(2).c_str(), nullptr, 16);
@@ -38,7 +40,13 @@ bool parseColorMaps(IFile &file, ColorMaps &colorMaps)
     char *tmp = new char[size + 1];
     file.read(tmp, size);
     tmp[size] = '\0';
+    bool result = parseColorMaps(tmp, colorMaps);
+    delete[] tmp;
+    return result;
+}
 
+bool parseColorMaps(char *tmp, ColorMaps &colorMaps)
+{
     // clear maps
     colorMaps.godMode.clear();
     colorMaps.rage.clear();
@@ -58,7 +66,7 @@ bool parseColorMaps(IFile &file, ColorMaps &colorMaps)
                 *pe = 0;
             if (!pe)
             {
-                fprintf(stderr, "missing section terminator on line %d\n", line);
+                LOGE("missing section terminator on line %d\n", line);
             }
             section = p;
         }
@@ -84,13 +92,12 @@ bool parseColorMaps(IFile &file, ColorMaps &colorMaps)
                 }
                 else
                 {
-                    fprintf(stderr, "item for unknown section %s on line %d\n", section.c_str(), line);
+                    LOGE("item for unknown section %s on line %d\n", section.c_str(), line);
                 }
             }
         }
         p = next;
         ++line;
     }
-    delete[] tmp;
     return true;
 }

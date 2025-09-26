@@ -21,6 +21,8 @@
 #include "sprtypes.h"
 #include "attr.h"
 #include <cstdio>
+#include <cmath>
+#include "shared/IFile.h"
 
 const JoyAim g_aims[] = {
     AIM_DOWN, AIM_RIGHT, AIM_UP, AIM_LEFT,
@@ -292,15 +294,49 @@ void CActor::reverveDir()
 
 bool CActor::read(FILE *sfile)
 {
-    auto readfile = [sfile](auto ptr, auto size)
+    if (!sfile)
+        return false;
+
+    auto readfile = [sfile](auto ptr, auto size) -> bool
     {
         return fread(ptr, size, 1, sfile) == 1;
     };
-    readfile(&m_x, sizeof(m_x));
-    readfile(&m_y, sizeof(m_y));
-    readfile(&m_type, sizeof(m_type));
-    readfile(&m_aim, sizeof(m_aim));
-    readfile(&m_pu, sizeof(m_pu));
+
+    return readCommon(readfile);
+}
+
+bool CActor::read(IFile &sfile)
+{
+    auto readfile = [&sfile](auto ptr, auto size) -> bool
+    {
+        return sfile.read(ptr, size) == 1;
+    };
+
+    return readCommon(readfile);
+}
+
+/**
+ * @brief Common deserializer for this class
+ *
+ * @tparam ReadFunc
+ * @param readfile
+ * @return true
+ * @return false
+ */
+template <typename ReadFunc>
+bool CActor::readCommon(ReadFunc readfile)
+{
+    if (!readfile(&m_x, sizeof(m_x)))
+        return false;
+    if (!readfile(&m_y, sizeof(m_y)))
+        return false;
+    if (!readfile(&m_type, sizeof(m_type)))
+        return false;
+    if (!readfile(&m_aim, sizeof(m_aim)))
+        return false;
+    if (!readfile(&m_pu, sizeof(m_pu)))
+        return false;
+
     return true;
 }
 
@@ -313,15 +349,47 @@ bool CActor::read(FILE *sfile)
  */
 bool CActor::write(FILE *tfile)
 {
+    if (!tfile)
+        return false;
+
     auto writefile = [tfile](auto ptr, auto size)
     {
         return fwrite(ptr, size, 1, tfile) == 1;
     };
-    writefile(&m_x, sizeof(m_x));
-    writefile(&m_y, sizeof(m_y));
-    writefile(&m_type, sizeof(m_type));
-    writefile(&m_aim, sizeof(m_aim));
-    writefile(&m_pu, sizeof(m_pu));
+    return writeCommon(writefile);
+}
+
+bool CActor::write(IFile &tfile)
+{
+    auto writefile = [&tfile](auto ptr, auto size)
+    {
+        return tfile.write(ptr, size) == 1;
+    };
+    return writeCommon(writefile);
+}
+
+/**
+ * @brief common serializer for this class
+ *
+ * @tparam WriteFunc
+ * @param writefile
+ * @return true
+ * @return false
+ */
+template <typename WriteFunc>
+bool CActor::writeCommon(WriteFunc writefile)
+{
+    if (!writefile(&m_x, sizeof(m_x)))
+        return false;
+    if (!writefile(&m_y, sizeof(m_y)))
+        return false;
+    if (!writefile(&m_type, sizeof(m_type)))
+        return false;
+    if (!writefile(&m_aim, sizeof(m_aim)))
+        return false;
+    if (!writefile(&m_pu, sizeof(m_pu)))
+        return false;
+
     return true;
 }
 
@@ -357,5 +425,5 @@ int CActor::distance(const CActor &actor)
 {
     int dx = std::abs(actor.m_x - m_x);
     int dy = std::abs(actor.m_y - m_y);
-    return std::max(dx, dy);
+    return std::sqrt(dx * dx + dy * dy);
 }

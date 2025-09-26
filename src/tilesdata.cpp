@@ -58,7 +58,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "bricks.png"},           // 21 TILES_BRICKS_E
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "bricks.png"},           // 22 TILES_BRICKS_F
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "bricks.png"},           // 23 TILES_BRICKS_10
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pinetree.png"},         // 24 TILES_PINETREE
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "tree.png"},             // 24 TILES_TREE
     {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "plants.obl"},      // 25 TILES_PLANTS
     {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "plants.obl"},      // 26 TILES_PLANTS_2
     {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "plants.obl"},      // 27 TILES_PLANTS_3
@@ -68,7 +68,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "plants.obl"},      // 2b TILES_PLANTS_7
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "thisway.obl"},          // 2c TILES_THISWAY
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "thisway.obl"},          // 2d TILES_THISWAY_2
-    {0x00, TYPE_PICKUP, 3, 0, 0, 0, false, "fruit1.obl"},          // 2e TILES_FRUIT1
+    {0x00, TYPE_PICKUP, 3, 0, 0, 0, false, "pomegrenade.png"},     // 2e TILES_POMEGRENADE
     {0x00, TYPE_PICKUP, 15, 8, 0, 0, false, "amulet1.png"},        // 2f TILES_AMULET1
     {0x00, TYPE_PICKUP, 20, 0, 0, 0, false, "apple.png"},          // 30 TILES_APPLE
     {0x00, TYPE_PICKUP, 12, 0, 0, 0, false, "redbook.png"},        // 31 TILES_REDBOOK
@@ -79,10 +79,10 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "statue.obl"},           // 36 TILES_STATUE
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "tomb.obl"},             // 37 TILES_TOMB
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "mushroom.zip"},         // 38 TILES_MUSHROOM
-    {0x02, TYPE_PICKUP, 25, 0, 0, 0, false, "small_mush.obl"},     // 39 TILES_SMALL_MUSH0
-    {0x08, TYPE_PICKUP, 20, 0, 0, 0, false, "small_mush.obl"},     // 3a TILES_SMALL_MUSH1
-    {0x01, TYPE_PICKUP, 15, 0, 0, 0, false, "small_mush.obl"},     // 3b TILES_SMALL_MUSH2
-    {0x04, TYPE_PICKUP, 30, 0, 0, 0, false, "small_mush.obl"},     // 3c TILES_SMALL_MUSH3
+    {0x02, TYPE_PICKUP, 25, 0, 0, 0, false, "mush1.png"},          // 39 TILES_SMALL_MUSH0
+    {0x08, TYPE_PICKUP, 20, 0, 0, 0, false, "mush2.png"},          // 3a TILES_SMALL_MUSH1
+    {0x01, TYPE_PICKUP, 15, 0, 0, 0, false, "mush3.png"},          // 3b TILES_SMALL_MUSH2
+    {0x04, TYPE_PICKUP, 30, 0, 0, 0, false, "mush4.png"},          // 3c TILES_SMALL_MUSH3
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pot.obl"},              // 3d TILES_POT
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pot.obl"},              // 3e TILES_POT_2
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "jar1.obl"},             // 3f TILES_JAR1
@@ -93,7 +93,7 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_PICKUP, 40, 0, 0, 0, false, "magicbot.obl"},       // 44 TILES_MAGICBOT
     {0x00, TYPE_PICKUP, 22, 0, 0, 0, false, "lightbul.obl"},       // 45 TILES_LIGHTBUL
     {0x00, TYPE_PICKUP, 9, 0, 0, 0, false, "1st_aid.obl"},         // 46 TILES_1ST_AID
-    {0x00, TYPE_PICKUP, 27, 0, 0, 0, false, "scroll1.png"},        // 47 TILES_SCROLL1
+    {0x00, TYPE_PICKUP, 27, 0, 0, 0, false, "scroll.png"},         // 47 TILES_SCROLL
     {0x00, TYPE_PICKUP, 37, 0, 0, 0, false, "shield.obl"},         // 48 TILES_SHIELD
     {0x00, TYPE_PICKUP, 44, 0, 0, 0, false, "potion1.png"},        // 49 TILES_POTION1
     {0x00, TYPE_PICKUP, 22, 0, 0, 0, false, "potion2.png"},        // 4a TILES_POTION2

@@ -15,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define LOG_TAG "gamemixin"
 #include <cstring>
 #include "gamemixin.h"
 #include "tilesdata.h"
@@ -34,6 +35,8 @@
 #include "sprtypes.h"
 #include "gamestats.h"
 #include "attr.h"
+#include "logger.h"
+#include "shared/FileWrap.h"
 
 // Check windows
 #ifdef _WIN64
@@ -53,11 +56,6 @@
 #endif
 #endif
 
-#ifdef USE_QFILE
-#include <QDebug>
-#define printf qDebug
-#endif
-
 CGameMixin::CGameMixin()
 {
     m_game = CGame::getGame();
@@ -70,39 +68,17 @@ CGameMixin::CGameMixin()
     m_recorder = new CRecorder;
     m_eventCountdown = 0;
     m_currentEvent = EVENT_NONE;
+    initUI();
 }
 
 CGameMixin::~CGameMixin()
 {
-    if (m_animator)
-    {
-        delete m_animator;
-    }
-
-    if (m_tiles)
-    {
-        delete m_tiles;
-    }
-
-    if (m_animz)
-    {
-        delete m_animz;
-    }
-
-    if (m_users)
-    {
-        delete m_users;
-    }
-
-    if (m_fontData)
-    {
-        delete[] m_fontData;
-    }
-
-    if (m_recorder)
-    {
-        delete m_recorder;
-    }
+    delete m_animator;
+    delete m_tiles;
+    delete m_animz;
+    delete m_users;
+    delete[] m_fontData;
+    delete m_recorder;
 }
 
 /**
@@ -465,6 +441,10 @@ void CGameMixin::drawScreen(CFrame &bitmap)
         drawKeys(bitmap);
     }
 
+    // drawButtons
+    if (m_ui.isVisible())
+        drawUI(bitmap, m_ui);
+
     // draw timeout
     drawTimeout(bitmap);
 }
@@ -477,7 +457,7 @@ void CGameMixin::drawTimeout(CFrame &bitmap)
     if (timeout)
     {
         char tmp[16];
-        sprintf(tmp, "%.2d", timeout - 1);
+        snprintf(tmp, sizeof(tmp), "%.2d", timeout - 1);
         const bool lowTime = timeout <= 15;
         const int scaleX = !lowTime ? 3 : 5;
         const int scaleY = !lowTime ? 4 : 5;
@@ -773,23 +753,23 @@ void CGameMixin::drawLevelIntro(CFrame &bitmap)
     switch (mode)
     {
     case CGame::MODE_LEVEL_INTRO:
-        sprintf(t, "LEVEL %.2d", m_game->level() + 1);
+        snprintf(t, sizeof(t), "LEVEL %.2d", m_game->level() + 1);
         break;
     case CGame::MODE_RESTART:
         if (m_game->lives() > 1)
         {
-            sprintf(t, "LIVES LEFT %.2d", m_game->lives());
+            snprintf(t, sizeof(t), "LIVES LEFT %.2d", m_game->lives());
         }
         else
         {
-            strcpy(t, "LAST LIFE !");
+            strncpy(t, "LAST LIFE !", sizeof(t));
         }
         break;
     case CGame::MODE_GAMEOVER:
-        strcpy(t, "GAME OVER");
+        strncpy(t, "GAME OVER", sizeof(t));
         break;
     case CGame::MODE_TIMEOUT:
-        strcpy(t, "OUT OF TIME");
+        strncpy(t, "OUT OF TIME", sizeof(t));
     };
 
     const int x = (WIDTH - strlen(t) * 2 * FONT_SIZE) / 2;
@@ -854,14 +834,20 @@ void CGameMixin::mainLoop()
                 restartGame();
                 return;
             }
-            game.setMode(CGame::MODE_HISCORES);
             if (!m_scoresLoaded)
             {
                 m_scoresLoaded = loadScores();
             }
-            m_scoreRank = rankScore();
+            m_scoreRank = rankUserScore();
             m_recordScore = m_scoreRank != INVALID;
             m_countdown = HISCORE_DELAY;
+            game.setMode(CGame::MODE_HISCORES);
+#if defined(__ANDROID__)
+            if (m_recordScore)
+            {
+                game.setMode(CGame::MODE_NEW_INPUTNAME);
+            }
+#endif
             return;
         }
         else if (game.mode() == CGame::MODE_HISCORES)
@@ -911,6 +897,12 @@ void CGameMixin::mainLoop()
         return;
     case CGame::MODE_LEVEL_SUMMARY:
         manageLevelSummary();
+        return;
+    case CGame::MODE_SKLLSELECT:
+        manageSkillMenu();
+        return;
+    case CGame::MODE_NEW_INPUTNAME:
+        return;
     }
 }
 
@@ -946,7 +938,11 @@ void CGameMixin::manageGamePlay()
 {
     CGame &game = *m_game;
     uint8_t joyState[JOY_AIMS];
-    memcpy(joyState, m_joyState, JOY_AIMS);
+    // merge joystick and virtual joystick
+    for (size_t i = 0; i < sizeof(joyState); ++i)
+    {
+        joyState[i] = m_joyState[i] | m_vjoyState[i];
+    }
 
     if (m_recorder->isRecording())
     {
@@ -1161,7 +1157,7 @@ bool CGameMixin::isWithin(int val, int min, int max)
     return val >= min && val <= max;
 }
 
-int CGameMixin::rankScore()
+int CGameMixin::rankUserScore()
 {
     int score = m_game->score();
     if (score <= m_hiscores[MAX_SCORES - 1].score)
@@ -1217,7 +1213,7 @@ void CGameMixin::drawScores(CFrame &bitmap)
     bitmap.fill(BLACK);
     char t[50];
     int y = 1;
-    strcpy(t, "HALL OF HEROES");
+    strncpy(t, "HALL OF HEROES", sizeof(t));
     int x = (WIDTH - strlen(t) * scaleX * FONT_SIZE) / 2;
     drawFont(bitmap, x, y * FONT_SIZE, t, WHITE, BLACK, scaleX, scaleY);
     y += scaleX;
@@ -1226,19 +1222,23 @@ void CGameMixin::drawScores(CFrame &bitmap)
     drawFont(bitmap, x, y * FONT_SIZE, t, WHITE, BLACK, scaleX, scaleY);
     y += scaleX;
 
-    for (uint32_t i = 0; i < MAX_SCORES; ++i)
+    for (int i = 0; i < static_cast<int>(MAX_SCORES); ++i)
     {
         Color color = i & INTERLINES ? LIGHTGRAY : DARKGRAY;
-        if (m_recordScore && m_scoreRank == static_cast<int>(i))
+        if (m_recordScore && m_scoreRank == i)
         {
             color = YELLOW;
         }
+        else if (m_scoreRank == i)
+        {
+            color = CYAN;
+        }
         bool showCaret = (color == YELLOW) && (m_ticks & CARET_SPEED);
-        sprintf(t, " %.8d %.2d %s%c",
-                m_hiscores[i].score,
-                m_hiscores[i].level,
-                m_hiscores[i].name,
-                showCaret ? CHARS_CARET : '\0');
+        snprintf(t, sizeof(t), " %.8d %.2d %s%c",
+                 m_hiscores[i].score,
+                 m_hiscores[i].level,
+                 m_hiscores[i].name,
+                 showCaret ? CHARS_CARET : '\0');
         drawFont(bitmap, 1, y * FONT_SIZE, t, color, BLACK, scaleX / 2, scaleY / 2);
         y += scaleX / 2;
     }
@@ -1246,12 +1246,12 @@ void CGameMixin::drawScores(CFrame &bitmap)
     y += scaleX / 2;
     if (m_scoreRank == INVALID)
     {
-        strcpy(t, " SORRY, YOU DIDN'T QUALIFY.");
+        strncpy(t, " SORRY, YOU DIDN'T QUALIFY.", sizeof(t));
         drawFont(bitmap, 0, y * FONT_SIZE, t, YELLOW, BLACK, scaleX / 2, scaleY / 2);
     }
     else if (m_recordScore)
     {
-        strcpy(t, "PLEASE TYPE YOUR NAME AND PRESS ENTER.");
+        strncpy(t, "PLEASE TYPE YOUR NAME AND PRESS ENTER.", sizeof(t));
         x = (WIDTH - strlen(t) * FONT_SIZE) / 2;
         drawFont(bitmap, x, y++ * FONT_SIZE, t, YELLOW, BLACK, scaleX / 2, scaleY / 2);
     }
@@ -1518,13 +1518,14 @@ void CGameMixin::clearKeyStates()
 void CGameMixin::clearJoyStates()
 {
     memset(m_joyState, 0, sizeof(m_joyState));
+    memset(m_vjoyState, 0, sizeof(m_vjoyState));
 }
 
-bool CGameMixin::read(FILE *sfile, std::string &name)
+bool CGameMixin::read(IFile &sfile, std::string &name)
 {
-    auto readfile = [sfile](auto ptr, auto size)
+    auto readfile = [&sfile](auto ptr, auto size)
     {
-        return fread(ptr, size, 1, sfile) == 1;
+        return sfile.read(ptr, size) == 1;
     };
     if (!m_game->read(sfile))
     {
@@ -1542,9 +1543,11 @@ bool CGameMixin::read(FILE *sfile, std::string &name)
     readfile(&m_countdown, sizeof(m_countdown));
 
     size_t ptr = 0;
-    fseek(sfile, SAVENAME_PTR_OFFSET, SEEK_SET);
+    sfile.seek(SAVENAME_PTR_OFFSET);
+    // fseek(sfile, SAVENAME_PTR_OFFSET, SEEK_SET);
     readfile(&ptr, sizeof(uint32_t));
-    fseek(sfile, ptr, SEEK_SET);
+    sfile.seek(ptr);
+    // fseek(sfile, ptr, SEEK_SET);
     size_t size = 0;
     readfile(&size, sizeof(uint16_t));
     char *tmp = new char[size];
@@ -1554,11 +1557,11 @@ bool CGameMixin::read(FILE *sfile, std::string &name)
     return true;
 }
 
-bool CGameMixin::write(FILE *tfile, const std::string &name)
+bool CGameMixin::write(IFile &tfile, const std::string &name)
 {
-    auto writefile = [tfile](auto ptr, auto size)
+    auto writefile = [&tfile](auto ptr, auto size)
     {
-        return fwrite(ptr, size, 1, tfile) == 1;
+        return tfile.write(ptr, size) == 1;
     };
     m_game->write(tfile);
     writefile(&m_ticks, sizeof(m_ticks));
@@ -1566,12 +1569,17 @@ bool CGameMixin::write(FILE *tfile, const std::string &name)
     writefile(&m_healthRef, sizeof(m_healthRef));
     writefile(&m_countdown, sizeof(m_countdown));
 
-    const size_t ptr = ftell(tfile);
+    const size_t ptr = tfile.tell();
     const size_t size = name.size();
     writefile(&size, sizeof(uint16_t));
     writefile(name.c_str(), name.size());
-    fseek(tfile, SAVENAME_PTR_OFFSET, SEEK_SET);
+    // save EOF offset
+    auto offset = tfile.tell();
+    tfile.seek(SAVENAME_PTR_OFFSET);
+    // fseek(tfile, SAVENAME_PTR_OFFSET, SEEK_SET);
     writefile(&ptr, sizeof(uint32_t));
+    // return offset to EOF
+    tfile.seek(offset);
     return true;
 }
 
@@ -1622,15 +1630,13 @@ void CGameMixin::recordGame()
     m_recorder->stop();
     const std::string name = "test";
     const std::string path = "test.rec";
-    FILE *tfile = fopen(path.c_str(), "wb");
-    if (!tfile)
+    if (!m_recorderFile.open(path.c_str(), "wb"))
     {
-        fprintf(stderr, "cannot create: %s\n", path.c_str());
+        LOGE("cannot create: %s\n", path.c_str());
         return;
     }
-    write(tfile, name);
-    fseek(tfile, 0, SEEK_END);
-    m_recorder->start(tfile, true);
+    write(m_recorderFile, name);
+    m_recorder->start(&m_recorderFile, true);
 }
 
 void CGameMixin::playbackGame()
@@ -1638,15 +1644,14 @@ void CGameMixin::playbackGame()
     m_recorder->stop();
     std::string name;
     const std::string path = "test.rec";
-    FILE *sfile = fopen(path.c_str(), "rb");
-    if (!sfile)
+    if (!m_recorderFile.open(path.c_str()))
     {
-        fprintf(stderr, "cannot read: %s\n", path.c_str());
+        LOGE("cannot read: %s\n", path.c_str());
         return;
     }
-    read(sfile, name);
+    read(m_recorderFile, name);
     openMusicForLevel(m_game->level());
-    m_recorder->start(sfile, false);
+    m_recorder->start(&m_recorderFile, false);
 }
 
 void CGameMixin::plotLine(CFrame &bitmap, int x0, int y0, const int x1, const int y1, const Color color)
@@ -1744,7 +1749,7 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
         scaleX = 2;
         color = PURPLE;
         char tmp[16];
-        sprintf(tmp, "YUMMY %d/%d", m_game->sugar(), CGame::MAX_SUGAR_RUSH_LEVEL);
+        snprintf(tmp, sizeof(tmp), "YUMMY %d/%d", m_game->sugar(), CGame::MAX_SUGAR_RUSH_LEVEL);
         return tmp;
     }
     else if (m_currentEvent >= MSG0)
@@ -1772,9 +1777,15 @@ std::string CGameMixin::getEventText(int &scaleX, int &scaleY, int &baseY, Color
         color = RED;
         return "TRAP";
     }
+    else if (m_currentEvent == EVENT_EXIT_OPENED)
+    {
+        scaleX = 2;
+        color = SEAGREEN;
+        return "EXIT DOOR IS OPENED";
+    }
     else
     {
-        printf("unhandled event: 0x%.2x\n", m_currentEvent);
+        LOGW("unhandled event: 0x%.2x\n", m_currentEvent);
         return "";
     }
 }
@@ -2064,13 +2075,13 @@ void CGameMixin::drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues)
     {
         int tx;
         int bx = 0;
-        tx = sprintf(tmp, "%.8d ", game.score());
+        tx = snprintf(tmp, sizeof(tmp), "%.8d ", game.score());
         drawFont(bitmap, 0, Y_STATUS, tmp, WHITE);
         bx += tx;
-        tx = sprintf(tmp, "DIAMONDS %.2d ", game.goalCount());
+        tx = snprintf(tmp, sizeof(tmp), "DIAMONDS %.2d ", game.goalCount());
         drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, visualcues.diamondShimmer ? DEEPSKYBLUE : YELLOW);
         bx += tx;
-        tx = sprintf(tmp, "LIVES %.2d ", game.lives());
+        tx = snprintf(tmp, sizeof(tmp), "LIVES %.2d ", game.lives());
         drawFont(bitmap, bx * FONT_SIZE, Y_STATUS, tmp, visualcues.livesShimmer ? GREEN : PURPLE);
         bx += tx;
         if (m_recorder->isRecording())
@@ -2110,4 +2121,55 @@ void CGameMixin::clearVisualStates()
     m_visualStates.rSugar = 0;
     m_visualStates.sugarFx = 0;
     memset(m_visualStates.sugarCubes, '\0', sizeof(m_visualStates.sugarCubes));
+}
+
+void CGameMixin::initUI()
+{
+    const int BTN_SIZE = 32;
+    m_ui.setMargin(FONT_SIZE);
+    std::vector<button_t> buttons{
+        {.id = AIM_UP, .x = BTN_SIZE, .y = 0, .width = BTN_SIZE, .height = BTN_SIZE, .text = "", .color = WHITE},
+        {.id = AIM_LEFT, .x = 0, .y = BTN_SIZE, .width = BTN_SIZE, .height = BTN_SIZE, .text = "", .color = WHITE},
+        {.id = AIM_DOWN, .x = BTN_SIZE, .y = BTN_SIZE, .width = BTN_SIZE, .height = BTN_SIZE, .text = "", .color = WHITE},
+        {.id = AIM_RIGHT, .x = BTN_SIZE * 2, .y = BTN_SIZE, .width = BTN_SIZE, .height = BTN_SIZE, .text = "", .color = WHITE},
+    };
+    for (const auto &btn : buttons)
+    {
+        m_ui.addButton(btn);
+    }
+}
+
+void CGameMixin::drawUI(CFrame &bitmap, CGameUI &ui)
+{
+    const int baseX = _WIDTH - ui.width() - ui.margin();
+    const int baseY = _HEIGHT - ui.height() - ui.margin();
+    for (const auto &btn : ui.buttons())
+    {
+        int x = baseX + btn.x;
+        int y = baseY + btn.y;
+        drawRect(bitmap, Rect{.x = baseX + btn.x, .y = baseY + btn.y, .width = btn.width, .height = btn.height}, static_cast<Color>(btn.color), true);
+        drawFont(bitmap, x, y, btn.text.c_str(), BLACK, CLEAR, 2, 2);
+        drawRect(bitmap, Rect{.x = baseX + btn.x, .y = baseY + btn.y, .width = btn.width, .height = btn.height}, RED, false);
+    }
+}
+
+int CGameMixin::whichButton(CGameUI &ui, int x, int y)
+{
+    const int baseX = _WIDTH - ui.width() - ui.margin();
+    const int baseY = _HEIGHT - ui.height() - ui.margin();
+    for (const auto &btn : ui.buttons())
+    {
+        if (RANGE(x, baseX + btn.x, baseX + btn.x + btn.width) &&
+            RANGE(y, baseY + btn.y, baseY + btn.y + btn.height))
+        {
+            return btn.id;
+        }
+    }
+    return INVALID;
+}
+
+void CGameMixin::setQuiet(bool state)
+{
+    m_quiet = state;
+    CGame::getGame()->setQuiet(state);
 }

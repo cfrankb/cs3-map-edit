@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "gamestats.h"
+#include "shared/IFile.h"
 
 CGameStats::CGameStats()
 {
@@ -80,21 +81,48 @@ int &CGameStats::inc(const GameStat key)
  * @return true
  * @return false
  */
+
 bool CGameStats::read(FILE *sfile)
 {
-    auto readfile = [sfile](auto ptr, auto size)
+    if (!sfile)
+        return false;
+
+    auto readfile = [sfile](auto ptr, auto size) -> bool
     {
         return fread(ptr, size, 1, sfile) == 1;
     };
+
+    return readCommon(readfile);
+}
+
+bool CGameStats::read(IFile &sfile)
+{
+    auto readfile = [&sfile](auto ptr, auto size) -> bool
+    {
+        return sfile.read(ptr, size) == 1;
+    };
+
+    return readCommon(readfile);
+}
+
+template <typename ReadFunc>
+bool CGameStats::readCommon(ReadFunc readfile)
+{
     uint16_t count = 0;
-    readfile(&count, sizeof(count));
     m_stats.clear();
+    if (!readfile(&count, sizeof(count)))
+        return false;
+
     for (size_t i = 0; i < count; ++i)
     {
         uint16_t key;
         int32_t value;
-        readfile(&key, sizeof(key));
-        readfile(&value, sizeof(value));
+
+        if (!readfile(&key, sizeof(key)))
+            return false;
+        if (!readfile(&value, sizeof(value)))
+            return false;
+
         m_stats[key] = value;
     }
     return true;
@@ -107,26 +135,53 @@ bool CGameStats::read(FILE *sfile)
  * @return true
  * @return false
  */
+
 bool CGameStats::write(FILE *tfile)
 {
-    auto writefile = [tfile](auto ptr, auto size)
+    if (!tfile)
+        return false;
+
+    auto writefile = [tfile](auto ptr, auto size) -> bool
     {
         return fwrite(ptr, size, 1, tfile) == 1;
     };
+
+    return writeCommon(writefile);
+}
+
+bool CGameStats::write(IFile &tfile)
+{
+    auto writefile = [&tfile](auto ptr, auto size) -> bool
+    {
+        return tfile.write(ptr, size) == 1;
+    };
+
+    return writeCommon(writefile);
+}
+
+template <typename WriteFunc>
+bool CGameStats::writeCommon(WriteFunc writefile)
+{
     uint16_t count = 0;
     for (const auto &[key, value] : m_stats)
     {
         if (value)
             ++count;
     }
-    writefile(&count, sizeof(count));
+
+    if (!writefile(&count, sizeof(count)))
+        return false;
+
     for (const auto &[key, value] : m_stats)
     {
         if (value)
         {
-            writefile(&key, sizeof(key));
-            writefile(&value, sizeof(value));
+            if (!writefile(&key, sizeof(key)))
+                return false;
+            if (!writefile(&value, sizeof(value)))
+                return false;
         }
     }
+
     return true;
 }

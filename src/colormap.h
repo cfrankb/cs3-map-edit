@@ -31,3 +31,4 @@ struct ColorMaps
 };
 
 bool parseColorMaps(IFile &file, ColorMaps &colorMaps);
+bool parseColorMaps(char *tmp, ColorMaps &colorMaps);

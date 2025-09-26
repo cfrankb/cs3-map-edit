@@ -110,6 +110,8 @@ void CDlgTest::paintEvent(QPaintEvent *)
     case CGame::MODE_OPTIONS:
     case CGame::MODE_USERSELECT:
     case CGame::MODE_LEVEL_SUMMARY:
+    case CGame::MODE_SKLLSELECT:
+    case CGame::MODE_NEW_INPUTNAME:
         break;
     }
 

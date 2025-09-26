@@ -28,6 +28,8 @@
 #include <unordered_map>
 #include "colormap.h"
 #include "game.h"
+#include "gameui.h"
+#include "shared/FileWrap.h"
 
 #define WIDTH getWidth()
 #define HEIGHT getHeight()
@@ -67,6 +69,7 @@ protected slots:
     void changeZoom();
     virtual void save() = 0;
     virtual void load() = 0;
+    void setQuiet(bool state);
 
 protected:
     enum : uint32_t
@@ -291,6 +294,7 @@ protected:
 
     hiscore_t m_hiscores[MAX_SCORES];
     uint8_t m_joyState[JOY_AIMS];
+    uint8_t m_vjoyState[JOY_AIMS];
     uint8_t m_buttonState[Button_Count];
     uint32_t m_ticks = 0;
     CAnimator *m_animator;
@@ -329,6 +333,9 @@ protected:
     int _HEIGHT = DEFAULT_HEIGHT;
     ColorMaps m_colormaps;
     visualStates_t m_visualStates;
+    CGameUI m_ui;
+    CFileWrap m_recorderFile;
+    bool m_quiet = false;
 
     void drawPreScreen(CFrame &bitmap);
     void drawScreen(CFrame &bitmap);
@@ -353,7 +360,7 @@ protected:
     void restartLevel();
     void restartGame();
     void startCountdown(int f = 1);
-    int rankScore();
+    int rankUserScore();
     void drawScores(CFrame &bitmap);
     bool inputPlayerName();
     bool handleInputString(char *inputDest, const size_t limit);
@@ -377,6 +384,9 @@ protected:
     void gatherSprites(std::vector<sprite_t> &sprites, const cameraContext_t &context);
     void beginLevelIntro(CGame::GameMode mode);
     void clearVisualStates();
+    void initUI();
+    void drawUI(CFrame &bitmap, CGameUI &ui);
+    int whichButton(CGameUI &ui, int x, int y);
 
     constexpr inline uint32_t fazFilter(const int bitShift) const
     {
@@ -399,8 +409,8 @@ protected:
     virtual void drawHelpScreen(CFrame &bitmap);
     virtual bool loadScores() = 0;
     virtual bool saveScores() = 0;
-    virtual bool read(FILE *sfile, std::string &name);
-    virtual bool write(FILE *tfile, const std::string &name);
+    virtual bool read(IFile &sfile, std::string &name);
+    virtual bool write(IFile &tfile, const std::string &name);
     virtual void stopMusic() = 0;
     virtual void startMusic() = 0;
     virtual void setZoom(bool zoom);
@@ -413,10 +423,11 @@ protected:
     virtual void manageGameMenu() = 0;
     virtual void manageOptionScreen() = 0;
     virtual void manageUserMenu() = 0;
-
     virtual void manageLevelSummary() = 0;
     virtual void initLevelSummary() = 0;
     virtual void changeMoodMusic(CGame::GameMode mode) = 0;
+
+    virtual void manageSkillMenu() = 0;
 
 private:
     void stopRecorder();

@@ -15,15 +15,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define LOG_TAG "recorder"
 #include <algorithm>
 #include <cstring>
 #include "recorder.h"
+#include "logger.h"
 
 CRecorder::CRecorder(const size_t bufSize)
 {
     m_bufSize = bufSize;
     m_buffer = new uint8_t[m_bufSize];
     m_mode = MODE_CLOSED;
+    m_file = nullptr;
 }
 
 CRecorder::~CRecorder()
@@ -31,16 +34,16 @@ CRecorder::~CRecorder()
     delete[] m_buffer;
 }
 
-bool CRecorder::start(FILE *file, bool isWrite)
+bool CRecorder::start(IFile *file, bool isWrite)
 {
     const char SIG[] = {'R', 'E', 'C', '!'};
     auto readFile = [file](auto ptr, auto size)
     {
-        return fread(ptr, size, 1, file) == 1;
+        return file->read(ptr, size) == 1;
     };
     auto writeFile = [file](auto ptr, auto size)
     {
-        return fwrite(ptr, size, 1, file) == 1;
+        return file->write(ptr, size) == 1;
     };
     m_newInfo = true;
     m_index = 0;
@@ -55,22 +58,28 @@ bool CRecorder::start(FILE *file, bool isWrite)
         const uint8_t placeholder[] = {0, 0, 0, 0};
         writeFile(SIG, sizeof(SIG));
         writeFile(&version, sizeof(version));
-        m_offset = ftell(file);
+        m_offset = file->tell();
         writeFile(placeholder, sizeof(placeholder)); // placeholder for datasize
     }
     else if (m_file && m_mode == MODE_READ)
     {
         uint32_t version = 0xffff;
-        char sig[sizeof(SIG)];
-        readFile(sig, sizeof(sig));
+        char sig[sizeof(SIG) + 1];
+        sig[sizeof(SIG)] = '\0';
+        readFile(sig, sizeof(SIG));
         if (memcmp(sig, SIG, sizeof(SIG)) != 0)
         {
-            fprintf(stderr, "signature mismatch:\n");
+            char oSig[sizeof(SIG) + 1];
+            oSig[sizeof(SIG)] = '\0';
+            memcpy(oSig, SIG, sizeof(SIG));
+            LOGE("signature mismatch:%s; expecting :%s\n", sig, oSig);
+            return false;
         }
         readFile(&version, sizeof(version));
         if (version != VERSION)
         {
-            fprintf(stderr, "version mismatch: 0x%.8x\n", version);
+            LOGE("version mismatch: 0x%.8x; expecting :0x%.8x\n", version, VERSION);
+            return false;
         }
         readFile(&m_size, sizeof(m_size)); // total datasize of data
         readNextBatch();
@@ -78,7 +87,7 @@ bool CRecorder::start(FILE *file, bool isWrite)
     else
     {
         m_mode = MODE_CLOSED;
-        fprintf(stderr, "invalid file handle\n");
+        LOGE("invalid file handle\n");
         return false;
     }
     return true;
@@ -88,8 +97,9 @@ bool CRecorder::readNextBatch()
 {
     m_batchSize = std::min(static_cast<uint32_t>(m_bufSize), m_size);
     m_size -= m_batchSize;
-    fread(m_buffer, m_batchSize, 1, m_file);
     m_index = 0;
+    if (m_file->read(m_buffer, m_batchSize) != 1)
+        return false;
     return true;
 }
 
@@ -139,7 +149,8 @@ void CRecorder::dump()
 {
     if (m_index)
     {
-        fwrite(m_buffer, m_index, 1, m_file);
+        if (m_file->write(m_buffer, m_index) != 1)
+            LOGE("CRecorder::dump() failed to write\n");
         m_size += m_index;
     }
     m_index = 0;
@@ -195,12 +206,13 @@ void CRecorder::stop()
     if (m_mode == MODE_WRITE)
     {
         storeData(true);
-        fseek(m_file, m_offset, SEEK_SET);
-        fwrite(&m_size, sizeof(m_size), 1, m_file);
+        m_file->seek(m_offset);
+        if (m_file->write(&m_size, sizeof(m_size)) != 1)
+            LOGE("CRecorder::stop() write fail\n");
     }
     m_mode = MODE_CLOSED;
     if (m_file)
-        fclose(m_file);
+        m_file->close();
     m_file = nullptr;
 }
 

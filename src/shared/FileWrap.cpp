@@ -24,7 +24,7 @@
 #endif
 
 CFileWrap::CFileWrap()
-{   
+{
     m_file = nullptr;
 }
 
@@ -35,33 +35,37 @@ CFileWrap::~CFileWrap()
 
 #define _ptr m_memFile->ptr
 
-CFileWrap::MEMFILE * CFileWrap::m_head = nullptr;
-CFileWrap::MEMFILE * CFileWrap::m_tail = nullptr;
+CFileWrap::MEMFILE *CFileWrap::m_head = nullptr;
+CFileWrap::MEMFILE *CFileWrap::m_tail = nullptr;
 
 void CFileWrap::addFile(const char *fileName, const char *data, const int size)
 {
-    MEMFILE * mf = new MEMFILE;
-    if (m_head) {
+    MEMFILE *mf = new MEMFILE;
+    if (m_head)
+    {
         m_tail->next = mf;
         m_tail = mf;
-    } else {
+    }
+    else
+    {
         m_head = mf;
         m_tail = mf;
     }
 
     mf->next = nullptr;
-    mf->fileName = (char*)fileName;
-    mf->data = (unsigned char*)data;
+    mf->fileName = (char *)fileName;
+    mf->data = (unsigned char *)data;
     mf->size = size;
 }
 
 void CFileWrap::freeFiles()
 {
     MEMFILE *p = m_head;
-    while (p) {
+    while (p)
+    {
 
         MEMFILE *pp = p;
-        p = (MEMFILE*)p->next;
+        p = (MEMFILE *)p->next;
         delete pp;
     }
 
@@ -69,14 +73,16 @@ void CFileWrap::freeFiles()
     m_tail = nullptr;
 }
 
-CFileWrap::MEMFILE * CFileWrap::findFile(const char *fileName)
+CFileWrap::MEMFILE *CFileWrap::findFile(const char *fileName)
 {
     MEMFILE *p = m_head;
-    while (p) {
-        if (!strcmp(fileName, p->fileName)) {
+    while (p)
+    {
+        if (!strcmp(fileName, p->fileName))
+        {
             return p;
         }
-        p = (MEMFILE*)p->next;
+        p = (MEMFILE *)p->next;
     }
 
     return nullptr;
@@ -85,25 +91,28 @@ CFileWrap::MEMFILE * CFileWrap::findFile(const char *fileName)
 ///////////////////////////////////////////////
 // GCC
 
-CFileWrap & CFileWrap::operator >> (int & n)
+CFileWrap &CFileWrap::operator>>(int &n)
 {
-    read (&n, 4);
+    read(&n, 4);
     return *this;
 }
 
-CFileWrap & CFileWrap::operator << ( int n)
+CFileWrap &CFileWrap::operator<<(int n)
 {
-    write (&n, 4);
+    write(&n, 4);
     return *this;
 }
 
 int CFileWrap::read(void *buf, int size)
 {
-    if (m_memFile) {
-        memcpy (buf, m_memFile->data + _ptr, size );
+    if (m_memFile)
+    {
+        memcpy(buf, m_memFile->data + _ptr, size);
         _ptr += size;
         return size;
-    } else {
+    }
+    else
+    {
         return fread(buf, size, 1, m_file);
     }
 }
@@ -115,10 +124,13 @@ int CFileWrap::write(const void *buf, int size)
 
 bool CFileWrap::open(const char *fileName, const char *mode)
 {
-    if ((m_memFile = findFile(fileName))) {
+    if ((m_memFile = findFile(fileName)))
+    {
         _ptr = 0;
         return !strcmp(mode, "rb");
-    } else {
+    }
+    else
+    {
         m_file = fopen(fileName, mode);
         return m_file != nullptr;
     }
@@ -126,7 +138,8 @@ bool CFileWrap::open(const char *fileName, const char *mode)
 
 void CFileWrap::close()
 {
-    if (m_file) {
+    if (m_file)
+    {
         fclose(m_file);
         m_file = nullptr;
     }
@@ -134,9 +147,12 @@ void CFileWrap::close()
 
 long CFileWrap::getSize()
 {
-    if (m_memFile) {
+    if (m_memFile)
+    {
         return m_memFile->size;
-    } else {
+    }
+    else
+    {
         long cur = ftell(m_file);
         fseek(m_file, 0, SEEK_END);
         long w = ftell(m_file);
@@ -147,124 +163,142 @@ long CFileWrap::getSize()
 
 void CFileWrap::seek(long p)
 {
-    if (m_memFile) {
+    if (m_memFile)
+    {
         m_memFile->ptr = p;
-    } else {
+    }
+    else
+    {
         fseek(m_file, p, SEEK_SET);
     }
 }
 
 long CFileWrap::tell()
 {
-    if (m_memFile) {
+    if (m_memFile)
+    {
         return m_memFile->ptr;
-    } else {
+    }
+    else
+    {
         return ftell(m_file);
     }
 }
 
-CFileWrap & CFileWrap::operator >> ( std::string & str)
+CFileWrap &CFileWrap::operator>>(std::string &str)
 {
-    if (m_memFile) {
+    if (m_memFile)
+    {
         int x = m_memFile->data[_ptr];
         ++_ptr;
 
-        if (x == 0xff) {
+        if (x == 0xff)
+        {
             memcpy(&x, &m_memFile->data[_ptr], 2);
             _ptr += 2;
             // TODO: implement 32 bits version
         }
 
-        if (x != 0) {
+        if (x != 0)
+        {
             char *sz = new char[x + 1];
-            sz [ x ] = 0;
+            sz[x] = 0;
             memcpy(sz, &m_memFile[_ptr], x);
             _ptr += x;
-            //file.read (sz, x);
+            // file.read (sz, x);
             str = sz;
-            delete [] sz;
+            delete[] sz;
         }
-        else {
+        else
+        {
             str = "";
         }
-
-    } else {
+    }
+    else
+    {
 
         int x = 0;
-        fread (&x, 1, 1, m_file);
-        if (x == 0xff) {
-            fread (&x, 2, 1, m_file);
+        fread(&x, 1, 1, m_file);
+        if (x == 0xff)
+        {
+            fread(&x, 2, 1, m_file);
 
             // TODO: implement 32 bits version
         }
 
-        if (x != 0) {
+        if (x != 0)
+        {
             char *sz = new char[x + 1];
-            sz [ x ] = 0;
-            fread (sz, x, 1, m_file);
-            //file.read (sz, x);
+            sz[x] = 0;
+            fread(sz, x, 1, m_file);
+            // file.read (sz, x);
             str = sz;
-            delete [] sz;
+            delete[] sz;
         }
-        else {
+        else
+        {
             str = "";
         }
     }
 
     return *this;
-
 }
 
-CFileWrap & CFileWrap::operator << (const std::string & str)
+CFileWrap &CFileWrap::operator<<(const std::string &str)
 {
     int x = str.length();
-    if (x <= 0xfe) {
-        fwrite (&x, 1, 1, m_file);
-
+    if (x <= 0xfe)
+    {
+        fwrite(&x, 1, 1, m_file);
     }
-    else {
+    else
+    {
         int t = 0xff;
 
-        fwrite (&t, 1, 1, m_file);
-        fwrite (&x, 2, 1, m_file);
+        fwrite(&t, 1, 1, m_file);
+        fwrite(&x, 2, 1, m_file);
 
         // TODO : implement 32bits version
     }
 
-    if (x!=0) {
-        fwrite (str.c_str(), x, 1, m_file);
+    if (x != 0)
+    {
+        fwrite(str.c_str(), x, 1, m_file);
     }
 
     return *this;
 }
 
-CFileWrap & CFileWrap::operator >> (bool & b)
+CFileWrap &CFileWrap::operator>>(bool &b)
 {
     memset(&b, 0, sizeof(b));
-    if (m_memFile) {
+    if (m_memFile)
+    {
         memcpy(&b, &m_memFile->data[_ptr], 1);
-        ++ _ptr;
-    } else {
+        ++_ptr;
+    }
+    else
+    {
         fread(&b, 1, 1, m_file);
     }
 
     return *this;
 }
 
-CFileWrap & CFileWrap::operator << ( bool b)
+CFileWrap &CFileWrap::operator<<(bool b)
 {
     fwrite(&b, 1, 1, m_file);
     return *this;
 }
 
-CFileWrap & CFileWrap::operator += (const std::string & str)
+CFileWrap &CFileWrap::operator+=(const std::string &str)
 {
-    fwrite (str.c_str(), str.length(), 1, m_file);
+    fwrite(str.c_str(), str.length(), 1, m_file);
     return *this;
 }
 
-CFileWrap & CFileWrap::operator += (const char *s)
+CFileWrap &CFileWrap::operator+=(const char *s)
 {
-    fwrite (s, strlen(s), 1, m_file);
+    fwrite(s, strlen(s), 1, m_file);
     return *this;
 }

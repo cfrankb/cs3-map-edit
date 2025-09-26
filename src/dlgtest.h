@@ -54,6 +54,7 @@ private:
     void manageLevelSummary() override{}
     void initLevelSummary() override {}
     void changeMoodMusic(CGame::GameMode) override{}
+    void manageSkillMenu() override{}
 };
 
 #endif // DLGTEST_H

@@ -15,12 +15,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define LOG_TAG "map"
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
 #include "map.h"
 #include "shared/IFile.h"
 #include "states.h"
+#include "logger.h"
 
 static const char SIG[]{'M', 'A', 'P', 'Z'};
 static const char XTR_SIG[]{"XTR"};
@@ -51,9 +53,22 @@ CMap::CMap(uint16_t len, uint16_t hei, uint8_t t)
     m_states = new CStates;
 };
 
+CMap::CMap(const CMap &map)
+{
+    m_len = map.m_len;
+    m_hei = map.m_hei;
+    m_size = map.m_len * map.m_hei;
+    m_map = new uint8_t[m_size];
+    memcpy(m_map, map.m_map, m_size);
+    m_attrs = map.m_attrs;
+    m_title = map.m_title;
+    m_states = new CStates();
+    *m_states = *map.m_states;
+}
+
 CMap::~CMap()
 {
-    forget();
+    clear();
     delete m_states;
 };
 
@@ -61,11 +76,11 @@ uint8_t &CMap::at(int x, int y)
 {
     if (x >= m_len)
     {
-        printf("x [%d] greater than m_len\n", x);
+        LOGW("x [%d] greater than m_len\n", x);
     }
     if (y >= m_hei)
     {
-        printf("y [%d] greater than m_hei\n", y);
+        LOGW("y [%d] greater than m_hei\n", y);
     }
     return *(m_map + x + y * m_len);
 }
@@ -80,7 +95,7 @@ void CMap::set(int x, int y, uint8_t t)
     at(x, y) = t;
 }
 
-void CMap::forget()
+void CMap::clear()
 {
     m_states->clear();
     if (m_map != nullptr)
@@ -121,129 +136,134 @@ bool CMap::write(const char *fname)
 
 bool CMap::read(IFile &file)
 {
-    auto readfile = [&file](auto ptr, auto size)
+    auto readfile = [&file](auto ptr, auto size) -> bool
     {
-        return file.read(ptr, size);
+        return file.read(ptr, size) == 1;
     };
 
-    char sig[4];
+    auto tell = [&file]() -> size_t
+    {
+        return file.tell();
+    };
 
-    readfile(sig, sizeof(SIG));
-    if (memcmp(sig, SIG, sizeof(SIG)) != 0)
+    auto seek = [&file](size_t pos) -> bool
     {
-        m_lastError = "signature mismatch";
-        printf("%s\n", m_lastError.c_str());
-        return false;
-    }
-    uint16_t ver = 0;
-    readfile(&ver, sizeof(VERSION));
-    if (ver > VERSION)
+        file.seek(pos);
+        return pos;
+    };
+    auto states = m_states;
+    auto readStates = [&file, states]() -> bool
     {
-        m_lastError = "bad version";
-        printf("%s\n", m_lastError.c_str());
-        return false;
-    }
-    uint16_t len = 0;
-    uint16_t hei = 0;
-    readfile(&len, sizeof(uint8_t));
-    readfile(&hei, sizeof(uint8_t));
-    len = len ? len : MAX_SIZE;
-    hei = hei ? hei : MAX_SIZE;
-    resize(len, hei, true);
-    readfile(m_map, len * hei);
-    m_attrs.clear();
-    uint16_t attrCount = 0;
-    readfile(&attrCount, sizeof(attrCount));
-    for (int i = 0; i < attrCount; ++i)
-    {
-        uint8_t x;
-        uint8_t y;
-        uint8_t a;
-        readfile(&x, sizeof(x));
-        readfile(&y, sizeof(y));
-        readfile(&a, sizeof(a));
-        setAttr(x, y, a);
-    }
+        return states->read(file);
+    };
 
-    // Check for XTR Header
-    extrahdr_t hdr;
-    memset(&hdr, 0, sizeof(hdr));
-    m_title = "";
-    m_states->clear();
-    size_t ptr = file.tell();
-    if (readfile(&hdr, sizeof(hdr)))
-    {
-        if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0))
-        {
-            // printf("reading4: %s %d\n", hdr.sig, hdr.ver);
-            // read title
-            uint16_t size = 0;
-            if (readfile(&size, 1))
-            {
-                char tmp[MAX_TITLE + 1];
-                tmp[size] = 0;
-                if (readfile(tmp, size) != 0)
-                {
-                    m_title = tmp;
-                }
-            }
-            // read states
-            if (hdr.ver >= XTR_VER1)
-            {
-                m_states->read(file);
-            }
-        }
-        else
-        {
-            // revert back to previous position
-            file.seek(ptr);
-        }
-    }
-
-    return true;
+    return readImpl(readfile, tell, seek, readStates);
 }
 
 bool CMap::read(FILE *sfile)
 {
-    auto readfile = [sfile](auto ptr, auto size)
+    auto readfile = [sfile](auto ptr, auto size) -> bool
     {
         return fread(ptr, size, 1, sfile) == 1;
     };
-    char sig[4];
-    readfile(sig, sizeof(SIG));
+
+    auto tell = [sfile]() -> size_t
+    {
+        return ftell(sfile);
+    };
+
+    auto seek = [sfile](size_t pos) -> bool
+    {
+        return fseek(sfile, pos, SEEK_SET) == 0;
+    };
+
+    auto states = m_states;
+    auto readStates = [sfile, states]() -> bool
+    {
+        return states->read(sfile);
+    };
+
+    return readImpl(readfile, tell, seek, readStates);
+}
+
+template <typename ReadFunc>
+bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates)
+{
+    // Read and verify signature
+    char sig[sizeof(SIG)];
+    if (!readfile(sig, sizeof(SIG)))
+    {
+        m_lastError = "failed to read signature [m]";
+        LOGE("%s\n", m_lastError.c_str());
+        return false;
+    }
+
     if (memcmp(sig, SIG, sizeof(SIG)) != 0)
     {
         m_lastError = "signature mismatch";
-        printf("%s\n", m_lastError.c_str());
+        LOGE("%s\n", m_lastError.c_str());
         return false;
     }
+
+    // Read and verify version
     uint16_t ver = 0;
-    readfile(&ver, sizeof(VERSION));
+    if (!readfile(&ver, sizeof(VERSION)))
+    {
+        m_lastError = "failed to read version";
+        LOGE("%s\n", m_lastError.c_str());
+        return false;
+    }
+
     if (ver > VERSION)
     {
         m_lastError = "bad version";
-        printf("%s\n", m_lastError.c_str());
+        LOGE("%s\n", m_lastError.c_str());
         return false;
     }
+
+    // Read map dimensions - preserving original read sizes
     uint16_t len = 0;
     uint16_t hei = 0;
-    readfile(&len, sizeof(uint8_t));
-    readfile(&hei, sizeof(uint8_t));
+    if (!readfile(&len, sizeof(uint8_t)) || !readfile(&hei, sizeof(uint8_t)))
+    {
+        m_lastError = "failed to read dimensions";
+        LOGE("%s\n", m_lastError.c_str());
+        return false;
+    }
+
     len = len ? len : MAX_SIZE;
     hei = hei ? hei : MAX_SIZE;
     resize(len, hei, true);
-    readfile(m_map, len * hei);
+
+    // Read map data
+    if (!readfile(m_map, len * hei))
+    {
+        m_lastError = "failed to read map data [m]";
+        LOGE("%s\n", m_lastError.c_str());
+        return false;
+    }
+
+    // Read attributes
     m_attrs.clear();
     uint16_t attrCount = 0;
-    readfile(&attrCount, sizeof(attrCount));
+    if (!readfile(&attrCount, sizeof(attrCount)))
+    {
+        m_lastError = "failed to read attribute count";
+        LOGE("%s\n", m_lastError.c_str());
+        return false;
+    }
+
     for (int i = 0; i < attrCount; ++i)
     {
-        uint8_t x;
-        uint8_t y;
-        uint8_t a;
-        readfile(&x, sizeof(x));
-        readfile(&y, sizeof(y));
-        readfile(&a, sizeof(a));
+        uint8_t x, y, a;
+        if (!readfile(&x, sizeof(x)) ||
+            !readfile(&y, sizeof(y)) ||
+            !readfile(&a, sizeof(a)))
+        {
+            m_lastError = "failed to read attribute data";
+            LOGE("%s\n", m_lastError.c_str());
+            return false;
+        }
         setAttr(x, y, a);
     }
 
@@ -252,16 +272,16 @@ bool CMap::read(FILE *sfile)
     memset(&hdr, 0, sizeof(hdr));
     m_title = "";
     m_states->clear();
-    size_t ptr = ftell(sfile);
+
+    size_t ptr = tell();
     if (readfile(&hdr, sizeof(hdr)))
     {
-        if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0))
+        if (memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0)
         {
-            // printf("reading4: %s %d\n", hdr.sig, hdr.ver);
-            // read title
+            // Read title - preserving original read size
             uint16_t size = 0;
-            if (readfile(&size, 1))
-            {
+            if (readfile(&size, 1) && size > 0)
+            { // Original uses 1 byte
                 char tmp[MAX_TITLE + 1];
                 tmp[size] = 0;
                 if (readfile(tmp, size) != 0)
@@ -269,113 +289,131 @@ bool CMap::read(FILE *sfile)
                     m_title = tmp;
                 }
             }
-            // read states
+
+            // Read states
             if (hdr.ver >= XTR_VER1)
             {
-                m_states->read(sfile);
+                // This will need adaptation based on your states read method
+                readStates();
             }
         }
         else
         {
-            // revert back to previous position
-            fseek(sfile, ptr, SEEK_SET);
+            // Revert back to previous position
+            seek(ptr);
         }
     }
+
     return true;
 }
 
 bool CMap::fromMemory(uint8_t *mem)
 {
-    if (memcmp(mem, SIG, sizeof(SIG)) != 0)
+    uint8_t *org = mem;
+    auto readfile = [&mem](auto ptr, auto size) -> bool
     {
-        m_lastError = "signature mismatch";
-        printf("%s\n", m_lastError.c_str());
-        return false;
-    }
+        memcpy(ptr, mem, size);
+        mem += size;
+        return true;
+    };
 
-    uint16_t ver = 0;
-    memcpy(mem + 4, &ver, 2);
-    if (ver > VERSION)
+    auto tell = [&mem, &org]() -> size_t
     {
-        m_lastError = "bad version";
-        printf("%s\n", m_lastError.c_str());
-        return false;
-    }
+        return (uint64_t)mem - (uint64_t)org;
+    };
 
-    uint16_t len = mem[6];
-    uint16_t hei = mem[7];
-    len = len ? len : MAX_SIZE;
-    hei = hei ? hei : MAX_SIZE;
-    resize(len, hei, true);
-    const uint32_t mapSize = len * hei;
-    memcpy(m_map, mem + 8, mapSize);
-    m_attrs.clear();
-    uint8_t *ptr = mem + 8 + mapSize;
-    uint16_t attrCount = 0;
-    memcpy(&attrCount, ptr, 2);
-    ptr += 2;
-    for (int i = 0; i < attrCount; ++i)
+    auto seek = [&mem, &org](size_t pos) -> bool
     {
-        uint8_t x = *ptr++;
-        uint8_t y = *ptr++;
-        uint8_t a = *ptr++;
-        setAttr(x, y, a);
-    }
-    m_title = "";
-    // read title
-    extrahdr_t hdr;
-    memcpy(&hdr, ptr, sizeof(hdr));
-    if ((memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0) && (hdr.ver == XTR_VER))
+        mem = org + pos;
+        return true;
+    };
+
+    auto states = m_states;
+    auto readStates = [&mem, states]() -> bool
     {
-        ptr += sizeof(hdr);
-        uint8_t size = *ptr;
-        ++ptr;
-        char tmp[MAX_TITLE + 1];
-        memcpy(tmp, ptr, size);
-        tmp[size] = 0;
-        m_title = tmp;
-    }
-    return true;
+        return states->fromMemory(mem);
+    };
+
+    return readImpl(readfile, tell, seek, readStates);
 }
 
 bool CMap::write(FILE *tfile)
 {
-    if (tfile)
+    if (!tfile)
+        return false;
+
+    auto writefile = [&tfile](const void *ptr, size_t size) -> bool
     {
-        fwrite(SIG, sizeof(SIG), 1, tfile);
-        fwrite(&VERSION, sizeof(VERSION), 1, tfile);
-        fwrite(&m_len, sizeof(uint8_t), 1, tfile);
-        fwrite(&m_hei, sizeof(uint8_t), 1, tfile);
-        fwrite(m_map, m_len * m_hei, 1, tfile);
-        size_t attrCount = m_attrs.size();
-        fwrite(&attrCount, sizeof(uint16_t), 1, tfile);
-        for (auto &it : m_attrs)
-        {
-            uint16_t key = it.first;
-            uint8_t x = key & 0xff;
-            uint8_t y = key >> 8;
-            uint8_t a = it.second;
-            fwrite(&x, sizeof(x), 1, tfile);
-            fwrite(&y, sizeof(y), 1, tfile);
-            fwrite(&a, sizeof(a), 1, tfile);
-        }
+        return fwrite(ptr, size, 1, tfile) == 1;
+    };
 
-        ////        if (!m_title.empty() && m_title.size() < MAX_TITLE)
-        //    {
-        // write title
-        extrahdr_t hdr;
-        memcpy(&hdr.sig, XTR_SIG, sizeof(hdr.sig));
-        hdr.ver = XTR_VER1;
-        fwrite(&hdr, sizeof(hdr), 1, tfile);
-        int size = m_title.size();
-        fwrite(&size, 1, 1, tfile);
-        fwrite(m_title.c_str(), m_title.size(), 1, tfile);
+    if (!writeCommon(writefile))
+        return false;
+    return m_states->write(tfile);
+}
 
-        // write states
-        m_states->write(tfile);
-        //  }
+bool CMap::write(IFile &tfile)
+{
+    auto writefile = [&tfile](const void *ptr, size_t size) -> bool
+    {
+        return tfile.write(ptr, size) == 1;
+    };
+
+    if (!writeCommon(writefile))
+        return false;
+    return m_states->write(tfile);
+}
+
+template <typename WriteFunc>
+bool CMap::writeCommon(WriteFunc writefile)
+{
+    // Write header
+    if (!writefile(SIG, sizeof(SIG)))
+        return false;
+    if (!writefile(&VERSION, sizeof(VERSION)))
+        return false;
+    if (!writefile(&m_len, sizeof(uint8_t)))
+        return false;
+    if (!writefile(&m_hei, sizeof(uint8_t)))
+        return false;
+    if (!writefile(m_map, m_len * m_hei))
+        return false;
+
+    // Write attributes
+    size_t attrCount = m_attrs.size();
+    if (!writefile(&attrCount, sizeof(uint16_t)))
+        return false;
+
+    for (const auto &it : m_attrs)
+    {
+        uint16_t key = it.first;
+        uint8_t x = key & 0xff;
+        uint8_t y = key >> 8;
+        uint8_t a = it.second;
+
+        if (!writefile(&x, sizeof(x)))
+            return false;
+        if (!writefile(&y, sizeof(y)))
+            return false;
+        if (!writefile(&a, sizeof(a)))
+            return false;
     }
-    return tfile != nullptr;
+
+    // Write title header
+    extrahdr_t hdr;
+    memcpy(&hdr.sig, XTR_SIG, sizeof(hdr.sig));
+    hdr.ver = XTR_VER1;
+    if (!writefile(&hdr, sizeof(hdr)))
+        return false;
+
+    // Fix: Use consistent data type for size
+    uint32_t titleSize = static_cast<uint32_t>(m_title.size());
+    if (!writefile(&titleSize, sizeof(uint8_t)))
+        return false;
+    if (!writefile(m_title.c_str(), m_title.size()))
+        return false;
+
+    return true;
 }
 
 int CMap::len() const
@@ -395,12 +433,12 @@ bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
     {
         if (len * hei > m_size)
         {
-            forget();
+            clear();
             m_map = new uint8_t[len * hei];
             if (m_map == nullptr)
             {
                 m_lastError = "resize fail";
-                printf("%s\n", m_lastError.c_str());
+                LOGE("%s\n", m_lastError.c_str());
                 return false;
             }
         }
@@ -456,7 +494,7 @@ int CMap::count(uint8_t tileId)
     return count;
 }
 
-void CMap::clear(uint8_t ch)
+void CMap::fill(uint8_t ch)
 {
     if (m_map && m_len * m_hei > 0)
     {
@@ -507,7 +545,7 @@ int CMap::size()
 
 CMap &CMap::operator=(const CMap &map)
 {
-    forget();
+    clear();
     m_len = map.m_len;
     m_hei = map.m_hei;
     m_size = map.m_len * map.m_hei;
@@ -603,15 +641,15 @@ Pos CMap::toPos(const uint16_t key)
 
 void CMap::debug()
 {
-    printf("len: %d hei:%d\n", m_len, m_hei);
-    printf("attrCount:%ld\n", m_attrs.size());
+    LOGI("len: %d hei:%d\n", m_len, m_hei);
+    LOGI("attrCount:%zu\n", m_attrs.size());
     for (auto &it : m_attrs)
     {
         uint16_t key = it.first;
         uint8_t x = key & 0xff;
         uint8_t y = key >> 8;
         uint8_t a = it.second;
-        printf("key:%.4x x:%.2x y:%.2x a:%.2x\n", key, x, y, a);
+        LOGI("key:%.4x x:%.2x y:%.2x a:%.2x\n", key, x, y, a);
     }
 }
 

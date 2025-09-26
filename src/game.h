@@ -22,6 +22,7 @@
 #include "actor.h"
 #include "map.h"
 #include "gamesfx.h"
+#include "events.h"
 
 class CGameStats;
 class CMapArch;
@@ -32,12 +33,6 @@ struct MapReport
     int fruits;
     int bonuses;
     int secrets;
-    void debug()
-    {
-        printf("fruits: %d\n", fruits);
-        printf("bonuses: %d\n", bonuses);
-        printf("secrets: %d\n", secrets);
-    }
 };
 
 class CGame
@@ -58,6 +53,8 @@ public:
         MODE_OPTIONS,
         MODE_USERSELECT,
         MODE_LEVEL_SUMMARY,
+        MODE_SKLLSELECT,
+        MODE_NEW_INPUTNAME,
     };
 
     enum : uint32_t
@@ -137,6 +134,10 @@ public:
     void incTimeTaken();
     void resetSugar();
     void decKeyIndicators();
+    int defaultLives();
+    void setDefaultLives(int lives);
+    bool read(IFile &sfile);
+    bool write(IFile &tfile);
 
 private:
     enum
@@ -156,8 +157,9 @@ private:
         DEFAULT_PLAYER_SPEED = 3,
         FAST_PLAYER_SPEED = 2,
         CRUSHER_SPEED_MASK = 3,
+        AUTOKILL = -1024,
         INVALID = -1,
-        VERSION = (0x0200 << 16) + 0x0005,
+        ENGINE_VERSION = (0x0200 << 16) + 0x0005,
     };
 
     int m_lives = 0;
@@ -169,7 +171,7 @@ private:
     static userKeys_t m_keys;
     GameMode m_mode;
     int m_introHint = 0;
-    std::vector<int> m_events;
+    std::vector<Event> m_events;
     std::vector<CActor> m_monsters;
     std::vector<sfx_t> m_sfx;
     CActor m_player;
@@ -178,8 +180,11 @@ private:
     std::vector<std::string> m_hints;
     CGameStats *m_gameStats;
     MapReport m_report;
+    int m_defaultLives = DEFAULT_LIVES;
+    bool m_quiet = false;
     void resetKeys();
     void clearKeyIndicators();
+    void setQuiet(bool state);
 
     CGame();
     ~CGame();
@@ -190,8 +195,6 @@ private:
     void addHealth(const int hp);
     void addPoints(const int points);
     void addLife();
-    bool read(FILE *sfile);
-    bool write(FILE *tfile);
     int calcScoreLife() const;
     const char *getHintText();
     static bool isFruit(const uint8_t tileID);

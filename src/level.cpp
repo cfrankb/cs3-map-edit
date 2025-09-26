@@ -166,7 +166,7 @@ const uint16_t convTable[] = {
     TILES_WALLS93_6,
     TILES_WALLS93_7,
     TILES_FLOWERS_2,
-    TILES_PINETREE,
+    TILES_TREE,
     TILES_ROCK1,
     TILES_ROCK2,
     TILES_ROCK3,

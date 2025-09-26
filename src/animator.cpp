@@ -21,8 +21,11 @@
 #include "gamesfx.h"
 #include <cstring>
 #include <vector>
+#include <set>
 
-CAnimator::animzSeq_t CAnimator::m_animzSeq[] = {
+#define NA 0
+
+const std::vector<CAnimator::animzSeq_t> g_animzSeq = {
     {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NA},
     {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN, ANIMZ_INSECT1},
     {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN, NA},
@@ -46,12 +49,27 @@ CAnimator::animzSeq_t CAnimator::m_animzSeq[] = {
     {SFX_SPARKLE, ANIMZ_SPARKLE, ANIMZ_SPARKLE_LEN, ANIMZ_SPARKLE},
 };
 
+const std::set<uint8_t> g_specialCases = {
+    TILES_INSECT1,
+    TILES_MUSH_IDLE,
+    TILES_DRAGO,
+    TILES_ETURTLE,
+    TILES_WHTEWORM,
+};
+
 CAnimator::CAnimator()
 {
-    const uint32_t seqCount = sizeof(m_animzSeq) / sizeof(animzSeq_t);
     memset(m_tileReplacement, NO_ANIMZ, sizeof(m_tileReplacement));
-    m_seqIndex = new int32_t[seqCount];
-    memset(m_seqIndex, 0, seqCount * sizeof(uint32_t));
+    m_seqIndex = new int32_t[g_animzSeq.size()];
+    memset(m_seqIndex, 0, g_animzSeq.size() * sizeof(m_seqIndex[0]));
+    for (const auto &seq : g_animzSeq)
+    {
+        m_seqLookUp[seq.srcTile] = AnimzInfo{
+            .frames = seq.count,
+            .base = seq.specialID,
+            .offset = 0,
+        };
+    }
 }
 
 CAnimator::~CAnimator()
@@ -61,13 +79,13 @@ CAnimator::~CAnimator()
 
 void CAnimator::animate()
 {
-    const uint32_t seqCount = sizeof(m_animzSeq) / sizeof(animzSeq_t);
-    for (uint32_t i = 0; i < seqCount; ++i)
+    int i = 0;
+    for (const auto &seq : g_animzSeq)
     {
-        const animzSeq_t &seq = m_animzSeq[i];
         int32_t &index = m_seqIndex[i];
         m_tileReplacement[seq.srcTile] = seq.startSeq + index;
         index = index < seq.count - 1 ? index + 1 : 0;
+        ++i;
     }
     ++m_offset;
 }
@@ -84,35 +102,19 @@ uint16_t CAnimator::offset()
 
 bool CAnimator::isSpecialCase(uint8_t tileID)
 {
-    std::vector<uint8_t> specialCases = {
-        TILES_INSECT1,
-        TILES_MUSH_IDLE,
-        TILES_DRAGO,
-        TILES_ETURTLE,
-        TILES_WHTEWORM,
-    };
-    for (const auto &ref : specialCases)
-    {
-        if (tileID == ref)
-            return true;
-    }
-    return false;
+    return g_specialCases.find(tileID) != g_specialCases.end();
 }
 
 AnimzInfo CAnimator::specialInfo(const int tileID)
 {
-    const size_t seqCount = sizeof(m_animzSeq) / sizeof(animzSeq_t);
-    for (size_t i = 0; i < seqCount; ++i)
+    const auto &it = m_seqLookUp.find(tileID);
+    if (it != m_seqLookUp.end())
     {
-        const animzSeq_t &seq = m_animzSeq[i];
-        if (seq.srcTile == tileID)
-        {
-            return AnimzInfo{
-                .frames = seq.count,
-                .base = seq.specialID,
-                .offset = static_cast<uint8_t>(m_offset % seq.count),
-            };
-        }
+        return AnimzInfo{
+            .frames = it->second.frames,
+            .base = it->second.base,
+            .offset = static_cast<uint8_t>(m_offset % it->second.frames),
+        };
     }
     return AnimzInfo{};
 }

@@ -1,6 +1,6 @@
 /*
     cs3-runtime-sdl
-    Copyright (C) 2024  Francois Blanchette
+    Copyright (C) 2025 Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,44 +17,47 @@
 */
 #pragma once
 
+#include <vector>
 #include <cstdint>
-#include <unordered_map>
+#include <string>
 
-struct AnimzInfo
+struct button_t
 {
-    uint8_t frames;
-    uint8_t base;
-    uint8_t offset;
+    int id;
+    int x;
+    int y;
+    int width;
+    int height;
+    std::string text;
+    uint32_t color;
 };
 
-class CAnimator
+class CGameUI
 {
 public:
-    CAnimator();
-    ~CAnimator();
-    void animate();
-    uint16_t at(uint8_t tileID);
-    uint16_t offset();
-    bool isSpecialCase(uint8_t tileID);
-    AnimzInfo specialInfo(const int tileID);
-
-    using animzSeq_t = struct
-    {
-        uint8_t srcTile;
-        uint8_t startSeq;
-        uint8_t count;
-        uint8_t specialID;
-    };
+    CGameUI();
+    ~CGameUI();
+    const button_t &addButton(const button_t &button);
+    void clear();
+    size_t size();
+    button_t &at(int i);
+    void show();
+    void hide();
+    bool isVisible();
+    const std::vector<button_t> &buttons();
+    int width();
+    int height();
+    int margin();
+    CGameUI &setMargin(int margin);
 
 private:
-    enum : uint32_t
+    enum
     {
-        NO_ANIMZ = 255,
-        MAX_TILES = 256,
+        DEFAULT_MARGIN = 8
     };
-
-    uint8_t m_tileReplacement[MAX_TILES];
-    int32_t *m_seqIndex = nullptr;
-    uint16_t m_offset = 0;
-    std::unordered_map<uint16_t, AnimzInfo> m_seqLookUp;
+    bool m_show = false;
+    std::vector<button_t> m_buttons;
+    int m_height = 0;
+    int m_width = 0;
+    int m_margin;
 };

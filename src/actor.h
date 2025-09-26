@@ -33,6 +33,7 @@ enum JoyAim : uint8_t
 JoyAim operator^=(JoyAim &aim, int i);
 JoyAim reverseDir(const JoyAim aim);
 
+class IFile;
 class CActor
 {
 
@@ -67,6 +68,8 @@ public:
     bool isWithin(const int x1, const int y1, const int x2, const int y2) const;
     bool read(FILE *sfile);
     bool write(FILE *tfile);
+    bool read(IFile &file);
+    bool write(IFile &tfile);
     void reverveDir();
     const Pos pos() const;
     int distance(const CActor &actor);
@@ -77,6 +80,9 @@ private:
     uint8_t m_type;
     JoyAim m_aim;
     uint8_t m_pu;
-
+    template <typename ReadFunc>
+    bool readCommon(ReadFunc readfile);
+    template <typename WriteFunc>
+    bool writeCommon(WriteFunc writefile);
     friend class CGame;
 };

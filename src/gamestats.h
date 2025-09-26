@@ -53,6 +53,13 @@ public:
     bool read(FILE *sfile);
     bool write(FILE *tfile);
 
+    bool read(IFile &sfile);
+    bool write(IFile &tfile);
+
 private:
+    template <typename WriteFunc>
+    bool writeCommon(WriteFunc writefile);
+    template <typename ReadFunc>
+    bool readCommon(ReadFunc readfile);
     std::unordered_map<uint16_t, int32_t> m_stats;
 };

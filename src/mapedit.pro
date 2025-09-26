@@ -22,6 +22,7 @@ SOURCES += \
     dlgstat.cpp \
     dlgtest.cpp \
     game.cpp \
+    gameui.cpp \
     gamemixin.cpp \
     level.cpp \
     main.cpp \
@@ -33,6 +34,7 @@ SOURCES += \
     report.cpp \
     shared/DotArray.cpp \
     shared/FileWrap.cpp \
+    shared/FileMem.cpp \
     shared/Frame.cpp \
     shared/FrameSet.cpp \
     shared/PngMagic.cpp \
@@ -66,6 +68,7 @@ HEADERS += \
     dlgstat.h \
     dlgtest.h \
     game.h \
+    gameui.h \
     gamemixin.h \
     level.h \
     mainwindow.h \
@@ -76,6 +79,7 @@ HEADERS += \
     report.h \
     shared/DotArray.h \
     shared/FileWrap.h \
+    shared/FileMem.h \
     shared/Frame.h \
     shared/FrameSet.h \
     shared/PngMagic.h \

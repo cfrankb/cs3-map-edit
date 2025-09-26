@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _FrameSet_H
-#define _FrameSet_H
+#pragma once
 
 #include <string>
 #include <unordered_map>
-#include <stdint.h>
+#include <cstdint>
+#include <vector>
 #include "ISerial.h"
 
 class CFrame;
@@ -33,34 +33,30 @@ class IFile;
 /////////////////////////////////////////////////////////////////////////////
 // CFrameSet
 
-class CFrameSet: public ISerial
+class CFrameSet : public ISerial
 {
-    // Construction
 public:
     CFrameSet();
     CFrameSet(CFrameSet *s);
 
-    // Attributes
 public:
-    CFrame * current();
     int getSize();
 
-    // Operations
 public:
-    int operator ++();
-    int operator --();
+    int operator++();
+    int operator--();
 
-    CFrame * operator[](int) const;
-    CFrameSet & operator = (CFrameSet & s);
-    int add (CFrame *pFrame);
+    CFrame *operator[](int) const;
+    CFrameSet &operator=(CFrameSet &s);
+    int add(CFrame *pFrame);
     void setName(const char *s);
-    const char * getName() const;
+    const char *getName() const;
 
-    CFrame * removeAt(int n);
+    CFrame *removeAt(int n);
     void insertAt(int n, CFrame *pFrame);
-    void forget();
-    void removeAll ();
-    bool extract (IFile & file, char *format=nullptr);
+    void clear();
+    void removeAll();
+    bool extract(IFile &file, std::string *format = nullptr);
 
     static char *ima2bitmap(char *ImaData, int len, int hei);
     static void bitmap2rgb(char *bitmap, uint32_t *rgb, int len, int hei, int err);
@@ -69,36 +65,38 @@ public:
 
     const char *getLastError() const;
     void setLastError(const char *error);
-    void toPng(unsigned char * &data, int &size);
-    std::string & tag(const char *tag);
+    bool toPng(unsigned char *&data, int &size);
+    std::string &tag(const char *tag);
     void setTag(const char *tag, const char *v);
-    void copyTags(CFrameSet & src);
+    void copyTags(CFrameSet &src);
     void assignNewUUID();
-    void toSubset(CFrameSet & dest, int start, int end=-1);
+    void toSubset(CFrameSet &dest, int start, int end = -1);
 
-    // Implementation
 public:
     ~CFrameSet();
     virtual bool write(IFile &file);
     virtual bool read(IFile &file);
     int m_nCurrFrame;
 
-    enum {
+private:
+    enum
+    {
         OBL_VERSION = 0x501,
-        GROWBY      = 16
+        FNT_SIZE = 8,
+        GE96_TILE_SIZE = 32,
+        ID_SIG_LEN = 4,
+        PALETTE_SIZE = 256,
+        RGB_BYTES = 3,
+        COLOR_INDEX_OFFSET = -16,
+        COLOR_INDEX_OFFSET_NONE = 0,
     };
 
-protected:
-
-    void write0x501(IFile &file);
-    bool read0x501(IFile & file, int size);
+    bool write0x501(IFile &file);
+    bool read0x501(IFile &file, int size);
 
     std::string m_lastError;
-    CFrame **m_arrFrames;
-    int m_max;
-    int m_size;
+    std::vector<CFrame *> m_arrFrames;
     std::string m_name;
-    std::unordered_map <std::string, std::string>m_tags;
+    std::unordered_map<std::string, std::string> m_tags;
     friend class CFrameArray;
 };
-#endif
