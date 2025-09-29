@@ -24,6 +24,7 @@ protected slots:
     void showGrid(bool show);
     void setAnimate(bool val);
     void highlight(uint8_t attr);
+    void highlight(uint8_t x, uint8_t y);
 
 protected:
     virtual void paintEvent(QPaintEvent *) ;
@@ -89,6 +90,8 @@ protected:
     uint32_t m_ticks = 0;
     friend class CMapScroll;
     uint8_t m_attr = 0;
+    uint8_t m_hx = 0;
+    uint8_t m_hy = 0;
 };
 
 #endif // CMAPWIDGETGDI_H

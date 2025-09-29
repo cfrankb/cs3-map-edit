@@ -104,7 +104,8 @@ HEADERS += \
     gamestats.h \
     colormap.h \
     strhelper.h \
-    attr.h
+    attr.h \
+    logger.h
 
 FORMS += \
     dlgattr.ui \

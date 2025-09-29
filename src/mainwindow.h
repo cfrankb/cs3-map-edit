@@ -26,6 +26,7 @@ signals:
     void mapChanged(CMap *);    // notify of a map change
     void newTile(int);          // select a diffent tile in the tilebox
     void setHighlight(uint8_t); // set attr to highlight
+    void setHighlightXY(uint8_t, uint8_t); // set x,y for highlight
 
 private slots:
     void loadFile(const QString & filename);
@@ -67,8 +68,8 @@ private slots:
     void on_actionFile_Generate_Report_triggered();
     void on_actionEdit_Map_States_triggered();
     void on_highlight();
+    void on_highlightXY();
     void updateStatus();
-
     void on_actionExport_Screenshots_triggered();
 
 private:

@@ -198,6 +198,8 @@ void CMapWidget::drawScreen(CFrame &bitmap)
             if (a != 0 && a == m_attr) {
                 bool alt = ((m_ticks >> 2) & 1) == 1;
                 drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, alt ? PINK : CYAN, false);
+            } else if (m_hx != 0 && m_hy != 0 && mx + x == m_hx && my + y == m_hy) {
+                drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, CORAL, false);
             }
         }
     }
@@ -345,5 +347,11 @@ void CMapWidget::drawTile(CFrame & bitmap, const int x, const int y, CFrame & ti
 void CMapWidget::highlight(uint8_t attr)
 {
     m_attr = attr;
+}
+
+void CMapWidget::highlight(uint8_t x, uint8_t y)
+{
+    m_hx = x;
+    m_hy = y;
 }
 

@@ -17,7 +17,7 @@
 */
 #pragma once
 
-#if defined(USE_QT)
+#if defined(USE_QFILE)
 #include <QtLogging>
 #define printf qDebug
 #define LOGI(...) qInfo(__VA_ARGS__)

@@ -44,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showContextMenu(const QPoint &)));
     connect(this, SIGNAL(setHighlight(uint8_t)), glw, SLOT(highlight(uint8_t)));
+    connect(this, SIGNAL(setHighlightXY(uint8_t, uint8_t)), glw, SLOT(highlight(uint8_t, uint8_t)));
 
     updateTitle();
     initTilebox();
@@ -391,6 +392,12 @@ void MainWindow::showContextMenu(const QPoint &pos)
         menu.addAction(actionHighlight);
         actionHighlight->setStatusTip(tr("hightlight this attribute"));
 
+        QAction *actionHighlightXY =  new QAction(tr("highlight this position"), this);
+        connect(actionHighlightXY, SIGNAL(triggered()),
+                this, SLOT(on_highlightXY()));
+        menu.addAction(actionHighlightXY);
+        actionHighlightXY->setStatusTip(tr("hightlight this position"));
+
         QAction *actionStatAttr = new QAction(tr("see tile stats"), this);
         connect(actionStatAttr, SIGNAL(triggered()),
                 this, SLOT(showStatDialog()));
@@ -428,6 +435,11 @@ void MainWindow::on_highlight()
     CMap &map = *m_doc.map();
     uint8_t attr = map.getAttr(m_hx, m_hy);
     emit setHighlight(attr);
+}
+
+void MainWindow::on_highlightXY()
+{
+    emit setHighlightXY(m_hx, m_hy);
 }
 
 void MainWindow::on_deleteTile()
