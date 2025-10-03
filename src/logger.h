@@ -15,7 +15,35 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+// logger.h
+/// Logging macros for info, warning, error, and fatal messages.
+/// Usage: LOGI("Message %s", str); LOGF("Fatal error %d", code);
+
 #pragma once
+#include <cstdio>
+#include <mutex>
+#include <string>
+
+class Logger
+{
+public:
+    enum Level
+    {
+        INFO,
+        WARN,
+        ERROR,
+        FATAL
+    };
+    static void setLevel(Level minLevel) { m_minLevel = minLevel; }
+    static void setOutputFile(const std::string &filename);
+    static void log(Level level, const char *tag, const char *format, ...);
+    static Level level() { return m_minLevel; };
+
+private:
+    static Level m_minLevel;
+    static FILE *m_output;
+    static std::mutex m_mutex;
+};
 
 #if defined(USE_QFILE)
 #include <QtLogging>
@@ -24,24 +52,17 @@
 #define LOGW(...) qWarning(__VA_ARGS__)
 #define LOGE(...) qCritical(__VA_ARGS__)
 #define LOGF(...) qFatal(__VA_ARGS__)
-#elif defined(__ANDROID__)
-#include <android/log.h> // For logging
-#define printf(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, __VA_ARGS__)
-#elif defined(__ANDROID__) && defined(SDL_MAJOR_VERSION)
-#define printf(...) SDL_Log(__VA_ARGS__)
-#define LOGI(...) SDL_Log(__VA_ARGS__)
-#define LOGW(...) SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_WARN, __VA_ARGS__)
-#define LOGE(...) SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR, __VA_ARGS__)
-#define LOGF(...) SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_CRITICAL, __VA_ARGS__)
 #else
-#define LOGI(...) printf(__VA_ARGS__)
-#define LOGW(...) printf(__VA_ARGS__)
-#define LOGE(...) fprintf(stderr, __VA_ARGS__)
-#define LOGF(...)                 \
-    fprintf(stderr, __VA_ARGS__); \
+#define LOGI(...)                        \
+    if (Logger::level() <= Logger::INFO) \
+    Logger::log(Logger::INFO, __FILE_NAME__, __VA_ARGS__)
+#define LOGW(...)                        \
+    if (Logger::level() <= Logger::WARN) \
+    Logger::log(Logger::WARN, __FILE_NAME__, __VA_ARGS__)
+#define LOGE(...)                         \
+    if (Logger::level() <= Logger::ERROR) \
+    Logger::log(Logger::ERROR, __FILE_NAME__, __VA_ARGS__)
+#define LOGF(...)                                           \
+    Logger::log(Logger::FATAL, __FILE_NAME__, __VA_ARGS__); \
     exit(1)
 #endif

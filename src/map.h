@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
+#include <memory> // For unique_ptr
 
 typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
 struct Pos
@@ -47,25 +48,25 @@ public:
     CMap(uint16_t len = 0, uint16_t hei = 0, uint8_t t = 0);
     CMap(const CMap &map);
     ~CMap();
-    uint8_t &at(int x, int y);
-    uint8_t *row(int y);
-    void set(int x, int y, uint8_t t);
+    uint8_t at(const int x, const int y) const;
+    void set(const int x, const int y, const uint8_t t);
+    uint8_t &get(const int x, const int y);
     bool read(const char *fname);
-    bool write(const char *fname);
+    bool write(const char *fname) const;
     bool read(FILE *sfile);
     bool read(IFile &file);
-    bool write(FILE *tfile);
-    bool write(IFile &tfile);
+    bool write(FILE *tfile) const;
+    bool write(IFile &tfile) const;
     void clear();
     int len() const;
     int hei() const;
-    bool resize(uint16_t len, uint16_t hei, bool fast);
-    const Pos findFirst(uint8_t tileId);
-    int count(uint8_t tileId);
+    bool resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast);
+    const Pos findFirst(const uint8_t tileId) const;
+    size_t count(const uint8_t tileId) const;
     void fill(uint8_t ch = 0);
     uint8_t getAttr(const uint8_t x, const uint8_t y) const;
     void setAttr(const uint8_t x, const uint8_t y, const uint8_t a);
-    int size();
+    size_t size() const;
     const char *lastError();
     CMap &operator=(const CMap &map);
     bool fromMemory(uint8_t *mem);
@@ -76,7 +77,7 @@ public:
     static uint16_t toKey(const uint8_t x, const uint8_t y);
     static Pos toPos(const uint16_t key);
 
-    enum : uint16_t
+    enum Direction : uint16_t
     {
         UP,
         DOWN,
@@ -85,12 +86,13 @@ public:
         MAX = RIGHT,
         NOT_FOUND = 0xffff
     };
-    void shift(int aim);
+    // void shift(int aim);
+    void shift(Direction aim);
     void debug();
 
 private:
     template <typename WriteFunc>
-    bool writeCommon(WriteFunc writefile);
+    bool writeCommon(WriteFunc writefile) const;
     template <typename ReadFunc>
     bool readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates);
 
@@ -100,12 +102,11 @@ private:
         XTR_VER1 = 1,
     };
 
-    CStates *m_states;
     uint16_t m_len;
     uint16_t m_hei;
-    uint8_t *m_map;
-    int m_size;
+    std::vector<uint8_t> m_map;
     AttrMap m_attrs;
     std::string m_lastError;
     std::string m_title;
+    std::unique_ptr<CStates> m_states;
 };

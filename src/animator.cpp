@@ -22,32 +22,34 @@
 #include <cstring>
 #include <vector>
 #include <set>
+#include <array>
 
-#define NA 0
+constexpr uint8_t NO_SPECIAL_ID = 0;
+constexpr const int SEQ_COUNT = 21;
 
-const std::vector<CAnimator::animzSeq_t> g_animzSeq = {
-    {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NA},
+const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
+    {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NO_SPECIAL_ID},
     {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN, ANIMZ_INSECT1},
-    {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN, NA},
-    {TILES_ALPHA, ANIMZ_ALPHA, ANIMZ_ALPHA_LEN, NA},
-    {TILES_FORCEF94, ANIMZ_FORCEF94, ANIMZ_FORCEF94_LEN, NA},
-    {TILES_VAMPLANT, ANIMZ_VAMPLANT, ANIMZ_VAMPLANT_LEN, NA},
-    {TILES_ORB, ANIMZ_ORB, ANIMZ_ORB_LEN, NA},
-    {TILES_TEDDY93, ANIMZ_TEDDY93, ANIMZ_TEDDY93_LEN, NA},
-    {TILES_LUTIN, ANIMZ_LUTIN, ANIMZ_LUTIN_LEN, NA},
-    {TILES_OCTOPUS, ANIMZ_OCTOPUS, ANIMZ_OCTOPUS_LEN, NA},
-    {TILES_TRIFORCE, ANIMZ_TRIFORCE, ANIMZ_TRIFORCE_LEN, NA},
-    {TILES_YAHOO, ANIMZ_YAHOO, ANIMZ_YAHOO_LEN, NA},
-    {TILES_YIGA, ANIMZ_YIGA, ANIMZ_YIGA_LEN, NA},
-    {TILES_YELKILLER, ANIMZ_YELKILLER, ANIMZ_YELKILLER_LEN, NA},
-    {TILES_MANKA, ANIMZ_MANKA, ANIMZ_MANKA_LEN, NA},
+    {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN, NO_SPECIAL_ID},
+    {TILES_ALPHA, ANIMZ_ALPHA, ANIMZ_ALPHA_LEN, NO_SPECIAL_ID},
+    {TILES_FORCEF94, ANIMZ_FORCEF94, ANIMZ_FORCEF94_LEN, NO_SPECIAL_ID},
+    {TILES_VAMPLANT, ANIMZ_VAMPLANT, ANIMZ_VAMPLANT_LEN, NO_SPECIAL_ID},
+    {TILES_ORB, ANIMZ_ORB, ANIMZ_ORB_LEN, NO_SPECIAL_ID},
+    {TILES_TEDDY93, ANIMZ_TEDDY93, ANIMZ_TEDDY93_LEN, NO_SPECIAL_ID},
+    {TILES_LUTIN, ANIMZ_LUTIN, ANIMZ_LUTIN_LEN, NO_SPECIAL_ID},
+    {TILES_OCTOPUS, ANIMZ_OCTOPUS, ANIMZ_OCTOPUS_LEN, NO_SPECIAL_ID},
+    {TILES_TRIFORCE, ANIMZ_TRIFORCE, ANIMZ_TRIFORCE_LEN, NO_SPECIAL_ID},
+    {TILES_YAHOO, ANIMZ_YAHOO, ANIMZ_YAHOO_LEN, NO_SPECIAL_ID},
+    {TILES_YIGA, ANIMZ_YIGA, ANIMZ_YIGA_LEN, NO_SPECIAL_ID},
+    {TILES_YELKILLER, ANIMZ_YELKILLER, ANIMZ_YELKILLER_LEN, NO_SPECIAL_ID},
+    {TILES_MANKA, ANIMZ_MANKA, ANIMZ_MANKA_LEN, NO_SPECIAL_ID},
     {TILES_MUSH_IDLE, ANIMZ_MUSH_DOWN, ANIMZ_MUSHROOM_LEN, ANIMZ_MUSHROOM},
     {TILES_WHTEWORM, ANIMZ_WHTEWORM, ANIMZ_WHTEWORM_LEN / 2, ANIMZ_WHTEWORM},
     {TILES_ETURTLE, ANIMZ_ETURTLE, ANIMZ_ETURTLE_LEN / 2, ANIMZ_ETURTLE},
     {TILES_DRAGO, ANIMZ_DRAGO, ANIMZ_DRAGO_LEN / 2, ANIMZ_DRAGO},
-    {TILES_DOORS_LEAF, ANIMZ_DOORS_LEAF, ANIMZ_DOORS_LEAF_LEN, NA},
+    {TILES_DOORS_LEAF, ANIMZ_DOORS_LEAF, ANIMZ_DOORS_LEAF_LEN, NO_SPECIAL_ID},
     {SFX_SPARKLE, ANIMZ_SPARKLE, ANIMZ_SPARKLE_LEN, ANIMZ_SPARKLE},
-};
+}};
 
 const std::set<uint8_t> g_specialCases = {
     TILES_INSECT1,
@@ -57,14 +59,12 @@ const std::set<uint8_t> g_specialCases = {
     TILES_WHTEWORM,
 };
 
-CAnimator::CAnimator()
+CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
-    memset(m_tileReplacement, NO_ANIMZ, sizeof(m_tileReplacement));
-    m_seqIndex = new int32_t[g_animzSeq.size()];
-    memset(m_seqIndex, 0, g_animzSeq.size() * sizeof(m_seqIndex[0]));
+    std::fill(m_tileReplacement.begin(), m_tileReplacement.end(), NO_ANIMZ);
     for (const auto &seq : g_animzSeq)
     {
-        m_seqLookUp[seq.srcTile] = AnimzInfo{
+        m_seqLookUp[seq.srcTile] = animzInfo_t{
             .frames = seq.count,
             .base = seq.specialID,
             .offset = 0,
@@ -74,7 +74,6 @@ CAnimator::CAnimator()
 
 CAnimator::~CAnimator()
 {
-    delete[] m_seqIndex;
 }
 
 void CAnimator::animate()
@@ -90,31 +89,31 @@ void CAnimator::animate()
     ++m_offset;
 }
 
-uint16_t CAnimator::at(uint8_t tileID)
+uint16_t CAnimator::at(uint8_t tileID) const
 {
     return m_tileReplacement[tileID];
 }
 
-uint16_t CAnimator::offset()
+uint16_t CAnimator::offset() const
 {
     return m_offset;
 }
 
-bool CAnimator::isSpecialCase(uint8_t tileID)
+bool CAnimator::isSpecialCase(uint8_t tileID) const
 {
     return g_specialCases.find(tileID) != g_specialCases.end();
 }
 
-AnimzInfo CAnimator::specialInfo(const int tileID)
+animzInfo_t CAnimator::getSpecialInfo(const int tileID) const
 {
     const auto &it = m_seqLookUp.find(tileID);
     if (it != m_seqLookUp.end())
     {
-        return AnimzInfo{
+        return animzInfo_t{
             .frames = it->second.frames,
             .base = it->second.base,
             .offset = static_cast<uint8_t>(m_offset % it->second.frames),
         };
     }
-    return AnimzInfo{};
+    return animzInfo_t{};
 }

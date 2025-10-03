@@ -15,19 +15,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define LOG_TAG "states"
 #include "states.h"
 #include "shared/IFile.h"
 #include "logger.h"
 #include <cstring>
-
-CStates::CStates()
-{
-}
-
-CStates::~CStates()
-{
-}
 
 void CStates::setU(const uint16_t k, const uint16_t v)
 {
@@ -105,13 +96,15 @@ bool CStates::readCommon(ReadFunc readfile)
         m_stateU[k] = v;
     }
 
-    char *v = new char[MAX_STRING];
-    if (!v)
+    std::vector<char> v(MAX_STRING);
+    if (!v.data())
+    {
+        LOGE("allocation of v failed");
         return false;
+    }
 
     if (!readfile(&count, COUNT_BYTES))
     {
-        delete[] v;
         return false;
     }
 
@@ -122,31 +115,25 @@ bool CStates::readCommon(ReadFunc readfile)
         uint16_t len = 0;
         if (!readfile(&k, sizeof(k)))
         {
-            delete[] v;
             return false;
         }
         if (!readfile(&len, sizeof(len)))
         {
-            delete[] v;
             return false;
         }
 
         if (len >= MAX_STRING)
         {
-            delete[] v;
             return false;
         }
 
         v[len] = '\0';
-        if (!readfile(v, len))
+        if (!readfile(v.data(), len))
         {
-            delete[] v;
             return false;
         }
-        m_stateS[k] = v;
+        m_stateS[k] = v.data();
     }
-
-    delete[] v;
     return true;
 }
 
@@ -245,6 +232,7 @@ std::vector<StateValuePair> CStates::getValues() const
     // TODO: C++ 20 not supported yet by appImage
     // std::format("0x{:02x}", v)
     pairs.clear();
+    pairs.reserve(m_stateS.size() + m_stateU.size());
     char tmp1[16];
     char tmp2[16];
     for (const auto &[k, v] : m_stateU)

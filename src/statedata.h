@@ -17,7 +17,7 @@
 */
 #pragma once
 #include <cstdint>
-#include <vector>
+#include <list>
 #include <string>
 
 enum StateValue : uint16_t
@@ -65,4 +65,4 @@ struct KeyOption
     uint16_t value;
 };
 
-const std::vector<KeyOption> &getKeyOptions();
+const std::list<KeyOption> &getKeyOptions();

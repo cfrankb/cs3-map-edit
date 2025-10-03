@@ -16,10 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "statedata.h"
+#include <list>
 
 #define DEF(x) {#x, x}
 
-const std::vector<KeyOption> g_keyOptions = {
+const std::list<KeyOption> g_keyOptions = {
     DEF(TIMEOUT),
     DEF(POS_ORIGIN),
     DEF(POS_EXIT),
@@ -50,7 +51,7 @@ const std::vector<KeyOption> g_keyOptions = {
     DEF(PRIVATE),
 };
 
-const std::vector<KeyOption> &getKeyOptions()
+const std::list<KeyOption> &getKeyOptions()
 {
     return g_keyOptions;
 }

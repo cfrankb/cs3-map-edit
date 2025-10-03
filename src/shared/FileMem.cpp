@@ -23,36 +23,35 @@
 
 CFileMem::CFileMem()
 {
-    m_size = 0;
     m_ptr = 0;
     m_max = GROWBY;
-    m_buffer = new char[m_max];
+    m_buffer.reserve(m_max);
 }
 
 CFileMem::~CFileMem()
 {
     close();
-    if (m_buffer)
-    {
-        delete[] m_buffer;
-    }
 }
 
-void CFileMem::grow(int size)
+void CFileMem::grow(int size, bool resize)
 {
-    if (m_size + size >= m_max)
+    const int newSize = m_buffer.size() + size;
+    if (newSize >= m_max)
     {
         m_max += GROWBY;
-        char *t = new char[m_max];
-        memcpy(t, m_buffer, m_size);
-        delete[] m_buffer;
-        m_buffer = t;
+        m_buffer.reserve(m_max);
     }
-    m_size += size;
+    if (resize)
+        m_buffer.resize(newSize);
 }
 
-///////////////////////////////////////////////
-// Interface
+void CFileMem::append(const void *data, int size)
+{
+    grow(size, false);
+    const char *cdata = reinterpret_cast<const char *>(data);
+    m_buffer.insert(m_buffer.begin() + m_ptr, cdata, cdata + size);
+    m_ptr += size;
+}
 
 CFileMem &CFileMem::operator>>(int &n)
 {
@@ -63,33 +62,35 @@ CFileMem &CFileMem::operator>>(int &n)
 
 CFileMem &CFileMem::operator<<(int n)
 {
-    grow(sizeof(n));
-    memcpy(&m_buffer[m_ptr], &n, sizeof(n));
-    m_ptr += sizeof(n);
+    // grow(sizeof(n));
+    // memcpy(&m_buffer[m_ptr], &n, sizeof(n));
+    // m_ptr += sizeof(n);
+    append(&n, sizeof(n));
     return *this;
 }
 
 int CFileMem::read(void *buf, int size)
 {
-    int leftBytes = m_size - m_ptr;
+    int leftBytes = m_buffer.size() - m_ptr;
     if (leftBytes >= size)
     {
         memcpy(buf, &m_buffer[m_ptr], size);
         m_ptr += size;
-        return 1;
+        return IFILE_OK;
     }
     else
     {
-        return 0;
+        return IFILE_NOT_OK;
     }
 }
 
 int CFileMem::write(const void *buf, int size)
 {
-    grow(size);
-    memcpy(&m_buffer[m_ptr], buf, size);
-    m_ptr += size;
-    return size;
+    // grow(size);
+    // memcpy(&m_buffer[m_ptr], buf, size);
+    // m_ptr += size;
+    append(buf, size);
+    return IFILE_OK;
 }
 
 bool CFileMem::open(const char *fileName, const char *mode)
@@ -104,12 +105,11 @@ void CFileMem::close()
 {
     // TODO:
     m_ptr = 0;
-    m_size = 0;
 }
 
 long CFileMem::getSize()
 {
-    return m_size;
+    return m_buffer.size();
 }
 
 void CFileMem::seek(long p)
@@ -135,12 +135,13 @@ CFileMem &CFileMem::operator>>(std::string &str)
     }
     if (x != 0)
     {
-        char *sz = new char[x + 1];
+        // char *sz = new char[x + 1];
+        std::vector<char> sz(x + 1);
         sz[x] = 0;
-        memcpy(sz, &m_buffer[m_ptr], x);
+        memcpy(sz.data(), &m_buffer[m_ptr], x);
         m_ptr += x;
-        str = sz;
-        delete[] sz;
+        str = sz.data();
+        // delete[] sz;
     }
     else
     {
@@ -154,26 +155,30 @@ CFileMem &CFileMem::operator<<(const std::string &str)
     unsigned int x = str.length();
     if (x <= 0xfe)
     {
-        grow(1);
-        m_buffer[m_ptr] = static_cast<char>(x);
-        ++m_ptr;
+        // grow(1);
+        // m_buffer[m_ptr] = static_cast<char>(x);
+        //++m_ptr;
+        append(&x, 1);
     }
     else
     {
-        grow(3);
+        // grow(3);
         int t = 0xff;
-        m_buffer[m_ptr] = static_cast<char>(t);
-        ++m_ptr;
-        memcpy(&m_buffer[m_ptr], &x, 2);
-        m_ptr += 2;
-        // TODO : implement 32bits version
+        append(&t, 1);
+        // m_buffer[m_ptr] = static_cast<char>(t);
+        //++m_ptr;
+        // memcpy(&m_buffer[m_ptr], &x, 2);
+        // m_ptr += 2;
+        //  TODO : implement 32bits version
+        append(&x, 2);
         assert(x < 0xffff);
     }
     if (x != 0)
     {
-        grow(x);
-        memcpy(&m_buffer[m_ptr], str.c_str(), x);
-        m_ptr += x;
+        // grow(x);
+        // memcpy(&m_buffer[m_ptr], str.c_str(), x);
+        // m_ptr += x;
+        append(str.c_str(), x);
     }
     return *this;
 }
@@ -188,15 +193,17 @@ CFileMem &CFileMem::operator>>(bool &b)
 
 CFileMem &CFileMem::operator<<(bool b)
 {
-    grow(1);
-    m_buffer[m_ptr] = static_cast<char>(b);
-    ++m_ptr;
+    append(&b, 1);
+
+    // grow(1);
+    // m_buffer[m_ptr] = static_cast<char>(b);
+    //++m_ptr;
     return *this;
 }
 
 CFileMem &CFileMem::operator+=(const std::string &str)
 {
-    grow(str.length());
+    grow(str.length(), true);
     memcpy(&m_buffer[m_ptr], str.c_str(), str.length());
     m_ptr += str.length();
     return *this;
@@ -204,25 +211,25 @@ CFileMem &CFileMem::operator+=(const std::string &str)
 
 CFileMem &CFileMem::operator+=(const char *s)
 {
-    grow(strlen(s));
-    memcpy(&m_buffer[m_ptr], s, strlen(s));
-    m_ptr += strlen(s);
+    // grow(strlen(s));
+    // memcpy(&m_buffer[m_ptr], s, strlen(s));
+    // m_ptr += strlen(s);
+    append(s, strlen(s));
     return *this;
 }
 
 const char *CFileMem::buffer()
 {
-    return m_buffer;
+    return m_buffer.data();
 }
 
 void CFileMem::replace(const char *buffer, int size)
 {
-    if (m_buffer)
+    if (m_max < size)
     {
-        delete[] m_buffer;
+        m_max = size;
+        m_buffer.reserve(m_max);
     }
-    m_buffer = new char[size];
-    memcpy(m_buffer, buffer, size);
-    m_size = m_max = size;
+    m_buffer.assign(buffer, buffer + size);
     m_ptr = 0;
 }

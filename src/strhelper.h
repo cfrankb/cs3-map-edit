@@ -22,6 +22,8 @@
 
 void splitString2(const std::string &str, std::vector<std::string> &list);
 char *processLine(char *&p);
+std::string processLine(std::string &input, size_t &pos);
 uint16_t parseStringToUShort(const std::string &s, bool &isValid);
 std::string trimString(const std::string &s);
 bool endswith(const char *str, const char *end);
+std::vector<std::string> split(const std::string &input, char delimiter);

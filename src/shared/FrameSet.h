@@ -22,30 +22,29 @@
 #include <unordered_map>
 #include <cstdint>
 #include <vector>
+#include <memory>
 #include "ISerial.h"
 
 class CFrame;
 class IFile;
 
-// FrameSet.h : header file
-//
-
-/////////////////////////////////////////////////////////////////////////////
-// CFrameSet
-
 class CFrameSet : public ISerial
 {
 public:
     CFrameSet();
+    ~CFrameSet();
     CFrameSet(CFrameSet *s);
 
-public:
-    int getSize();
+    enum Format : uint32_t
+    {
+        OBL5_UNPACKED = 0x500,
+        OBL5_SOLID = 0x501,
+        DEFAULT_OBL5_FORMAT = OBL5_SOLID,
+    };
 
-public:
+    size_t getSize();
     int operator++();
     int operator--();
-
     CFrame *operator[](int) const;
     CFrameSet &operator=(CFrameSet &s);
     int add(CFrame *pFrame);
@@ -56,32 +55,31 @@ public:
     void insertAt(int n, CFrame *pFrame);
     void clear();
     void removeAll();
-    bool extract(IFile &file, std::string *format = nullptr);
-
-    static char *ima2bitmap(char *ImaData, int len, int hei);
-    static void bitmap2rgb(char *bitmap, uint32_t *rgb, int len, int hei, int err);
-    static bool isFriendFormat(const char *format);
+    bool extract(IFile &file);
     void move(int s, int t);
 
     const char *getLastError() const;
     void setLastError(const char *error);
-    bool toPng(unsigned char *&data, int &size);
+    bool toPng(std::vector<uint8_t> &png);
     std::string &tag(const char *tag);
     void setTag(const char *tag, const char *v);
     void copyTags(CFrameSet &src);
     void assignNewUUID();
     void toSubset(CFrameSet &dest, int start, int end = -1);
 
-public:
-    ~CFrameSet();
-    virtual bool write(IFile &file);
-    virtual bool read(IFile &file);
-    int m_nCurrFrame;
+    bool write(IFile &file, const Format format);
+    bool write(IFile &file) override;
+    bool read(IFile &file) override;
+
+    void set(const int i, CFrame *frame);
+    void reserve(int n);
+    int currFrame();
+    void setCurrFrame(int curr);
 
 private:
+    int m_nCurrFrame;
     enum
     {
-        OBL_VERSION = 0x501,
         FNT_SIZE = 8,
         GE96_TILE_SIZE = 32,
         ID_SIG_LEN = 4,
@@ -89,10 +87,23 @@ private:
         RGB_BYTES = 3,
         COLOR_INDEX_OFFSET = -16,
         COLOR_INDEX_OFFSET_NONE = 0,
+        OBL3_GRANULAR = 16,
+        MAX_IMAGES = 1024,
+        MAX_IMAGE_SIZE = 256,
+        TAG_KEY_MAX = 32,
+        TAG_VAL_MAX = 1024,
     };
 
-    bool write0x501(IFile &file);
-    bool read0x501(IFile &file, int size);
+    bool writeSolid(IFile &file);
+    bool readSolid(IFile &file, int size);
+    static std::unique_ptr<char[]> ima2bitmap(char *ImaData, int len, int hei);
+    static void bitmap2rgb(char *bitmap, uint32_t *rgb, int len, int hei, int err);
+    bool importIMA(IFile &file, const long org = 0);
+    bool importIMC1(IFile &file, const long org = 0);
+    bool importGE96(IFile &file, const long org = 0);
+    bool importOBL3(IFile &file, const long org = 0);
+    bool importOBL4(IFile &file, const long org = 0);
+    bool importOBL5(IFile &file, const long org = 0);
 
     std::string m_lastError;
     std::vector<CFrame *> m_arrFrames;

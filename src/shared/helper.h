@@ -20,14 +20,12 @@
 #include <list>
 #include <vector>
 #include <list>
+#include <cstdint>
 const char *toUpper(char *s);
 std::string getUUID();
 bool copyFile(const std::string in, const std::string out, std::string &errMsg);
 bool concat(const std::list<std::string> files, std::string out, std::string &msg);
 int upperClean(int c);
-#ifdef _WIN32
-#else
-#include <stdlib.h>
-// #include <linux/limits.h>
-#endif
 int compressData(unsigned char *in_data, unsigned long in_size, unsigned char **out_data, unsigned long &out_size);
+int compressData(const std::vector<uint8_t> &in_data, std::vector<uint8_t> &out_data);
+std::vector<uint8_t> readFile(const char *fname);

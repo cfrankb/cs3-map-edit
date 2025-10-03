@@ -15,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define LOG_TAG "recorder"
 #include <algorithm>
 #include <cstring>
 #include "recorder.h"
@@ -98,7 +97,7 @@ bool CRecorder::readNextBatch()
     m_batchSize = std::min(static_cast<uint32_t>(m_bufSize), m_size);
     m_size -= m_batchSize;
     m_index = 0;
-    if (m_file->read(m_buffer, m_batchSize) != 1)
+    if (m_file->read(m_buffer, m_batchSize) != IFILE_OK)
         return false;
     return true;
 }
@@ -149,7 +148,7 @@ void CRecorder::dump()
 {
     if (m_index)
     {
-        if (m_file->write(m_buffer, m_index) != 1)
+        if (m_file->write(m_buffer, m_index) != IFILE_OK)
             LOGE("CRecorder::dump() failed to write\n");
         m_size += m_index;
     }
@@ -207,7 +206,7 @@ void CRecorder::stop()
     {
         storeData(true);
         m_file->seek(m_offset);
-        if (m_file->write(&m_size, sizeof(m_size)) != 1)
+        if (m_file->write(&m_size, sizeof(m_size)) != IFILE_OK)
             LOGE("CRecorder::stop() write fail\n");
     }
     m_mode = MODE_CLOSED;
@@ -216,17 +215,17 @@ void CRecorder::stop()
     m_file = nullptr;
 }
 
-bool CRecorder::isRecording()
+bool CRecorder::isRecording() const
 {
     return m_mode == MODE_WRITE;
 }
 
-bool CRecorder::isReading()
+bool CRecorder::isReading() const
 {
     return m_mode == MODE_READ;
 }
 
-bool CRecorder::isStopped()
+bool CRecorder::isStopped() const
 {
     return m_mode == MODE_CLOSED;
 }

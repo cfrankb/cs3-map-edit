@@ -19,6 +19,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "IFile.h"
 
 class CFileMem : public IFile
@@ -51,11 +52,11 @@ public:
     void replace(const char *buffer, int size);
 
 protected:
-    void grow(int size);
+    void grow(int size, bool resize);
+    void append(const void *data, int size);
 
     std::string m_filename;
-    char *m_buffer;
-    int m_size;
+    std::vector<char> m_buffer;
     int m_max;
     int m_ptr;
     std::string m_mode;

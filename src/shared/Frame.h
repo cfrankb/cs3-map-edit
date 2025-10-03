@@ -16,11 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/////////////////////////////////////////////////////////////////////////////
-// CFrame
-
 #pragma once
 #include <cstdint>
+#include <vector>
+#include <stdexcept>
 
 class CFrameSet;
 class CDotArray;
@@ -28,87 +27,78 @@ class CSS3Map;
 class CUndo;
 class IFile;
 
-// Frame.h : header file
-//
-
-// CSS3Map
-
 class CSS3Map
 {
 public:
     CSS3Map();
-    CSS3Map(const int px, const int py);
-    ~CSS3Map();
+    CSS3Map(int px, int py);
+    ~CSS3Map() = default;
 
-    void resize(const int px, const int py);
-    inline char &at(const int x, const int y)
+    void resize(int px, int py);
+    inline char &at(int x, int y)
     {
         return m_map[x + y * m_len];
     }
 
-    int length() const;
-    int height() const;
+    int length() const { return m_len; }
+    int height() const { return m_hei; }
 
-    void read(IFile &file);
-    void write(IFile &file) const;
+    bool read(IFile &file);
+    bool write(IFile &file) const;
     bool isNULL() const;
-
-    CSS3Map &operator=(const CSS3Map &src);
-    char *getMap() const;
+    char *getMap() { return m_map.data(); }
 
     enum
     {
-        GRID = 8
+        GRID_SIZE = 8
     };
 
 protected:
-    char *m_map;
+    std::vector<char> m_map;
     int m_len;
     int m_hei;
 };
 
-// CFrame
-
 class CFrame
 {
-    // Construction
 public:
-    CFrame(CFrame *src = nullptr);
-    CFrame(int p_nLen, int p_nHei);
+    CFrame(int width = 0, int height = 0);
+    CFrame(const CFrame &src);
+    CFrame(CFrame &&src) noexcept;
+    ~CFrame() = default;
 
-    // Attributes
-public:
-    inline bool isValid(int x, int y)
+    CFrame &operator=(CFrame src);
+    friend void swap(CFrame &a, CFrame &b) noexcept;
+
+    inline bool isValid(int x, int y) const
     {
-        return x >= 0 && x < m_nLen && y >= 0 && y < m_nHei;
+        return x >= 0 && x < m_width && y >= 0 && y < m_height;
     }
 
     inline uint32_t &at(int x, int y)
     {
-        return m_rgb[x + y * m_nLen];
+        if (!isValid(x, y))
+            throw std::out_of_range("Invalid pixel access");
+        return m_rgb[x + y * m_width];
     }
 
-    inline uint8_t alphaAt(int x, int y)
+    inline uint8_t alphaAt(int x, int y) const
     {
-        return (m_rgb[x + y * m_nLen]) >> 24;
+        if (!isValid(x, y))
+            throw std::out_of_range("Invalid pixel access");
+        return m_rgb[x + y * m_width] >> 24;
     }
 
-    inline uint32_t &point(int x, int y)
-    {
-        return *(m_rgb + x + y * m_nLen);
-    }
+    inline std::vector<uint32_t> &getRGB() { return m_rgb; }
+    void setRGB(std::vector<uint32_t> rgb) { m_rgb = std::move(rgb); }
+    // inline char map(int x, int y) const { return m_map.at(x, y); }
 
-    inline uint32_t *getRGB() const { return m_rgb; }
-    void setRGB(uint32_t *rgb) { m_rgb = rgb; }
     inline char map(int x, int y) { return m_map.at(x, y); }
     bool hasTransparency() const;
     bool isEmpty() const;
 
-    // Operations
-public:
     CFrame &operator=(const CFrame &src);
-    void forget();
-    void detach() { m_rgb = nullptr; }
+    void clear();
     void updateMap();
     void resize(int len, int hei);
     void setTransparency(uint32_t rgba);
@@ -120,7 +110,6 @@ public:
     CFrameSet *split(int pxSize, bool whole = true);
     void spreadH();
     void spreadV();
-    void clear();
     void shrink();
     const CSS3Map &getMap() const;
     void shiftUP(const bool wrap = true);
@@ -139,30 +128,26 @@ public:
     void fill(unsigned int rgba);
     void drawAt(CFrame &frame, int bx, int by, bool tr);
 
-    // Implementation
-public:
-    ~CFrame();
-    bool read(IFile &file, int version);
-    void write(IFile &file);
+    bool read(IFile &file);
+    bool write(IFile &file);
 
     void toBmp(uint8_t *&bmp, int &size);
-    void toPng(uint8_t *&png, int &size, uint8_t *obl5data = nullptr, int obl5size = 0);
+    bool toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5data = {});
+
     static uint32_t toNet(const uint32_t a);
-    static const uint32_t *dosPal();
     bool draw(CDotArray *dots, int size, int mode = MODE_NORMAL);
     void save(CDotArray *dots, CDotArray *dotsOrg, int size);
     CFrame *clip(int mx, int my, int cx = -1, int cy = -1);
     CFrameSet *explode(int count, short *xx, short *yy, CFrameSet *set = nullptr);
 
-    void copy(CFrame *);
-    void push();
-    void undo();
-    void redo();
-    bool canUndo();
-    bool canRedo();
+    void copy(const CFrame *);
+    inline int width() const { return m_width; }
+    inline int height() const { return m_height; }
 
-    inline int len() const { return m_nLen; }
-    inline int hei() const { return m_nHei; }
+    const char *getLastError()
+    {
+        return m_lastError.c_str();
+    }
 
     enum
     {
@@ -174,7 +159,9 @@ public:
         pngHeaderSize = 8,
         png_IHDR_Size = 21,
         pngChunkLimit = 32767,
-        MAX_UNDO = 20
+        MAX_UNDO = 20,
+        OBL5_UNPACKED = 0x500,
+        IMAGE_MAX_SIZE = 4096,
     };
 
     typedef struct
@@ -210,7 +197,7 @@ public:
         // CRC  : size 4
     } png_OBL5;
 
-protected:
+private:
     enum
     {
         MODE_NORMAL,
@@ -218,16 +205,9 @@ protected:
         MODE_ALPHA_ONLY
     };
 
-    int m_nLen;
-    int m_nHei;
-
-    int m_bCustomMap;
-    uint32_t *m_rgb;
+    std::vector<uint32_t> m_rgb;
     CSS3Map m_map;
-    CFrame **m_undoFrames;
-    int m_undoPtr;
-    int m_undoSize;
-    void init();
+    int m_width;
+    int m_height;
+    std::string m_lastError;
 };
-
-/////////////////////////////////////////////////////////////////////////////

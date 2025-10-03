@@ -47,7 +47,7 @@ void CDlgSelect::updatePreview(CMap *map)
     CFrameSet & fs = *m_frameSet;
     CFrame bitmap(maxCols * tileSize, maxRows *tileSize);
     bitmap.fill(BLACK);
-    uint32_t *rgba = bitmap.getRGB();
+    uint32_t *rgba = bitmap.getRGB().data();
     for (int row=0; row < rows; ++row) {
         for (int col=0; col < cols; ++col) {
             uint8_t tile = map->at(col + mx, row +my);

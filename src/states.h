@@ -36,8 +36,8 @@ class CStates
 {
 
 public:
-    CStates();
-    ~CStates();
+    CStates() = default;
+    ~CStates() = default;
 
     void setU(const uint16_t k, const uint16_t v);
     void setS(const uint16_t k, const std::string &v);

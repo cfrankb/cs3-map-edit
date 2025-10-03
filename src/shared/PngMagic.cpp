@@ -257,7 +257,7 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
                 height += offsetY;
             }
             CFrame *frame = new CFrame(width, height);
-            memset(frame->getRGB(), 0, sizeof(uint32_t) * frame->len() * frame->hei());
+            memset(frame->getRGB().data(), 0, sizeof(uint32_t) * frame->width() * frame->height());
 
             if (ihdr.BitDepth == 8)
             {
@@ -349,7 +349,7 @@ bool _8bpp(
     }
 
     bool valid = true;
-    uint32_t *rgb = frame->getRGB();
+    uint32_t *rgb = frame->getRGB().data();
 
     for (int y = 0; y < (int)CFrame::toNet(ihdr.Height); y++)
     {
@@ -505,7 +505,7 @@ bool _8bpp(
                     break;
                 }
 
-                rgb[(offsetY + y) * frame->len() + x] = rgba;
+                rgb[(offsetY + y) * frame->width() + x] = rgba;
             }
         }
         else
@@ -567,7 +567,7 @@ bool _4bpp(
     }
 
     bool valid = true;
-    uint32_t *rgb = frame->getRGB();
+    uint32_t *rgb = frame->getRGB().data();
 
     for (int y = 0; y < height; y++)
     {
@@ -612,7 +612,7 @@ bool _4bpp(
                     rgba |= 0xff000000;
                 }
 
-                rgb[(offsetY + y) * frame->len() + x] = rgba;
+                rgb[(offsetY + y) * frame->width() + x] = rgba;
             }
         }
         else

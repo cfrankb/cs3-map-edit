@@ -32,9 +32,9 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls93.obl"},          // 07 TILES_WALLS93_5
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls93.obl"},          // 08 TILES_WALLS93_6
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls93.obl"},          // 09 TILES_WALLS93_7
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock1.png"},            // 0a TILES_ROCK1
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock2.png"},            // 0b TILES_ROCK2
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rock3.png"},            // 0c TILES_ROCK3
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rocks.zip"},            // 0a TILES_ROCKS0
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rocks.zip"},            // 0b TILES_ROCKS1
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "rocks.zip"},            // 0c TILES_ROCKS2
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},       // 0d TILES_WALL_BRICK
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},       // 0e TILES_WALL_BRICK_2
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "wall_brick.png"},       // 0f TILES_WALL_BRICK_3

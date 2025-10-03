@@ -60,7 +60,7 @@ bool generateReport(CMapFile & mf, const QString & filename) {
         int stops = 0;
         for (int y=0;y < map->hei(); ++y) {
             for (int x=0;x < map->len(); ++x) {
-                auto &c = map->at(x,y);
+                const auto &c = map->at(x,y);
                 ++usage[c];
                 ++globalUsage[c];
                 auto & def =getTileDef(c);
@@ -157,7 +157,7 @@ void generateScreenshot(const QString &filename, CMap *map, const int maxRows, c
     const int lineSize = maxCols * tileSize;
     CFrame bitmap(maxCols * tileSize, maxRows *tileSize);
     bitmap.fill(BLACK);
-    uint32_t *rgba = bitmap.getRGB();
+    uint32_t *rgba = bitmap.getRGB().data();
     for (int row=0; row < rows; ++row) {
         for (int col=0; col < cols; ++col) {
             uint8_t tile = map->at(col + mx, row +my);
@@ -170,14 +170,14 @@ void generateScreenshot(const QString &filename, CMap *map, const int maxRows, c
         }
     }
     bitmap.enlarge();
-    uint8_t *png;
-    int size;
-    bitmap.toPng(png, size);
+    //uint8_t *png;
+    //int size;
+    std::vector<uint8_t> png;
+    bitmap.toPng(png);
     if (file.open(filename.toStdString().c_str(), "wb")) {
-        file.write(png, size);
+        file.write(png.data(), png.size());
         file.close();
     }
 
     delete fs;
-    delete []png;
 }

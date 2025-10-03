@@ -39,15 +39,15 @@ public:
     ~CGameUI();
     const button_t &addButton(const button_t &button);
     void clear();
-    size_t size();
+    size_t size() const;
     button_t &at(int i);
     void show();
     void hide();
-    bool isVisible();
+    bool isVisible() const;
     const std::vector<button_t> &buttons();
-    int width();
-    int height();
-    int margin();
+    int width() const;
+    int height() const;
+    int margin() const;
     CGameUI &setMargin(int margin);
 
 private:

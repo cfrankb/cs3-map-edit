@@ -1,8 +1,33 @@
+/*
+    cs3-runtime-sdl
+    Copyright (C) 2024  Francois Blanchette
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <cstring>
 #include <stdio.h>
 #include "level.h"
 #include "map.h"
 #include "tilesdata.h"
+#include "logger.h"
+#include "shared/FileWrap.h"
+#include "strhelper.h"
+#include "shared/helper.h"
+
+constexpr const int CS3_MAP_LEN = 64;
+constexpr const int CS3_MAP_HEI = 64;
+constexpr const int CS3_MAP_OFFSET = 7;
 
 void splitString(const std::string str, StringVector &list)
 {
@@ -25,197 +50,149 @@ void splitString(const std::string str, StringVector &list)
     list.push_back(str.substr(i, j - i));
 }
 
-uint8_t *readFile(const char *fname)
-{
-    FILE *sfile = fopen(fname, "rb");
-    uint8_t *data = nullptr;
-    if (sfile)
-    {
-        fseek(sfile, 0, SEEK_END);
-        int size = ftell(sfile);
-        fseek(sfile, 0, SEEK_SET);
-        data = new uint8_t[size + 1];
-        data[size] = 0;
-        fread(data, size, 1, sfile);
-        fclose(sfile);
-    }
-    else
-    {
-        printf("failed to read:%s\n", fname);
-    }
-    return data;
-}
-
 bool getChMap(const char *mapFile, char *chMap)
 {
-    uint8_t *data = readFile(mapFile);
-    if (data == nullptr)
+    auto data = readFile(mapFile);
+    if (data.empty())
     {
-        printf("cannot read %s\n", mapFile);
+        LOGE("cannot read %s\n", mapFile);
         return false;
     }
-
-    char *p = reinterpret_cast<char *>(data);
-    printf("parsing tiles.map: %zull\n", strlen(p));
+    std::string p(reinterpret_cast<char *>(data.data()));
+    LOGI("parsing tiles.map: %zu\n", p.length());
     int i = 0;
-
-    while (p && *p)
+    size_t pos = 0;
+    while (pos < p.length())
     {
-        char *n = strstr(p, "\n");
-        if (n)
-        {
-            *n = 0;
-            ++n;
-        }
+        std::string current = processLine(p, pos);
+        if (current.empty())
+            continue;
         StringVector list;
-        splitString(std::string(p), list);
+        splitString2(current, list);
+        if (list.size() < 4)
+            continue;
         uint8_t ch = std::stoi(list[3], 0, 16);
-        p = n;
         chMap[ch] = i;
         ++i;
     }
-
-    delete[] data;
     return true;
 }
 
 bool processLevel(CMap &map, const char *fname)
 {
-    printf("reading file: %s\n", fname);
-    uint8_t *data = readFile(fname);
-    if (data == nullptr)
+    auto data = readFile(fname);
+    if (data.empty())
     {
-        // delete[] data;
-        printf("failed read: %s\n", fname);
+        LOGE("failed read: %s\n", fname);
         return false;
     }
-
-    // get level size
-    char *ps = reinterpret_cast<char *>(data);
+    std::string input(reinterpret_cast<char *>(data.data()));
+    size_t pos = 0;
     int maxRows = 0;
     int maxCols = 0;
-    while (ps)
+    // Calculate dimensions
+    while (pos < input.size())
     {
-        ++maxRows;
-        char *u = strstr(ps, "\n");
-        if (u)
-        {
-            *u = 0;
-            maxCols = std::max(static_cast<int>(strlen(ps) + 1), maxCols);
-            *u = '\n';
-        }
-
-        ps = u ? u + 1 : nullptr;
-        //   printf("maxrows %d\n", maxRows);
-    }
-    printf("maxRows: %d, maxCols:%d\n", maxRows, maxCols);
-
-    map.resize(maxCols, maxRows, true);
-    map.clear();
-
-    // convert ascii to map
-    uint8_t *p = data;
-    int x = 0;
-    int y = 0;
-    while (*p)
-    {
-        uint8_t c = *p;
-        ++p;
-        if (c == '\n')
-        {
-            ++y;
-            x = 0;
+        std::string line = processLine(input, pos);
+        if (line.empty())
             continue;
-        }
-
-        uint8_t m = getChTile(c);
-        if (c != ' ' && m == 0)
-        {
-            printf("undefined %c found at %d %d.\n", c, x, y);
-        }
-        map.set(x, y, m);
-        ++x;
+        maxCols = std::max(maxCols, static_cast<int>(line.size()));
+        ++maxRows;
     }
-    delete[] data;
-    return true;
+    // Resize map
+    map.clear();
+    map.resize(maxCols, maxRows, '\0', true);
+    // Set tiles
+    pos = 0;
+    int y = 0;
+    while (pos < input.size())
+    {
+        std::string line = processLine(input, pos);
+        if (!line.empty())
+            for (int x = 0; x < static_cast<int>(line.size()) && x < maxCols; ++x)
+                map.set(x, y, getChTile(line[x]));
+        ++y;
+    }
+    return y > 0;
 }
-
-const uint16_t convTable[] = {
-    TILES_BLANK,
-    TILES_WALL_BRICK,
-    TILES_ANNIE2,
-    TILES_STOP,
-    TILES_DIAMOND,
-    TILES_AMULET1,
-    TILES_CHEST,
-    TILES_TRIFORCE,
-    TILES_BOULDER,
-    TILES_KEY01,
-    TILES_DOOR01,
-    TILES_KEY02,
-    TILES_DOOR02,
-    TILES_KEY03,
-    TILES_DOOR03,
-    TILES_KEY04,
-    TILES_DOOR04,
-    TILES_WALLS93,
-    TILES_WALLS93_2,
-    TILES_WALLS93_3,
-    TILES_WALLS93_4,
-    TILES_WALLS93_5,
-    TILES_WALLS93_6,
-    TILES_WALLS93_7,
-    TILES_FLOWERS_2,
-    TILES_TREE,
-    TILES_ROCK1,
-    TILES_ROCK2,
-    TILES_ROCK3,
-    TILES_TOMB,
-    TILES_SWAMP,
-    TILES_VAMPLANT,
-    TILES_INSECT1,
-    TILES_TEDDY93,
-    TILES_OCTOPUS,
-    TILES_BLANK,
-    TILES_BLANK,
-    TILES_BLANK,
-    TILES_DIAMOND + 0x100,
-    TILES_WALLS93_2 + 0x100,
-    TILES_DIAMOND + 0x200,
-    TILES_WALLS93_2 + 0x200,
-    TILES_DIAMOND + 0x300,
-    TILES_WALLS93_2 + 0x300,
-    TILES_DIAMOND + 0x400,
-    TILES_BLANK + 0x400,
-    TILES_DIAMOND + 0x500,
-    TILES_BLANK + 0x500,
-    TILES_DIAMOND + 0x600,
-    TILES_BLANK + 0x600, // 0x31
-    TILES_BLANK, //0x32
-    TILES_BLANK, //0x33
-    TILES_BLANK, //0x34
-    TILES_YAHOO, //0x35
-};
 
 bool convertCs3Level(CMap &map, const char *fname)
 {
-    uint8_t *data = readFile(fname);
-    if (data == nullptr)
+    const uint16_t convTable[] = {
+        TILES_BLANK,
+        TILES_WALL_BRICK,
+        TILES_ANNIE2,
+        TILES_STOP,
+        TILES_DIAMOND,
+        TILES_AMULET1,
+        TILES_CHEST,
+        TILES_TRIFORCE,
+        TILES_BOULDER,
+        TILES_KEY01,
+        TILES_DOOR01,
+        TILES_KEY02,
+        TILES_DOOR02,
+        TILES_KEY03,
+        TILES_DOOR03,
+        TILES_KEY04,
+        TILES_DOOR04,
+        TILES_WALLS93,
+        TILES_WALLS93_2,
+        TILES_WALLS93_3,
+        TILES_WALLS93_4,
+        TILES_WALLS93_5,
+        TILES_WALLS93_6,
+        TILES_WALLS93_7,
+        TILES_FLOWERS_2,
+        TILES_TREE,
+        TILES_ROCKS0,
+        TILES_ROCKS1,
+        TILES_ROCKS2,
+        TILES_TOMB,
+        TILES_SWAMP,
+        TILES_VAMPLANT,
+        TILES_INSECT1,
+        TILES_TEDDY93,
+        TILES_OCTOPUS,
+        TILES_BLANK,
+        TILES_BLANK,
+        TILES_BLANK,
+        TILES_DIAMOND + 0x100,
+        TILES_WALLS93_2 + 0x100,
+        TILES_DIAMOND + 0x200,
+        TILES_WALLS93_2 + 0x200,
+        TILES_DIAMOND + 0x300,
+        TILES_WALLS93_2 + 0x300,
+        TILES_DIAMOND + 0x400,
+        TILES_BLANK + 0x400,
+        TILES_DIAMOND + 0x500,
+        TILES_BLANK + 0x500,
+        TILES_DIAMOND + 0x600,
+        TILES_BLANK + 0x600, // 0x31
+        TILES_BLANK,         // 0x32
+        TILES_BLANK,         // 0x33
+        TILES_BLANK,         // 0x34
+        TILES_YAHOO,         // 0x35
+    };
+
+    auto data = readFile(fname);
+    if (data.size() == 0)
     {
-        printf("failed read: %s\n", fname);
+        LOGE("failed read: %s\n", fname);
         return false;
     }
 
     map.clear();
-    map.resize(64, 64, true);
-    uint8_t *p = data + 7;
-    for (int y = 0; y < 64; ++y)
+    map.resize(CS3_MAP_LEN, CS3_MAP_HEI, '\0', true);
+    auto p = CS3_MAP_OFFSET;
+    for (int y = 0; y < CS3_MAP_LEN; ++y)
     {
-        for (int x = 0; x < 64; ++x)
+        for (int x = 0; x < CS3_MAP_HEI; ++x)
         {
-            uint8_t oldTile = *p;
-            if (oldTile >= sizeof(convTable) / 2) {
-                printf("oldTile: %d", oldTile);
+            uint8_t oldTile = data[p];
+            if (oldTile >= sizeof(convTable) / 2)
+            {
+                LOGI("oldTile: %d\n", oldTile);
                 oldTile = 0;
             }
             const uint16_t data = convTable[oldTile];
@@ -226,44 +203,47 @@ bool convertCs3Level(CMap &map, const char *fname)
             ++p;
         }
     }
-
-    delete[] data;
     return true;
 }
 
-bool fetchLevel(CMap &map, const char *fname, std::string & error)
+bool fetchLevel(CMap &map, const char *fname, std::string &error)
 {
-    char *tmp = new char[strlen(fname) + 128];
-    printf("fetching: %s\n", fname);
+    const int bufferSize = strlen(fname) + 128;
+    std::vector<char> tmp(bufferSize);
+    LOGI("fetching: %s\n", fname);
 
-    FILE * sfile = fopen(fname,"rb");
-    if (!sfile) {
-        sprintf(tmp, "can't open file: %s", fname);
-        error = tmp;
-        delete []tmp;
+    FILE *sfile = fopen(fname, "rb");
+    auto readfile = [sfile](auto ptr, auto size)
+    {
+        return fread(ptr, size, 1, sfile) == 1;
+    };
+    if (!sfile)
+    {
+        snprintf(tmp.data(), bufferSize, "can't open file: %s", fname);
+        error = tmp.data();
         return false;
     }
 
-    delete []tmp;
-
-    char sig[4];
-    fread(sig, sizeof(sig), 1, sfile);
-    if (memcmp(sig, "MAPZ", 4) == 0) {
+    const char MAPZ_SIGNATURE[] = {'M', 'A', 'P', 'Z'};
+    char sig[sizeof(MAPZ_SIGNATURE)] = {0, 0, 0, 0};
+    readfile(sig, sizeof(sig));
+    if (memcmp(sig, MAPZ_SIGNATURE, sizeof(MAPZ_SIGNATURE)) == 0)
+    {
         fclose(sfile);
-        printf("level is MAPZ\n");
+        LOGI("level is MAPZ\n");
         return map.read(fname);
     }
 
     fseek(sfile, 0, SEEK_END);
     int size = ftell(sfile);
-    const int cs3LevelSize = 64 * 64 + 7;
-    if (size == cs3LevelSize) {
+    if (size == CS3_MAP_LEN * CS3_MAP_HEI + CS3_MAP_OFFSET)
+    {
         fclose(sfile);
-        printf("level is cs3\n");
+        LOGI("level is cs3\n");
         return convertCs3Level(map, fname);
     }
 
     fclose(sfile);
-    printf("level is map\n");
+    LOGI("level is map\n");
     return processLevel(map, fname);
 }

@@ -41,7 +41,7 @@ void CGameUI::clear()
     m_buttons.clear();
 }
 
-size_t CGameUI::size()
+size_t CGameUI::size() const
 {
     return m_buttons.size();
 }
@@ -61,7 +61,7 @@ void CGameUI::hide()
     m_show = false;
 }
 
-bool CGameUI::isVisible()
+bool CGameUI::isVisible() const
 {
     return m_show;
 }
@@ -71,17 +71,17 @@ const std::vector<button_t> &CGameUI::buttons()
     return m_buttons;
 }
 
-int CGameUI::width()
+int CGameUI::width() const
 {
     return m_width;
 }
 
-int CGameUI::height()
+int CGameUI::height() const
 {
     return m_height;
 }
 
-int CGameUI::margin()
+int CGameUI::margin() const
 {
     return m_margin;
 }

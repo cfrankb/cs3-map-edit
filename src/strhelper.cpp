@@ -17,6 +17,7 @@
 */
 #include "strhelper.h"
 #include <cstring>
+#include <sstream>
 
 /**
  * @brief Clean up a line of text
@@ -55,6 +56,21 @@ char *processLine(char *&p)
     return e ? e + 1 : nullptr;
 }
 
+std::string processLine(std::string &input, size_t &pos)
+{
+    if (pos >= input.size())
+        return "";
+    size_t end = input.find_first_of("\r\n", pos);
+    std::string line = (end == std::string::npos) ? input.substr(pos) : input.substr(pos, end - pos);
+    pos = (end == std::string::npos) ? input.size() : end + 1;
+    size_t comment = line.find('#');
+    if (comment != std::string::npos)
+    {
+        line = line.substr(0, comment);
+    }
+    return trimString(line);
+}
+
 /**
  * @brief Split a string into multiple strings
  *
@@ -64,34 +80,40 @@ char *processLine(char *&p)
 
 void splitString2(const std::string &str, std::vector<std::string> &list)
 {
-    unsigned int j = 0;
-    bool inQuote = false;
+    list.clear(); // Ensure list is empty
     std::string item;
-    while (j < str.length())
+    bool inQuote = false;
+
+    for (size_t j = 0; j < str.length(); ++j)
     {
         if (str[j] == '"')
         {
             inQuote = !inQuote;
+            continue; // Skip quote character
         }
-        else if (!isspace(str[j]) || inQuote)
+        if (inQuote)
         {
-            item += str[j];
+            item += str[j]; // Include all characters within quotes
         }
-        if (!inQuote && isspace(str[j]))
+        else if (!std::isspace(str[j]))
         {
-            list.emplace_back(item);
-            while (isspace(str[j]) && j < str.length())
+            item += str[j]; // Add non-space characters
+        }
+        else if (!item.empty())
+        {
+            list.push_back(item); // End of token
+            item.clear();
+            // Skip consecutive spaces
+            while (j < str.length() && std::isspace(str[j]))
             {
                 ++j;
             }
-            item.clear();
-            continue;
+            --j; // Adjust for loop increment
         }
-        ++j;
     }
-    if (item.size())
+    if (!item.empty())
     {
-        list.emplace_back(item);
+        list.push_back(item); // Add final token
     }
 }
 
@@ -147,4 +169,16 @@ bool endswith(const char *str, const char *end)
 {
     const char *t = strstr(str, end);
     return t && strcmp(t, end) == 0;
+}
+
+std::vector<std::string> split(const std::string &input, char delimiter)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(input);
+    std::string token;
+    while (std::getline(ss, token, delimiter))
+    {
+        result.push_back(token);
+    }
+    return result;
 }

@@ -15,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define LOG_TAG "game"
 #include <unordered_map>
 #include <cstring>
 #include <stdarg.h>
@@ -23,6 +22,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <memory>
 #include "game.h"
 #include "map.h"
 #include "actor.h"
@@ -39,6 +39,7 @@
 #include "gamestats.h"
 #include "attr.h"
 #include "logger.h"
+#include "strhelper.h"
 
 CMap CGame::m_map(30, 30);
 CGame::userKeys_t CGame::m_keys;
@@ -91,7 +92,7 @@ CGame::CGame()
     m_level = 0;
     m_lives = defaultLives();
     m_score = 0;
-    m_gameStats = new CGameStats;
+    m_gameStats = std::make_unique<CGameStats>();
     m_gameStats->set(S_SKILL, SKILL_EASY);
 }
 
@@ -101,8 +102,9 @@ CGame::CGame()
  */
 CGame::~CGame()
 {
-    delete m_sound;
-    delete m_gameStats;
+    // delete m_sound;
+    if (m_sound != nullptr)
+        m_sound->forget();
 }
 
 /**
@@ -196,13 +198,13 @@ void CGame::consume()
         auto &sugar = m_gameStats->get(S_SUGAR);
         ++sugar;
         if (sugar != MAX_SUGAR_RUSH_LEVEL)
-            m_events.push_back(EVENT_SUGAR);
+            m_events.emplace_back(EVENT_SUGAR);
     }
 
     // apply flags
     if (def.flags & FLAG_EXTRA_LIFE)
     {
-        m_events.push_back(EVENT_EXTRA_LIFE);
+        m_events.emplace_back(EVENT_EXTRA_LIFE);
         addLife();
     }
 
@@ -211,14 +213,14 @@ void CGame::consume()
         if (!m_gameStats->get(S_GOD_MODE_TIMER))
             playSound(SOUND_POWERUP3);
         m_gameStats->set(S_GOD_MODE_TIMER, GODMODE_TIMER);
-        m_events.push_back(EVENT_GOD_MODE);
+        m_events.emplace_back(EVENT_GOD_MODE);
     }
     else if (def.flags & FLAG_EXTRA_SPEED || m_gameStats->get(S_SUGAR) == MAX_SUGAR_RUSH_LEVEL)
     {
         if (!m_gameStats->get(S_EXTRA_SPEED_TIMER))
             playSound(SOUND_POWERUP2);
         m_gameStats->set(S_EXTRA_SPEED_TIMER, EXTRASPEED_TIMER);
-        m_events.push_back(EVENT_SUGAR_RUSH);
+        m_events.emplace_back(EVENT_SUGAR_RUSH);
         m_gameStats->set(S_SUGAR, 0);
     }
     else if (def.flags & FLAG_RAGE)
@@ -226,23 +228,22 @@ void CGame::consume()
         if (!m_gameStats->get(S_RAGE_TIMER))
             playSound(SOUND_POWERUP3);
         m_gameStats->set(S_RAGE_TIMER, RAGE_TIMER);
-        m_events.push_back(EVENT_RAGE);
+        m_events.emplace_back(EVENT_RAGE);
     }
 
     // trigger key
     int x = m_player.getX();
     int y = m_player.getY();
     uint8_t attr = m_map.getAttr(x, y);
-
     m_map.setAttr(x, y, 0);
     if (attr == ATTR_FREEZE_TRAP)
     {
         m_gameStats->set(S_FREEZE_TIMER, FREEZE_TIMER);
-        m_events.push_back(EVENT_FREEZE);
+        m_events.emplace_back(EVENT_FREEZE);
     }
     else if (attr == ATTR_TRAP)
     {
-        m_events.push_back(EVENT_TRAP);
+        m_events.emplace_back(EVENT_TRAP);
         addHealth(TRAP_DAMAGE);
     }
     else if (RANGE(attr, PASSAGE_ATTR_MIN, PASSAGE_ATTR_MAX))
@@ -251,15 +252,15 @@ void CGame::consume()
         {
             playSound(SOUND_0009);
             if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
-                m_events.push_back(EVENT_SECRET);
+                m_events.emplace_back(EVENT_SECRET);
             else
-                m_events.push_back(EVENT_PASSAGE);
+                m_events.emplace_back(EVENT_PASSAGE);
         }
     }
     else if (attr >= MSG0 && m_map.states().hasS(attr))
     {
         // Messsage Event (scrolls, books etc)
-        m_events.push_back(static_cast<Event>(attr));
+        m_events.emplace_back(static_cast<Event>(attr));
     }
 }
 
@@ -372,7 +373,7 @@ void CGame::resetSugar()
  */
 void CGame::decTimers()
 {
-    std::vector<GameStat> stats = {
+    constexpr const GameStat stats[] = {
         S_GOD_MODE_TIMER,
         S_EXTRA_SPEED_TIMER,
         S_RAGE_TIMER,
@@ -390,7 +391,7 @@ void CGame::decTimers()
  */
 void CGame::resetStats()
 {
-    std::vector<GameStat> stats = {
+    constexpr const GameStat stats[] = {
         S_GOD_MODE_TIMER,
         S_EXTRA_SPEED_TIMER,
         S_RAGE_TIMER,
@@ -469,7 +470,7 @@ bool CGame::findMonsters()
             const Pos &pos = CMap::toPos(key);
             const JoyAim aim = attr < ATTR_CRUSHERH_MIN ? AIM_UP : AIM_LEFT;
             addMonster(CActor(pos, attr, aim));
-            removed.push_back(pos);
+            removed.emplace_back(pos);
         }
     }
 
@@ -491,7 +492,7 @@ bool CGame::findMonsters()
  */
 int CGame::addMonster(const CActor actor)
 {
-    m_monsters.push_back(actor);
+    m_monsters.emplace_back(actor);
     return (int)m_monsters.size();
 }
 
@@ -630,7 +631,7 @@ void CGame::manageMonsters(const int ticks)
                 else if (defT.type == TYPE_SWAMP)
                 {
                     m_map.set(p.x, p.y, TILES_VAMPLANT);
-                    newMonsters.push_back(CActor(p.x, p.y, TYPE_VAMPLANT));
+                    newMonsters.emplace_back(CActor(p.x, p.y, TYPE_VAMPLANT));
                     break;
                 }
                 else if (defT.type == TYPE_MONSTER)
@@ -813,7 +814,7 @@ int CGame::clearAttr(const uint8_t attr)
     for (const auto &[key, tileAttr] : m_map.attrs())
     {
         if (tileAttr == attr)
-            keys.push_back(key);
+            keys.emplace_back(key);
     }
 
     for (const auto &key : keys)
@@ -831,7 +832,7 @@ int CGame::clearAttr(const uint8_t attr)
         }
         m_map.set(x, y, TILES_BLANK);
         m_map.setAttr(x, y, 0);
-        m_sfx.push_back(sfx_t{.x = x, .y = y, .sfxID = SFX_SPARKLE, .timeout = SFX_SPARKLE_TIMEOUT});
+        m_sfx.emplace_back(sfx_t{.x = x, .y = y, .sfxID = SFX_SPARKLE, .timeout = SFX_SPARKLE_TIMEOUT});
     }
     return count;
 }
@@ -877,7 +878,7 @@ void CGame::checkClosure()
         if (exitKey != 0)
         {
             // Exit Notification Message
-            m_events.push_back(EVENT_EXIT_OPENED);
+            m_events.emplace_back(EVENT_EXIT_OPENED);
             const bool revealExit = m_gameStats->get(S_REVEAL_EXIT) != 0;
             const Pos exitPos = CMap::toPos(exitKey);
             if (!revealExit)
@@ -1141,7 +1142,7 @@ bool CGame::read(IFile &sfile)
     {
         CActor tmp;
         tmp.read(sfile);
-        m_monsters.push_back(tmp);
+        m_monsters.emplace_back(tmp);
     }
     m_events.clear();
     m_sfx.clear();
@@ -1248,9 +1249,10 @@ void CGame::playTileSound(int tileID) const
  *
  * @param s
  */
-void CGame::attach(ISound *s)
+void CGame::attach(std::shared_ptr<ISound> &s)
 {
     m_sound = s;
+    LOGI("m_sound useCount: %d\n", s.use_count());
 }
 
 /**
@@ -1313,45 +1315,12 @@ const char *CGame::getHintText()
 void CGame::parseHints(const char *data)
 {
     m_hints.clear();
-    const int bufferSize = strlen(data) + 1;
-    char *t = new char[bufferSize];
-    strncpy(t, data, bufferSize);
-    char *p = t;
-    while (p && *p)
+    const auto lines = split(std::string(data), '\n');
+    for (const auto &line : lines)
     {
-        char *en = strstr(p, "\n");
-        if (en)
-        {
-            *en = 0;
-        }
-        char *er = strstr(p, "\r");
-        if (er)
-        {
-            *er = 0;
-        }
-        char *e = er > en ? er : en;
-        while (*p == ' ' || *p == '\t')
-        {
-            ++p;
-        }
-        char *c = strstr(p, "#");
-        if (c)
-        {
-            *c = '\0';
-        }
-        int i = strlen(p) - 1;
-        while (i >= 0 && (p[i] == ' ' || p[i] == '\t'))
-        {
-            p[i] = '\0';
-            --i;
-        }
-        if (p[0])
-        {
-            m_hints.push_back(p);
-        }
-        p = e ? e + 1 : nullptr;
+        if (!line.empty())
+            m_hints.emplace_back(line);
     }
-    delete[] t;
 }
 
 /**

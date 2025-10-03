@@ -15,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define LOG_TAG "map"
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
@@ -37,76 +36,44 @@ typedef struct
     char ver;
 } extrahdr_t;
 
-CMap::CMap(uint16_t len, uint16_t hei, uint8_t t)
+CMap::CMap(uint16_t len, uint16_t hei, uint8_t t) : m_states(std::make_unique<CStates>())
 {
-    len = std::min(len, MAX_SIZE);
-    hei = std::min(hei, MAX_SIZE);
-    m_size = 0;
-    m_len = len;
-    m_hei = hei;
-    m_map = (m_len * m_hei) != 0 ? new uint8_t[m_len * m_hei] : nullptr;
-    if (m_map)
-    {
-        m_size = m_len * m_hei;
-        memset(m_map, t, m_size * sizeof(m_map[0]));
-    }
-    m_states = new CStates;
+    resize(len, hei, t, true);
 };
 
-CMap::CMap(const CMap &map)
-{
-    m_len = map.m_len;
-    m_hei = map.m_hei;
-    m_size = map.m_len * map.m_hei;
-    m_map = new uint8_t[m_size];
-    memcpy(m_map, map.m_map, m_size);
-    m_attrs = map.m_attrs;
-    m_title = map.m_title;
-    m_states = new CStates();
-    *m_states = *map.m_states;
-}
+CMap::CMap(const CMap &map) : m_len(map.m_len),
+                              m_hei(map.m_hei),
+                              m_map(map.m_map),
+                              m_attrs(map.m_attrs),
+                              m_title(map.m_title),
+                              m_states(std::make_unique<CStates>(*map.m_states)) {}
 
 CMap::~CMap()
 {
     clear();
-    delete m_states;
 };
 
-uint8_t &CMap::at(int x, int y)
+uint8_t &CMap::get(const int x, const int y)
 {
-    if (x >= m_len)
-    {
-        LOGW("x [%d] greater than m_len\n", x);
-    }
-    if (y >= m_hei)
-    {
-        LOGW("y [%d] greater than m_hei\n", y);
-    }
-    return *(m_map + x + y * m_len);
+    return m_map[x + y * m_len];
 }
 
-uint8_t *CMap::row(int y)
+uint8_t CMap::at(const int x, const int y) const
 {
-    return m_map + y * m_len;
+    return m_map[x + y * m_len];
 }
 
-void CMap::set(int x, int y, uint8_t t)
+void CMap::set(const int x, const int y, const uint8_t t)
 {
-    at(x, y) = t;
+    get(x, y) = t;
 }
 
 void CMap::clear()
 {
     m_states->clear();
-    if (m_map != nullptr)
-    {
-        delete[] m_map;
-        m_map = nullptr;
-        m_size = 0;
-    }
+    m_map.clear();
     m_len = 0;
     m_hei = 0;
-    m_size = 0;
     m_attrs.clear();
 }
 
@@ -122,7 +89,7 @@ bool CMap::read(const char *fname)
     return sfile != nullptr && result;
 }
 
-bool CMap::write(const char *fname)
+bool CMap::write(const char *fname) const
 {
     bool result = false;
     FILE *tfile = fopen(fname, "wb");
@@ -151,10 +118,10 @@ bool CMap::read(IFile &file)
         file.seek(pos);
         return pos;
     };
-    auto states = m_states;
+    auto states = &m_states;
     auto readStates = [&file, states]() -> bool
     {
-        return states->read(file);
+        return (*states)->read(file);
     };
 
     return readImpl(readfile, tell, seek, readStates);
@@ -177,10 +144,10 @@ bool CMap::read(FILE *sfile)
         return fseek(sfile, pos, SEEK_SET) == 0;
     };
 
-    auto states = m_states;
+    auto states = &m_states;
     auto readStates = [sfile, states]() -> bool
     {
-        return states->read(sfile);
+        return (*states)->read(sfile);
     };
 
     return readImpl(readfile, tell, seek, readStates);
@@ -233,10 +200,10 @@ bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::func
 
     len = len ? len : MAX_SIZE;
     hei = hei ? hei : MAX_SIZE;
-    resize(len, hei, true);
+    resize(len, hei, 0, true);
 
     // Read map data
-    if (!readfile(m_map, len * hei))
+    if (!readfile(m_map.data(), len * hei))
     {
         m_lastError = "failed to read map data [m]";
         LOGE("%s\n", m_lastError.c_str());
@@ -276,25 +243,32 @@ bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::func
     size_t ptr = tell();
     if (readfile(&hdr, sizeof(hdr)))
     {
+        // XDR section is optional
         if (memcmp(&hdr, XTR_SIG, sizeof(hdr.sig)) == 0)
         {
-            // Read title - preserving original read size
             uint16_t size = 0;
-            if (readfile(&size, 1) && size > 0)
-            { // Original uses 1 byte
+            if (readfile(&size, 1) != IFILE_OK)
+            {
+                LOGE("failed to read map title size\n");
+                return false;
+            }
+            if (size != 0)
+            {
                 char tmp[MAX_TITLE + 1];
                 tmp[size] = 0;
-                if (readfile(tmp, size) != 0)
+                if (readfile(tmp, size) != IFILE_OK)
                 {
-                    m_title = tmp;
+                    LOGE("failed to read map title\n");
+                    return false;
                 }
+                m_title = tmp;
             }
 
             // Read states
             if (hdr.ver >= XTR_VER1)
             {
                 // This will need adaptation based on your states read method
-                readStates();
+                return readStates();
             }
         }
         else
@@ -328,16 +302,16 @@ bool CMap::fromMemory(uint8_t *mem)
         return true;
     };
 
-    auto states = m_states;
+    auto states = &m_states;
     auto readStates = [&mem, states]() -> bool
     {
-        return states->fromMemory(mem);
+        return (*states)->fromMemory(mem);
     };
 
     return readImpl(readfile, tell, seek, readStates);
 }
 
-bool CMap::write(FILE *tfile)
+bool CMap::write(FILE *tfile) const
 {
     if (!tfile)
         return false;
@@ -352,7 +326,7 @@ bool CMap::write(FILE *tfile)
     return m_states->write(tfile);
 }
 
-bool CMap::write(IFile &tfile)
+bool CMap::write(IFile &tfile) const
 {
     auto writefile = [&tfile](const void *ptr, size_t size) -> bool
     {
@@ -365,7 +339,7 @@ bool CMap::write(IFile &tfile)
 }
 
 template <typename WriteFunc>
-bool CMap::writeCommon(WriteFunc writefile)
+bool CMap::writeCommon(WriteFunc writefile) const
 {
     // Write header
     if (!writefile(SIG, sizeof(SIG)))
@@ -376,7 +350,7 @@ bool CMap::writeCommon(WriteFunc writefile)
         return false;
     if (!writefile(&m_hei, sizeof(uint8_t)))
         return false;
-    if (!writefile(m_map, m_len * m_hei))
+    if (!writefile(m_map.data(), m_len * m_hei))
         return false;
 
     // Write attributes
@@ -425,45 +399,7 @@ int CMap::hei() const
     return m_hei;
 }
 
-bool CMap::resize(uint16_t len, uint16_t hei, bool fast)
-{
-    len = std::min(len, MAX_SIZE);
-    hei = std::min(hei, MAX_SIZE);
-    if (fast)
-    {
-        if (len * hei > m_size)
-        {
-            clear();
-            m_map = new uint8_t[len * hei];
-            if (m_map == nullptr)
-            {
-                m_lastError = "resize fail";
-                LOGE("%s\n", m_lastError.c_str());
-                return false;
-            }
-        }
-        m_attrs.clear();
-    }
-    else
-    {
-        uint8_t *newMap = new uint8_t[len * hei];
-        memset(newMap, 0, len * hei);
-        for (int y = 0; y < std::min(m_hei, hei); ++y)
-        {
-            memcpy(newMap + y * len,
-                   m_map + y * m_len,
-                   std::min(len, m_len));
-        }
-        delete[] m_map;
-        m_map = newMap;
-    }
-    m_size = len * hei;
-    m_len = len;
-    m_hei = hei;
-    return true;
-}
-
-const Pos CMap::findFirst(uint8_t tileId)
+const Pos CMap::findFirst(const uint8_t tileId) const
 {
     for (uint16_t y = 0; y < m_hei; ++y)
     {
@@ -478,9 +414,9 @@ const Pos CMap::findFirst(uint8_t tileId)
     return Pos{NOT_FOUND, NOT_FOUND};
 }
 
-int CMap::count(uint8_t tileId)
+size_t CMap::count(const uint8_t tileId) const
 {
-    int count = 0;
+    size_t count = 0;
     for (uint16_t y = 0; y < m_hei; ++y)
     {
         for (uint16_t x = 0; x < m_len; ++x)
@@ -496,13 +432,9 @@ int CMap::count(uint8_t tileId)
 
 void CMap::fill(uint8_t ch)
 {
-    if (m_map && m_len * m_hei > 0)
-    {
+    if (m_len * m_hei > 0)
         for (int i = 0; i < m_len * m_hei; ++i)
-        {
             m_map[i] = ch;
-        }
-    }
     m_attrs.clear();
 }
 
@@ -538,94 +470,103 @@ const char *CMap::lastError()
     return m_lastError.c_str();
 }
 
-int CMap::size()
+size_t CMap::size() const
 {
-    return m_size;
+    return m_map.size();
 }
 
 CMap &CMap::operator=(const CMap &map)
 {
-    clear();
-    m_len = map.m_len;
-    m_hei = map.m_hei;
-    m_size = map.m_len * map.m_hei;
-    m_map = new uint8_t[m_size];
-    memcpy(m_map, map.m_map, m_size);
-    m_attrs = map.m_attrs;
-    m_title = map.m_title;
-    *m_states = *map.m_states;
+    if (this != &map)
+    {
+        m_len = map.m_len;
+        m_hei = map.m_hei;
+        m_map = map.m_map;
+        m_attrs = map.m_attrs;
+        m_title = map.m_title;
+        *m_states = *map.m_states;
+    }
     return *this;
 }
 
-void CMap::shift(int aim)
+void CMap::shift(Direction aim)
 {
-    uint8_t *tmp = new uint8_t[m_len];
+    if (m_len == 0 || m_hei == 0)
+        return; // No-op for empty map
+
+    std::vector<uint8_t> tmp(m_len); // Temporary buffer for row/column
+    AttrMap newAttrs;                // New attribute map for shifted positions
+
     switch (aim)
     {
-    case UP:
-        memcpy(tmp, m_map, m_len);
-        for (int y = 1; y < m_hei; ++y)
+    case Direction::UP:
+        // Save top row, rotate tiles upward, place top row at bottom
+        std::copy(m_map.begin(), m_map.begin() + m_len, tmp.begin());
+        std::rotate(m_map.begin(), m_map.begin() + m_len, m_map.end());
+        // Update attributes
+        for (const auto &[key, attr] : m_attrs)
         {
-            memcpy(m_map + (y - 1) * m_len, m_map + y * m_len, m_len);
+            Pos pos = toPos(key);
+            pos.y = (pos.y == 0) ? m_hei - 1 : pos.y - 1;
+            newAttrs[toKey(pos.x, pos.y)] = attr;
         }
-        memcpy(m_map + (m_hei - 1) * m_len, tmp, m_len);
         break;
 
-    case DOWN:
-        memcpy(tmp, m_map + (m_hei - 1) * m_len, m_len);
-        for (int y = m_hei - 2; y >= 0; --y)
+    case Direction::DOWN:
+        // Save bottom row, rotate tiles downward, place bottom row at top
+        std::copy(m_map.end() - m_len, m_map.end(), tmp.begin());
+        std::rotate(m_map.rbegin(), m_map.rbegin() + m_len, m_map.rend());
+        // Update attributes
+        for (const auto &[key, attr] : m_attrs)
         {
-            memcpy(m_map + (y + 1) * m_len, m_map + y * m_len, m_len);
+            Pos pos = toPos(key);
+            pos.y = (pos.y == m_hei - 1) ? 0 : pos.y + 1;
+            newAttrs[toKey(pos.x, pos.y)] = attr;
         }
-        memcpy(m_map, tmp, m_len);
         break;
 
-    case LEFT:
+    case Direction::LEFT:
+        // Shift each row left, wrap first column to last
         for (int y = 0; y < m_hei; ++y)
         {
-            uint8_t *p = m_map + y * m_len;
-            memcpy(tmp, p, m_len);
-            memcpy(p, tmp + 1, m_len - 1);
-            p[m_len - 1] = tmp[0];
+            auto start = m_map.begin() + y * m_len;
+            tmp[0] = *start; // Save first element
+            std::rotate(start, start + 1, start + m_len);
+            *(start + m_len - 1) = tmp[0];
+        }
+        // Update attributes
+        for (const auto &[key, attr] : m_attrs)
+        {
+            Pos pos = toPos(key);
+            pos.x = (pos.x == 0) ? m_len - 1 : pos.x - 1;
+            newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
-    case RIGHT:
+
+    case Direction::RIGHT:
+        // Shift each row right, wrap last column to first
         for (int y = 0; y < m_hei; ++y)
         {
-            uint8_t *p = m_map + y * m_len;
-            memcpy(tmp, p, m_len);
-            memcpy(p + 1, tmp, m_len - 1);
-            p[0] = tmp[m_len - 1];
+            auto start = m_map.begin() + y * m_len;
+            tmp[0] = *(start + m_len - 1); // Save last element
+            std::rotate(start, start + m_len - 1, start + m_len);
+            *start = tmp[0];
+        }
+        // Update attributes
+        for (const auto &[key, attr] : m_attrs)
+        {
+            Pos pos = toPos(key);
+            pos.x = (pos.x == m_len - 1) ? 0 : pos.x + 1;
+            newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
-    };
 
-    AttrMap tMap;
-    for (auto &it : m_attrs)
-    {
-        uint16_t key = it.first;
-        uint16_t x = key & 0xff;
-        uint16_t y = key >> 8;
-        uint8_t a = it.second;
-        switch (aim)
-        {
-        case UP:
-            y = y ? y - 1 : m_hei - 1;
-            break;
-        case DOWN:
-            y = y < m_hei - 1 ? y + 1 : 0;
-            break;
-        case LEFT:
-            x = x ? x - 1 : m_len - 1;
-            break;
-        case RIGHT:
-            x = x < m_len - 1 ? x + 1 : 0;
-        }
-        uint16_t newKey = toKey(x, y);
-        tMap[newKey] = a;
+    default:
+        LOGW("Invalid shift direction: %d\n", static_cast<int>(aim));
+        return;
     }
-    m_attrs = tMap;
-    delete[] tmp;
+
+    m_attrs = std::move(newAttrs); // Update attributes
 }
 
 uint16_t CMap::toKey(const uint8_t x, const uint8_t y)
@@ -666,4 +607,32 @@ void CMap::setTitle(const char *title)
 CStates &CMap::states()
 {
     return *m_states;
+}
+
+bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
+{
+    in_len = std::min(in_len, MAX_SIZE);
+    in_hei = std::min(in_hei, MAX_SIZE);
+
+    if (fast)
+    {
+        m_map.resize(in_len * in_hei, t);
+        m_attrs.clear();
+    }
+    else
+    {
+        std::vector<uint8_t> map(in_len * in_hei);
+        for (int y = 0; y < std::min(m_hei, in_hei); ++y)
+        {
+            for (int x = 0; x < std::min(m_len, in_len); ++x)
+            {
+                map[x + y * in_len] = m_map[x + y * m_len];
+            }
+        }
+        m_map = std::move(map);
+    }
+
+    m_len = in_len;
+    m_hei = in_hei;
+    return true;
 }

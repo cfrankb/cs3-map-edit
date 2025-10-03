@@ -31,9 +31,9 @@ public:
     void append(const uint8_t *input);
     bool get(uint8_t *output);
     void stop();
-    bool isRecording();
-    bool isReading();
-    bool isStopped();
+    bool isRecording() const;
+    bool isReading() const;
+    bool isStopped() const;
 
 private:
     enum

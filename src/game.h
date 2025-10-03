@@ -108,7 +108,7 @@ public:
     void playSound(const int id) const;
     void playTileSound(const int tileID) const;
     void setLives(const int lives);
-    void attach(ISound *s);
+    void attach(std::shared_ptr<ISound> &s);
     void setSkill(const uint8_t v);
     uint8_t skill() const;
     int size() const;
@@ -176,9 +176,9 @@ private:
     std::vector<sfx_t> m_sfx;
     CActor m_player;
     CMapArch *m_mapArch = nullptr;
-    ISound *m_sound = nullptr;
+    std::shared_ptr<ISound> m_sound;
     std::vector<std::string> m_hints;
-    CGameStats *m_gameStats;
+    std::unique_ptr<CGameStats> m_gameStats;
     MapReport m_report;
     int m_defaultLives = DEFAULT_LIVES;
     bool m_quiet = false;

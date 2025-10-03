@@ -45,20 +45,23 @@ public:
     CGameStats();
     ~CGameStats();
 
+    int at(const GameStat key) const;
     int &get(const GameStat key);
     void set(const GameStat key, int value);
     int &dec(const GameStat key);
     int &inc(const GameStat key);
 
+    [[deprecated("Use IFile interface instead")]]
     bool read(FILE *sfile);
-    bool write(FILE *tfile);
+    [[deprecated("Use IFile interface instead")]]
+    bool write(FILE *tfile) const;
 
     bool read(IFile &sfile);
-    bool write(IFile &tfile);
+    bool write(IFile &tfile) const;
 
 private:
     template <typename WriteFunc>
-    bool writeCommon(WriteFunc writefile);
+    bool writeCommon(WriteFunc writefile) const;
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);
     std::unordered_map<uint16_t, int32_t> m_stats;

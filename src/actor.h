@@ -42,7 +42,7 @@ public:
     CActor(const Pos &pos, uint8_t type = 0, JoyAim aim = AIM_UP);
     ~CActor();
 
-    bool canMove(const JoyAim aim);
+    bool canMove(const JoyAim aim) const;
     void move(const JoyAim aim);
     inline uint8_t getX() const
     {
@@ -61,18 +61,20 @@ public:
     void setPos(const Pos &pos);
     JoyAim getAim() const;
     void setAim(const JoyAim aim);
-    JoyAim findNextDir(const bool reverse = false);
+    JoyAim findNextDir(const bool reverse = false) const;
     bool isPlayerThere(JoyAim aim) const;
     uint8_t tileAt(JoyAim aim) const;
     void setType(const uint8_t type);
     bool isWithin(const int x1, const int y1, const int x2, const int y2) const;
+    [[deprecated("Use IFile interface instead")]]
     bool read(FILE *sfile);
-    bool write(FILE *tfile);
+    [[deprecated("Use IFile interface instead")]]
+    bool write(FILE *tfile) const;
     bool read(IFile &file);
-    bool write(IFile &tfile);
+    bool write(IFile &tfile) const;
     void reverveDir();
     const Pos pos() const;
-    int distance(const CActor &actor);
+    int distance(const CActor &actor) const;
 
 private:
     uint8_t m_x;
@@ -83,6 +85,6 @@ private:
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);
     template <typename WriteFunc>
-    bool writeCommon(WriteFunc writefile);
+    bool writeCommon(WriteFunc writefile) const;
     friend class CGame;
 };

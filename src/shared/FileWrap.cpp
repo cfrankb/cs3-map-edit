@@ -19,6 +19,7 @@
 #include "FileWrap.h"
 #include <cstring>
 #include <cstdio>
+#include <vector>
 #ifdef USE_QFILE
 #include <QFile>
 #endif
@@ -201,13 +202,14 @@ CFileWrap &CFileWrap::operator>>(std::string &str)
 
         if (x != 0)
         {
-            char *sz = new char[x + 1];
+            // char *sz = new char[x + 1];
+            std::vector<char> sz(x + 1);
             sz[x] = 0;
-            memcpy(sz, &m_memFile[_ptr], x);
+            memcpy(sz.data(), &m_memFile[_ptr], x);
             _ptr += x;
             // file.read (sz, x);
-            str = sz;
-            delete[] sz;
+            str = sz.data();
+            // delete[] sz;
         }
         else
         {
@@ -228,12 +230,13 @@ CFileWrap &CFileWrap::operator>>(std::string &str)
 
         if (x != 0)
         {
-            char *sz = new char[x + 1];
+            // char *sz = new char[x + 1];
+            std::vector<char> sz(x + 1);
             sz[x] = 0;
-            fread(sz, x, 1, m_file);
+            fread(sz.data(), x, 1, m_file);
             // file.read (sz, x);
-            str = sz;
-            delete[] sz;
+            str = sz.data();
+            // delete[] sz;
         }
         else
         {

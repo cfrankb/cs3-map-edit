@@ -21,14 +21,19 @@
 #include <cstdint>
 
 class IFile;
-typedef std::unordered_map<uint32_t, uint32_t> colorMap_t;
+using colorMap_t = std::unordered_map<uint32_t, uint32_t>;
 
+/// Stores color mappings for game effects.
 struct ColorMaps
 {
-    colorMap_t sugarRush;
-    colorMap_t godMode;
-    colorMap_t rage;
+    colorMap_t sugarRush; ///< Color mappings for sugar rush mode.
+    colorMap_t godMode;   ///< Color mappings for god mode.
+    colorMap_t rage;      ///< Color mappings for rage mode.
 };
 
+/// Clears all color mappings.
+void clearColorMaps(ColorMaps &colorMaps);
+/// Parses color mappings from a file in format: [section] key=value.
 bool parseColorMaps(IFile &file, ColorMaps &colorMaps);
+/// Parses color mappings from a char buffer.
 bool parseColorMaps(char *tmp, ColorMaps &colorMaps);

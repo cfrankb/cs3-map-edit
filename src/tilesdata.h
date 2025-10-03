@@ -47,9 +47,9 @@ const TileDef & getTileDef(int i);
 #define TILES_WALLS93_5           0x07
 #define TILES_WALLS93_6           0x08
 #define TILES_WALLS93_7           0x09
-#define TILES_ROCK1               0x0a
-#define TILES_ROCK2               0x0b
-#define TILES_ROCK3               0x0c
+#define TILES_ROCKS0              0x0a
+#define TILES_ROCKS1              0x0b
+#define TILES_ROCKS2              0x0c
 #define TILES_WALL_BRICK          0x0d
 #define TILES_WALL_BRICK_2        0x0e
 #define TILES_WALL_BRICK_3        0x0f

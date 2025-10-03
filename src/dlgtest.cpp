@@ -116,7 +116,7 @@ void CDlgTest::paintEvent(QPaintEvent *)
     }
 
     // show the screen
-    const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB()), bitmap.len(), bitmap.hei(), QImage::Format_RGBX8888);
+    const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB().data()), bitmap.width(), bitmap.height(), QImage::Format_RGBX8888);
     const QPixmap & pixmap = QPixmap::fromImage(m_zoom ? img.scaled(QSize(WIDTH * 2, HEIGHT * 2)): img);
     QPainter p(this);
     p.drawPixmap(0, 0, pixmap);
@@ -167,8 +167,9 @@ void CDlgTest::preloadAssets()
 
     typedef struct {
         const char *filename;
-        CFrameSet **frameset;
+        std::unique_ptr<CFrameSet> *frameset;
     } asset_t;
+
 
     asset_t assets[] = {
         {":/data/tiles.obl", &m_tiles},
@@ -178,11 +179,11 @@ void CDlgTest::preloadAssets()
 
     for (int i=0; i < 3; ++i) {
         asset_t & asset = assets[i];
-        *(asset.frameset) = new CFrameSet();
+        *(asset.frameset) =  std::make_unique<CFrameSet>();
         if (file.open(asset.filename, "rb")) {
             qDebug("reading %s", asset.filename);
             if ((*(asset.frameset))->extract(file)) {
-                qDebug("extracted: %d", (*(asset.frameset))->getSize());
+                qDebug("extracted: %lu", (*(asset.frameset))->getSize());
             }
             file.close();
         }
@@ -192,8 +193,8 @@ void CDlgTest::preloadAssets()
     int size = 0;
     if (file.open(fontName, "rb")) {
         size = file.getSize();
-        m_fontData = new uint8_t[size];
-        file.read(m_fontData, size);
+        m_fontData.resize(size);
+        file.read(m_fontData.data(), size);
         file.close();
         qDebug("loaded font: %d bytes", size);
     } else {

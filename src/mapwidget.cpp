@@ -106,7 +106,7 @@ void CMapWidget::paintEvent(QPaintEvent *)
     }
 
     // show the screen
-    const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB()), bitmap.len(), bitmap.hei(), QImage::Format_RGBX8888);
+    const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB().data()), bitmap.width(), bitmap.height(), QImage::Format_RGBX8888);
     const QPixmap & pixmap = QPixmap::fromImage(img.scaled(QSize(width * 2, height * 2)));
     QPainter p(this);
     p.drawPixmap(0, 0, pixmap);
@@ -115,8 +115,8 @@ void CMapWidget::paintEvent(QPaintEvent *)
 
 void CMapWidget::drawRect(CFrame &frame, const Rect &rect, const uint32_t color, bool fill)
 {
-    uint32_t *rgba = frame.getRGB();
-    const int rowPixels = frame.len();
+    uint32_t *rgba = frame.getRGB().data();
+    const int rowPixels = frame.width();
     if (fill)
     {
         for (int y = 0; y < rect.height; y++)
@@ -149,8 +149,8 @@ void CMapWidget::drawScreen(CFrame &bitmap)
     const uint16_t startPos = states.getU(POS_ORIGIN);
     const uint16_t exitPos = states.getU(POS_EXIT);
 
-    const int maxRows = bitmap.hei() / TILE_SIZE;
-    const int maxCols = bitmap.len() / TILE_SIZE;
+    const int maxRows = bitmap.height() / TILE_SIZE;
+    const int maxCols = bitmap.width() / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
@@ -231,8 +231,8 @@ uint32_t CMapWidget::attr2color(const uint8_t attr)
 void CMapWidget::drawGrid(CFrame & bitmap)
 {
     CMap *map = m_map;
-    int maxRows = bitmap.hei() / TILE_SIZE;
-    int maxCols = bitmap.len() / TILE_SIZE;
+    int maxRows = bitmap.height() / TILE_SIZE;
+    int maxCols = bitmap.width() / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
     CMapScroll *scr = static_cast<CMapScroll*>(parent());
@@ -265,8 +265,8 @@ void CMapWidget::drawGrid(CFrame & bitmap)
 
 void CMapWidget::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha)
 {
-    uint32_t *rgba = frame.getRGB();
-    const int rowPixels = frame.len();
+    uint32_t *rgba = frame.getRGB().data();
+    const int rowPixels = frame.width();
     const int fontSize = static_cast<int>(FONT_SIZE);
     const int fontOffset = fontSize;
     const int textSize = strlen(text);
@@ -303,22 +303,22 @@ void CMapWidget::drawFont(CFrame & frame, int x, int y, const char *text, const 
 
 void CMapWidget::drawTile(CFrame & bitmap, const int x, const int y, CFrame & tile, const bool alpha)
 {
-    const int WIDTH = bitmap.len();
-    const uint32_t *tileData = tile.getRGB();
-    uint32_t *dest = bitmap.getRGB() + x + y * WIDTH;
+    const int WIDTH = bitmap.width();
+    const uint32_t *tileData = tile.getRGB().data();
+    uint32_t *dest = bitmap.getRGB().data() + x + y * WIDTH;
     if (alpha) {
-        for (int row=0; row < tile.hei(); ++row) {
-            for (int col=0; col < tile.len(); ++col) {
+        for (int row=0; row < tile.height(); ++row) {
+            for (int col=0; col < tile.width(); ++col) {
                 const uint32_t & rgba = tileData[col];
                 if (rgba & ALPHA) {
                     dest[col] = rgba;
                 }
             }
             dest += WIDTH;
-            tileData += tile.len();
+            tileData += tile.width();
         }
     } else {
-        for (int row=0; row < tile.hei(); ++row) {
+        for (int row=0; row < tile.height(); ++row) {
             int i = 0;
             dest[i++] = *(tileData++);
             dest[i++] = *(tileData++);

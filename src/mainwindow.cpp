@@ -362,7 +362,7 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
         }
         if (reply == QMessageBox::Yes)
         {
-            map.resize(dlg.width(), dlg.height(), false);
+            map.resize(dlg.width(), dlg.height(), '\0', false);
             m_doc.setDirty(true);
             emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
         }
@@ -514,7 +514,7 @@ void MainWindow::onLeftClick(int x, int y)
 
         if (newTileId != tile)
         {
-            m_doc.map()->at(x, y) = newTileId;
+            m_doc.map()->set(x, y,newTileId);
             m_doc.setDirty(true);
         }
     }
