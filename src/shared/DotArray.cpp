@@ -16,24 +16,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "../shared/DotArray.h"
+#include "DotArray.h"
 #include <cmath>
 
-///////////////////////////////////////////////////////////////////
-// CDotArray
-
-CDotArray::CDotArray() {
+CDotArray::CDotArray()
+{
     m_max = GROWBY;
-    m_size = 0;
-    m_dots = new Dot[m_max];
+    m_dots.reserve(m_max);
     m_maxX = -1;
     m_maxY = -1;
 }
 
-CDotArray::~CDotArray() {
-    if (m_dots) {
-        delete [] m_dots;
-    }
+CDotArray::~CDotArray()
+{
 }
 
 void CDotArray::add(const Dot &dot)
@@ -43,106 +38,64 @@ void CDotArray::add(const Dot &dot)
 
 void CDotArray::add(uint32_t color, int x, int y)
 {
-    if (x >= 0 && y >= 0 && (x < m_maxX || m_maxX ==-1)
-            && (y < m_maxY || m_maxY ==-1)) {
-
-        if (m_size==m_max) {
+    if (x >= 0 && y >= 0 && (x < m_maxX || m_maxX == -1) && (y < m_maxY || m_maxY == -1))
+    {
+        if (m_dots.size() == m_max)
+        {
             m_max += GROWBY;
-            Dot *t =  new Dot[m_max];
-            for (int i=0; i < m_size; ++i) {
-                t[i] = m_dots[i];
-            }
-
-            delete [] m_dots;
-            m_dots = t;
+            m_dots.reserve(m_max);
         }
-
-        Dot & dot = m_dots[m_size];
-        dot.color = color;
-        dot.x = x;
-        dot.y = y;
-        ++ m_size;
+        m_dots.emplace_back(Dot{x, y, color});
     }
 }
 
 void CDotArray::flush()
 {
-    m_size = 0;
+    m_dots.clear();
 }
 
 bool CDotArray::isEmpty()
 {
-    return !m_size;
+    return m_dots.size() != 0;
 }
 
-Dot & CDotArray::operator[] (int i)
+const Dot &CDotArray::operator[](int i)
 {
     return m_dots[i];
 }
 
-int CDotArray::getSize()
+size_t CDotArray::getSize()
 {
-    return m_size;
+    return m_dots.size();
 }
 
 int CDotArray::lineTab(const uint32_t color, const Dot dot1, const Dot dot2, bool clear)
 {
-    if (clear) {
+    if (clear)
+    {
         flush();
     }
 
-    int Ydiff;
-    int Xdiff;
-
-    int Yunit, Xunit;
-    int error;
-
-    int XX;
-    int YY;
-
-    XX = dot1.x;
-    YY = dot1.y;
-
-    Ydiff = dot2.y - dot1.y;
-
-    if (Ydiff < 0) {
-        Ydiff = -Ydiff;
-        Yunit = -1;
-    }  else   {
-        Yunit = 1;
-    }
-
-    Xdiff = dot2.x - dot1.x;
-
-    if (Xdiff < 0) {
-        Xdiff = -Xdiff;
-        Xunit = -1;
-    }  else   {
-        Xunit = 1;
-    }
-
-    error = 0;
-    if (Xdiff > Ydiff)  {
-        int len = Xdiff;// + 1;
-        for (int i=0; i<=len; i++) {
-            add(color, XX,YY);
-            XX = XX + Xunit;
-            error = error + Ydiff;
-            if (error > Xdiff)   {
-                error = error - Xdiff;
-                YY = YY + Yunit;
-            }
+    int dx = abs(dot2.x - dot1.x);
+    int dy = abs(dot2.y - dot1.y);
+    int err = dx - dy; // Initial error
+    int x = dot1.x;
+    int y = dot1.y;
+    int sx = (dot1.x < dot2.x) ? 1 : -1;
+    int sy = (dot1.y < dot2.y) ? 1 : -1;
+    for (int i = 0; i <= dx; ++i)
+    {
+        add(color, x, y);
+        int e2 = 2 * err;
+        if (e2 > -dy)
+        {
+            err -= dy;
+            x += sx;
         }
-    } else {
-        int len = Ydiff;// + 1;
-        for (int i=0; i<=len; i++) {
-            add(color, XX,YY);
-            YY = YY + Yunit;
-            error = error + Xdiff;
-            if (error > 0)     {
-                error = error - Ydiff;
-                XX = XX + Xunit;
-            }
+        if (e2 < dx)
+        {
+            err += dx;
+            y += sy;
         }
     }
 
@@ -151,23 +104,45 @@ int CDotArray::lineTab(const uint32_t color, const Dot dot1, const Dot dot2, boo
 
 int CDotArray::circle(const uint32_t color, const Dot dot1, const Dot dot2, bool clear)
 {
-    if (clear){
+    if (clear)
+    {
         flush();
     }
 
-    float radius = std::abs( (float) dot1.y - dot2.y) / 2.0f;
+    // Assume vertical for now; radius = std::abs(dot1.y - dot2.y) / 2;  // int
     int x0 = dot1.x;
-    int y0 = dot1.y - (dot1.y - dot2.y) / 2;
-    float tmp = radius * radius;
-    float x = -radius;
-    do {
-        float y = sqrt(tmp - (x * x));
-        add(color, x0 + x, y0 - y); // 4.th quadrant
-        add(color, x0 + x, y0 + y); // 3.rd quadrant
-        add(color, x0 - x, y0 - y); // 1.st quadrant
-        add(color, x0 - x, y0 + y); // 1.nd quadrant
-        x = x + 0.1f;
-    } while (x <= 0);
+    int y0 = (dot1.y + dot2.y) / 2;
+    int r = std::abs(dot1.y - dot2.y) / 2;
+    if (r == 0)
+    {
+        add(color, x0, y0);
+        return getSize();
+    }
+    int x = 0, y = r;
+    int d = 3 - 2 * r; // Decision param
+    // Plot initial points (top/right octants, symmetry for others)
+    auto plot_sym = [&](int dx, int dy)
+    {
+        add(color, x0 + dx, y0 + dy);
+        add(color, x0 - dx, y0 + dy);
+        add(color, x0 + dx, y0 - dy);
+        add(color, x0 - dx, y0 - dy);
+    };
+    plot_sym(x, y); // Initial
+    while (y >= x)
+    {
+        x++;
+        if (d > 0)
+        {
+            y--;
+            d += 4 * (x - y) + 10; // Adjust for both regions
+        }
+        else
+        {
+            d += 4 * x + 6;
+        }
+        plot_sym(x, y);
+    }
     return getSize();
 }
 

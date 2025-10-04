@@ -1,6 +1,6 @@
 /*
     LGCK Builder Runtime
-    Copyright (C) 1999, 2011  Francois Blanchette
+    Copyright (C) 1999, 2011, 2025  Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,53 +18,55 @@
 
 #pragma once
 
+#include <vector>
+#include <cstdint>
 #include <string>
+#include <string_view>
+#include <unordered_map>
+#include <memory>
 #include "IFile.h"
+
+class CFileMem;
 
 class CFileWrap : public IFile
 {
 public:
     CFileWrap();
-    virtual ~CFileWrap();
+    ~CFileWrap() override;
 
-    virtual CFileWrap &operator>>(std::string &str);
-    virtual CFileWrap &operator<<(const std::string &str);
-    virtual CFileWrap &operator+=(const std::string &str);
+    bool operator>>(std::string &str) override;
+    // Writes a string with a length prefix (1 or 3 bytes) for structured serialization.
+    bool operator<<(const std::string_view &str) override;
+    bool operator<<(const char *s) override;
+    bool operator+=(const std::string_view &str) override;
 
-    virtual CFileWrap &operator>>(int &n);
-    virtual CFileWrap &operator<<(int n);
+    bool operator>>(int &n) override;
+    bool operator<<(const int n) override;
 
-    virtual CFileWrap &operator>>(bool &b);
-    virtual CFileWrap &operator<<(bool b);
-    virtual CFileWrap &operator+=(const char *);
+    bool operator>>(bool &b) override;
+    bool operator<<(const bool b) override;
+    // Appends a string without a length prefix for raw text output.
+    bool operator+=(const char *) override;
 
-    virtual bool open(const char *filename, const char *mode = "rb");
-    virtual int read(void *buf, int size);
-    virtual int write(const void *buf, int size);
-    static void addFile(const char *fileName, const char *data, const int size);
+    bool open(const std::string_view &filename, const std::string_view &mode = "rb") override;
+    int read(void *buf, const int size) override;
+    int write(const void *buf, int size) override;
+
+    bool close() override;
+    long getSize() override;
+    bool seek(const long i) override;
+    long tell() override;
+    bool flush() override;
+    const std::string_view mode() override;
+
+    static void addFile(const std::string_view &fileName, const std::vector<uint8_t> &data);
     static void freeFiles();
 
-    virtual void close();
-    virtual long getSize();
-    virtual void seek(long i);
-    virtual long tell();
-
 protected:
+    std::string m_mode;
     FILE *m_file;
+    static std::unordered_map<std::string, std::unique_ptr<CFileMem>> m_files;
 
-    typedef struct
-    {
-        char *fileName;
-        unsigned char *data;
-        int size;
-        void *next;
-        int ptr;
-    } MEMFILE;
-
-    MEMFILE *m_memFile;
-
-    static MEMFILE *m_head;
-    static MEMFILE *m_tail;
-
-    MEMFILE *findFile(const char *fileName);
+    CFileMem *m_memFile;
+    CFileMem *findFile(const std::string_view &fileName);
 };

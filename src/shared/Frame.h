@@ -27,38 +27,6 @@ class CSS3Map;
 class CUndo;
 class IFile;
 
-class CSS3Map
-{
-public:
-    CSS3Map();
-    CSS3Map(int px, int py);
-    ~CSS3Map() = default;
-
-    void resize(int px, int py);
-    inline char &at(int x, int y)
-    {
-        return m_map[x + y * m_len];
-    }
-
-    int length() const { return m_len; }
-    int height() const { return m_hei; }
-
-    bool read(IFile &file);
-    bool write(IFile &file) const;
-    bool isNULL() const;
-    char *getMap() { return m_map.data(); }
-
-    enum
-    {
-        GRID_SIZE = 8
-    };
-
-protected:
-    std::vector<char> m_map;
-    int m_len;
-    int m_hei;
-};
-
 class CFrame
 {
 public:
@@ -90,16 +58,12 @@ public:
     }
 
     inline std::vector<uint32_t> &getRGB() { return m_rgb; }
-    void setRGB(std::vector<uint32_t> rgb) { m_rgb = std::move(rgb); }
-    // inline char map(int x, int y) const { return m_map.at(x, y); }
-
-    inline char map(int x, int y) { return m_map.at(x, y); }
+    void setRGB(std::vector<uint32_t> &rgb) { m_rgb = std::move(rgb); }
     bool hasTransparency() const;
     bool isEmpty() const;
 
     CFrame &operator=(const CFrame &src);
     void clear();
-    void updateMap();
     void resize(int len, int hei);
     void setTransparency(uint32_t rgba);
     void setTopPixelAsTranparency();
@@ -159,9 +123,7 @@ public:
         pngHeaderSize = 8,
         png_IHDR_Size = 21,
         pngChunkLimit = 32767,
-        MAX_UNDO = 20,
         OBL5_UNPACKED = 0x500,
-        IMAGE_MAX_SIZE = 4096,
     };
 
     typedef struct
@@ -206,7 +168,6 @@ private:
     };
 
     std::vector<uint32_t> m_rgb;
-    CSS3Map m_map;
     int m_width;
     int m_height;
     std::string m_lastError;

@@ -242,12 +242,12 @@ std::vector<StateValuePair> CStates::getValues() const
         else
             snprintf(tmp1, sizeof(tmp1), "0x%.4x", v);
         snprintf(tmp2, sizeof(tmp2), "%d", v);
-        pairs.push_back({k, v ? tmp1 : "", v ? tmp2 : ""});
+        pairs.emplace_back(StateValuePair{k, v ? tmp1 : "", v ? tmp2 : ""});
     }
 
     for (const auto &[k, v] : m_stateS)
     {
-        pairs.push_back({k, v, ""});
+        pairs.emplace_back(StateValuePair{k, v, ""});
     }
     return pairs;
 }

@@ -25,6 +25,7 @@
 #include <cmath>
 #include "CRC.h"
 #include "IFile.h"
+#include "logger.h"
 
 /* These describe the color_type field in png_info. */
 /* color type masks */
@@ -50,7 +51,19 @@ enum
     CHUNK_TYPE_LEN = 4,
 };
 
-std::string m_lastError;
+static std::string g_lastError;
+
+// TODO: add mutex for multithreaded
+static void setLastError(std::string lastError)
+{
+    g_lastError = lastError;
+}
+
+std::string LastError()
+{
+    return g_lastError;
+}
+
 typedef struct
 {
     uint32_t Lenght; // 4 UINT8s
@@ -104,7 +117,7 @@ bool _8bpp(
     const uint8_t trns[],
     const int offsetY);
 
-bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
+bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
 {
     CCRC crc;
     int pos = PNG_INITIAL_POS;
@@ -168,15 +181,16 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
             memcpy(((uint8_t *)&ihdr) + 8, chunkData, chunkSize);
             memcpy(ihdr.ChunkType, chunkType, 4);
             ihdr.Lenght = chunkSize;
-            /*
-            qDebug("Width: %d, Height: %d", CFrame::toNet(ihdr.Width), CFrame::toNet(ihdr.Height));
-            qDebug("BitDepth: %d", ihdr.BitDepth);
-            qDebug("ColorType: %d", ihdr.ColorType);
-            qDebug("Compression: %d", ihdr.Compression);
-            qDebug("Filter: %d", ihdr.Filter);
-            qDebug("Interlace: %d\n", ihdr.Interlace);
-            //              ihdr_found = true;
-            */
+
+            if (verbose)
+            {
+                LOGI("Width: %d, Height: %d", CFrame::toNet(ihdr.Width), CFrame::toNet(ihdr.Height));
+                LOGI("BitDepth: %d", ihdr.BitDepth);
+                LOGI("ColorType: %d", ihdr.ColorType);
+                LOGI("Compression: %d", ihdr.Compression);
+                LOGI("Filter: %d", ihdr.Filter);
+                LOGI("Interlace: %d\n", ihdr.Interlace);
+            }
         }
 
         else if (memcmp(chunkType, "PLTE", CHUNK_TYPE_LEN) == 0)
@@ -281,7 +295,6 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
                 }
                 else
                 {
-                    frame->updateMap();
                     set.add(frame);
                 }
             }
@@ -341,9 +354,9 @@ bool _8bpp(
         (uint8_t *)cData,
         (uLong)cDataSize);
 
-    if (err)
+    if (err != Z_OK)
     {
-        m_lastError = "error in decomp";
+        setLastError("error in decomp");
         delete[] data;
         return false;
     }
@@ -513,7 +526,7 @@ bool _8bpp(
             valid = false;
             char tmp[128];
             snprintf(tmp, sizeof(tmp), "unsupported filter: %d", filtering);
-            m_lastError = tmp;
+            setLastError(tmp);
             break;
         }
     }
@@ -537,7 +550,7 @@ bool _4bpp(
 
     if (ihdr.ColorType != PNG_COLOR_TYPE_PALETTE)
     {
-        m_lastError = "colorType is not PNG_COLOR_TYPE_PALETTE";
+        setLastError("colorType is not PNG_COLOR_TYPE_PALETTE");
         return false;
     }
 
@@ -559,14 +572,14 @@ bool _4bpp(
         (uint8_t *)cData,
         (uLong)cDataSize);
 
-    if (err)
+    if (err != Z_OK)
     {
-        m_lastError = "error in decomp";
+        setLastError("error in decomp");
         delete[] data;
         return false;
     }
 
-    bool valid = true;
+    // bool valid = true;
     uint32_t *rgb = frame->getRGB().data();
 
     for (int y = 0; y < height; y++)
@@ -577,17 +590,9 @@ bool _4bpp(
         //   prLine = & data[pitch * (y - 1) + 1];
         //}
         uint8_t filtering = data[pitch * y];
-        bool handled = true;
+        // bool handled = true;
 
-        switch (filtering)
-        {
-        case 0:
-            break;
-        default:
-            handled = false;
-        }
-
-        if (handled)
+        if (filtering == 0)
         {
             for (int x = 0; x < width; x++)
             {
@@ -617,13 +622,13 @@ bool _4bpp(
         }
         else
         {
-            valid = false;
+            //      valid = false;
             char tmp[128];
             snprintf(tmp, sizeof(tmp), "unsupported filter: %d", filtering);
-            m_lastError = tmp;
-            break;
+            setLastError(tmp);
+            return false;
         }
     }
 
-    return valid;
+    return true;
 }

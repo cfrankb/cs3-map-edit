@@ -1,6 +1,6 @@
 /*
-    LGCK Builder Runtime
-    Copyright (C) 1999, 2020  Francois Blanchette
+    cs3-runtime-sdl
+    Copyright (C) 2025 Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 */
 #pragma once
 
-class CFrameSet;
-class IFile;
-
-bool parsePNG(CFrameSet &set, IFile &file, int orgPos = 0, bool verbose = false);
+#define MAX_IMAGES 1024
+#define MAX_IMAGE_SIZE 256
+#define TAG_KEY_MAX 32
+#define TAG_VAL_MAX 1024

@@ -44,32 +44,29 @@ int QFileWrap::write(const void *buf, int size)
     return m_file->write( (char*) buf, size) == size ? 1 : 0;
 }
 
-QFileWrap & QFileWrap::operator >> (int & n)
+bool  QFileWrap::operator >> (int & n)
 {
-    read(&n, 4);
-    return *this;
+    return read(&n, 4) == IFILE_OK;
+
 }
 
-QFileWrap & QFileWrap::operator << ( int n)
+bool  QFileWrap::operator << ( int n)
 {
-    write(&n, 4);
-    return *this;
+    return write(&n, 4) == IFILE_OK;
 }
 
-QFileWrap & QFileWrap::operator >> (bool & b)
+bool  QFileWrap::operator >> (bool & b)
 {
     memset(&b, 0, sizeof(b));
-    read(&b, 1);
-    return *this;
+    return read(&b, 1) == IFILE_OK;
 }
 
-QFileWrap & QFileWrap::operator << ( bool b)
+bool  QFileWrap::operator << ( bool b)
 {
-    write(&b, 1);
-    return *this;
+    return write(&b, 1) == IFILE_OK;
 }
 
-QFileWrap & QFileWrap::operator >> ( std::string & str)
+bool  QFileWrap::operator >> ( std::string & str)
 {
     int x = 0;
     read (&x, 1);
@@ -88,10 +85,10 @@ QFileWrap & QFileWrap::operator >> ( std::string & str)
         str = "";
     }
 
-    return *this;
+    return true;
 }
 
-QFileWrap & QFileWrap::operator << (const std::string & str)
+bool  QFileWrap::operator << (const std::string_view &str)
 {
     int x = str.length();
     if (x <= 0xfe) {
@@ -106,33 +103,32 @@ QFileWrap & QFileWrap::operator << (const std::string & str)
     }
 
     if (x!=0) {
-        write(str.c_str(), x);
+        write(str.data(), x);
     }
 
-    return *this;
+    return true;
 }
 
-QFileWrap & QFileWrap::operator += (const std::string & str)
+bool  QFileWrap::operator += (const std::string_view &str)
 {
-    write(str.c_str(), str.length());
-    return *this;
+    return write(str.data(), str.length()) == IFILE_OK;
+    //return *this;
 }
 
-QFileWrap & QFileWrap::operator += (const char *s)
+bool  QFileWrap::operator += (const char *s)
 {
-    write(s, strlen(s));
-    return *this;
+    return write(s, strlen(s));
 }
 
-QFileWrap & QFileWrap::operator += (const QString & str)
+bool  QFileWrap::operator += (const QString & str)
 {
-    m_file->write(str.toUtf8(), str.size());
-    return *this;
+    return m_file->write(str.toUtf8(), str.size());
+    //return *this;
 }
 
-bool QFileWrap::open(const char* fileName, const char *mode)
+bool QFileWrap::open(const std::string_view &filename, const std::string_view &mode )
 {
-    return open(QString(fileName), mode);
+    return open(filename.data(), mode.data());
 }
 
 bool QFileWrap::open(const QString & fileName, const char *mode)
@@ -157,7 +153,7 @@ bool QFileWrap::open(const QString & fileName, const char *mode)
     return m_file->open(iomode);
 }
 
-void QFileWrap::close()
+bool QFileWrap::close()
 {
     if (m_file) {
         if ( m_file->openMode() != QIODevice::NotOpen) {
@@ -166,6 +162,7 @@ void QFileWrap::close()
         delete m_file;
         m_file = NULL;
     }
+    return true;
 }
 
 long QFileWrap::getSize()
@@ -173,12 +170,27 @@ long QFileWrap::getSize()
     return m_file->size();
 }
 
-void QFileWrap::seek(long p)
+bool QFileWrap::seek(long p)
 {
     m_file->seek(p);
+    return true;
 }
 
 long QFileWrap::tell()
 {
     return m_file->pos();
 }
+
+bool QFileWrap::flush() {
+    return true;
+}
+const std::string_view QFileWrap::mode() {
+    return m_mode;
+}
+
+bool QFileWrap::operator<<(const char *s)
+{
+    std::string_view sv(s);
+    return *this << sv; // Delegate to string_view overload
+}
+

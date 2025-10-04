@@ -1,6 +1,6 @@
 /*
     LGCK Builder Runtime
-    Copyright (C) 1999, 2016  Francois Blanchette
+    Copyright (C) 1999, 2016, 2025  Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 #include "IFile.h"
 
@@ -26,43 +28,38 @@ class CFileMem : public IFile
 {
 public:
     CFileMem();
-    virtual ~CFileMem();
+    ~CFileMem();
 
-    virtual CFileMem &operator>>(std::string &str);
-    virtual CFileMem &operator<<(const std::string &str);
-    virtual CFileMem &operator+=(const std::string &str);
+    bool operator>>(std::string &str) override;
+    bool operator<<(const std::string_view &str) override;
+    bool operator<<(const char *s) override;
+    bool operator+=(const std::string_view &str) override;
 
-    virtual CFileMem &operator>>(int &n);
-    virtual CFileMem &operator<<(int n);
+    bool operator>>(int &n) override;
+    bool operator<<(int n) override;
 
-    virtual CFileMem &operator>>(bool &b);
-    virtual CFileMem &operator<<(bool b);
-    virtual CFileMem &operator+=(const char *);
+    bool operator>>(bool &b) override;
+    bool operator<<(const bool b) override;
+    bool operator+=(const char *) override;
 
-    virtual bool open(const char *filename = "", const char *mode = "");
-    virtual int read(void *buf, int size);
-    virtual int write(const void *buf, int size);
+    bool open(const std::string_view &filename = "", const std::string_view &mode = "rb") override;
+    int read(void *buf, int size) override;
+    int write(const void *buf, int size) override;
 
-    virtual void close();
-    virtual long getSize();
-    virtual void seek(long i);
-    virtual long tell();
+    bool close() override;
+    long getSize() override;
+    bool seek(long i) override;
+    long tell() override;
+    const std::string_view mode() override;
 
-    const char *buffer();
-    void replace(const char *buffer, int size);
+    const std::vector<uint8_t> &buffer();
+    void replace(const uint8_t *buffer, size_t size);
+    bool flush() override;
 
-protected:
-    void grow(int size, bool resize);
+private:
     void append(const void *data, int size);
-
     std::string m_filename;
-    std::vector<char> m_buffer;
-    int m_max;
-    int m_ptr;
+    std::vector<uint8_t> m_buffer;
+    size_t m_ptr;
     std::string m_mode;
-
-    enum
-    {
-        GROWBY = 8192
-    };
 };

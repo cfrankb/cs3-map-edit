@@ -32,29 +32,33 @@ public:
     QFileWrap();
     ~QFileWrap() override;
 
-    QFileWrap & operator >> (std::string & str) override;
-    QFileWrap & operator << (const std::string & str) override;
-    QFileWrap & operator += (const std::string & str) override;
+    bool  operator >> (std::string & str) override;
+    bool  operator << (const std::string_view &str) override;
+     bool operator <<(const char *s) override;
+    bool  operator += (const std::string_view &str) override;
 
-    QFileWrap & operator >> (int & n) override;
-    QFileWrap & operator << (int n) override;
+    bool  operator >> (int & n) override;
+    bool  operator << (int n) override;
 
-    QFileWrap & operator >> (bool & b) override;
-    QFileWrap & operator << (bool b) override;
-    QFileWrap & operator += (const char *) override;
-    QFileWrap & operator += (const QString & str);
+    bool  operator >> (bool & b) override;
+    bool  operator << (bool b) override;
+    bool  operator += (const char *) override;
+    bool  operator += (const QString & str);
 
-    bool open(const char *filename, const char *mode= "rb") override;
+    bool open(const std::string_view &filename, const std::string_view &mode = "rb") override;
     bool open(const QString &filename, const char *mode= "rb");
     int read(void *buf, int size) override;
     int write(const void *buf, int size) override;
 
-    void close() override;
+    bool close() override;
     long getSize() override;
-    void seek(long i) override;
+    bool seek(long i) override;
     long tell() override;
+     bool flush() override;
+     const std::string_view mode() override;
 
 protected:
+    std::string m_mode;
     QFile * m_file;
 };
 

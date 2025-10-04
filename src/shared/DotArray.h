@@ -16,15 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef X__DOTARRAY__
-#define X__DOTARRAY__
+#pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <vector>
 
-class Dot {
+class Dot
+{
 
 public:
-    Dot(int sx=0, int sy=0, uint32_t sColor =0) {
+    Dot(int sx = 0, int sy = 0, uint32_t sColor = 0)
+    {
         x = sx;
         y = sy;
         color = sColor;
@@ -38,31 +40,27 @@ public:
 class CDotArray
 {
 public:
-
     CDotArray();
     ~CDotArray();
 
     void add(uint32_t color, int x, int y);
-    void add(const Dot & dot);
+    void add(const Dot &dot);
     bool isEmpty();
     void flush();
-    int getSize();
-    int lineTab(const uint32_t color, const Dot dot1, const Dot dot2, bool clear=true);
-    int circle(const uint32_t color, const Dot dot1, const Dot dot2, bool clear=true);
-    Dot & operator[] (int i);
+    size_t getSize();
+    int lineTab(const uint32_t color, const Dot dot1, const Dot dot2, bool clear = true);
+    int circle(const uint32_t color, const Dot dot1, const Dot dot2, bool clear = true);
+    const Dot &operator[](int i);
     void setLimit(int maxX, int maxY);
 
-protected:
-
-    Dot *m_dots;
-    int m_size;
-    int m_max;
+private:
+    std::vector<Dot> m_dots;
+    size_t m_max;
     int m_maxX;
     int m_maxY;
 
-    enum {
+    enum
+    {
         GROWBY = 1000
     };
 };
-
-#endif

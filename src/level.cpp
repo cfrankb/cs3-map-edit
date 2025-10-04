@@ -37,7 +37,7 @@ void splitString(const std::string str, StringVector &list)
     {
         if (isspace(str[j]))
         {
-            list.push_back(str.substr(i, j - i));
+            list.emplace_back(str.substr(i, j - i));
             while (isspace(str[j]) && j < str.length())
             {
                 ++j;
@@ -47,7 +47,7 @@ void splitString(const std::string str, StringVector &list)
         }
         ++j;
     }
-    list.push_back(str.substr(i, j - i));
+    list.emplace_back(str.substr(i, j - i));
 }
 
 bool getChMap(const char *mapFile, char *chMap)

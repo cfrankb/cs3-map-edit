@@ -383,8 +383,7 @@ bool CFrameSet::readSolid(IFile &file, int size)
         auto frame = std::make_unique<CFrame>(len, hei);
         // const size_t dataSize = sizeof(PIXEL) * frame->len() * frame->hei();
         memcpy(frame->getRGB().data(), ptr, dataSize);
-        frame->updateMap();
-        m_arrFrames.push_back(frame.release());
+        m_arrFrames.emplace_back(frame.release());
         ptr += dataSize;
     }
 
@@ -582,7 +581,7 @@ int CFrameSet::operator--()
 
 int CFrameSet::add(CFrame *pFrame)
 {
-    m_arrFrames.push_back(pFrame);
+    m_arrFrames.emplace_back(pFrame);
     return m_arrFrames.size() - 1;
 }
 
@@ -750,7 +749,6 @@ bool CFrameSet::importIMA(IFile &file, const long org)
         return false;
     }
     bitmap2rgb(bitmap.get(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET_NONE);
-    frame->updateMap();
     add(frame.release());
     LOGW("Extra data after %s frame; possible format mismatch", "IMA");
     return true;
@@ -879,7 +877,6 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
     }
     // generating 32bits bitmap for frame
     bitmap2rgb(bitmap.get(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET_NONE);
-    frame->updateMap();
     add(frame.release());
 
     // Warn if extra data remains
@@ -960,7 +957,6 @@ bool CFrameSet::importGE96(IFile &file, const long org)
         }
         memcpy(bitmap.data(), &mcx.ImageData[0][0], byteSize);
         bitmap2rgb(bitmap.data(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET);
-        frame->updateMap();
         add(frame.release());
     }
     auto fileSize = file.getSize();
@@ -992,8 +988,7 @@ bool CFrameSet::importOBL5(IFile &file, const long org)
     m_arrFrames.reserve(size);
     for (size_t i = 0; i < size; ++i)
     {
-        frameSet[i]->updateMap();
-        m_arrFrames.push_back(frameSet[i]);
+        m_arrFrames.emplace_back(frameSet[i]);
     }
     frameSet.removeAll();
     return true;
@@ -1098,7 +1093,6 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
         // frame->resize(frame->width(), frame->height());
         // frame->setRGB(new uint32_t[frame->width() * frame->height()]);
         bitmap2rgb(bitmap.data(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET);
-        frame->updateMap();
         add(frame.release());
     }
     // Verify file position (ensure no extra data)
@@ -1244,7 +1238,6 @@ bool CFrameSet::importOBL3(IFile &file, const long org)
         if (frame == nullptr)
             return false;
         bitmap2rgb(bitmap.data(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET);
-        frame->updateMap();
         add(frame);
     }
     if (file.tell() < fileSize)
@@ -1345,7 +1338,7 @@ void CFrameSet::toSubset(CFrameSet &dest, int start, int end)
     {
         CFrame *frame = new CFrame;
         frame->copy(m_arrFrames[i]);
-        add(frame);
+        dest.add(frame);
         // dest.add(new CFrame(m_arrFrames[i]));
     }
 }

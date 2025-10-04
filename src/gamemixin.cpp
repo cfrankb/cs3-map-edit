@@ -557,12 +557,12 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
         {
             const Pos pos = monster.pos();
             const uint8_t attr = map->getAttr(pos.x, pos.y);
-            sprites.push_back(
-                {.x = monster.getX(),
-                 .y = monster.getY(),
-                 .tileID = tileID,
-                 .aim = monster.getAim(),
-                 .attr = attr});
+            sprites.emplace_back(
+                sprite_t{.x = monster.getX(),
+                         .y = monster.getY(),
+                         .tileID = tileID,
+                         .aim = monster.getAim(),
+                         .attr = attr});
         }
     }
 
@@ -571,7 +571,7 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
     {
         if (sfx.isWithin(mx, my, mx + cols + ox, my + rows + oy))
         {
-            sprites.push_back({
+            sprites.emplace_back(sprite_t{
                 .x = sfx.x,
                 .y = sfx.y,
                 .tileID = sfx.sfxID,

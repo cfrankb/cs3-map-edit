@@ -24,6 +24,7 @@
 #include <vector>
 #include <memory>
 #include "ISerial.h"
+#include "ss_limits.h"
 
 class CFrame;
 class IFile;
@@ -88,10 +89,6 @@ private:
         COLOR_INDEX_OFFSET = -16,
         COLOR_INDEX_OFFSET_NONE = 0,
         OBL3_GRANULAR = 16,
-        MAX_IMAGES = 1024,
-        MAX_IMAGE_SIZE = 256,
-        TAG_KEY_MAX = 32,
-        TAG_VAL_MAX = 1024,
     };
 
     bool writeSolid(IFile &file);

@@ -101,7 +101,7 @@ void splitString2(const std::string &str, std::vector<std::string> &list)
         }
         else if (!item.empty())
         {
-            list.push_back(item); // End of token
+            list.emplace_back(item); // End of token
             item.clear();
             // Skip consecutive spaces
             while (j < str.length() && std::isspace(str[j]))
@@ -113,7 +113,7 @@ void splitString2(const std::string &str, std::vector<std::string> &list)
     }
     if (!item.empty())
     {
-        list.push_back(item); // Add final token
+        list.emplace_back(item); // Add final token
     }
 }
 
@@ -178,7 +178,7 @@ std::vector<std::string> split(const std::string &input, char delimiter)
     std::string token;
     while (std::getline(ss, token, delimiter))
     {
-        result.push_back(token);
+        result.emplace_back(token);
     }
     return result;
 }

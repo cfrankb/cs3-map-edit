@@ -135,7 +135,7 @@ void generateScreenshot(const QString &filename, CMap *map, const int maxRows, c
     if (file.open(":/data/tiles.obl", "rb")) {
         qDebug("reading tiles");
         if (fs->extract(file)) {
-            qDebug("extracted: %d", fs->getSize());
+            qDebug("extracted: %lu", fs->getSize());
         }
         file.close();
     }

@@ -62,7 +62,7 @@ void CMapWidget::preloadAssets()
         if (file.open(asset.filename, "rb")) {
             qDebug("reading %s", asset.filename);
             if ((*(asset.frameset))->extract(file)) {
-                qDebug("extracted: %d", (*(asset.frameset))->getSize());
+                qDebug("extracted: %lu", (*(asset.frameset))->getSize());
             }
             file.close();
         }

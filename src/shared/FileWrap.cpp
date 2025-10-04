@@ -1,6 +1,6 @@
 /*
     LGCK Builder Runtime
-    Copyright (C) 1999, 2011  Francois Blanchette
+    Copyright (C) 1999, 2011, 2025  Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,13 +20,16 @@
 #include <cstring>
 #include <cstdio>
 #include <vector>
-#ifdef USE_QFILE
-#include <QFile>
-#endif
+#include <cassert>
+#include "logger.h"
+#include "FileMem.h"
+
+std::unordered_map<std::string, std::unique_ptr<CFileMem>> CFileWrap::m_files;
 
 CFileWrap::CFileWrap()
 {
     m_file = nullptr;
+    m_memFile = nullptr;
 }
 
 CFileWrap::~CFileWrap()
@@ -34,123 +37,87 @@ CFileWrap::~CFileWrap()
     close();
 }
 
-#define _ptr m_memFile->ptr
-
-CFileWrap::MEMFILE *CFileWrap::m_head = nullptr;
-CFileWrap::MEMFILE *CFileWrap::m_tail = nullptr;
-
-void CFileWrap::addFile(const char *fileName, const char *data, const int size)
+void CFileWrap::addFile(const std::string_view &fileName, const std::vector<uint8_t> &data)
 {
-    MEMFILE *mf = new MEMFILE;
-    if (m_head)
-    {
-        m_tail->next = mf;
-        m_tail = mf;
-    }
-    else
-    {
-        m_head = mf;
-        m_tail = mf;
-    }
-
-    mf->next = nullptr;
-    mf->fileName = (char *)fileName;
-    mf->data = (unsigned char *)data;
-    mf->size = size;
+    std::unique_ptr<CFileMem> mem = std::make_unique<CFileMem>();
+    mem->replace(data.data(), data.size());
+    m_files[std::string(fileName)] = std::move(mem);
 }
 
 void CFileWrap::freeFiles()
 {
-    MEMFILE *p = m_head;
-    while (p)
-    {
-
-        MEMFILE *pp = p;
-        p = (MEMFILE *)p->next;
-        delete pp;
-    }
-
-    m_head = nullptr;
-    m_tail = nullptr;
+    m_files.clear();
 }
 
-CFileWrap::MEMFILE *CFileWrap::findFile(const char *fileName)
+CFileMem *CFileWrap::findFile(const std::string_view &fileName)
 {
-    MEMFILE *p = m_head;
-    while (p)
-    {
-        if (!strcmp(fileName, p->fileName))
-        {
-            return p;
-        }
-        p = (MEMFILE *)p->next;
-    }
-
-    return nullptr;
+    const auto &it = m_files.find(std::string(fileName));
+    if (it != m_files.end())
+        return it->second.get();
+    else
+        return nullptr;
 }
 
-///////////////////////////////////////////////
-// GCC
-
-CFileWrap &CFileWrap::operator>>(int &n)
+bool CFileWrap::operator>>(int &n)
 {
-    read(&n, 4);
-    return *this;
+    return read(&n, sizeof(n)) == IFILE_OK;
 }
 
-CFileWrap &CFileWrap::operator<<(int n)
+bool CFileWrap::operator<<(int n)
 {
-    write(&n, 4);
-    return *this;
+    return write(&n, sizeof(n)) == IFILE_OK;
 }
 
 int CFileWrap::read(void *buf, int size)
 {
     if (m_memFile)
-    {
-        memcpy(buf, m_memFile->data + _ptr, size);
-        _ptr += size;
-        return size;
-    }
+        return m_memFile->read(buf, size);
     else
-    {
-        return fread(buf, size, 1, m_file);
-    }
+        return fread(buf, size, 1, m_file) == 1 ? IFILE_OK : IFILE_NOT_OK;
 }
 
 int CFileWrap::write(const void *buf, int size)
 {
-    return fwrite(buf, size, 1, m_file);
+    if (m_memFile)
+        return m_memFile->write(buf, size);
+    else
+        return fwrite(buf, size, 1, m_file) == 1 ? IFILE_OK : IFILE_NOT_OK;
 }
 
-bool CFileWrap::open(const char *fileName, const char *mode)
+bool CFileWrap::open(const std::string_view &fileName, const std::string_view &mode)
 {
+    m_mode = mode;
     if ((m_memFile = findFile(fileName)))
     {
-        _ptr = 0;
-        return !strcmp(mode, "rb");
+        return m_memFile->open(fileName, mode);
     }
     else
     {
-        m_file = fopen(fileName, mode);
+        m_file = fopen(fileName.data(), mode.data());
         return m_file != nullptr;
     }
 }
 
-void CFileWrap::close()
+bool CFileWrap::close()
 {
-    if (m_file)
+    bool result = false;
+    if (m_memFile)
     {
-        fclose(m_file);
+        return m_memFile->close();
+    }
+    else if (m_file)
+    {
+        result = fclose(m_file) == 0;
         m_file = nullptr;
     }
+    return result;
 }
 
 long CFileWrap::getSize()
 {
     if (m_memFile)
     {
-        return m_memFile->size;
+        return m_memFile->getSize();
     }
     else
     {
@@ -162,146 +129,127 @@ long CFileWrap::getSize()
     }
 }
 
-void CFileWrap::seek(long p)
+bool CFileWrap::seek(long p)
 {
     if (m_memFile)
-    {
-        m_memFile->ptr = p;
-    }
-    else
-    {
-        fseek(m_file, p, SEEK_SET);
-    }
+        return m_memFile->seek(p);
+    else if (fseek(m_file, p, SEEK_SET) != 0)
+        return false;
+    return true;
 }
 
 long CFileWrap::tell()
 {
-    if (m_memFile)
-    {
-        return m_memFile->ptr;
-    }
-    else
-    {
-        return ftell(m_file);
-    }
+    return m_memFile ? m_memFile->tell() : ftell(m_file);
 }
 
-CFileWrap &CFileWrap::operator>>(std::string &str)
+bool CFileWrap::operator>>(std::string &str)
 {
     if (m_memFile)
     {
-        int x = m_memFile->data[_ptr];
-        ++_ptr;
-
-        if (x == 0xff)
+        return *m_memFile >> str;
+    }
+    else
+    {
+        int size = 0;
+        if (fread(&size, 1, 1, m_file) != 1)
+            return false;
+        if (size == 0xff)
         {
-            memcpy(&x, &m_memFile->data[_ptr], 2);
-            _ptr += 2;
-            // TODO: implement 32 bits version
+            if (size == 0xffff)
+            {
+                // 32 bits version
+                if (fread(&size, sizeof(uint32_t), 1, m_file) != 1)
+                    return false;
+            }
+            else
+            {
+                // 16 bits
+                if (fread(&size, sizeof(uint16_t), 1, m_file) != 1)
+                    return false;
+            }
         }
-
-        if (x != 0)
+        str.resize(size); // Allocate space in str
+        if (fread(str.data(), size, 1, m_file) != 1)
         {
-            // char *sz = new char[x + 1];
-            std::vector<char> sz(x + 1);
-            sz[x] = 0;
-            memcpy(sz.data(), &m_memFile[_ptr], x);
-            _ptr += x;
-            // file.read (sz, x);
-            str = sz.data();
-            // delete[] sz;
+            str.clear(); // Reset on failure
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CFileWrap::operator<<(const std::string_view &str)
+{
+    if (m_memFile)
+        return *m_memFile << str;
+
+    const size_t size = str.length();
+    if (size < 0xff)
+    {
+        if (fwrite(&size, sizeof(uint8_t), 1, m_file) != 1)
+            return false;
+    }
+    else
+    {
+        const uint8_t control = 0xff;
+        if (fwrite(&control, sizeof(control), 1, m_file) != 1)
+            return false;
+        if (size < 0xffff)
+        {
+            if (fwrite(&size, sizeof(uint16_t), 1, m_file) != 1)
+                return false;
         }
         else
         {
-            str = "";
+            // implemented 32bits version
+            const uint16_t control = 0xffff;
+            if (fwrite(&control, sizeof(control), 1, m_file) != 1)
+                return false;
+            if (fwrite(&size, sizeof(uint32_t), 1, m_file) != 1)
+                return false;
         }
     }
-    else
-    {
-
-        int x = 0;
-        fread(&x, 1, 1, m_file);
-        if (x == 0xff)
-        {
-            fread(&x, 2, 1, m_file);
-
-            // TODO: implement 32 bits version
-        }
-
-        if (x != 0)
-        {
-            // char *sz = new char[x + 1];
-            std::vector<char> sz(x + 1);
-            sz[x] = 0;
-            fread(sz.data(), x, 1, m_file);
-            // file.read (sz, x);
-            str = sz.data();
-            // delete[] sz;
-        }
-        else
-        {
-            str = "";
-        }
-    }
-
-    return *this;
+    if (fwrite(str.data(), size, 1, m_file) != 1)
+        return false;
+    return true;
 }
 
-CFileWrap &CFileWrap::operator<<(const std::string &str)
+bool CFileWrap::operator>>(bool &b)
 {
-    int x = str.length();
-    if (x <= 0xfe)
-    {
-        fwrite(&x, 1, 1, m_file);
-    }
-    else
-    {
-        int t = 0xff;
-
-        fwrite(&t, 1, 1, m_file);
-        fwrite(&x, 2, 1, m_file);
-
-        // TODO : implement 32bits version
-    }
-
-    if (x != 0)
-    {
-        fwrite(str.c_str(), x, 1, m_file);
-    }
-
-    return *this;
+    memset(&b, '\0', sizeof(b));
+    return read(&b, 1);
 }
 
-CFileWrap &CFileWrap::operator>>(bool &b)
+bool CFileWrap::operator<<(bool b)
 {
-    memset(&b, 0, sizeof(b));
-    if (m_memFile)
-    {
-        memcpy(&b, &m_memFile->data[_ptr], 1);
-        ++_ptr;
-    }
-    else
-    {
-        fread(&b, 1, 1, m_file);
-    }
-
-    return *this;
+    return write(&b, 1);
 }
 
-CFileWrap &CFileWrap::operator<<(bool b)
+bool CFileWrap::operator+=(const std::string_view &str)
 {
-    fwrite(&b, 1, 1, m_file);
-    return *this;
+    return write(str.data(), str.length());
 }
 
-CFileWrap &CFileWrap::operator+=(const std::string &str)
+bool CFileWrap::operator+=(const char *s)
 {
-    fwrite(str.c_str(), str.length(), 1, m_file);
-    return *this;
+    return write(s, strlen(s));
 }
 
-CFileWrap &CFileWrap::operator+=(const char *s)
+bool CFileWrap::flush()
 {
-    fwrite(s, strlen(s), 1, m_file);
-    return *this;
+    if (m_file)
+        return fflush(m_file) == 0;
+    return true;
+}
+
+bool CFileWrap::operator<<(const char *s)
+{
+    std::string_view sv(s);
+    return *this << sv; // Delegate to string_view overload
+}
+
+const std::string_view CFileWrap::mode()
+{
+    return m_mode;
 }
