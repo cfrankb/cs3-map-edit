@@ -1,0 +1,3 @@
+[submodule "external/hunspell"]
+	path = external/hunspell
+	url = https://github.com/hunspell/hunspell.git

@@ -74,3 +74,4 @@ Thumbs.db
 backup/
 build-mapedit*/
 src/build/*
+build/

@@ -1,6 +1,7 @@
 #ifndef DLGTEST_H
 #define DLGTEST_H
 
+#include <QTimer>
 #include <QDialog>
 #include "runtime/gamemixin.h"
 
@@ -51,10 +52,10 @@ private:
     void load() override {}
     void save() override {}
     void manageUserMenu() override {}
-    void manageLevelSummary() override{}
+    void manageLevelSummary() override {}
     void initLevelSummary() override {}
-    void changeMoodMusic(CGame::GameMode) override{}
-    void manageSkillMenu() override{}
+    void changeMoodMusic(CGame::GameMode) override {}
+    void manageSkillMenu() override {}
 };
 
 #endif // DLGTEST_H
