@@ -2,7 +2,7 @@
 #define DLGTEST_H
 
 #include <QDialog>
-#include "gamemixin.h"
+#include "runtime/gamemixin.h"
 
 class CMapFile;
 

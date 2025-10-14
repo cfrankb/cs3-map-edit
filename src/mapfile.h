@@ -2,7 +2,7 @@
 #define CMAPFILE_H
 
 #include <QString>
-#include "maparch.h"
+#include "runtime/maparch.h"
 
 class CMap;
 

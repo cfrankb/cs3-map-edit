@@ -1,11 +1,11 @@
 #include "dlgstat.h"
 #include "ui_dlgstat.h"
-#include "tilesdata.h"
-#include "sprtypes.h"
+#include "runtime/tilesdata.h"
+#include "runtime/sprtypes.h"
 #include <qlistwidget.h>
 #include <qstringlist.h>
-#include "tilesdebug.h"
-#include "attr.h"
+#include "runtime/tilesdebug.h"
+#include "runtime/attr.h"
 
 CDlgStat::CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent)
     : QDialog(parent)

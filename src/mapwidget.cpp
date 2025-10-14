@@ -1,14 +1,14 @@
 #include "mapwidget.h"
 #include "qpainter.h"
-#include "shared/qtgui/qfilewrap.h"
-#include "FrameSet.h"
-#include "Frame.h"
-#include "map.h"
+#include "runtime/shared/qtgui/qfilewrap.h"
+#include "runtime/shared/FrameSet.h"
+#include "runtime/shared/Frame.h"
+#include "runtime/map.h"
 #include "mapscroll.h"
-#include "animator.h"
-#include "states.h"
-#include "statedata.h"
-#include "attr.h"
+#include "runtime/animator.h"
+#include "runtime/states.h"
+#include "runtime/statedata.h"
+#include "runtime/attr.h"
 #include <QScrollBar>
 
 #define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)

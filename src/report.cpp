@@ -1,17 +1,17 @@
 #include <QVector>
-#include "maparch.h"
+#include "runtime/maparch.h"
 #include "mapfile.h"
-#include "map.h"
+#include "runtime/map.h"
 #include "unordered_map"
-#include "shared/qtgui/qfilewrap.h"
+#include "runtime/shared/qtgui/qfilewrap.h"
 #include <stdint.h>
-#include "tilesdata.h"
-#include "sprtypes.h"
-#include "states.h"
-#include "statedata.h"
-#include "FrameSet.h"
-#include "Frame.h"
-#include "game.h"
+#include "runtime/tilesdata.h"
+#include "runtime/sprtypes.h"
+#include "runtime/states.h"
+#include "runtime/statedata.h"
+#include "runtime/shared/FrameSet.h"
+#include "runtime/shared/Frame.h"
+#include "runtime/game.h"
 
 #define ALPHA 0xff000000
 #define BLACK 0xff000000

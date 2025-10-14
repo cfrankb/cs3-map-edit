@@ -18,12 +18,12 @@
 #include "dlgselect.h"
 #include "dlgtest.h"
 #include "tilebox.h"
-#include "tilesdata.h"
+#include "runtime/tilesdata.h"
 #include "dlgstat.h"
-#include "map.h"
+#include "runtime/map.h"
 #include "report.h"
 #include "keyvaluedialog.h"
-#include "statedata.h"
+#include "runtime/statedata.h"
 #include "dlgmsgs.h"
 
 MainWindow::MainWindow(QWidget *parent)

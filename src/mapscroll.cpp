@@ -3,7 +3,7 @@
 #include <QScrollBar>
 #include <QMouseEvent>
 #include "mapwidget.h"
-#include "map.h"
+#include "runtime/map.h"
 
 CMapScroll::CMapScroll(QWidget *parent)
     : QAbstractScrollArea{parent}

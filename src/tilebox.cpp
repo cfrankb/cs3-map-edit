@@ -4,12 +4,12 @@
 #include <QGridLayout>
 #include <QToolButton>
 #include <QAction>
-#include "shared/qtgui/qthelper.h"
-#include "shared/qtgui/qfilewrap.h"
-#include "shared/FrameSet.h"
-#include "shared/Frame.h"
-#include "tilesdata.h"
-#include "sprtypes.h"
+#include "runtime/shared/qtgui/qthelper.h"
+#include "runtime/shared/qtgui/qfilewrap.h"
+#include "runtime/shared/FrameSet.h"
+#include "runtime/shared/Frame.h"
+#include "runtime/tilesdata.h"
+#include "runtime/sprtypes.h"
 
 CTileBox::CTileBox(QWidget *parent) :
     QToolBox(parent)

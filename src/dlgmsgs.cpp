@@ -1,8 +1,8 @@
 #include "dlgmsgs.h"
 #include "ui_dlgmsgs.h"
 
-#include "map.h"
-#include "states.h"
+#include "runtime/map.h"
+#include "runtime/states.h"
 
 CDlgMsgs::CDlgMsgs(QWidget *parent)
     : QDialog(parent)

@@ -1,5 +1,5 @@
 #include "mapfile.h"
-#include "map.h"
+#include "runtime/map.h"
 
 CMapFile::CMapFile() : CMapArch()
 {

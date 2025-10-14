@@ -1,14 +1,14 @@
 #include "dlgselect.h"
 #include "ui_dlgselect.h"
-#include "shared/qtgui/qfilewrap.h"
-#include "shared/FrameSet.h"
-#include "shared/Frame.h"
-#include "shared/qtgui/qthelper.h"
-#include "map.h"
+#include "runtime/shared/qtgui/qfilewrap.h"
+#include "runtime/shared/FrameSet.h"
+#include "runtime/shared/Frame.h"
+#include "runtime/shared/qtgui/qthelper.h"
+#include "runtime/map.h"
 #include "mapfile.h"
-#include "tilesdata.h"
-#include "states.h"
-#include "statedata.h"
+#include "runtime/tilesdata.h"
+#include "runtime/states.h"
+#include "runtime/statedata.h"
 
 CDlgSelect::CDlgSelect(QWidget *parent) :
     QDialog(parent),

@@ -8,13 +8,13 @@ CONFIG += c++20
 # In order to do so, uncomment the following line.
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-INCLUDEPATH += shared/ headers/
+INCLUDEPATH += runtime/shared/
 DEFINES += USE_QFILE=1
 #DEFINES += USE_SDL_MIXER=1
 
 SOURCES += \
-    actor.cpp \
-    animator.cpp \
+    runtime/actor.cpp \
+    runtime/animator.cpp \
     dlgattr.cpp \
     dlgmsgs.cpp \
     dlgresize.cpp \
@@ -22,47 +22,47 @@ SOURCES += \
     dlgselect.cpp \
     dlgstat.cpp \
     dlgtest.cpp \
-    game.cpp \
-    game_ai.cpp \
-    gameui.cpp \
-    gamemixin.cpp \
-    level.cpp \
+    runtime/game.cpp \
+    runtime/game_ai.cpp \
+    runtime/gameui.cpp \
+    runtime/gamemixin.cpp \
+    runtime/level.cpp \
     main.cpp \
     mainwindow.cpp \
-    maparch.cpp \
+    runtime/maparch.cpp \
     mapfile.cpp \
     mapscroll.cpp \
     mapwidget.cpp \
     report.cpp \
-    shared/DotArray.cpp \
-    shared/FileWrap.cpp \
-    shared/FileMem.cpp \
-    shared/Frame.cpp \
-    shared/FrameSet.cpp \
-    shared/PngMagic.cpp \
-    shared/helper.cpp \
-    map.cpp \
-    shared/qtgui/qfilewrap.cpp \
-    shared/qtgui/qthelper.cpp \
+    runtime/shared/DotArray.cpp \
+    runtime/shared/FileWrap.cpp \
+    runtime/shared/FileMem.cpp \
+    runtime/shared/Frame.cpp \
+    runtime/shared/FrameSet.cpp \
+    runtime/shared/PngMagic.cpp \
+    runtime/shared/helper.cpp \
+    runtime/map.cpp \
+    runtime/shared/qtgui/qfilewrap.cpp \
+    runtime/shared/qtgui/qthelper.cpp \
     tilebox.cpp \
-    tilesdata.cpp \
-    tilesdebug.cpp \
-    states.cpp \
-    statedata.cpp \
+    runtime/tilesdata.cpp \
+    runtime/tilesdebug.cpp \
+    runtime/states.cpp \
+    runtime/statedata.cpp \
     keyvaluedialog.cpp \
-    chars.cpp \
-    recorder.cpp \
-    gamestats.cpp \
-    colormap.cpp \
-    strhelper.cpp \
-    boss.cpp
+    runtime/chars.cpp \
+    runtime/recorder.cpp \
+    runtime/gamestats.cpp \
+    runtime/colormap.cpp \
+    runtime/strhelper.cpp \
+    runtime/boss.cpp
 
 
 HEADERS += \
-    actor.h \
-    anniedata.h \
-    animzdata.h \
-    animator.h \
+    runtime/actor.h \
+    runtime/anniedata.h \
+    runtime/animzdata.h \
+    runtime/animator.h \
     app_version.h \
     dlgattr.h \
     dlgmsgs.h \
@@ -71,49 +71,49 @@ HEADERS += \
     dlgselect.h \
     dlgstat.h \
     dlgtest.h \
-    game.h \
-    gameui.h \
-    gamemixin.h \
-    level.h \
+    runtime/game.h \
+    runtime/gameui.h \
+    runtime/gamemixin.h \
+    runtime/level.h \
     mainwindow.h \
-    maparch.h \
+    runtime/maparch.h \
     mapfile.h \
     mapscroll.h \
     mapwidget.h \
     report.h \
-    shared/DotArray.h \
-    shared/FileWrap.h \
-    shared/FileMem.h \
-    shared/Frame.h \
-    shared/FrameSet.h \
-    shared/PngMagic.h \
-    shared/helper.h \
-    map.h \
-    shared/qtgui/cheat.h \
-    shared/qtgui/qfilewrap.h \
-    shared/qtgui/qthelper.h \
-    sprtypes.h \
+    runtime/shared/DotArray.h \
+    runtime/shared/FileWrap.h \
+    runtime/shared/FileMem.h \
+    runtime/shared/Frame.h \
+    runtime/shared/FrameSet.h \
+    runtime/shared/PngMagic.h \
+    runtime/shared/helper.h \
+    runtime/map.h \
+    runtime/shared/qtgui/cheat.h \
+    runtime/shared/qtgui/qfilewrap.h \
+    runtime/shared/qtgui/qthelper.h \
+    runtime/sprtypes.h \
     tilebox.h \
-    tilesdata.h \
-    tilesdebug.h \
-    sounds.h \
-    states.h \
-    statedata.h \
+    runtime/tilesdata.h \
+    runtime/tilesdebug.h \
+    runtime/sounds.h \
+    runtime/states.h \
+    runtime/statedata.h \
     keyvaluedialog.h \
-    skills.h \
-    events.h \
-    chars.h \
-    recorder.h \
-    gamesfx.h \
-    gamestats.h \
-    colormap.h \
-    strhelper.h \
-    attr.h \
-    logger.h \
-    boss.h \
-    rect.h \
-    gamesfx.h \
-    joyaim.h
+    runtime/skills.h \
+    runtime/events.h \
+    runtime/chars.h \
+    runtime/recorder.h \
+    runtime/gamesfx.h \
+    runtime/gamestats.h \
+    runtime/colormap.h \
+    runtime/strhelper.h \
+    runtime/attr.h \
+    runtime/logger.h \
+    runtime/boss.h \
+    runtime/rect.h \
+    runtime/gamesfx.h \
+    runtime/joyaim.h
 
 FORMS += \
     dlgattr.ui \

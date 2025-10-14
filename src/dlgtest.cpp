@@ -5,15 +5,15 @@
 #include <QPainter>
 #include <QKeyEvent>
 #include "mapfile.h"
-#include "game.h"
-#include "tilesdata.h"
-#include "Frame.h"
-#include "FrameSet.h"
-#include "statedata.h"
-#include "states.h"
-#include "shared/qtgui/qfilewrap.h"
-#include "skills.h"
-#include "logger.h"
+#include "runtime/game.h"
+#include "runtime/tilesdata.h"
+#include "runtime/shared/Frame.h"
+#include "runtime/shared/FrameSet.h"
+#include "runtime/statedata.h"
+#include "runtime/states.h"
+#include "runtime/shared/qtgui/qfilewrap.h"
+#include "runtime/skills.h"
+#include "runtime/logger.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),

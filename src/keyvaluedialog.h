@@ -8,8 +8,8 @@
 #include <QHBoxLayout>
 #include <vector>
 #include <cstdint>
-#include "states.h"
-#include "statedata.h"
+#include "runtime/states.h"
+#include "runtime/statedata.h"
 
 class KeyValueDialog : public QDialog
 {
