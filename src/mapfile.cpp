@@ -3,8 +3,10 @@
 
 CMapFile::CMapFile() : CMapArch()
 {
-    m_maps[0] = new CMap(64, 64);
-    m_size = 1;
+    std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
+    //m_doc.add(std::move(map));
+    //m_maps[0] = new CMap(64, 64);
+    add(std::move(map));
     m_currIndex = 0;
 }
 
@@ -50,7 +52,7 @@ void CMapFile::setFilename(const QString filename)
 
 CMap *CMapFile::map()
 {
-    return m_maps[m_currIndex];
+    return m_maps[m_currIndex].get();
 }
 
 void CMapFile::setDirty(bool b)
@@ -73,14 +75,14 @@ void CMapFile::setCurrentIndex(int i)
     m_currIndex = i;
 }
 
-int CMapFile::currentIndex()
+size_t CMapFile::currentIndex()
 {
     return m_currIndex;
 }
 
 bool CMapFile::isMulti()
 {
-    return m_size > 1;
+    return m_maps.size() > 1;
 }
 
 bool CMapFile::isWrongExt()
@@ -97,16 +99,16 @@ bool CMapFile::isWrongExt()
 
 void CMapFile::forget()
 {
-    CMapArch::forget();
+    CMapArch::clear();
     m_currIndex = 0;
 }
 
 CMap *CMapFile::removeAt(int i)
 {
-    CMap *map = CMapArch::removeAt(i);
-    if (currentIndex() >= m_size)
+    CMap *map = CMapArch::removeAt(i).release();
+    if (currentIndex() >= m_maps.size())
     {
-        setCurrentIndex(m_size - 1);
+        setCurrentIndex(m_maps.size() - 1);
     }
     return map;
 }

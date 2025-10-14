@@ -143,6 +143,10 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_ETURTLE),
     _S(TILES_DRAGO),
     _S(TILES_DOORS_LEAF),
+    _S(TILES_ICECUBE),
+    _S(TILES_FIREBALL),
+    _S(TILES_ICEBOULDER),
+    _S(TILES_ICEMOUNTAIN),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_aiNames = {
@@ -152,6 +156,7 @@ static const std::unordered_map<uint16_t, std::string> g_aiNames = {
     _S(AI_NEO),
     _S(AI_FOCUS),
     _S(AI_REVERSE),
+    _S(AI_SMART),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_flagsNames = {
@@ -182,6 +187,9 @@ static const std::unordered_map<uint16_t, std::string> g_typesNames = {
     _S(TYPE_DRONE),
     _S(TYPE_VAMPLANT),
     _S(TYPE_DIAMOND),
+    _S(TYPE_ICECUBE),
+    _S(TYPE_FIREBALL),
+    _S(TYPE_BOULDER),
 };
 
 std::string get_tileNames(const uint16_t i)

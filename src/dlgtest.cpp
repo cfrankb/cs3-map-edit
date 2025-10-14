@@ -13,6 +13,7 @@
 #include "states.h"
 #include "shared/qtgui/qfilewrap.h"
 #include "skills.h"
+#include "logger.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),
@@ -175,9 +176,13 @@ void CDlgTest::preloadAssets()
         {":/data/tiles.obl", &m_tiles},
         {":/data/animz.obl", &m_animz},
         {":/data/annie.obl", &m_users},
+        {":/data/bosses.obl", &m_bosses},
+        {":/data/uisheet.png", &m_uisheet}
     };
 
-    for (int i=0; i < 3; ++i) {
+    size_t count = sizeof(assets) / sizeof(assets[0]);
+    LOGI("count:%lu", count);
+    for (size_t i=0; i < count; ++i) {
         asset_t & asset = assets[i];
         *(asset.frameset) =  std::make_unique<CFrameSet>();
         if (file.open(asset.filename, "rb")) {
@@ -186,6 +191,8 @@ void CDlgTest::preloadAssets()
                 qDebug("extracted: %lu", (*(asset.frameset))->getSize());
             }
             file.close();
+        } else {
+            LOGE("failed to open %s", asset.filename);
         }
     }
 

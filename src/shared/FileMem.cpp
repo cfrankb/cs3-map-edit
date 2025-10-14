@@ -82,7 +82,11 @@ bool CFileMem::open(const std::string_view &fileName, const std::string_view &mo
 {
     m_mode = mode;
     m_filename = fileName;
-    m_ptr = 0;
+    if (m_mode.find('a') != std::string::npos && m_buffer.size() > 0)
+        m_ptr = m_buffer.size() - 1;
+    else
+        m_ptr = 0;
+
     // TODO: fix that later
     return m_mode.find('r') != std::string::npos ||
            m_mode.find('w') != std::string::npos ||

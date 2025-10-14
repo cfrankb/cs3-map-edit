@@ -21,20 +21,18 @@
 #include <cstdint>
 #include <vector>
 
-class Dot
+struct Dot
 {
-
-public:
-    Dot(int sx = 0, int sy = 0, uint32_t sColor = 0)
+    Dot(const int _x = 0, const int _y = 0, const uint32_t _color = 0)
     {
-        x = sx;
-        y = sy;
-        color = sColor;
+        x = _x;
+        y = _y;
+        color = _color;
     }
 
-    uint32_t color;
     int x;
     int y;
+    uint32_t color;
 };
 
 class CDotArray
@@ -52,6 +50,7 @@ public:
     int circle(const uint32_t color, const Dot dot1, const Dot dot2, bool clear = true);
     const Dot &operator[](int i);
     void setLimit(int maxX, int maxY);
+    const std::vector<Dot> &dots();
 
 private:
     std::vector<Dot> m_dots;

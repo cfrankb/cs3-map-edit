@@ -26,4 +26,5 @@ std::string processLine(std::string &input, size_t &pos);
 uint16_t parseStringToUShort(const std::string &s, bool &isValid);
 std::string trimString(const std::string &s);
 bool endswith(const char *str, const char *end);
+bool endswith(const std::string_view s1, const std::string_view s2);
 std::vector<std::string> split(const std::string &input, char delimiter);

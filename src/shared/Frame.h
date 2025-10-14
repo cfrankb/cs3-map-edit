@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <vector>
 #include <stdexcept>
+#include "DotArray.h"
 
 class CFrameSet;
 class CDotArray;
@@ -72,8 +73,6 @@ public:
     void flipH();
     void rotate();
     CFrameSet *split(int pxSize, bool whole = true);
-    void spreadH();
-    void spreadV();
     void shrink();
     const CSS3Map &getMap() const;
     void shiftUP(const bool wrap = true);
@@ -99,10 +98,9 @@ public:
     bool toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5data = {});
 
     static uint32_t toNet(const uint32_t a);
-    bool draw(CDotArray *dots, int size, int mode = MODE_NORMAL);
-    void save(CDotArray *dots, CDotArray *dotsOrg, int size);
+    bool draw(const std::vector<Dot> &dots, const int penSize, const int mode = MODE_NORMAL);
+    void save(const std::vector<Dot> &dots, std::vector<Dot> &dotsD, const int penSize);
     CFrame *clip(int mx, int my, int cx = -1, int cy = -1);
-    CFrameSet *explode(int count, short *xx, short *yy, CFrameSet *set = nullptr);
 
     void copy(const CFrame *);
     inline int width() const { return m_width; }
@@ -158,6 +156,17 @@ public:
         // ...   list of height (short)
         // CRC  : size 4
     } png_OBL5;
+
+    struct oblv2DataUnit_t
+    {
+        uint16_t x;  //                   data = 4 * 2 (uint16_t) * frameCount
+        uint16_t y;  //
+        uint16_t sx; //
+        uint16_t sy; //
+    };
+
+    CFrameSet *explode(int count, uint16_t *sx, uint16_t *sy, CFrameSet *set = nullptr);
+    CFrameSet *explode(std::vector<oblv2DataUnit_t> &metadata, CFrameSet *set = nullptr);
 
 private:
     enum

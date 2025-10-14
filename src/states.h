@@ -55,6 +55,8 @@ public:
     void debug() const;
     void clear();
     std::vector<StateValuePair> getValues() const;
+    const std::unordered_map<uint16_t, std::string> &rawS() { return m_stateS; }
+    const std::unordered_map<uint16_t, uint16_t> &rawU() { return m_stateU; }
 
 private:
     std::unordered_map<uint16_t, std::string> m_stateS;

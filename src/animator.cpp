@@ -25,7 +25,7 @@
 #include <array>
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
-constexpr const int SEQ_COUNT = 21;
+constexpr const size_t SEQ_COUNT = 23;
 
 const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NO_SPECIAL_ID},
@@ -48,7 +48,9 @@ const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_ETURTLE, ANIMZ_ETURTLE, ANIMZ_ETURTLE_LEN / 2, ANIMZ_ETURTLE},
     {TILES_DRAGO, ANIMZ_DRAGO, ANIMZ_DRAGO_LEN / 2, ANIMZ_DRAGO},
     {TILES_DOORS_LEAF, ANIMZ_DOORS_LEAF, ANIMZ_DOORS_LEAF_LEN, NO_SPECIAL_ID},
+    {TILES_FIREBALL, ANIMZ_FIREBALL, ANIMZ_FIREBALL_LEN, NO_SPECIAL_ID},
     {SFX_SPARKLE, ANIMZ_SPARKLE, ANIMZ_SPARKLE_LEN, ANIMZ_SPARKLE},
+    {SFX_EXPLOSION1, ANIMZ_EXPLOSION1, ANIMZ_EXPLOSION1_LEN, ANIMZ_EXPLOSION1},
 }};
 
 const std::set<uint8_t> g_specialCases = {

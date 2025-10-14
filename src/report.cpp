@@ -40,9 +40,9 @@ bool generateReport(CMapFile & mf, const QString & filename) {
     file += "Map List\n";
     file += "========\n\n";
 
-    for (int i=0; i < mf.size(); ++i) {
+    for (size_t i=0; i < mf.size(); ++i) {
         CMap *map = mf.at(i);
-        sprintf(tmp, "Level %.2d: %s\n", i + 1, map->title());
+        sprintf(tmp, "Level %.2lu: %s\n", i + 1, map->title());
         file += tmp;
     }
 
@@ -52,7 +52,7 @@ bool generateReport(CMapFile & mf, const QString & filename) {
 
     StatMap globalUsage;
 
-    for (int i=0; i < mf.size(); ++i) {
+    for (size_t i=0; i < mf.size(); ++i) {
         CMap *map = mf.at(i);
         MapReport report = CGame::generateMapReport(*map);
         StatMap usage;
@@ -72,11 +72,11 @@ bool generateReport(CMapFile & mf, const QString & filename) {
                 }
             }
         }
-        sprintf(tmp, "Level %.2d: %s\n", i + 1, map->title());
+        sprintf(tmp, "Level %.2lu: %s\n", i + 1, map->title());
         file += tmp;
         writeItem("Unique tiles", usage.size());
         writeItem("Monsters", monsters);
-        writeItem("Attributs", map->attrs().size());
+        writeItem("Attributes", map->attrs().size());
         writeItem("Stops", stops);
         sprintf(tmp, "  -- Size: %d x %d\n", map->len(), map->hei());
         file += tmp;
@@ -106,13 +106,13 @@ bool generateReport(CMapFile & mf, const QString & filename) {
 
     file += "Par time\n";
     file += "==================\n\n";
-    for (int i=0; i < mf.size(); ++i) {
+    for (size_t i=0; i < mf.size(); ++i) {
         CMap *map = mf.at(i);
         CStates &states = map->states();
         uint16_t parTime= states.getU(PAR_TIME);
         if (parTime == 0)
             continue;
-        sprintf(tmp, "Level %.2d: %s\n", i + 1, map->title());
+        sprintf(tmp, "Level %.2lu: %s\n", i + 1, map->title());
         file += tmp;
         const int seconds = parTime % 60;
         const int minutes = parTime / 60;

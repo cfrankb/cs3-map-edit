@@ -72,6 +72,8 @@ private slots:
     void updateStatus();
     void on_actionExport_Screenshots_triggered();
 
+    void on_actionEdit_Edit_Messages_triggered();
+
 private:
     virtual void closeEvent(QCloseEvent *event) override;
     bool maybeSave();

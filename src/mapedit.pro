@@ -16,12 +16,14 @@ SOURCES += \
     actor.cpp \
     animator.cpp \
     dlgattr.cpp \
+    dlgmsgs.cpp \
     dlgresize.cpp \
     dlgabout.cpp \
     dlgselect.cpp \
     dlgstat.cpp \
     dlgtest.cpp \
     game.cpp \
+    game_ai.cpp \
     gameui.cpp \
     gamemixin.cpp \
     level.cpp \
@@ -52,7 +54,8 @@ SOURCES += \
     recorder.cpp \
     gamestats.cpp \
     colormap.cpp \
-    strhelper.cpp
+    strhelper.cpp \
+    boss.cpp
 
 
 HEADERS += \
@@ -62,6 +65,7 @@ HEADERS += \
     animator.h \
     app_version.h \
     dlgattr.h \
+    dlgmsgs.h \
     dlgresize.h \
     dlgabout.h \
     dlgselect.h \
@@ -105,10 +109,15 @@ HEADERS += \
     colormap.h \
     strhelper.h \
     attr.h \
-    logger.h
+    logger.h \
+    boss.h \
+    rect.h \
+    gamesfx.h \
+    joyaim.h
 
 FORMS += \
     dlgattr.ui \
+    dlgmsgs.ui \
     dlgresize.ui \
     dlgabout.ui \
     dlgselect.ui \

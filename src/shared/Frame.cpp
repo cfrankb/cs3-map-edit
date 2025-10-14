@@ -297,6 +297,7 @@ uint32_t CFrame::toNet(const uint32_t a)
 
 bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5data)
 {
+    png.clear();
     CCRC crc;
 
     // compress the data ....................................
@@ -314,6 +315,7 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
     int err = compressData(rdata, cData);
     if (err != Z_OK)
     {
+        m_lastError = "Zlib decompression error " + std::to_string(err) + ": " + zError(err);
         LOGE("CFrame::toPng error: %d\n", err);
         return true;
     }
@@ -499,15 +501,15 @@ CFrameSet *CFrame::split(int pxSize, bool whole)
     return set.release();
 }
 
-bool CFrame::draw(CDotArray *dots, int size, int mode)
+bool CFrame::draw(const std::vector<Dot> &dots, const int penSize, const int mode)
 {
     bool changed = false;
-    for (size_t i = 0; i < (*dots).getSize(); ++i)
+    for (size_t i = 0; i < dots.size(); ++i)
     {
-        const Dot &dot = (*dots)[i];
-        for (int y = 0; y < size; ++y)
+        const Dot &dot = dots[i];
+        for (int y = 0; y < penSize; ++y)
         {
-            for (int x = 0; x < size; ++x)
+            for (int x = 0; x < penSize; ++x)
             {
                 if (dot.x + x < m_width && dot.y + y < m_height)
                 {
@@ -548,18 +550,22 @@ bool CFrame::draw(CDotArray *dots, int size, int mode)
     return changed;
 }
 
-void CFrame::save(CDotArray *dots, CDotArray *dotsOrg, int size)
+void CFrame::save(const std::vector<Dot> &dots, std::vector<Dot> &dotsD, const int penSize)
 {
-    for (size_t i = 0; i < (*dots).getSize(); ++i)
+    for (size_t i = 0; i < dots.size(); ++i)
     {
-        const Dot &dot = (*dots)[i];
-        for (int y = 0; y < size; ++y)
+        const Dot &dot = dots[i];
+        for (int y = 0; y < penSize; ++y)
         {
-            for (int x = 0; x < size; ++x)
+            for (int x = 0; x < penSize; ++x)
             {
                 if (dot.x + x < m_width && dot.y + y < m_height)
                 {
-                    dotsOrg->add(at(dot.x + x, dot.y + y), dot.x + x, dot.y + y);
+                    dotsD.emplace_back(Dot{
+                        dot.x + x,
+                        dot.y + y,
+                        at(dot.x + x, dot.y + y),
+                    });
                 }
             }
         }
@@ -719,7 +725,6 @@ void CFrame::flipH()
 
 void CFrame::rotate()
 {
-    // CFrame *newFrame = new CFrame(m_height, m_width);
     CFrame newFrame(m_height, m_width);
     for (int y = 0; y < m_height; ++y)
     {
@@ -926,7 +931,7 @@ void CFrame::fade(int factor)
     }
 }
 
-CFrameSet *CFrame::explode(int count, short *xx, short *yy, CFrameSet *set)
+CFrameSet *CFrame::explode(int count, uint16_t *sx, uint16_t *sy, CFrameSet *set)
 {
     if (!set)
     {
@@ -936,9 +941,33 @@ CFrameSet *CFrame::explode(int count, short *xx, short *yy, CFrameSet *set)
     int mx = 0;
     for (int i = 0; i < count; ++i)
     {
-        CFrame *frame = clip(mx, 0, xx[i], yy[i]);
+        CFrame *frame = clip(mx, 0, sx[i], sy[i]);
         set->add(frame);
-        mx += xx[i];
+        mx += sx[i];
+    }
+    return set;
+}
+
+CFrameSet *CFrame::explode(std::vector<CFrame::oblv2DataUnit_t> &metadata, CFrameSet *set)
+{
+    constexpr uint16_t INVALID = 0xffff;
+    if (!set)
+    {
+        set = new CFrameSet();
+    }
+
+    for (const auto &unit : metadata)
+    {
+        CFrame *frame;
+        if (unit.x != INVALID && unit.y != INVALID)
+        {
+            frame = clip(unit.x, unit.y, unit.sx, unit.sy);
+        }
+        else
+        {
+            frame = new CFrame(unit.sx, unit.sy);
+        }
+        set->add(frame);
     }
     return set;
 }

@@ -19,6 +19,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <memory>
 
 class IFile;
 class CMap;
@@ -28,16 +29,16 @@ typedef std::vector<long> IndexVector;
 class CMapArch
 {
 public:
-    CMapArch();
-    virtual ~CMapArch();
+    CMapArch() = default;
+    ~CMapArch() = default; // No manual clear needed
 
-    int size();
+    size_t size();
     const char *lastError();
-    void forget();
-    int add(CMap *map);
-    CMap *removeAt(int i);
-    void insertAt(int i, CMap *map);
-    CMap *at(int i);
+    void clear();
+    size_t add(std::unique_ptr<CMap> map);
+    std::unique_ptr<CMap> removeAt(int i);
+    void insertAt(int i, std::unique_ptr<CMap> map);
+    CMap *at(int i) { return (i >= 0 && i < static_cast<int>(m_maps.size())) ? m_maps[i].get() : nullptr; }
     bool read(IFile &file);
     bool read(const char *filename);
     bool extract(const char *filename);
@@ -46,15 +47,17 @@ public:
     void removeAll();
     static bool indexFromFile(const char *filename, IndexVector &index);
     static bool indexFromMemory(uint8_t *ptr, IndexVector &index);
+    bool fromMemory(uint8_t *ptr);
 
 protected:
-    void allocSpace();
     enum
     {
-        GROW_BY = 5
+        OFFSET_COUNT = 6,
+        OFFSET_INDEX = 8,
+        MAX_MAPS = 1000,
     };
-    int m_size;
-    int m_max;
-    CMap **m_maps;
+    template <typename ReadFunc, typename SeekFunc, typename ReadMapFunc>
+    bool readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc readmap);
+    std::vector<std::unique_ptr<CMap>> m_maps;
     std::string m_lastError;
 };

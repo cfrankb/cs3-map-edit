@@ -20,8 +20,8 @@
 
 struct sfx_t
 {
-    uint16_t x;
-    uint16_t y;
+    int16_t x;
+    int16_t y;
     uint8_t sfxID;
     uint16_t timeout;
 
@@ -33,3 +33,5 @@ struct sfx_t
 
 #define SFX_SPARKLE 0xf0
 #define SFX_SPARKLE_TIMEOUT 200
+#define SFX_EXPLOSION1 0xf1
+#define SFX_EXPLOSION1_TIMEOUT 10

@@ -27,8 +27,8 @@
 typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
 struct Pos
 {
-    uint16_t x;
-    uint16_t y;
+    int16_t x;
+    int16_t y;
     bool operator==(const Pos &other) const
     {
         return (x == other.x) && (y == other.y);
@@ -75,16 +75,17 @@ public:
     const AttrMap &attrs() { return m_attrs; }
     CStates &states();
     static uint16_t toKey(const uint8_t x, const uint8_t y);
+    static uint16_t toKey(const Pos &pos);
     static Pos toPos(const uint16_t key);
 
-    enum Direction : uint16_t
+    enum Direction : int16_t
     {
         UP,
         DOWN,
         LEFT,
         RIGHT,
         MAX = RIGHT,
-        NOT_FOUND = 0xffff
+        NOT_FOUND = -1 // 0xffff
     };
     // void shift(int aim);
     void shift(Direction aim);

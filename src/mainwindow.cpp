@@ -24,6 +24,7 @@
 #include "report.h"
 #include "keyvaluedialog.h"
 #include "statedata.h"
+#include "dlgmsgs.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -194,7 +195,7 @@ void MainWindow::loadFile(const QString &fileName)
         m_doc.setFilename(fileName);
         if (m_doc.read())
         {
-            qDebug("size: %d", m_doc.size());
+            qDebug("size: %lu", m_doc.size());
         }
         else
         {
@@ -297,7 +298,7 @@ bool MainWindow::updateTitle()
 
 void MainWindow::updateMenus()
 {
-    int index = m_doc.currentIndex();
+    size_t index = m_doc.currentIndex();
     ui->actionEdit_Previous_Map->setEnabled(index > 0);
     ui->actionEdit_Next_Map->setEnabled(index < m_doc.size() - 1);
     ui->actionEdit_Delete_Map->setEnabled(m_doc.size() > 1);
@@ -319,8 +320,9 @@ void MainWindow::on_actionFile_New_File_triggered()
     {
         m_doc.setFilename("");
         m_doc.forget();
-        CMap *map = new CMap(40, 40);
-        m_doc.add(map);
+        //CMap *map = new CMap(40, 40);
+        std::unique_ptr<CMap> map = std::make_unique<CMap>(40,40);
+        m_doc.add(std::move(map));
         updateTitle();
         emit mapChanged(m_doc.map());
         updateMenus();
@@ -586,6 +588,7 @@ void MainWindow::initToolBar()
     ui->toolBar->addAction(ui->actionFile_Open);
     ui->toolBar->addAction(ui->actionFile_Save);
     ui->toolBar->addSeparator();
+    ui->toolBar->addAction(ui->actionEdit_Edit_Messages);
     ui->toolBar->addAction(ui->actionEdit_ResizeMap);
     ui->toolBar->addAction(ui->actionEdit_Previous_Map);
     ui->toolBar->addAction(ui->actionEdit_Next_Map);
@@ -663,7 +666,7 @@ void MainWindow::on_actionEdit_Previous_Map_triggered()
 
 void MainWindow::on_actionEdit_Next_Map_triggered()
 {
-    int index = m_doc.currentIndex();
+    size_t index = m_doc.currentIndex();
     if (index < m_doc.size() - 1)
     {
         m_doc.setCurrentIndex(++index);
@@ -674,8 +677,10 @@ void MainWindow::on_actionEdit_Next_Map_triggered()
 
 void MainWindow::on_actionEdit_Add_Map_triggered()
 {
-    CMap *map = new CMap(64, 64);
-    m_doc.add(map);
+    std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
+    m_doc.add(std::move(map));
+    //CMap *map = new CMap(64, 64);
+    //m_doc.add(map);
     m_doc.setCurrentIndex(m_doc.size() - 1);
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
@@ -703,8 +708,10 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
 void MainWindow::on_actionEdit_Insert_Map_triggered()
 {
     int index = m_doc.currentIndex();
-    CMap *map = new CMap(64, 64);
-    m_doc.insertAt(index, map);
+    //CMap *map = new CMap(64, 64);
+    std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
+    m_doc.add(std::move(map));
+    m_doc.insertAt(index, std::move(map));
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
     updateMenus();
@@ -720,7 +727,7 @@ void MainWindow::on_actionEdit_Move_Map_triggered()
     {
         int i = dlg.index();
         CMap *map = m_doc.removeAt(currIndex);
-        m_doc.insertAt(i, map);
+        m_doc.insertAt(i,  std::unique_ptr<CMap>{map});
         m_doc.setCurrentIndex(i);
         m_doc.setDirty(true);
         emit mapChanged(m_doc.map());
@@ -807,11 +814,16 @@ void MainWindow::on_actionFile_Import_Maps_triggered()
         CMapArch arch;
         if (arch.extract(fileName.toLocal8Bit().toStdString().c_str()))
         {
-            for (int i = 0; i < arch.size(); ++i)
+            while(arch.size())
             {
-                m_doc.add(arch.at(i));
+                auto map = arch.removeAt(0);
+                m_doc.add(std::move(map));
+                //arch.at(i)
+                //m_doc.add(arch.at(i));
+                //std::unique_ptr<CMap>
+
             }
-            arch.removeAll();
+            //arch.removeAll();
             m_doc.setCurrentIndex(m_doc.size() - 1);
             m_doc.setDirty(true);
             emit mapChanged(m_doc.map());
@@ -877,7 +889,7 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
 
 void MainWindow::on_actionEdit_Last_Map_triggered()
 {
-    int index = m_doc.currentIndex();
+    size_t index = m_doc.currentIndex();
     if (index < m_doc.size() - 1)
     {
         m_doc.setCurrentIndex(m_doc.size() - 1);
@@ -964,7 +976,7 @@ void MainWindow::on_actionExport_Screenshots_triggered()
 
     if (!folder.isEmpty()) {
         QMessageBox::information(this, "Export", "Exporting to:\n" + folder);
-        for (int i=0; i < m_doc.size();++i) {
+        for (size_t i=0; i < m_doc.size();++i) {
             CMap *map = m_doc.at(i);
             const QString filename = folder + QString("/level%1.png").arg(i + 1, 2, 10, QLatin1Char('0')) ;
             generateScreenshot(filename, map, 24,24);
@@ -972,3 +984,14 @@ void MainWindow::on_actionExport_Screenshots_triggered()
     }
 }
 
+
+void MainWindow::on_actionEdit_Edit_Messages_triggered()
+{
+    CDlgMsgs dialog(this);
+    dialog.setWindowTitle(tr("Edit Messages"));
+    dialog.populateData(*m_doc.map());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_doc.setDirty(true);
+        dialog.saveData(*m_doc.map());
+    }
+}

@@ -29,6 +29,7 @@
 #include "colormap.h"
 #include "game.h"
 #include "gameui.h"
+#include "rect.h"
 #include "shared/FileWrap.h"
 
 #define WIDTH getWidth()
@@ -99,7 +100,6 @@ protected:
         INTERLINES = 2,
         Y_STATUS = 2,
         PLAYER_FRAMES = 8,
-        PLAYER_HIT_FRAME = 7,
         PLAYER_STD_FRAMES = 7,
         PLAYER_DOWN_INDEX = 8,
         PLAYER_TOTAL_FRAMES = 44,
@@ -245,14 +245,6 @@ protected:
     uint8_t m_keyStates[Key_Count];
     uint8_t m_keyRepeters[Key_Count];
 
-    struct Rect
-    {
-        int x;
-        int y;
-        int width;
-        int height;
-    };
-
     struct cameraContext_t
     {
         int mx;
@@ -263,8 +255,8 @@ protected:
 
     struct sprite_t
     {
-        uint16_t x;
-        uint16_t y;
+        int16_t x;
+        int16_t y;
         uint8_t tileID;
         uint8_t aim;
         uint8_t attr;
@@ -292,6 +284,15 @@ protected:
         char name[MAX_NAME_LENGTH];
     };
 
+    struct message_t
+    {
+        int scaleX;
+        int scaleY;
+        int baseY;
+        Color color;
+        std::string lines[2];
+    };
+
     hiscore_t m_hiscores[MAX_SCORES];
     uint8_t m_joyState[JOY_AIMS];
     uint8_t m_vjoyState[JOY_AIMS];
@@ -301,6 +302,8 @@ protected:
     std::unique_ptr<CFrameSet> m_tiles;
     std::unique_ptr<CFrameSet> m_animz;
     std::unique_ptr<CFrameSet> m_users;
+    std::unique_ptr<CFrameSet> m_bosses;
+    std::unique_ptr<CFrameSet> m_uisheet;
     std::vector<uint8_t> m_fontData;
     CGame *m_game = nullptr;
     CMapArch *m_maparch = nullptr;
@@ -342,6 +345,7 @@ protected:
     void fazeScreen(CFrame &bitmap, const int bitShift);
     void drawViewPortDynamic(CFrame &bitmap);
     void drawViewPortStatic(CFrame &bitmap);
+    void drawBossses(CFrame &bitmap, const int mx, const int my, const int sx, const int sy);
     void drawLevelIntro(CFrame &bitmap);
     void drawFont(CFrame &frame, int x, int y, const char *text, Color color = WHITE, Color bgcolor = BLACK, const int scaleX = 1, const int scaleY = 1);
     void drawRect(CFrame &frame, const Rect &rect, const Color color = GREEN, bool fill = true);
@@ -355,6 +359,7 @@ protected:
     inline CFrame *tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap, const bool isPlayerHurt);
     void drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues);
+    void drawScroll(CFrame &bitmap);
     CFrame *calcSpecialFrame(const sprite_t &sprite);
     void nextLevel();
     void restartLevel();
@@ -366,6 +371,7 @@ protected:
     bool handleInputString(char *inputDest, const size_t limit);
     void drawEventText(CFrame &bitmap);
     std::string getEventText(int &scaleX, int &scaleY, int &baseY, Color &color);
+    message_t getEventText(const int baseY);
     void manageCurrentEvent();
     void manageTimer();
     void clearScores();

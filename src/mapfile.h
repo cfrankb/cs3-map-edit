@@ -20,14 +20,14 @@ public:
     bool isDirty();
     bool isUntitled();
     void setCurrentIndex(int i);
-    int currentIndex();
+    size_t currentIndex();
     bool isMulti();
     void forget();
     bool isWrongExt();
     CMap *removeAt(int i);
 
 protected:
-    int m_currIndex;
+    size_t m_currIndex;
     bool m_dirty;
     QString m_filename;
 };

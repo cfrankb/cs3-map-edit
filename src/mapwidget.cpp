@@ -217,6 +217,8 @@ uint32_t CMapWidget::attr2color(const uint8_t attr)
         return RED;
     } else if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX)) {
         return ORANGE;
+    } else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX)) {
+        return SEAGREEN;
     } else if (attr > PASSAGE_ATTR_MAX) {
         return OLIVE; // undefined behavior
     } else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX)) {

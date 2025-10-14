@@ -87,8 +87,8 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "pot.obl"},              // 3e TILES_POT_2
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "jar1.obl"},             // 3f TILES_JAR1
     {0x00, TYPE_PICKUP, 16, 0, 0, 0, false, "watermelon.png"},     // 40 TILES_WATERMELON
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},          // 41 TILES_BOULDER
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "boulder.obl"},          // 42 TILES_BOULDER2
+    {0x00, TYPE_BOULDER, 0, 0, 0, 0, false, "boulder.obl"},        // 41 TILES_BOULDER
+    {0x00, TYPE_BOULDER, 0, 0, 0, 0, false, "boulder.obl"},        // 42 TILES_BOULDER2
     {0x00, TYPE_PICKUP, 21, 0, 0, 0, false, "giftbox.png"},        // 43 TILES_GIFTBOX
     {0x00, TYPE_PICKUP, 40, 0, 0, 0, false, "magicbot.obl"},       // 44 TILES_MAGICBOT
     {0x00, TYPE_PICKUP, 22, 0, 0, 0, false, "lightbul.obl"},       // 45 TILES_LIGHTBUL
@@ -138,7 +138,11 @@ const TileDef tileDefs[] = {
     {0x00, TYPE_DRONE, 0, -5, 4, 0, true, "whteworm.obl"},         // 71 TILES_WHTEWORM
     {0x00, TYPE_DRONE, 0, -8, 4, 0, true, "eturtle.obl"},          // 72 TILES_ETURTLE
     {0x00, TYPE_DRONE, 0, -9, 4, 0, true, "drago.obl"},            // 73 TILES_DRAGO
-    {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, true, "doors_leaf.zip"}    // 74 TILES_DOORS_LEAF
+    {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, true, "doors_leaf.zip"},   // 74 TILES_DOORS_LEAF
+    {0x00, TYPE_ICECUBE, 0, 0, 3, 0, false, "icecube.png"},        // 75 TILES_ICECUBE
+    {0x00, TYPE_FIREBALL, 0, -20, 4, 0, false, "fireball.zip"},    // 76 TILES_FIREBALL
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "iceboulder.png"},       // 77 TILES_ICEBOULDER
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "icemountain.png"}       // 78 TILES_ICEMOUNTAIN
 };
 
 const uint8_t chMap[] = {

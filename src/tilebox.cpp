@@ -141,12 +141,15 @@ int CTileBox::getTabId(int typeId)
     case TYPE_DRONE:
     case TYPE_MONSTER:
     case TYPE_VAMPLANT:
+    case TYPE_FIREBALL:
         j = TAB_MONSTERS;
         break;
     case TYPE_PICKUP:
         j = TAB_PICKUP;
         break;
     case TYPE_WALLS:
+    case TYPE_ICECUBE:
+    case TYPE_BOULDER:
         j = TAB_WALLS;
     };
     return j;

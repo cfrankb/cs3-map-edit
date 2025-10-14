@@ -26,6 +26,7 @@
 #define AI_NEO                   0x03
 #define AI_FOCUS                 0x04
 #define AI_REVERSE               0x08
+#define AI_SMART                 0x10
 
 #define FLAG_GODMODE             0x01
 #define FLAG_EXTRA_LIFE          0x02
@@ -50,3 +51,6 @@
 #define TYPE_DRONE               0x09
 #define TYPE_VAMPLANT            0x0a
 #define TYPE_DIAMOND             0x0b
+#define TYPE_ICECUBE             0x0c
+#define TYPE_FIREBALL            0x0d
+#define TYPE_BOULDER             0x0e

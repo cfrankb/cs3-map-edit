@@ -1,6 +1,6 @@
 /*
     LGCK Builder Runtime
-    Copyright (C) 1999, 2020  Francois Blanchette
+    Copyright (C) 1999, 2020, 2025  Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,25 +43,28 @@
 #define PNG_COLOR_TYPE_RGBA PNG_COLOR_TYPE_RGB_ALPHA
 #define PNG_COLOR_TYPE_GA PNG_COLOR_TYPE_GRAY_ALPHA
 
-enum
-{
-    PNG_INITIAL_POS = 8,
-    PALETTE_SIZE = 256,
-    ALPHA = 255,
-    CHUNK_TYPE_LEN = 4,
-};
+constexpr uint32_t OBLT_VERSION0 = 0;
+constexpr uint32_t OBLT_VERSION2 = 2;
+static bool g_verbose = false;
 
-static std::string g_lastError;
+// 0 = None 1 = Sub 2 = Up 3 = Average 4 = Paeth
+constexpr uint8_t FILTERING_NONE = 0;
+constexpr uint8_t FILTERING_SUB = 1;
+constexpr uint8_t FILTERING_UP = 2;
+constexpr uint8_t FILTERING_AVERAGE = 3;
+constexpr uint8_t FILTERING_PAETH = 4;
 
-// TODO: add mutex for multithreaded
-static void setLastError(std::string lastError)
-{
-    g_lastError = lastError;
-}
+constexpr int32_t PIXELWIDTH_PALETTE = 1;
+constexpr int32_t PIXELWIDTH_RGB = 3;
+constexpr int32_t PIXELWIDTH_RGBA = 4;
+constexpr size_t PALETTE_SIZE = 256;
+constexpr uint8_t ALPHA = 255;
+constexpr size_t CHUNK_TYPE_LEN = 4;
+constexpr size_t RGB_BYTES = 3;
 
-std::string LastError()
+void enablePngMagicVerbose()
 {
-    return g_lastError;
+    g_verbose = true;
 }
 
 typedef struct
@@ -97,37 +100,73 @@ uint8_t PaethPredictor(uint8_t a, uint8_t b, uint8_t c)
         return c;
 }
 
-bool _4bpp(
-    CFrame *&frame,
+static bool _4bpp(
+    CFrame *frame,
     uint8_t *cData,
     const int cDataSize,
     const png_IHDR &ihdr,
-    const uint8_t plte[][3],
+    const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
-    const int offsetY);
+    const int offsetY,
+    std::string &lastError);
 
-bool _8bpp(
-    CFrame *&frame,
+static bool _8bpp(
+    CFrame *frame,
     uint8_t *cData,
     const int cDataSize,
     const png_IHDR &ihdr,
-    const uint8_t plte[][3],
+    const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
-    const int offsetY);
+    const int offsetY,
+    std::string &lastError);
 
-bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
+const std::string_view getFilteringName(uint8_t i)
+{
+    constexpr std::string_view names[] = {
+        "None", "Sub", "Up", "Average", "Paeth"};
+    constexpr size_t count = sizeof(names) / sizeof(names[0]);
+    if (i < count)
+        return names[i];
+    else
+        return "unknown";
+}
+
+bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
 {
     CCRC crc;
-    int pos = PNG_INITIAL_POS;
-    int fileSize = file.getSize();
-    file.seek(orgPos + PNG_INITIAL_POS);
+    auto fileSize = file.getSize();
+    if (fileSize < 0)
+    {
+        set.setLastError("failed to get file size");
+        return false;
+    }
+
+    constexpr uint8_t pngSig[] = {137, 80, 78, 71, 13, 10, 26, 10};
+    decltype(fileSize) pos = orgPos;
+    if (!file.seek(orgPos))
+    {
+        set.setLastError("seek to orgPos failed");
+        return false;
+    }
+    uint8_t sig[sizeof(pngSig)];
+    if (file.read(sig, sizeof(pngSig)) != IFILE_OK)
+    {
+        set.setLastError("failed to read signature");
+        return false;
+    }
+    pos += sizeof(pngSig);
+    if (memcmp(sig, pngSig, sizeof(pngSig)) != 0)
+    {
+        set.setLastError("signature mismatch; expecting png signature");
+        return false;
+    }
 
     png_IHDR ihdr;
     memset(&ihdr, 0, sizeof(png_IHDR));
 
-    uint8_t plte[PALETTE_SIZE][3];
+    uint8_t plte[PALETTE_SIZE][RGB_BYTES];
     uint8_t trns[PALETTE_SIZE];
     memset(trns, ALPHA, sizeof(trns));
 
@@ -135,44 +174,60 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
     bool iend_found = false;
     bool trns_found = false;
 
-    uint8_t *cData = nullptr;
+    std::vector<uint8_t> cData;
     int obl5t_count = 0;
-    short *obl5t_xx = nullptr;
-    short *obl5t_yy = nullptr;
+    uint32_t obl5t_version = OBLT_VERSION0;
+    std::vector<uint16_t> obl5t_sx;                        // oblt_v0
+    std::vector<uint16_t> obl5t_sy;                        // oblt_v0
+    std::vector<CFrame::oblv2DataUnit_t> obl5t_metadatav2; // oblt_v2
     int cDataSize = 0;
-
     while (pos < fileSize)
     {
         // read chunksize
         int32_t chunkSize;
-        file.read(&chunkSize, sizeof(chunkSize));
+        if (file.read(&chunkSize, sizeof(chunkSize)) != IFILE_OK)
+        {
+            set.setLastError("failed to read ChunkSize");
+            return false;
+        }
         chunkSize = CFrame::toNet(chunkSize);
         pos += sizeof(chunkSize);
 
         // read chunktype
         char chunkType[CHUNK_TYPE_LEN];
-        // chunkType[4] = 0;
-        file.read(chunkType, sizeof(chunkType));
+        if (file.read(chunkType, sizeof(chunkType)) != IFILE_OK)
+        {
+            set.setLastError("failed to read ChunkType");
+            return false;
+        }
         pos += sizeof(chunkType);
 
+        char ct[sizeof(chunkType) + 1];
+        memcpy(ct, chunkType, sizeof(chunkType));
+        ct[sizeof(chunkType)] = '\0';
+
         // read chunkdata
-        uint8_t *p = new uint8_t[chunkSize + sizeof(chunkType)];
-        file.read(p + sizeof(chunkType), chunkSize);
+        std::vector<uint8_t> chunkDataRaw(chunkSize + sizeof(chunkType));
+        if (chunkSize != 0 && file.read(chunkDataRaw.data() + sizeof(chunkType), chunkSize) != IFILE_OK)
+        {
+            char tmp[128];
+            snprintf(tmp, sizeof(tmp), "failed to read Raw Chunk Data [%s] size: %d", ct, chunkSize);
+            set.setLastError(tmp);
+            return false;
+        }
         pos += chunkSize;
-        // memset(chunkData + chunkSize, 0, 4);
-        memcpy(p, chunkType, sizeof(chunkType));
-        uint8_t *chunkData = p + sizeof(chunkType);
+        memcpy(chunkDataRaw.data(), chunkType, sizeof(chunkType));
+        uint8_t *chunkData = chunkDataRaw.data() + sizeof(chunkType);
 
         int32_t crc32;
         file.read(&crc32, sizeof(crc32));
         pos += sizeof(crc32);
         crc32 = CFrame::toNet(crc32);
-        // TODO: Check crc32 values for each chunk
-        int crc32c = crc.crc(p, chunkSize + sizeof(chunkType));
+        // Check crc32 for each chunk
+        int crc32c = crc.crc(chunkDataRaw.data(), chunkSize + sizeof(chunkType));
         if (crc32 != crc32c)
         {
-            set.setLastError("CRC32 checksum doesn't match");
-            delete[] p;
+            set.setLastError("chunk CRC32 checksum doesn't match");
             return false;
         }
 
@@ -181,8 +236,7 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
             memcpy(((uint8_t *)&ihdr) + 8, chunkData, chunkSize);
             memcpy(ihdr.ChunkType, chunkType, 4);
             ihdr.Lenght = chunkSize;
-
-            if (verbose)
+            if (g_verbose)
             {
                 LOGI("Width: %d, Height: %d", CFrame::toNet(ihdr.Width), CFrame::toNet(ihdr.Height));
                 LOGI("BitDepth: %d", ihdr.BitDepth);
@@ -200,18 +254,15 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
 
         else if (memcmp(chunkType, "IDAT", CHUNK_TYPE_LEN) == 0)
         {
-            if (cData)
+            if (cData.size() != 0)
             {
-                uint8_t *tmp = new uint8_t[cDataSize + chunkSize];
-                memcpy(tmp, cData, cDataSize);
-                delete[] cData;
-                cData = tmp;
-                memcpy(cData + cDataSize, chunkData, chunkSize);
+                cData.resize(cDataSize + chunkSize);
+                memcpy(cData.data() + cDataSize, chunkData, chunkSize);
             }
             else
             {
-                cData = new uint8_t[chunkSize];
-                memcpy(cData, chunkData, chunkSize);
+                cData.resize(chunkSize);
+                memcpy(cData.data(), chunkData, chunkSize);
             }
             cDataSize += chunkSize;
         }
@@ -229,28 +280,42 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
 
         else if (memcmp(chunkType, png_chunk_OBL5, CHUNK_TYPE_LEN) == 0)
         {
-            // oblt_found = true;
             CFrame::png_OBL5 obl5t;
             char *t = (char *)&obl5t;
             memcpy(t + 8, chunkData, 12);
-            if (obl5t.Version == 0)
+            obl5t_version = obl5t.Version;
+            if (obl5t.Version == OBLT_VERSION0)
             {
-                // only version 0x0000 is supported
+                // version 0x0000 is supported
                 obl5t_count = obl5t.Count;
-                obl5t_xx = new short[obl5t.Count];
-                obl5t_yy = new short[obl5t.Count];
-                memcpy(obl5t_xx, chunkData + 12,
+                obl5t_sx.resize(obl5t.Count);
+                obl5t_sy.resize(obl5t.Count);
+                memcpy(obl5t_sx.data(), chunkData + 12,
                        sizeof(short) * obl5t.Count);
-                memcpy(obl5t_yy, chunkData + 12 + sizeof(short) * obl5t.Count,
+                memcpy(obl5t_sy.data(), chunkData + 12 + sizeof(short) * obl5t.Count,
                        sizeof(short) * obl5t.Count);
             }
+            else if (obl5t.Version == OBLT_VERSION2)
+            {
+                // version 0x0002 is supported
+                obl5t_count = obl5t.Count;
+                obl5t_metadatav2.resize(obl5t.Count);
+                memcpy(obl5t_metadatav2.data(), chunkData + 12,
+                       sizeof(CFrame::oblv2DataUnit_t) * obl5t.Count);
+            }
+            else
+            {
+                LOGW("unsupported oblt version: %d", obl5t.Version);
+            }
         }
-
-        delete[] p; // chunkData;
+        else
+        {
+            // LOGW("ignored unsupported chunkType: %s", ct);
+        }
     }
 
     bool valid = false;
-    if (cData && iend_found)
+    if (cData.size() > 0 && iend_found)
     {
         // qDebug("total cData:%d\n", cDataSize);
         if (!ihdr.Interlace &&
@@ -270,72 +335,87 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool verbose)
                 offsetY = 8 - (height & 7);
                 height += offsetY;
             }
-            CFrame *frame = new CFrame(width, height);
+            std::unique_ptr<CFrame> frame = std::make_unique<CFrame>(width, height);
             memset(frame->getRGB().data(), 0, sizeof(uint32_t) * frame->width() * frame->height());
 
+            std::string lastError;
             if (ihdr.BitDepth == 8)
             {
-                valid = _8bpp(frame, cData, cDataSize, ihdr, plte, trns_found, trns, offsetY);
+                valid = _8bpp(frame.get(), cData.data(), cDataSize, ihdr, plte, trns_found, trns, offsetY, lastError);
             }
 
             if (ihdr.BitDepth == 4)
             {
-                valid = _4bpp(frame, cData, cDataSize, ihdr, plte, trns_found, trns, offsetY);
+                valid = _4bpp(frame.get(), cData.data(), cDataSize, ihdr, plte, trns_found, trns, offsetY, lastError);
             }
 
-            // qDebug("valid: %d", valid);
-            if (valid)
+            if (!valid)
             {
-                if (obl5t_count)
+                set.setLastError(lastError.c_str());
+                return false;
+            }
+
+            if (obl5t_count > 0)
+            {
+                // using obLT chunkdata
+                if (obl5t_version == OBLT_VERSION0)
                 {
-                    frame->explode(obl5t_count, obl5t_xx, obl5t_yy, &set);
-                    delete[] obl5t_xx;
-                    delete[] obl5t_yy;
-                    delete frame;
+                    frame->explode(obl5t_count, obl5t_sx.data(), obl5t_sy.data(), &set);
+                }
+                else if (obl5t_version == OBLT_VERSION2)
+                {
+                    frame->explode(obl5t_metadatav2, &set);
                 }
                 else
                 {
-                    set.add(frame);
+                    std::string error = "unsupported obLT version:" + std::to_string(obl5t_version);
+                    set.setLastError(error.c_str());
+                    return false;
                 }
             }
             else
             {
-                set.setLastError("unsupported png filtering");
-                delete frame;
-                //      size = 0;
+                set.add(frame.release());
             }
         }
         else
         {
             set.setLastError("unsupported png");
+            return false;
         }
-        delete[] cData;
     }
     return valid;
 }
 
-bool _8bpp(
-    CFrame *&frame,
+static bool _8bpp(
+    CFrame *frame,
     uint8_t *cData,
     const int cDataSize,
     const png_IHDR &ihdr,
-    const uint8_t plte[][3],
+    const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
-    const int offsetY)
+    const int offsetY,
+    std::string &lastError)
 {
     int pixelWidth = -1;
 
     switch (ihdr.ColorType)
     {
     case PNG_COLOR_TYPE_PALETTE:
-        pixelWidth = 1;
+        pixelWidth = PIXELWIDTH_PALETTE;
         break;
     case PNG_COLOR_TYPE_RGB:
-        pixelWidth = 3;
+        pixelWidth = PIXELWIDTH_RGB;
         break;
     case PNG_COLOR_TYPE_RGB_ALPHA:
-        pixelWidth = 4;
+        pixelWidth = PIXELWIDTH_RGBA;
+        break;
+    default:
+        char tmp[128];
+        snprintf(tmp, sizeof(tmp), "Invalid/unsupported ColorType %d", ihdr.ColorType);
+        lastError = tmp;
+        return false;
     }
 
     // printf("pixelWidth %d\n", pixelWidth);
@@ -345,19 +425,20 @@ bool _8bpp(
     // printf("pitch: %d\n", pitch);
 
     uLong dataSize = pitch * CFrame::toNet(ihdr.Height);
-    uint8_t *data = new uint8_t[dataSize];
+    std::vector<uint8_t> fData(dataSize);
     //    printf("total data:%d\n", ((int)dataSize));
 
     int err = uncompress(
-        (uint8_t *)data,
+        (uint8_t *)fData.data(),
         (uLong *)&dataSize,
         (uint8_t *)cData,
         (uLong)cDataSize);
 
     if (err != Z_OK)
     {
-        setLastError("error in decomp");
-        delete[] data;
+        char tmp[128];
+        snprintf(tmp, sizeof(tmp), "Zlib compression error %d: %s", err, zError(err));
+        lastError = tmp;
         return false;
     }
 
@@ -366,24 +447,22 @@ bool _8bpp(
 
     for (int y = 0; y < (int)CFrame::toNet(ihdr.Height); y++)
     {
-        uint8_t *line = &data[pitch * y + 1];
+        uint8_t *line = &fData.data()[pitch * y + 1];
         uint8_t *prLine = nullptr;
-        if (y)
+        if (y > 0)
         {
-            prLine = &data[pitch * (y - 1) + 1];
+            prLine = &fData.data()[pitch * (y - 1) + 1];
         }
-        uint8_t filtering = data[pitch * y];
-        bool handled = true;
+        uint8_t filtering = fData.data()[pitch * y];
 
         switch (filtering)
         {
-        case 0:
+        case FILTERING_NONE:
             break;
 
-        case 1:
+        case FILTERING_SUB:
             for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
             {
-
                 uint32_t p = 0;
                 uint32_t c = 0;
                 if (x)
@@ -405,13 +484,12 @@ bool _8bpp(
             }
             break;
 
-        case 2:
+        case FILTERING_UP:
             for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
             {
-
                 uint32_t p = 0;
                 uint32_t c = 0;
-                if (y)
+                if (y > 0)
                 {
                     memcpy(&p, &prLine[x * pixelWidth], pixelWidth);
                 }
@@ -430,7 +508,7 @@ bool _8bpp(
             }
             break;
 
-        case 3:
+        case FILTERING_AVERAGE:
             for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
             {
 
@@ -459,7 +537,7 @@ bool _8bpp(
 
             break;
 
-        case 4:
+        case FILTERING_PAETH:
             for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
             {
                 uint32_t a = 0; // left
@@ -493,64 +571,56 @@ bool _8bpp(
             break;
 
         default:
-            handled = false;
-        }
-
-        if (handled)
-        {
-            for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
-            {
-                uint32_t rgba = 0xff000000;
-                switch (pixelWidth)
-                {
-                case 1:
-                    memcpy(&rgba, plte[line[x]], 3);
-
-                    if (trns_found)
-                    {
-                        rgba &= (trns[line[x]] * 0x1000000) + 0xffffff;
-                    }
-                    break;
-
-                case 3:
-                case 4:
-                    memcpy(&rgba, &line[x * pixelWidth], pixelWidth);
-                    break;
-                }
-
-                rgb[(offsetY + y) * frame->width() + x] = rgba;
-            }
-        }
-        else
-        {
             valid = false;
             char tmp[128];
-            snprintf(tmp, sizeof(tmp), "unsupported filter: %d", filtering);
-            setLastError(tmp);
-            break;
+            snprintf(tmp, sizeof(tmp), "unsupported filtering: %s [%d]", getFilteringName(filtering).data(), filtering);
+            lastError = tmp;
+            return false;
+        }
+
+        for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
+        {
+            uint32_t rgba = 0xff000000;
+            switch (pixelWidth)
+            {
+            case PIXELWIDTH_PALETTE:
+                memcpy(&rgba, plte[line[x]], RGB_BYTES);
+
+                if (trns_found)
+                {
+                    rgba &= (trns[line[x]] * 0x1000000) + 0xffffff;
+                }
+                break;
+
+            case PIXELWIDTH_RGB:
+            case PIXELWIDTH_RGBA:
+                memcpy(&rgba, &line[x * pixelWidth], pixelWidth);
+                break;
+            }
+
+            rgb[(offsetY + y) * frame->width() + x] = rgba;
         }
     }
-
-    delete[] data;
     return valid;
 }
 
-bool _4bpp(
-    CFrame *&frame,
+static bool _4bpp(
+    CFrame *frame,
     uint8_t *cData,
     const int cDataSize,
     const png_IHDR &ihdr,
-    const uint8_t plte[][3],
+    const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
-    const int offsetY)
+    const int offsetY,
+    std::string &lastError)
 {
     int height = CFrame::toNet(ihdr.Height);
     int width = CFrame::toNet(ihdr.Width);
 
     if (ihdr.ColorType != PNG_COLOR_TYPE_PALETTE)
     {
-        setLastError("colorType is not PNG_COLOR_TYPE_PALETTE");
+        lastError = "colorType is not PNG_COLOR_TYPE_PALETTE";
         return false;
     }
 
@@ -563,36 +633,29 @@ bool _4bpp(
     // printf("pitch: %d\n", pitch);
 
     uint64_t dataSize = pitch * CFrame::toNet(ihdr.Height);
-    uint8_t *data = new uint8_t[dataSize];
+    std::vector<uint8_t> fData(dataSize);
     //    printf("total data:%d\n", ((int)dataSize));
 
     int err = uncompress(
-        (uint8_t *)data,
+        (uint8_t *)fData.data(),
         (uLong *)&dataSize,
         (uint8_t *)cData,
         (uLong)cDataSize);
 
     if (err != Z_OK)
     {
-        setLastError("error in decomp");
-        delete[] data;
+        char tmp[128];
+        snprintf(tmp, sizeof(tmp), "Zlib compression error %d: %s", err, zError(err));
+        lastError = tmp;
         return false;
     }
 
-    // bool valid = true;
     uint32_t *rgb = frame->getRGB().data();
-
     for (int y = 0; y < height; y++)
     {
-        uint8_t *line = &data[pitch * y + 1];
-        // uint8_t *prLine = nullptr;
-        // if (y) {
-        //   prLine = & data[pitch * (y - 1) + 1];
-        //}
-        uint8_t filtering = data[pitch * y];
-        // bool handled = true;
-
-        if (filtering == 0)
+        uint8_t *line = &fData.data()[pitch * y + 1];
+        uint8_t filtering = fData.data()[pitch * y];
+        if (filtering == FILTERING_NONE)
         {
             for (int x = 0; x < width; x++)
             {
@@ -607,7 +670,7 @@ bool _4bpp(
                     index = index >> 4;
                 }
 
-                memcpy(&rgba, plte[index], 3);
+                memcpy(&rgba, plte[index], RGB_BYTES);
                 if (trns_found)
                 {
                     rgba |= (trns[index] << 24);
@@ -622,13 +685,11 @@ bool _4bpp(
         }
         else
         {
-            //      valid = false;
             char tmp[128];
-            snprintf(tmp, sizeof(tmp), "unsupported filter: %d", filtering);
-            setLastError(tmp);
+            snprintf(tmp, sizeof(tmp), "unsupported filtering: %s [%d]", getFilteringName(filtering).data(), filtering);
+            lastError = tmp;
             return false;
         }
     }
-
     return true;
 }

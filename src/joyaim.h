@@ -1,6 +1,6 @@
 /*
-    LGCK Builder Runtime
-    Copyright (C) 1999, 2020  Francois Blanchette
+    cs3-runtime-sdl
+    Copyright (C) 2025  Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,19 +15,20 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #pragma once
-#include <string>
-#include <list>
-#include <vector>
-#include <list>
-const char *toUpper(char *s);
-std::string getUUID();
-bool copyFile(const std::string in, const std::string out, std::string &errMsg);
-bool concat(const std::list<std::string> files, std::string out, std::string &msg);
-int upperClean(int c);
-#ifdef _WIN32
-#else
-#include <stdlib.h>
-// #include <linux/limits.h>
-#endif
-int compressData(unsigned char *in_data, unsigned long in_size, unsigned char **out_data, unsigned long &out_size);
+
+#include <cinttypes>
+
+enum JoyAim : uint8_t
+{
+    AIM_UP = 0,
+    AIM_DOWN = 1,
+    AIM_LEFT = 2,
+    AIM_RIGHT = 3,
+    TOTAL_AIMS = 4,
+    AIM_NONE = 0xff,
+};
+
+JoyAim operator^=(JoyAim &aim, int i);
+JoyAim reverseDir(const JoyAim aim);

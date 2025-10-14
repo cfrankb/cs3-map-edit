@@ -51,6 +51,7 @@
 #define ANIMZ_DRAGO_LEN           0x04
 #define ANIMZ_EXPLOSION1_LEN      0x05
 #define ANIMZ_DOORS_LEAF_LEN      0x02
+#define ANIMZ_FIREBALL_LEN        0x04
 
 #define ANIMZ_SWAMP               0x00
 #define ANIMZ_SWAMP_2             0x01
@@ -182,4 +183,8 @@
 #define ANIMZ_EXPLOSION1_5        0x7f
 #define ANIMZ_DOORS_LEAF          0x80
 #define ANIMZ_DOORS_LEAF_2        0x81
-#define ANIMZ_TOTAL_COUNT         0x82
+#define ANIMZ_FIREBALL            0x82
+#define ANIMZ_FIREBALL_2          0x83
+#define ANIMZ_FIREBALL_3          0x84
+#define ANIMZ_FIREBALL_4          0x85
+#define ANIMZ_TOTAL_COUNT         0x86

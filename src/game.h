@@ -19,14 +19,18 @@
 #include <vector>
 #include <cstdint>
 #include <cstdio>
+#include <set>
 #include "actor.h"
+#include "boss.h"
 #include "map.h"
 #include "gamesfx.h"
 #include "events.h"
+#include "tilesdata.h"
 
 class CGameStats;
 class CMapArch;
 class ISound;
+class CBoss;
 
 struct MapReport
 {
@@ -64,6 +68,15 @@ public:
         MAX_KEY_STATE = 5,
     };
 
+    enum Hurt
+    {
+        HurtNone,
+        HurtFaz,
+        HurtInv,
+        HurtFlash,
+        HurtStart = HurtFlash
+    };
+
     struct userKeys_t
     {
         uint8_t tiles[MAX_KEYS];
@@ -73,6 +86,7 @@ public:
     bool loadLevel(const GameMode mode);
     bool move(const JoyAim dir);
     void manageMonsters(const int ticks);
+    void manageBosses(const int ticks);
     uint8_t managePlayer(const uint8_t *joystate);
     static Pos translate(const Pos &p, const int aim);
     void consume();
@@ -138,6 +152,7 @@ public:
     void setDefaultLives(int lives);
     bool read(IFile &sfile);
     bool write(IFile &tfile);
+    const std::vector<CBoss> &bosses();
 
 private:
     enum
@@ -173,6 +188,7 @@ private:
     int m_introHint = 0;
     std::vector<Event> m_events;
     std::vector<CActor> m_monsters;
+    std::vector<CBoss> m_bosses;
     std::vector<sfx_t> m_sfx;
     CActor m_player;
     CMapArch *m_mapArch = nullptr;
@@ -189,7 +205,7 @@ private:
     CGame();
     ~CGame();
     int clearAttr(const uint8_t attr);
-    bool findMonsters();
+    bool spawnMonsters();
     int addMonster(const CActor actor);
     int findMonsterAt(const int x, const int y) const;
     void addHealth(const int hp);
@@ -200,6 +216,14 @@ private:
     static bool isFruit(const uint8_t tileID);
     static bool isBonusItem(const uint8_t tileID);
     CGameStats &stats();
+    const CGameStats &statsConst() const;
+    void handleMonster(CActor &actor, const TileDef &def);
+    void handleDrone(CActor &actor, const TileDef &def);
+    void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters);
+    void handleCrusher(CActor &actor, const bool speeds[]);
+    void handleIceCube(CActor &actor);
+    void handleFirball(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+
     static CMap m_map;
     friend class CGameMixin;
 };

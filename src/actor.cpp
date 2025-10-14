@@ -56,10 +56,8 @@ JoyAim reverseDir(const JoyAim aim)
 
 CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAim aim)
 {
-    if (aim >= TOTAL_AIMS)
-    {
+    if (aim >= TOTAL_AIMS && aim != AIM_NONE)
         throw std::invalid_argument("Invalid aim value");
-    }
     m_x = x;
     m_y = y;
     m_type = type;
@@ -291,27 +289,6 @@ void CActor::reverveDir()
     m_aim = ::reverseDir(m_aim);
 }
 
-/**
- * @brief Deserialize Sprite from disk
- *
- * @param sfile
- * @return true
- * @return false
- */
-
-bool CActor::read(FILE *sfile)
-{
-    if (!sfile)
-        return false;
-
-    auto readfile = [sfile](auto ptr, auto size) -> bool
-    {
-        return fread(ptr, size, 1, sfile) == 1;
-    };
-
-    return readCommon(readfile);
-}
-
 bool CActor::read(IFile &sfile)
 {
     auto readfile = [&sfile](auto ptr, auto size) -> bool
@@ -345,25 +322,6 @@ bool CActor::readCommon(ReadFunc readfile)
         return false;
 
     return true;
-}
-
-/**
- * @brief Serialize Sprite to disk
- *
- * @param tfile owned by the caller
- * @return true
- * @return false
- */
-bool CActor::write(FILE *tfile) const
-{
-    if (!tfile)
-        return false;
-
-    auto writefile = [tfile](auto ptr, auto size)
-    {
-        return fwrite(ptr, size, 1, tfile) == 1;
-    };
-    return writeCommon(writefile);
 }
 
 bool CActor::write(IFile &tfile) const
@@ -433,4 +391,21 @@ int CActor::distance(const CActor &actor) const
     int dx = std::abs(actor.m_x - m_x);
     int dy = std::abs(actor.m_y - m_y);
     return std::sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * @brief Move Sprite to a specfic coordonates
+ *
+ * @param x
+ * @param y
+ */
+void CActor::move(const int16_t x, const int16_t y)
+{
+    m_x = static_cast<uint8_t>(x & 0xff);
+    m_y = static_cast<uint8_t>(y & 0xff);
+}
+
+void CActor::move(const Pos pos)
+{
+    move(pos.x, pos.y);
 }

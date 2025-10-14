@@ -154,4 +154,8 @@ const TileDef & getTileDef(int i);
 #define TILES_ETURTLE             0x72
 #define TILES_DRAGO               0x73
 #define TILES_DOORS_LEAF          0x74
-#define TILES_TOTAL_COUNT         0x75
+#define TILES_ICECUBE             0x75
+#define TILES_FIREBALL            0x76
+#define TILES_ICEBOULDER          0x77
+#define TILES_ICEMOUNTAIN         0x78
+#define TILES_TOTAL_COUNT         0x79

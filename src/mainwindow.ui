@@ -90,6 +90,7 @@
     <addaction name="actionEdit_Delete_Map"/>
     <addaction name="separator"/>
     <addaction name="actionEdit_Map_States"/>
+    <addaction name="actionEdit_Edit_Messages"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -481,6 +482,18 @@
    </property>
    <property name="statusTip">
     <string>Export screenshots of all the maps</string>
+   </property>
+  </action>
+  <action name="actionEdit_Edit_Messages">
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/scroll.png</normaloff>:/data/icons/scroll.png</iconset>
+   </property>
+   <property name="text">
+    <string>Edit Messages</string>
+   </property>
+   <property name="statusTip">
+    <string>Edit Messages for Scrolls and Books on the current map</string>
    </property>
   </action>
  </widget>

@@ -146,11 +146,25 @@ const CActor &CGame::playerConst() const
  */
 bool CGame::move(const JoyAim aim)
 {
+    const uint8_t tileID = m_player.tileAt(aim);
+    const TileDef &def = getTileDef(tileID);
     if (m_player.canMove(aim))
     {
         m_player.move(aim);
         consume();
         return true;
+    }
+    else if (def.type == TYPE_ICECUBE || def.type == TYPE_BOULDER)
+    {
+        const Pos pos = CGame::translate(m_player.pos(), aim);
+        const int i = findMonsterAt(pos.x, pos.y);
+        if (i != INVALID && m_monsters[i].canMove(aim))
+        {
+            m_monsters[i].setAim(aim);
+            m_monsters[i].move(aim);
+            m_player.move(aim);
+            return true;
+        }
     }
     return false;
 }
@@ -232,8 +246,8 @@ void CGame::consume()
     }
 
     // trigger key
-    int x = m_player.getX();
-    int y = m_player.getY();
+    int x = m_player.x();
+    int y = m_player.y();
     uint8_t attr = m_map.getAttr(x, y);
     m_map.setAttr(x, y, 0);
     if (attr == ATTR_FREEZE_TRAP)
@@ -308,7 +322,7 @@ bool CGame::loadLevel(const GameMode mode)
     m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : m_map.count(TILES_DIAMOND);
     resetKeys();
     m_health = DEFAULT_HEALTH;
-    findMonsters();
+    spawnMonsters();
     m_sfx.clear();
     resetStats();
     m_report = currentMapReport();
@@ -444,9 +458,10 @@ void CGame::setMapArch(CMapArch *arch)
  * @return true
  * @return false
  */
-bool CGame::findMonsters()
+bool CGame::spawnMonsters()
 {
     m_monsters.clear();
+    m_bosses.clear();
     for (int y = 0; y < m_map.hei(); ++y)
     {
         for (int x = 0; x < m_map.len(); ++x)
@@ -455,9 +470,15 @@ bool CGame::findMonsters()
             const TileDef &def = getTileDef(c);
             if (def.type == TYPE_MONSTER ||
                 def.type == TYPE_VAMPLANT ||
-                def.type == TYPE_DRONE)
+                def.type == TYPE_DRONE ||
+                def.type == TYPE_ICECUBE ||
+                def.type == TYPE_FIREBALL ||
+                def.type == TYPE_BOULDER)
             {
-                addMonster(CActor(x, y, def.type));
+                if (def.type == TYPE_ICECUBE)
+                    addMonster(CActor(x, y, def.type, JoyAim::AIM_NONE));
+                else
+                    addMonster(CActor(x, y, def.type));
             }
         }
     }
@@ -472,6 +493,21 @@ bool CGame::findMonsters()
             addMonster(CActor(pos, attr, aim));
             removed.emplace_back(pos);
         }
+        else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX))
+        {
+            const Pos &pos = CMap::toPos(key);
+            Rect hitbox{.x = 16 / 8, .y = 48 / 8, .width = 32 / 8, .height = 16 / 8};
+            CBoss boss(
+                static_cast<int16_t>(pos.x) * CBoss::BOSS_GRANULAR_FACTOR,
+                static_cast<int16_t>(pos.y) * CBoss::BOSS_GRANULAR_FACTOR,
+                hitbox,
+                attr);
+            const int speed = (rand() & 3) + 1;
+            LOGI("boss 0x%.2x speed=%d", attr, speed);
+            boss.setSpeed(speed);
+            m_bosses.emplace_back(std::move(boss));
+            removed.emplace_back(pos);
+        }
     }
 
     for (const auto &pos : removed)
@@ -480,7 +516,10 @@ bool CGame::findMonsters()
     }
 
     if (!m_quiet)
+    {
         LOGI("%zu monsters found.\n", m_monsters.size());
+        LOGI("%zu bosses found.\n", m_bosses.size());
+    }
     return true;
 }
 
@@ -508,177 +547,12 @@ int CGame::findMonsterAt(const int x, const int y) const
     for (size_t i = 0; i < m_monsters.size(); ++i)
     {
         const CActor &actor = m_monsters[i];
-        if (actor.getX() == x && actor.getY() == y)
+        if (actor.x() == x && actor.y() == y)
         {
             return (int)i;
         }
     }
     return INVALID;
-}
-
-/**
- * @brief Handle all the monsters on the current map
- *
- * @param ticks clock ticks since start
- */
-
-void CGame::manageMonsters(const int ticks)
-{
-    const int speedCount = 9;
-    bool speeds[speedCount];
-    for (uint32_t i = 0; i < sizeof(speeds); ++i)
-    {
-        speeds[i] = i ? (ticks % i) == 0 : true;
-    }
-
-    const JoyAim dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
-    std::vector<CActor> newMonsters;
-
-    for (size_t i = 0; i < m_monsters.size(); ++i)
-    {
-        CActor &actor = m_monsters[i];
-        const Pos pos = actor.pos();
-        const uint8_t cs = m_map.at(pos.x, pos.y);
-        const uint8_t attr = m_map.getAttr(pos.x, pos.y);
-        if (RANGE(attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX))
-        {
-            const uint8_t distance = (attr & 0xf) + 1;
-            if (actor.distance(m_player) <= distance)
-                m_map.setAttr(pos.x, pos.y, 0);
-            else
-                continue;
-        }
-
-        const TileDef &def = getTileDef(cs);
-        if (!speeds[def.speed])
-        {
-            continue;
-        }
-        if (actor.type() == TYPE_MONSTER)
-        {
-            if (actor.isPlayerThere(actor.getAim()))
-            {
-                // apply health damages
-                addHealth(def.health);
-                if (def.ai & AI_STICKY)
-                {
-                    continue;
-                }
-            }
-            bool reverse = def.ai & AI_REVERSE;
-            JoyAim aim = actor.findNextDir(reverse);
-            if (aim != AIM_NONE)
-            {
-                actor.move(aim);
-                if (!(def.ai & AI_ROUND))
-                {
-                    continue;
-                }
-            }
-            for (uint8_t i = 0; i < sizeof(dirs); ++i)
-            {
-                if (actor.getAim() != dirs[i] &&
-                    actor.isPlayerThere(dirs[i]))
-                {
-                    // apply health damages
-                    addHealth(def.health);
-                    if (def.ai & AI_FOCUS)
-                    {
-                        actor.setAim(dirs[i]);
-                    }
-                    break;
-                }
-            }
-        }
-        else if (actor.type() == TYPE_DRONE)
-        {
-            JoyAim aim = actor.getAim();
-            if (aim < AIM_LEFT)
-            {
-                aim = AIM_LEFT;
-            }
-            if (actor.isPlayerThere(actor.getAim()))
-            {
-                // apply health damages
-                addHealth(def.health);
-                if (def.ai & AI_STICKY)
-                {
-                    continue;
-                }
-            }
-            if (actor.canMove(aim))
-            {
-                actor.move(aim);
-            }
-            else if (aim == AIM_LEFT)
-                aim = AIM_RIGHT;
-            else
-                aim = AIM_LEFT;
-            actor.setAim(aim);
-        }
-        else if (actor.type() == TYPE_VAMPLANT)
-        {
-            for (uint8_t i = 0; i < sizeof(dirs); ++i)
-            {
-                const Pos p = CGame::translate(Pos{actor.getX(), actor.getY()}, dirs[i]);
-                const uint8_t ct = m_map.at(p.x, p.y);
-                const TileDef &defT = getTileDef(ct);
-                if (defT.type == TYPE_PLAYER)
-                {
-                    // apply damage from config
-                    addHealth(def.health);
-                }
-                else if (defT.type == TYPE_SWAMP)
-                {
-                    m_map.set(p.x, p.y, TILES_VAMPLANT);
-                    newMonsters.emplace_back(CActor(p.x, p.y, TYPE_VAMPLANT));
-                    break;
-                }
-                else if (defT.type == TYPE_MONSTER)
-                {
-                    const int j = findMonsterAt(p.x, p.y);
-                    if (j == INVALID)
-                        continue;
-                    CActor &m = m_monsters[j];
-                    m.setType(TYPE_VAMPLANT);
-                    m_map.set(p.x, p.y, TILES_VAMPLANT);
-                    break;
-                }
-            }
-        }
-        else if (RANGE(actor.type(), ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
-        {
-            const uint8_t speed = (actor.type() & CRUSHER_SPEED_MASK) + SPEED_VERYFAST;
-            if (!speeds[speed])
-            {
-                continue;
-            }
-            JoyAim aim = actor.getAim();
-            const bool isPlayerThere = actor.isPlayerThere(aim);
-            if (isPlayerThere && !isGodMode())
-            {
-                // apply health damages
-                addHealth(AUTOKILL);
-            }
-            if (actor.canMove(aim) && !(isPlayerThere && isGodMode()))
-                actor.move(aim);
-            else if (aim == AIM_LEFT)
-                aim = AIM_RIGHT;
-            else if (aim == AIM_RIGHT)
-                aim = AIM_LEFT;
-            else if (aim == AIM_DOWN)
-                aim = AIM_UP;
-            else if (aim == AIM_UP)
-                aim = AIM_DOWN;
-            actor.setAim(aim);
-        }
-    }
-
-    // moved here to avoid reallocation while using a reference
-    for (auto const &monster : newMonsters)
-    {
-        addMonster(monster);
-    }
 }
 
 /**
@@ -846,13 +720,16 @@ void CGame::addHealth(const int hp)
 {
     if (isClosure())
         return;
+    const int hurtStage = m_gameStats->get(S_PLAYER_HURT); // provides invincibility frames
     const auto skill = m_gameStats->get(S_SKILL);
     if (hp > 0)
     {
         const int hpToken = hp / (1 + 1 * skill);
         m_health = std::min(m_health + hpToken, maxHealth());
     }
-    else if (hp < 0 && !m_gameStats->get(S_GOD_MODE_TIMER))
+    else if (hp < 0 &&
+             !m_gameStats->get(S_GOD_MODE_TIMER) &&
+             hurtStage == HurtNone)
     {
         const int hpToken = hp * (1 + 1 * skill);
         m_health = std::max(m_health + hpToken, 0);
@@ -1252,7 +1129,6 @@ void CGame::playTileSound(int tileID) const
 void CGame::attach(std::shared_ptr<ISound> &s)
 {
     m_sound = s;
-    LOGI("m_sound useCount: %d\n", s.use_count());
 }
 
 /**
@@ -1451,6 +1327,11 @@ CGameStats &CGame::stats()
     return *m_gameStats;
 }
 
+const CGameStats &CGame::statsConst() const
+{
+    return *m_gameStats;
+}
+
 bool CGame::isRageMode() const
 {
     return m_gameStats->get(S_RAGE_TIMER) != 0;
@@ -1607,4 +1488,9 @@ void CGame::setDefaultLives(int lives)
 void CGame::setQuiet(bool state)
 {
     m_quiet = state;
+}
+
+const std::vector<CBoss> &CGame::bosses()
+{
+    return m_bosses;
 }

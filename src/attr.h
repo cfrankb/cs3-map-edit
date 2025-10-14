@@ -23,6 +23,8 @@
 #define PASSAGE_REG_MAX 0x1f   // 0x1f
 #define SECRET_ATTR_MIN 0x40   // 0x40
 #define SECRET_ATTR_MAX 0x4f   // 0x4f
+#define ATTR_BOSS_MIN 0xb0     // 0xb0
+#define ATTR_BOSS_MAX 0xb7     // 0xb7
 #define ATTR_CRUSHERV_MIN 0xd0 // 0xd0 crusherv
 #define ATTR_CRUSHERV_MAX 0xd3 // 0xd3 crusherv
 #define ATTR_CRUSHERH_MIN 0xd4 // 0xd4 crusherh

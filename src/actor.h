@@ -16,25 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include <stdio.h>
 #include <cstdint>
 #include "map.h"
-
-enum JoyAim : uint8_t
-{
-    AIM_UP = 0,
-    AIM_DOWN = 1,
-    AIM_LEFT = 2,
-    AIM_RIGHT = 3,
-    TOTAL_AIMS = 4,
-    AIM_NONE = 0xff,
-};
-
-JoyAim operator^=(JoyAim &aim, int i);
-JoyAim reverseDir(const JoyAim aim);
+#include "joyaim.h"
+#include "isprite.h"
 
 class IFile;
-class CActor
+class CActor : public ISprite
 {
 
 public:
@@ -42,17 +30,17 @@ public:
     CActor(const Pos &pos, uint8_t type = 0, JoyAim aim = AIM_UP);
     ~CActor();
 
-    bool canMove(const JoyAim aim) const;
-    void move(const JoyAim aim);
-    inline uint8_t getX() const
+    bool canMove(const JoyAim aim) const override;
+    void move(const JoyAim aim) override;
+    inline int16_t x() const override
     {
-        return m_x;
+        return static_cast<int16_t>(m_x);
     }
-    inline uint8_t getY() const
+    inline int16_t y() const override
     {
-        return m_y;
+        return static_cast<int16_t>(m_y);
     }
-    inline uint8_t type() const
+    inline uint8_t type() const override
     {
         return m_type;
     }
@@ -66,15 +54,14 @@ public:
     uint8_t tileAt(JoyAim aim) const;
     void setType(const uint8_t type);
     bool isWithin(const int x1, const int y1, const int x2, const int y2) const;
-    [[deprecated("Use IFile interface instead")]]
-    bool read(FILE *sfile);
-    [[deprecated("Use IFile interface instead")]]
-    bool write(FILE *tfile) const;
     bool read(IFile &file);
     bool write(IFile &tfile) const;
     void reverveDir();
-    const Pos pos() const;
-    int distance(const CActor &actor) const;
+    const Pos pos() const override;
+    int distance(const CActor &actor) const override;
+    void move(const int16_t x, const int16_t y) override;
+    void move(const Pos pos) override;
+    inline int16_t granularFactor() const override { return ACTOR_GRANULAR_FACTOR; };
 
 private:
     uint8_t m_x;
@@ -87,4 +74,9 @@ private:
     template <typename WriteFunc>
     bool writeCommon(WriteFunc writefile) const;
     friend class CGame;
+    friend class CBoss;
+    enum : uint16_t
+    {
+        ACTOR_GRANULAR_FACTOR = 1
+    };
 };

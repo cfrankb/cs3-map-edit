@@ -151,3 +151,8 @@ void CDotArray::setLimit(int maxX, int maxY)
     m_maxX = maxX;
     m_maxY = maxY;
 }
+
+const std::vector<Dot> &CDotArray::dots()
+{
+    return m_dots;
+}

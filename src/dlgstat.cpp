@@ -75,6 +75,8 @@ QString CDlgStat::attr2text(const uint8_t attr) {
         return tr("Trap");
     } else if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX)) {
         return tr("Crusher");
+    } else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX)) {
+        return tr("Boss Spawn Point");
     } else if (attr > PASSAGE_ATTR_MAX) {
         return tr("undefined behavior"); // undefined behavior
     } else if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX)) {

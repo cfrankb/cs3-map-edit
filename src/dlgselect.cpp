@@ -84,7 +84,7 @@ void CDlgSelect::init(const QString s, CMapFile *mf)
     m_mapFile = mf;
     ui->sSelect_Maps->setText(s);
     QStringList list;
-    for (int i=0; i < mf->size(); ++i) {
+    for (size_t i=0; i < mf->size(); ++i) {
         list.append(tr("map %1 : %2").arg(i+1,2,10,QChar('0')).arg(mf->at(i)->title()));
     }
     ui->cbSelect_Maps->addItems(list);

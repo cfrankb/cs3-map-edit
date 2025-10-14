@@ -31,8 +31,6 @@
 
 typedef uint32_t PIXEL;
 
-static CFrame tframe;
-
 // original color palette
 static const PIXEL g_original_palette[] = {
     0xff000000, 0xffab0303, 0xff03ab03, 0xffabab03, 0xff0303ab, 0xffab03ab, 0xff0357ab, 0xffababab,
@@ -68,11 +66,11 @@ static const PIXEL g_original_palette[] = {
     0xff2f432f, 0xff33432f, 0xff37432f, 0xff3f432f, 0xff43432f, 0xff433f2f, 0xff43372f, 0xff43332f,
     0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000};
 
-constexpr const char FORMAT_OBL3[] = "OBL3";
-constexpr const char FORMAT_OBL4[] = "OBL4";
-constexpr const char FORMAT_OBL5[] = "OBL5";
-constexpr const char FORMAT_GE96[] = "GE96";
-constexpr const char FORMAT_IMC1[] = "IMC1";
+constexpr char FORMAT_OBL3[] = "OBL3";
+constexpr char FORMAT_OBL4[] = "OBL4";
+constexpr char FORMAT_OBL5[] = "OBL5";
+constexpr char FORMAT_GE96[] = "GE96";
+constexpr char FORMAT_IMC1[] = "IMC1";
 
 CFrameSet::CFrameSet()
 {
@@ -82,13 +80,12 @@ CFrameSet::CFrameSet()
 
 CFrameSet::CFrameSet(CFrameSet *s)
 {
-    m_arrFrames.reserve(s->getSize());
+    m_frames.reserve(s->getSize());
     for (size_t i = 0; i < s->getSize(); i++)
     {
         CFrame *frame = new CFrame;
         frame->copy((*s)[i]);
         add(frame);
-        // add(new CFrame((*s)[i]));
     }
 
     m_name = s->getName();
@@ -109,7 +106,6 @@ CFrameSet::~CFrameSet()
 
 bool CFrameSet::writeSolid(IFile &file)
 {
-
     // Validate frame set
     const size_t size = getSize();
     if (size == 0 || size > MAX_IMAGES)
@@ -121,7 +117,7 @@ bool CFrameSet::writeSolid(IFile &file)
     int64_t totalSize = 0;
     for (size_t i = 0; i < getSize(); ++i)
     {
-        CFrame *frame = m_arrFrames[i];
+        CFrame *frame = m_frames[i];
         if (!frame || !frame->getRGB().data())
         {
             m_lastError = "Null frame or RGB data at index " + std::to_string(i);
@@ -140,7 +136,7 @@ bool CFrameSet::writeSolid(IFile &file)
             m_lastError = "Total pixel data size overflow";
             return false;
         }
-        totalSize += frameSize; // sizeof(PIXEL) * frame->len() * frame->hei();
+        totalSize += frameSize;
     }
 
     // Pack pixel data
@@ -148,7 +144,7 @@ bool CFrameSet::writeSolid(IFile &file)
     uint8_t *ptr = buffer.data();
     for (size_t i = 0; i < getSize(); ++i)
     {
-        CFrame *frame = m_arrFrames[i];
+        CFrame *frame = m_frames[i];
         int pixelBytes = sizeof(PIXEL) * frame->width() * frame->height();
         memcpy(ptr, frame->getRGB().data(), pixelBytes);
         ptr += pixelBytes;
@@ -181,7 +177,7 @@ bool CFrameSet::writeSolid(IFile &file)
     // Write IMAGE HEADER [0..n]
     for (size_t i = 0; i < getSize(); ++i)
     {
-        CFrame *frame = m_arrFrames[i];
+        CFrame *frame = m_frames[i];
         // do not modify the write sizes
         int len = frame->width();
         int hei = frame->height();
@@ -222,7 +218,7 @@ bool CFrameSet::writeSolid(IFile &file)
         }
         if (k.size() > TAG_KEY_MAX || v.size() > TAG_VAL_MAX)
         {
-            LOGW("tag metadata size out of bound: [%lu,%lu]; max: [%lu, %lu]",
+            LOGW("tag metadata size out of bound: [%lu,%lu]; max: [%d, %d]",
                  k.size(), v.size(), TAG_KEY_MAX, TAG_VAL_MAX);
         }
     }
@@ -237,20 +233,20 @@ bool CFrameSet::write(IFile &file)
 
 bool CFrameSet::write(IFile &file, const Format format)
 {
-    const size_t size = m_arrFrames.size();
+    const size_t size = m_frames.size();
     if (file.write(FORMAT_OBL5, ID_SIG_LEN) != IFILE_OK)
     {
-        LOGE("failed to write OBL5 id to file");
+        m_lastError = "failed to write OBL5 id to file";
         return false;
     }
     if (file.write(&size, sizeof(uint32_t)) != IFILE_OK)
     {
-        LOGE("failed to write OBL5 size to file");
+        m_lastError = "failed to write OBL5 size to file";
         return false;
     }
     if (file.write(&format, sizeof(uint32_t)) != IFILE_OK)
     {
-        LOGE("failed to write OBL5 format to file");
+        m_lastError = "failed to write OBL5 format to file";
         return false;
     }
 
@@ -261,9 +257,11 @@ bool CFrameSet::write(IFile &file, const Format format)
         // original version
         for (size_t i = 0; i < getSize(); ++i)
         {
-            if (!m_arrFrames[i]->write(file))
+            if (!m_frames[i]->write(file))
             {
-                LOGE("failed to write OBL5 frame %d to file", i);
+                char tmp[64];
+                snprintf(tmp, sizeof(tmp), "failed to write OBL5 frame %lu to file", i);
+                m_lastError = tmp;
                 return false;
             }
         }
@@ -275,7 +273,7 @@ bool CFrameSet::write(IFile &file, const Format format)
 
     default:
         char tmp[64];
-        snprintf(tmp, sizeof(tmp), "unknown OBL5 format: %x", format);
+        snprintf(tmp, sizeof(tmp), "unknown OBL5 format: 0x%x", format);
         m_lastError = tmp;
         return false;
     }
@@ -295,7 +293,6 @@ bool CFrameSet::readSolid(IFile &file, int size)
     // OBL5 IMAGESET HEADER
     // Read compressed size
     long srcSize = 0;
-    //    file.read(&srcSize, sizeof(uint32_t));
     if (file.read(&srcSize, sizeof(uint32_t)) != IFILE_OK || srcSize <= 0)
     {
         m_lastError = "Failed to read or invalid compressed size";
@@ -362,12 +359,10 @@ bool CFrameSet::readSolid(IFile &file, int size)
         char tmp[128];
         snprintf(tmp, sizeof(tmp), "Zlib error %d or size mismatch (%lu != %ld)", err, destLen, totalSize);
         m_lastError = tmp;
-        LOGE("err: %d\n", err);
         return false;
     }
 
     // Process frames
-    m_arrFrames.reserve(size);
     for (int n = 0; n < size; ++n)
     {
         const int len = lengths[n];
@@ -379,11 +374,9 @@ bool CFrameSet::readSolid(IFile &file, int size)
             return false;
         }
 
-        // CFrame *frame = new CFrame(lengths[n], heights[n]);
         auto frame = std::make_unique<CFrame>(len, hei);
-        // const size_t dataSize = sizeof(PIXEL) * frame->len() * frame->hei();
         memcpy(frame->getRGB().data(), ptr, dataSize);
-        m_arrFrames.emplace_back(frame.release());
+        m_frames.emplace_back(frame.release());
         ptr += dataSize;
     }
 
@@ -415,7 +408,6 @@ bool CFrameSet::readSolid(IFile &file, int size)
 
 bool CFrameSet::read(IFile &file)
 {
-
     long org = file.tell();
     if (org < 0)
     {
@@ -466,7 +458,6 @@ bool CFrameSet::read(IFile &file)
     clear();
     m_name.clear();
     m_tags.clear();
-    m_nCurrFrame = 0;
 
     // Dispatch based on version
     bool result = false;
@@ -514,14 +505,14 @@ bool CFrameSet::read(IFile &file)
 
 CFrame *CFrameSet::operator[](int n) const
 {
-    const size_t size = m_arrFrames.size();
+    const size_t size = m_frames.size();
     if (!(n & 0x8000) && n < (int)size && n >= 0)
     {
-        return m_arrFrames[n];
+        return m_frames[n];
     }
     else
     {
-        return &tframe;
+        return nullptr;
     }
 }
 
@@ -537,13 +528,12 @@ void CFrameSet::copyTags(CFrameSet &src)
 CFrameSet &CFrameSet::operator=(CFrameSet &s)
 {
     clear();
-    m_arrFrames.reserve(s.getSize());
+    m_frames.reserve(s.getSize());
     for (size_t i = 0; i < s.getSize(); i++)
     {
         CFrame *frame = new CFrame;
         frame->copy(s[i]);
-        // CFrame *frame = new CFrame(s[i]);
-        m_arrFrames.emplace_back(frame);
+        m_frames.emplace_back(frame);
     }
     copyTags(s);
     m_name = s.getName();
@@ -552,16 +542,16 @@ CFrameSet &CFrameSet::operator=(CFrameSet &s)
 
 void CFrameSet::clear()
 {
-    const size_t size = m_arrFrames.size();
+    const size_t size = m_frames.size();
     for (size_t i = 0; i < size; ++i)
-        delete m_arrFrames[i];
-    m_arrFrames.clear();
+        delete m_frames[i];
+    m_frames.clear();
     m_tags.clear();
 }
 
 size_t CFrameSet::getSize()
 {
-    return m_arrFrames.size();
+    return m_frames.size();
 }
 
 int CFrameSet::operator++()
@@ -574,26 +564,26 @@ int CFrameSet::operator--()
 {
     if (this->getSize() == 0)
         return 0;
-    delete m_arrFrames[this->getSize()];
+    delete m_frames[this->getSize()];
     removeAt(this->getSize() - 1);
     return this->getSize() - 1;
 }
 
 int CFrameSet::add(CFrame *pFrame)
 {
-    m_arrFrames.emplace_back(pFrame);
-    return m_arrFrames.size() - 1;
+    m_frames.emplace_back(pFrame);
+    return m_frames.size() - 1;
 }
 
 void CFrameSet::insertAt(int i, CFrame *pFrame)
 {
-    m_arrFrames.insert(m_arrFrames.begin() + i, pFrame);
+    m_frames.insert(m_frames.begin() + i, pFrame);
 }
 
 CFrame *CFrameSet::removeAt(int i)
 {
-    CFrame *frame = m_arrFrames[i];
-    m_arrFrames.erase(m_arrFrames.begin() + i);
+    CFrame *frame = m_frames[i];
+    m_frames.erase(m_frames.begin() + i);
     return frame;
 }
 
@@ -609,36 +599,31 @@ void CFrameSet::setName(const char *str)
 
 void CFrameSet::removeAll()
 {
-    m_arrFrames.clear();
+    m_frames.clear();
 }
 
 std::unique_ptr<char[]> CFrameSet::ima2bitmap(char *ImaData, int len, int hei)
 {
-    int x;
-    int y;
-    int x2;
-    int y2;
-
     if (ImaData == nullptr)
     {
-        LOGE("ImaData == nullptr");
+        m_lastError = "ImaData == nullptr";
         return nullptr;
     }
 
     std::unique_ptr<char[]> dest(new char[len * hei * FNT_SIZE * FNT_SIZE]);
     if (dest == nullptr)
     {
-        LOGE("dest == nullptr");
+        m_lastError = "dest == nullptr";
         return nullptr;
     }
 
-    for (y = 0; y < hei; y++)
+    for (int y = 0; y < hei; y++)
     {
-        for (x = 0; x < len; x++)
+        for (int x = 0; x < len; x++)
         {
-            for (y2 = 0; y2 < FNT_SIZE; y2++)
+            for (int y2 = 0; y2 < FNT_SIZE; y2++)
             {
-                for (x2 = 0; x2 < FNT_SIZE; x2++)
+                for (int x2 = 0; x2 < FNT_SIZE; x2++)
                 {
                     dest[x * FNT_SIZE + x2 + (y * FNT_SIZE + y2) * len * FNT_SIZE] =
                         *(ImaData + (x + y * len) * FNT_SIZE * FNT_SIZE + x2 + y2 * FNT_SIZE);
@@ -668,7 +653,12 @@ void CFrameSet::bitmap2rgb(char *bitmap, uint32_t *rgb, int len, int hei, int er
 bool CFrameSet::extract(IFile &file)
 {
     const auto org = file.tell(); // save stream origin
-    const uint8_t pngSig[] = {137, 80, 78, 71, 13, 10, 26, 10};
+    if (org < 0)
+    {
+        m_lastError = "couldn't get curPos";
+        return false;
+    }
+    constexpr uint8_t pngSig[] = {137, 80, 78, 71, 13, 10, 26, 10};
     char id[sizeof(pngSig)];
     if (file.read(id, sizeof(id)) != IFILE_OK)
     {
@@ -732,16 +722,23 @@ bool CFrameSet::importIMA(IFile &file, const long org)
     }
     if ((fileSize - hdrSize) != dataSize)
     {
+        // LOGW("filesize: %d - %d != %d", fileSize, hdrSize, dataSize);
         m_lastError = "this is not a valid .ima file";
         return false;
     }
+    // LOGI("datasize: %d ima len:%d hei:%d", dataSize, imaHead.len, imaHead.hei);
     std::vector<char> pIMA(dataSize);
     if (file.read(pIMA.data(), dataSize) != IFILE_OK)
+    {
+        m_lastError = "failed to read IMA data";
         return false;
+    }
     std::unique_ptr<char[]> bitmap = ima2bitmap(pIMA.data(), imaHead.len, imaHead.hei);
     if (bitmap == nullptr)
+    {
+        m_lastError = "bitmap memory allocation failed";
         return false;
-    // CFrame *frame = new CFrame(imaHead.len * FNT_SIZE, imaHead.hei * FNT_SIZE);
+    }
     std::unique_ptr<CFrame> frame = std::make_unique<CFrame>(imaHead.len * FNT_SIZE, imaHead.hei * FNT_SIZE);
     if (frame == nullptr)
     {
@@ -750,7 +747,10 @@ bool CFrameSet::importIMA(IFile &file, const long org)
     }
     bitmap2rgb(bitmap.get(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET_NONE);
     add(frame.release());
-    LOGW("Extra data after %s frame; possible format mismatch", "IMA");
+    if (file.tell() < fileSize)
+    {
+        LOGW("Extra data after %s frame; possible format mismatch", "IMA");
+    }
     return true;
 }
 
@@ -800,7 +800,6 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
     }
 
     // reading compressed data
-    // uint8_t *ptrIMC1 = new uint8_t[imc1Head.SizeData];
     std::vector<uint8_t> imc1(imc1Head.SizeData);
     auto ptrIMC1 = imc1.data();
     if (ptrIMC1 == nullptr)
@@ -816,17 +815,13 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
     }
 
     // allocating destination buffer
-    // uint8_t *ptr = new uint8_t[imc1Head.len * imc1Head.hei * FNT_SIZE * FNT_SIZE];
-    std::vector<uint8_t> dest(destSize);
+    std::vector<uint8_t> dest(destSize, '\0');
     auto ptr = dest.data();
     if (ptr == nullptr)
     {
         m_lastError = "allocation error";
         return false;
     }
-    memset(ptr, '\0', destSize);
-    // uint8_t *xptr = ptr;
-    // uint8_t *xptrIMC1 = ptrIMC1;
 
     // decoding RLE-like data
     int cpt = 0;
@@ -854,8 +849,6 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
         char tmp[128];
         snprintf(tmp, sizeof(tmp), "IMC1 decoding went outside of range %d. reached: %d", imc1Head.SizeData, cpt);
         m_lastError = tmp;
-
-        m_lastError = "IMC1 decoding went outside of range";
         return false;
     }
 
@@ -868,7 +861,6 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
     }
 
     // allocating frame
-    //    CFrame *frame = new CFrame(imc1Head.len * FNT_SIZE, imc1Head.hei * FNT_SIZE);
     std::unique_ptr<CFrame> frame = std::make_unique<CFrame>(imc1Head.len * FNT_SIZE, imc1Head.hei * FNT_SIZE);
     if (frame == nullptr)
     {
@@ -884,8 +876,6 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
     {
         LOGW("Extra data after %s frame; possible format mismatch", FORMAT_IMC1);
     }
-    // delete[] xptrIMC1;
-    // delete[] xptr;
     return true;
 }
 
@@ -932,6 +922,10 @@ bool CFrameSet::importGE96(IFile &file, const long org)
         return false;
     }
 
+    // Reserve space to avoid reallocs
+    std::vector<std::unique_ptr<CFrame>> tmpFrames;
+    tmpFrames.reserve(mcxHead.NbrImages);
+
     for (int i = 0; i < mcxHead.NbrImages; ++i)
     {
         // create new CFrame
@@ -941,24 +935,33 @@ bool CFrameSet::importGE96(IFile &file, const long org)
             m_lastError = "memory allocation error";
             return false;
         }
-        // CFrame *frame = new CFrame(GE96_TILE_SIZE, GE96_TILE_SIZE);
         //  mcx pixel buffer
         const int byteSize = GE96_TILE_SIZE * GE96_TILE_SIZE;
         std::vector<char> bitmap(byteSize);
         if (bitmap.data() == nullptr)
         {
+            m_lastError = "memory allocation";
             return false;
         }
         // read frame data (32x32 pixels)
         USER_MCX mcx;
         if (file.read(&mcx, sizeof(USER_MCX)) != IFILE_OK)
         {
+            m_lastError = "failed to read pixel frame";
             return false;
         }
         memcpy(bitmap.data(), &mcx.ImageData[0][0], byteSize);
         bitmap2rgb(bitmap.data(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET);
-        add(frame.release());
+        tmpFrames.emplace_back(std::move(frame));
     }
+
+    // move tmpframes to set
+    m_frames.reserve(m_frames.size() + mcxHead.NbrImages);
+    for (auto &frame : tmpFrames)
+    {
+        m_frames.emplace_back(frame.release());
+    }
+
     auto fileSize = file.getSize();
     if (file.tell() < fileSize)
     {
@@ -973,8 +976,6 @@ bool CFrameSet::importOBL5(IFile &file, const long org)
     file.seek(org);
     if (!frameSet.read(file))
     {
-
-        LOGE("last error:%s", frameSet.getLastError());
         m_lastError = "unsupported OBL5 version";
         return false;
     }
@@ -985,10 +986,10 @@ bool CFrameSet::importOBL5(IFile &file, const long org)
     }
 
     size_t size = frameSet.getSize();
-    m_arrFrames.reserve(size);
+    m_frames.reserve(m_frames.size() + size);
     for (size_t i = 0; i < size; ++i)
     {
-        m_arrFrames.emplace_back(frameSet[i]);
+        m_frames.emplace_back(frameSet[i]);
     }
     frameSet.removeAll();
     return true;
@@ -1017,9 +1018,12 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
         return false;
     }
 
+    // Reserve space to avoid reallocs
+    std::vector<std::unique_ptr<CFrame>> tmpFrames;
+    tmpFrames.reserve(size);
+
     int32_t mode;
     file >> mode;
-    m_arrFrames.reserve(size);
     for (int i = 0; i < size; ++i)
     {
         int32_t len;
@@ -1030,8 +1034,9 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
         // Validate dimensions
         if (len <= 0 || hei <= 0 || len > MAX_IMAGE_SIZE || hei > MAX_IMAGE_SIZE)
         {
-            m_lastError = "Invalid frame dimensions in OBL4";
-            m_arrFrames.clear();
+            char tmp[128];
+            snprintf(tmp, sizeof(tmp), "Invalid frame dimensions in OBL4 {%d,%d} for image %d", len, hei, i + 1);
+            m_lastError = tmp;
             return false;
         }
 
@@ -1040,7 +1045,6 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
         if (byteSize > static_cast<int64_t>(INT_MAX / sizeof(char)))
         {
             m_lastError = "Frame byte size overflow in OBL4";
-            m_arrFrames.clear();
             return false;
         }
 
@@ -1066,14 +1070,12 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
             if (file.read(&nSrcLen, sizeof(nSrcLen)) != IFILE_OK || nSrcLen <= 0 || nSrcLen > fileSize - file.tell())
             {
                 m_lastError = "Invalid or truncated compressed size in OBL4";
-                m_arrFrames.clear();
                 return false;
             }
             std::vector<uint8_t> pSrc(nSrcLen);
             if (file.read(pSrc.data(), nSrcLen) != IFILE_OK)
             {
                 m_lastError = "Failed to read OBL4 compressed data";
-                m_arrFrames.clear();
                 return false;
             }
             uLong nDestLen = frame->width() * frame->height();
@@ -1087,14 +1089,21 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
                 char tmp[128];
                 snprintf(tmp, sizeof(tmp), "Zlib compression error %d: %s", err, zError(err));
                 m_lastError = tmp;
+                return false;
             }
         }
         // Allocate RGB buffer
-        // frame->resize(frame->width(), frame->height());
-        // frame->setRGB(new uint32_t[frame->width() * frame->height()]);
         bitmap2rgb(bitmap.data(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET);
-        add(frame.release());
+        tmpFrames.emplace_back(std::move(frame));
     }
+
+    // add tmpFrames to set
+    m_frames.reserve(m_frames.size() + size);
+    for (auto &frame : tmpFrames)
+    {
+        m_frames.emplace_back(frame.release());
+    }
+
     // Verify file position (ensure no extra data)
     if (file.tell() < (long)fileSize)
     {
@@ -1208,7 +1217,8 @@ bool CFrameSet::importOBL3(IFile &file, const long org)
     }
 
     // Reserve space to avoid reallocs
-    m_arrFrames.reserve(numImages);
+    std::vector<std::unique_ptr<CFrame>> tmpFrames;
+    tmpFrames.reserve(numImages);
 
     // Per-frame loop
     for (int i = 0; i < (int)oblHead.iNbrImages; ++i)
@@ -1234,12 +1244,23 @@ bool CFrameSet::importOBL3(IFile &file, const long org)
         }
 
         // Allocate RGB and map
-        CFrame *frame = new CFrame(pixelLen, pixelHei);
-        if (frame == nullptr)
+        std::unique_ptr<CFrame> frame = std::make_unique<CFrame>(pixelLen, pixelHei);
+        if (frame.get() == nullptr)
+        {
+            setLastError("memory allocation error");
             return false;
+        }
         bitmap2rgb(bitmap.data(), frame->getRGB().data(), frame->width(), frame->height(), COLOR_INDEX_OFFSET);
-        add(frame);
+        tmpFrames.emplace_back(std::move(frame));
     }
+
+    // move tmpframes to set
+    m_frames.reserve(m_frames.size() + numImages);
+    for (auto &frame : tmpFrames)
+    {
+        m_frames.emplace_back(frame.release());
+    }
+
     if (file.tell() < fileSize)
     {
         LOGW("Extra data after %s frame; possible format mismatch", FORMAT_OBL3);
@@ -1261,23 +1282,23 @@ void CFrameSet::move(int s, int t)
 bool CFrameSet::toPng(std::vector<uint8_t> &png)
 {
     png.clear();
-    const size_t size = m_arrFrames.size();
+    const size_t size = m_frames.size();
     if (size == 1)
     {
-        return m_arrFrames[0]->toPng(png);
+        return m_frames[0]->toPng(png);
     }
     else if (size > 1)
     {
-        std::vector<uint16_t> xx(size);
-        std::vector<uint16_t> yy(size);
+        std::vector<uint16_t> sx(size);
+        std::vector<uint16_t> sy(size);
         int width = 0;
         int height = 0;
         for (size_t i = 0; i < size; ++i)
         {
-            width += m_arrFrames[i]->width();
-            height = std::max(height, m_arrFrames[i]->height());
-            xx[i] = m_arrFrames[i]->width();
-            yy[i] = m_arrFrames[i]->height();
+            width += m_frames[i]->width();
+            height = std::max(height, m_frames[i]->height());
+            sx[i] = m_frames[i]->width();
+            sy[i] = m_frames[i]->height();
         }
 
         std::unique_ptr<CFrame> frame = std::make_unique<CFrame>(width, height);
@@ -1285,7 +1306,7 @@ bool CFrameSet::toPng(std::vector<uint8_t> &png)
         int mx = 0;
         for (size_t i = 0; i < size; ++i)
         {
-            CFrame &s = *(m_arrFrames[i]);
+            CFrame &s = *(m_frames[i]);
             for (int y = 0; y < s.height(); ++y)
             {
                 for (int x = 0; x < s.width(); ++x)
@@ -1305,9 +1326,9 @@ bool CFrameSet::toPng(std::vector<uint8_t> &png)
         obl5data->Version = 0;
         obl5data->Count = size;
         memcpy(obl5t.data() + sizeof(CFrame::png_OBL5),
-               xx.data(), size * sizeof(uint16_t));
+               sx.data(), size * sizeof(uint16_t));
         memcpy(obl5t.data() + sizeof(CFrame::png_OBL5) + size * sizeof(uint16_t),
-               yy.data(), size * sizeof(uint16_t));
+               sy.data(), size * sizeof(uint16_t));
 
         // inject obldata into png
         frame->toPng(png, obl5t);
@@ -1337,28 +1358,38 @@ void CFrameSet::toSubset(CFrameSet &dest, int start, int end)
     for (int i = start; i <= last; ++i)
     {
         CFrame *frame = new CFrame;
-        frame->copy(m_arrFrames[i]);
+        frame->copy(m_frames[i]);
         dest.add(frame);
-        // dest.add(new CFrame(m_arrFrames[i]));
     }
 }
 
 void CFrameSet::reserve(int n)
 {
-    m_arrFrames.reserve(n + m_arrFrames.size());
+    m_frames.reserve(n + m_frames.size());
 }
 
 void CFrameSet::set(const int i, CFrame *frame)
 {
-    m_arrFrames[i] = frame;
+    m_frames[i] = frame;
 }
 
 int CFrameSet::currFrame()
 {
-    return m_nCurrFrame;
+    return m_currFrame;
 }
 
 void CFrameSet::setCurrFrame(int curr)
 {
-    m_nCurrFrame = curr;
+    m_currFrame = curr;
+}
+
+const std::vector<CFrame *> &CFrameSet::frames()
+{
+    return m_frames;
+}
+
+void CFrameSet::resize(int size)
+{
+    // TODO: fix memory leaks
+    m_frames.resize(size);
 }

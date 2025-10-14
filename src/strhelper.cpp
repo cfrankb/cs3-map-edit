@@ -171,6 +171,16 @@ bool endswith(const char *str, const char *end)
     return t && strcmp(t, end) == 0;
 }
 
+bool endswith(const std::string_view s1, const std::string_view s2)
+{
+    if (s1.length() < s2.length())
+        return false;
+    const size_t offset = s1.length() - s2.length();
+    return std::mismatch(s1.begin() + offset, s1.end(), s2.begin(), s2.end(), [](const auto &c1, const auto &c2)
+                         { return std::tolower(c1) == std::tolower(c2); })
+               .first == s1.end();
+}
+
 std::vector<std::string> split(const std::string &input, char delimiter)
 {
     std::vector<std::string> result;
