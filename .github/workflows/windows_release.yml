@@ -108,7 +108,10 @@ jobs:
           copy zconf.h ${{ runner.temp }}\build\headers
 
           mkdir ${{ env.SOURCE_DIR }}\libs
+          mkdir ${{ env.SOURCE_DIR }}\include
           copy zlib.lib ${{ env.SOURCE_DIR }}\libs
+          copy ${{ runner.temp }}\build\headers\* ${{ env.SOURCE_DIR }}\include
+          dir /w ${{ env.SOURCE_DIR }}\include
 
       - name: Build
         working-directory: ${{ runner.temp }}\build
