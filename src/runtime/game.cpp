@@ -23,6 +23,7 @@
 #include <set>
 #include <algorithm>
 #include <memory>
+#include <array>
 #include "game.h"
 #include "map.h"
 #include "actor.h"
