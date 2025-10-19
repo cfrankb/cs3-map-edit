@@ -154,7 +154,7 @@ int compressData(unsigned char *in_data, unsigned long in_size, unsigned char **
 
 int compressData(const std::vector<uint8_t> &in_data, std::vector<uint8_t> &out_data)
 {
-    size_t out_size = ::compressBound(in_data.size());
+    auto out_size = ::compressBound(in_data.size());
     out_data.resize(out_size);
     int result = ::compress2(
         out_data.data(),
