@@ -33,12 +33,23 @@ jobs:
 
     steps:
       - name: checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: (2) Get all tags for correct version determination
         working-directory: ${{ github.workspace }}
         run: |
           git fetch --all --tags -f
+
+      - name: Set up Python
+        uses: actions/setup-python@v5 # Action to set up Python
+        with:
+          python-version: "3.9" # Specify the desired Python version (e.g., '3.9', '3.10', '3.x')
+          architecture: "x64" # Specify the architecture (optional, defaults to host OS architecture)
+
+        #python your_script_name.py # Replace 'your_script_name.py' with the actual name of your Python script
+      - name: Run Python script
+        run: |
+          python bin\\patch.py
 
       - name: Download JOM
         uses: suisei-cn/actions-download-file@v1.6.0

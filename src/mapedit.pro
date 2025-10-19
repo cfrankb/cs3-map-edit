@@ -11,7 +11,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 INCLUDEPATH += runtime/shared/
 DEFINES += USE_QFILE=1
 #DEFINES += USE_SDL_MIXER=1
-DEFINES += USE_HUNSPELL=1
+#DEFINES += USE_HUNSPELL=1
 
 SOURCES += \
     runtime/ai_path.cpp \

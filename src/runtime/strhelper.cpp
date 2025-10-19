@@ -182,6 +182,7 @@ bool endswith(const char *str, const char *end)
     return t && strcmp(t, end) == 0;
 }
 
+/*
 bool endswith(const std::string_view s1, const std::string_view s2)
 {
     if (s1.length() < s2.length())
@@ -191,6 +192,7 @@ bool endswith(const std::string_view s1, const std::string_view s2)
                          { return std::tolower(c1) == std::tolower(c2); })
                .first == s1.end();
 }
+               */
 
 std::vector<std::string> split(const std::string &input, char delimiter)
 {
