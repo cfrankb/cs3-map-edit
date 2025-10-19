@@ -402,7 +402,7 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     index.clear();
     for (uint32_t off : offsets)
     {
-        if (off > filesize)
+        if (off > (uint32_t)filesize)
         {
             LOGE("Invalid offset %u in %s\n", off, filename);
             return false;

@@ -18,6 +18,7 @@
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+#include <stdexcept>
 #include "map.h"
 #include "shared/IFile.h"
 #include "states.h"
@@ -25,7 +26,6 @@
 
 static const char SIG[]{'M', 'A', 'P', 'Z'};
 static const char XTR_SIG[]{"XTR"};
-static const char XTR_VER = 0;
 static const uint16_t VERSION = 0;
 static const uint16_t MAX_SIZE = 256;
 static const uint16_t MAX_TITLE = 255;
@@ -55,11 +55,21 @@ CMap::~CMap()
 
 uint8_t &CMap::get(const int x, const int y)
 {
+    if (!isValid(x, y))
+    {
+        LOGE("invalid coordonates [get] (%d, %d) -- upper bound(%d,%d)", x, y, m_len, m_hei);
+        throw std::out_of_range("Invalid map access");
+    }
     return m_map[x + y * m_len];
 }
 
 uint8_t CMap::at(const int x, const int y) const
 {
+    if (!isValid(x, y))
+    {
+        LOGE("invalid coordonates [at] (%d, %d) -- upper bound(%d,%d)", x, y, m_len, m_hei);
+        throw std::out_of_range("Invalid map access");
+    }
     return m_map[x + y * m_len];
 }
 
@@ -384,11 +394,9 @@ bool CMap::writeCommon(WriteFunc writefile) const
     uint32_t titleSize = static_cast<uint32_t>(m_title.size());
     if (!writefile(&titleSize, sizeof(uint8_t)))
         return false;
-    if (m_title.size()>0)
+    if (m_title.size() > 0)
         if (!writefile(m_title.c_str(), m_title.size()))
             return false;
-
-    LOGI("title: %s", m_title.c_str());
 
     return true;
 }
@@ -643,4 +651,13 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     m_len = in_len;
     m_hei = in_hei;
     return true;
+}
+
+void CMap::replaceTile(const uint8_t src, const uint8_t repl)
+{
+    for (auto &tileID : m_map)
+    {
+        if (tileID == src)
+            tileID = repl;
+    }
 }

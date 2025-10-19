@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - "master"
-     # - "continuous-integration"
+      - "develop"
+      # - "continuous-integration"
     tags:
       - "v*"
   pull_request:
     branches:
       - "master"
-     # - "continuous-integration"
+      # - "continuous-integration"
 
 defaults:
   run:

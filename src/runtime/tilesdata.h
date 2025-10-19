@@ -20,23 +20,6 @@
 
 #pragma once
 
-#include <cstdint>
-
-typedef struct
-{
-    uint8_t flags;
-    uint8_t type;
-    uint8_t score;
-    int8_t health;
-    uint8_t speed;
-    uint8_t ai;
-    bool hidden;
-    const char * basename;
-} TileDef;
-uint8_t getChTile(uint8_t i) ;
-const TileDef * getTileDefs();
-const TileDef & getTileDef(int i);
-
 #define TILES_BLANK               0x00
 #define TILES_STOP                0x01
 #define TILES_ANNIE2              0x02
@@ -92,7 +75,7 @@ const TileDef & getTileDef(int i);
 #define TILES_KIWI                0x34
 #define TILES_CHEST               0x35
 #define TILES_STATUE              0x36
-#define TILES_TOMB                0x37
+#define TILES_TOMB5               0x37
 #define TILES_MUSHROOM            0x38
 #define TILES_SMALL_MUSH0         0x39
 #define TILES_SMALL_MUSH1         0x3a
@@ -158,4 +141,36 @@ const TileDef & getTileDef(int i);
 #define TILES_FIREBALL            0x76
 #define TILES_ICEBOULDER          0x77
 #define TILES_ICEMOUNTAIN         0x78
-#define TILES_TOTAL_COUNT         0x79
+#define TILES_SKULL               0x79
+#define TILES_COBWEB1             0x7a
+#define TILES_SKULLBN1            0x7b
+#define TILES_SHARD1              0x7c
+#define TILES_SHARD2              0x7d
+#define TILES_SHARD3              0x7e
+#define TILES_SHARD4              0x7f
+#define TILES_SHARD5              0x80
+#define TILES_HRIB1               0x81
+#define TILES_HBONE1              0x82
+#define TILES_HBONE2              0x83
+#define TILES_HXBONE2             0x84
+#define TILES_HXBONE1             0x85
+#define TILES_PEBBLE              0x86
+#define TILES_PEBBLE2             0x87
+#define TILES_ROCKP1              0x88
+#define TILES_ROCKPEBBLE1         0x89
+#define TILES_TREESTUMP           0x8a
+#define TILES_TREESTUMP2          0x8b
+#define TILES_TREESTUMP3          0x8c
+#define TILES_TREESTUMP4          0x8d
+#define TILES_TOMB1               0x8e
+#define TILES_TOMB2               0x8f
+#define TILES_TOMB3               0x90
+#define TILES_TOMB4               0x91
+#define TILES_HSKULLBONE1         0x92
+#define TILES_HSKULLBONE2         0x93
+#define TILES_HSKULL1             0x94
+#define TILES_CHUTE               0x95
+#define TILES_LIGHTNING_BOLT      0x96
+#define TILES_FIRE                0x97
+#define TILES_BULLETY1            0x98
+#define TILES_TOTAL_COUNT         0x99

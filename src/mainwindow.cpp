@@ -25,6 +25,7 @@
 #include "keyvaluedialog.h"
 #include "runtime/statedata.h"
 #include "dlgmsgs.h"
+#include "mapprops.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -679,8 +680,6 @@ void MainWindow::on_actionEdit_Add_Map_triggered()
 {
     std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
     m_doc.add(std::move(map));
-    //CMap *map = new CMap(64, 64);
-    //m_doc.add(map);
     m_doc.setCurrentIndex(m_doc.size() - 1);
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
@@ -708,10 +707,8 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
 void MainWindow::on_actionEdit_Insert_Map_triggered()
 {
     int index = m_doc.currentIndex();
-    //CMap *map = new CMap(64, 64);
-    std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
-    m_doc.add(std::move(map));
-    m_doc.insertAt(index, std::move(map));
+    std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
+    m_doc.insertAt(index, std::move(map));  // Only ONE move operation
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
     updateMenus();
@@ -995,3 +992,13 @@ void MainWindow::on_actionEdit_Edit_Messages_triggered()
         dialog.saveData(*m_doc.map());
     }
 }
+
+void MainWindow::on_actionEdit_Map_Properties_triggered()
+{
+    MapPropertiesDialog dialog(m_doc.map(), this);
+    if (dialog.exec() == QDialog::Accepted) {
+        // Changes have been saved to the states object
+        m_doc.setDirty(true);
+    }
+}
+

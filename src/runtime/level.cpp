@@ -20,6 +20,7 @@
 #include "level.h"
 #include "map.h"
 #include "tilesdata.h"
+#include "tilesdefs.h"
 #include "logger.h"
 #include "shared/FileWrap.h"
 #include "strhelper.h"
@@ -148,7 +149,7 @@ bool convertCs3Level(CMap &map, const char *fname)
         TILES_ROCKS0,
         TILES_ROCKS1,
         TILES_ROCKS2,
-        TILES_TOMB,
+        TILES_TOMB5,
         TILES_SWAMP,
         TILES_VAMPLANT,
         TILES_INSECT1,

@@ -17,6 +17,7 @@
 */
 #include "actor.h"
 #include "tilesdata.h"
+#include "tilesdefs.h"
 #include "game.h"
 #include "sprtypes.h"
 #include "attr.h"
@@ -108,7 +109,9 @@ bool CActor::canMove(const JoyAim aim) const
             def.type == TYPE_PICKUP ||
             def.type == TYPE_DIAMOND ||
             def.type == TYPE_STOP ||
-            def.type == TYPE_KEY)
+            def.type == TYPE_CHUTE ||
+            def.type == TYPE_KEY ||
+            def.type == TYPE_FIRE)
         {
             return true;
         }
@@ -293,7 +296,7 @@ bool CActor::read(IFile &sfile)
 {
     auto readfile = [&sfile](auto ptr, auto size) -> bool
     {
-        return sfile.read(ptr, size) == 1;
+        return sfile.read(ptr, size) == IFILE_OK;
     };
 
     return readCommon(readfile);
@@ -328,7 +331,7 @@ bool CActor::write(IFile &tfile) const
 {
     auto writefile = [&tfile](auto ptr, auto size)
     {
-        return tfile.write(ptr, size) == 1;
+        return tfile.write(ptr, size) == IFILE_OK;
     };
     return writeCommon(writefile);
 }
@@ -377,7 +380,7 @@ JoyAim operator^=(JoyAim &aim, int i)
  */
 const Pos CActor::pos() const
 {
-    return Pos{.x = m_x, .y = m_y};
+    return Pos{static_cast<int16_t>(m_x), static_cast<int16_t>(m_y)};
 }
 
 /**

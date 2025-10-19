@@ -178,11 +178,8 @@ bool CStates::writeCommon(WriteFunc writefile) const
     if (!writefile(&count, COUNT_BYTES))
         return false;
 
-    LOGI("count: %lu", count);
-
     for (const auto &[k, v] : m_stateU)
     {
-        LOGI(">>> %u %u",k,v);
         if (!writefile(&k, sizeof(k)))
             return false;
         if (!writefile(&v, sizeof(v)))

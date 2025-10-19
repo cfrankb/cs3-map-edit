@@ -18,6 +18,7 @@
 #include "strhelper.h"
 #include <cstring>
 #include <sstream>
+#include "logger.h"
 
 /**
  * @brief Clean up a line of text
@@ -61,9 +62,16 @@ std::string processLine(std::string &input, size_t &pos)
     if (pos >= input.size())
         return "";
     size_t end = input.find_first_of("\r\n", pos);
+    if (end == pos) // empty line
+    {
+        ++pos;
+        return "";
+    }
     std::string line = (end == std::string::npos) ? input.substr(pos) : input.substr(pos, end - pos);
     pos = (end == std::string::npos) ? input.size() : end + 1;
     size_t comment = line.find('#');
+    if (comment == 0)
+        return "";
     if (comment != std::string::npos)
     {
         line = line.substr(0, comment);
@@ -150,6 +158,9 @@ uint16_t parseStringToUShort(const std::string &s, bool &isValid)
  */
 std::string trimString(const std::string &s)
 {
+    if (s.empty())
+        return "";
+
     size_t i;
     size_t j;
     for (i = 0; i < s.size(); ++i)

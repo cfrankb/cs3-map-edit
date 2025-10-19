@@ -71,8 +71,8 @@ private slots:
     void on_highlightXY();
     void updateStatus();
     void on_actionExport_Screenshots_triggered();
-
     void on_actionEdit_Edit_Messages_triggered();
+    void on_actionEdit_Map_Properties_triggered();
 
 private:
     virtual void closeEvent(QCloseEvent *event) override;

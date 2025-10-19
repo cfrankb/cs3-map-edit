@@ -20,6 +20,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <cstdint>
 #include "tilesdata.h"
 #include "sprtypes.h"
 
@@ -81,7 +82,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_KIWI),
     _S(TILES_CHEST),
     _S(TILES_STATUE),
-    _S(TILES_TOMB),
+    _S(TILES_TOMB5),
     _S(TILES_MUSHROOM),
     _S(TILES_SMALL_MUSH0),
     _S(TILES_SMALL_MUSH1),
@@ -147,6 +148,38 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_FIREBALL),
     _S(TILES_ICEBOULDER),
     _S(TILES_ICEMOUNTAIN),
+    _S(TILES_SKULL),
+    _S(TILES_COBWEB1),
+    _S(TILES_SKULLBN1),
+    _S(TILES_SHARD1),
+    _S(TILES_SHARD2),
+    _S(TILES_SHARD3),
+    _S(TILES_SHARD4),
+    _S(TILES_SHARD5),
+    _S(TILES_HRIB1),
+    _S(TILES_HBONE1),
+    _S(TILES_HBONE2),
+    _S(TILES_HXBONE2),
+    _S(TILES_HXBONE1),
+    _S(TILES_PEBBLE),
+    _S(TILES_PEBBLE2),
+    _S(TILES_ROCKP1),
+    _S(TILES_ROCKPEBBLE1),
+    _S(TILES_TREESTUMP),
+    _S(TILES_TREESTUMP2),
+    _S(TILES_TREESTUMP3),
+    _S(TILES_TREESTUMP4),
+    _S(TILES_TOMB1),
+    _S(TILES_TOMB2),
+    _S(TILES_TOMB3),
+    _S(TILES_TOMB4),
+    _S(TILES_HSKULLBONE1),
+    _S(TILES_HSKULLBONE2),
+    _S(TILES_HSKULL1),
+    _S(TILES_CHUTE),
+    _S(TILES_LIGHTNING_BOLT),
+    _S(TILES_FIRE),
+    _S(TILES_BULLETY1),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_aiNames = {
@@ -190,6 +223,9 @@ static const std::unordered_map<uint16_t, std::string> g_typesNames = {
     _S(TYPE_ICECUBE),
     _S(TYPE_FIREBALL),
     _S(TYPE_BOULDER),
+    _S(TYPE_CHUTE),
+    _S(TYPE_LIGHTNING_BOLT),
+    _S(TYPE_FIRE),
 };
 
 std::string get_tileNames(const uint16_t i)

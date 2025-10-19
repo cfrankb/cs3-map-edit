@@ -25,12 +25,13 @@
 #include "map.h"
 #include "gamesfx.h"
 #include "events.h"
-#include "tilesdata.h"
+#include "tilesdefs.h"
 
 class CGameStats;
 class CMapArch;
 class ISound;
 class CBoss;
+class Random;
 
 struct MapReport
 {
@@ -59,6 +60,7 @@ public:
         MODE_LEVEL_SUMMARY,
         MODE_SKLLSELECT,
         MODE_NEW_INPUTNAME,
+        MODE_CHUTE,
     };
 
     enum : uint32_t
@@ -133,6 +135,7 @@ public:
     void purgeSfx();
     static CGame *getGame();
     bool isClosure() const;
+    bool isLevelCompleted() const;
     int closusureTimer() const;
     void checkClosure();
     void decClosure();
@@ -153,35 +156,24 @@ public:
     bool read(IFile &sfile);
     bool write(IFile &tfile);
     const std::vector<CBoss> &bosses();
+    int findMonsterAt(const int x, const int y) const;
+    void deleteMonster(const int i);
+    static Random &getRandom();
+    static bool validateSignature(const char *signature, const uint32_t version);
+    bool isMonsterType(const uint8_t typeID) const;
 
-private:
     enum
     {
-        MAX_HEALTH = 200,
-        DEFAULT_HEALTH = 64,
-        DEFAULT_LIVES = 5,
-        LEVEL_BONUS = 500,
-        SCORE_LIFE = 5000,
-        MAX_LIVES = 99,
-        GODMODE_TIMER = 100,
-        EXTRASPEED_TIMER = 200,
-        CLOSURE_TIMER = 7,
-        RAGE_TIMER = 150,
-        FREEZE_TIMER = 80,
-        TRAP_DAMAGE = -16,
-        DEFAULT_PLAYER_SPEED = 3,
-        FAST_PLAYER_SPEED = 2,
-        CRUSHER_SPEED_MASK = 3,
-        AUTOKILL = -1024,
         INVALID = -1,
-        ENGINE_VERSION = (0x0200 << 16) + 0x0005,
     };
 
+private:
+    Pos m_chuteTarget;
     int m_lives = 0;
     int m_health = 0;
     int m_level = 0;
     int m_score = 0;
-    int m_nextLife = SCORE_LIFE;
+    int m_nextLife;
     int m_diamonds = 0;
     static userKeys_t m_keys;
     GameMode m_mode;
@@ -196,7 +188,7 @@ private:
     std::vector<std::string> m_hints;
     std::unique_ptr<CGameStats> m_gameStats;
     MapReport m_report;
-    int m_defaultLives = DEFAULT_LIVES;
+    int m_defaultLives;
     bool m_quiet = false;
     void resetKeys();
     void clearKeyIndicators();
@@ -207,7 +199,6 @@ private:
     int clearAttr(const uint8_t attr);
     bool spawnMonsters();
     int addMonster(const CActor actor);
-    int findMonsterAt(const int x, const int y) const;
     void addHealth(const int hp);
     void addPoints(const int points);
     void addLife();
@@ -217,12 +208,25 @@ private:
     static bool isBonusItem(const uint8_t tileID);
     CGameStats &stats();
     const CGameStats &statsConst() const;
+
+    // regular monsters (mob)
     void handleMonster(CActor &actor, const TileDef &def);
     void handleDrone(CActor &actor, const TileDef &def);
     void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters);
     void handleCrusher(CActor &actor, const bool speeds[]);
     void handleIceCube(CActor &actor);
     void handleFirball(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+    void handleLightningBolt(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+
+    // boss
+    CActor *spawnBullet(int x, int y, JoyAim aim, uint8_t tile);
+    void handleBossPath(CBoss &boss);
+    void handleBossBullet(CBoss &boss);
+
+    inline bool between(int a1, int a2, int b1, int b2) const
+    {
+        return a1 < b2 && a2 > b1;
+    };
 
     static CMap m_map;
     friend class CGameMixin;

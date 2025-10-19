@@ -20,6 +20,8 @@
 
 #include "rect.h"
 #include "joyaim.h"
+#include "map.h"
+
 #include <cstdint>
 class CActor;
 class ISprite
@@ -34,6 +36,6 @@ public:
     virtual int distance(const CActor &actor) const = 0;
     virtual void move(const int16_t x, const int16_t y) = 0;
     virtual void move(const Pos pos) = 0;
-    virtual inline int16_t granularFactor() const = 0;
+    virtual inline int16_t getGranularFactor() const = 0;
     virtual const Pos pos() const = 0;
 };

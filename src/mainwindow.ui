@@ -91,6 +91,7 @@
     <addaction name="separator"/>
     <addaction name="actionEdit_Map_States"/>
     <addaction name="actionEdit_Edit_Messages"/>
+    <addaction name="actionEdit_Map_Properties"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -494,6 +495,14 @@
    </property>
    <property name="statusTip">
     <string>Edit Messages for Scrolls and Books on the current map</string>
+   </property>
+  </action>
+  <action name="actionEdit_Map_Properties">
+   <property name="text">
+    <string>Edit Map Properties</string>
+   </property>
+   <property name="statusTip">
+    <string>Edit the properties of this Map</string>
    </property>
   </action>
  </widget>

@@ -40,46 +40,75 @@
 #include "attr.h"
 #include "logger.h"
 #include "strhelper.h"
+#include "bossdata.h"
+#include "randomz.h"
+#include "filemacros.h"
 
 CMap CGame::m_map(30, 30);
 CGame::userKeys_t CGame::m_keys;
-static constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
-CGame *g_game = nullptr;
 
-const std::set<uint8_t> g_fruits = {
-    TILES_APPLE,
-    TILES_POMEGRENADE,
-    TILES_WATERMELON,
-    TILES_PEAR,
-    TILES_CHERRY,
-    TILES_STRAWBERRY,
-    TILES_KIWI,
-    TILES_JELLYJAR,
-};
+namespace Game
+{
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0006;
+    static constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
+    CGame *g_game = nullptr;
+    Random g_randomz(12345, 0);
 
-const std::set<uint8_t> g_treasures = {
-    TILES_AMULET1,
-    TILES_CHEST,
-    TILES_GIFTBOX,
-    TILES_LIGHTBUL,
-    TILES_SCROLL,
-    TILES_SHIELD,
-    TILES_CLOVER,
-    TILES_1ST_AID,
-    TILES_POTION1,
-    TILES_POTION2,
-    TILES_POTION3,
-    TILES_FLOWERS,
-    TILES_FLOWERS_2,
-    TILES_TRIFORCE,
-    TILES_ORB,
-    TILES_TNTSTICK,
-    TILES_SMALL_MUSH0,
-    TILES_SMALL_MUSH1,
-    TILES_SMALL_MUSH2,
-    TILES_SMALL_MUSH3,
-    TILES_REDBOOK,
-};
+    enum
+    {
+        MAX_HEALTH = 200,
+        DEFAULT_HEALTH = 64,
+        DEFAULT_LIVES = 5,
+        LEVEL_BONUS = 500,
+        SCORE_LIFE = 5000,
+        MAX_LIVES = 99,
+        GODMODE_TIMER = 100,
+        EXTRASPEED_TIMER = 200,
+        CLOSURE_TIMER = 7,
+        RAGE_TIMER = 150,
+        FREEZE_TIMER = 80,
+        TRAP_DAMAGE = -16,
+        DEFAULT_PLAYER_SPEED = 3,
+        FAST_PLAYER_SPEED = 2,
+    };
+
+    const std::set<uint8_t> g_fruits = {
+        TILES_APPLE,
+        TILES_POMEGRENADE,
+        TILES_WATERMELON,
+        TILES_PEAR,
+        TILES_CHERRY,
+        TILES_STRAWBERRY,
+        TILES_KIWI,
+        TILES_JELLYJAR,
+    };
+
+    const std::set<uint8_t> g_treasures = {
+        TILES_AMULET1,
+        TILES_CHEST,
+        TILES_GIFTBOX,
+        TILES_LIGHTBUL,
+        TILES_SCROLL,
+        TILES_SHIELD,
+        TILES_CLOVER,
+        TILES_1ST_AID,
+        TILES_POTION1,
+        TILES_POTION2,
+        TILES_POTION3,
+        TILES_FLOWERS,
+        TILES_FLOWERS_2,
+        TILES_TRIFORCE,
+        TILES_ORB,
+        TILES_TNTSTICK,
+        TILES_SMALL_MUSH0,
+        TILES_SMALL_MUSH1,
+        TILES_SMALL_MUSH2,
+        TILES_SMALL_MUSH3,
+        TILES_REDBOOK,
+    };
+}
+
+using namespace Game;
 
 /**
  * @brief Construct a new CGame::CGame object
@@ -90,10 +119,12 @@ CGame::CGame()
     LOGI("starting up engine: 0x%.8x\n", ENGINE_VERSION);
     m_health = 0;
     m_level = 0;
-    m_lives = defaultLives();
     m_score = 0;
     m_gameStats = std::make_unique<CGameStats>();
     m_gameStats->set(S_SKILL, SKILL_EASY);
+    m_defaultLives = DEFAULT_LIVES;
+    m_nextLife = SCORE_LIFE;
+    m_lives = defaultLives();
 }
 
 /**
@@ -206,6 +237,15 @@ void CGame::consume()
     {
         addHealth(def.health);
     }
+    else if (def.type == TYPE_CHUTE)
+    {
+        m_gameStats->set(S_CHUTE, 1);
+        checkClosure();
+    }
+    else if (def.type == TYPE_FIRE)
+    {
+        addHealth(def.health);
+    }
 
     if (isFruit(pu))
     {
@@ -307,7 +347,20 @@ bool CGame::loadLevel(const GameMode mode)
     CStates &states = m_map.states();
     const uint16_t origin = states.getU(POS_ORIGIN);
     Pos pos;
-    if (origin != 0)
+    if (m_gameStats->get(S_CHUTE) != 0)
+    {
+        pos = m_chuteTarget;
+        if (!m_map.isValid(pos.x, pos.y))
+        {
+            pos = m_map.findFirst(TILES_ANNIE2);
+        }
+        else
+        {
+            m_map.replaceTile(TILES_ANNIE2, TILES_BLANK);
+            m_map.set(pos.x, pos.y, TILES_ANNIE2);
+        }
+    }
+    else if (origin != 0)
     {
         pos = CMap::toPos(origin);
         m_map.set(pos.x, pos.y, TILES_ANNIE2);
@@ -415,6 +468,7 @@ void CGame::resetStats()
         S_IDLE_TIME,
         S_FREEZE_TIMER,
         S_TIME_TAKEN,
+        S_CHUTE,
     };
     for (const auto &stat : stats)
     {
@@ -452,6 +506,23 @@ void CGame::setMapArch(CMapArch *arch)
     m_mapArch = arch;
 }
 
+bool CGame::isMonsterType(const uint8_t typeID) const
+{
+    std::array<uint8_t, 7> monsterTypes = {
+        TYPE_MONSTER,
+        TYPE_VAMPLANT,
+        TYPE_DRONE,
+        TYPE_ICECUBE,
+        TYPE_BOULDER,
+        TYPE_FIREBALL,
+        TYPE_LIGHTNING_BOLT};
+
+    for (size_t i = 0; i < monsterTypes.size(); ++i)
+        if (monsterTypes[i] == typeID)
+            return true;
+    return false;
+}
+
 /**
  * @brief Create a list of monster contained on the level
  *
@@ -468,12 +539,7 @@ bool CGame::spawnMonsters()
         {
             uint8_t c = m_map.at(x, y);
             const TileDef &def = getTileDef(c);
-            if (def.type == TYPE_MONSTER ||
-                def.type == TYPE_VAMPLANT ||
-                def.type == TYPE_DRONE ||
-                def.type == TYPE_ICECUBE ||
-                def.type == TYPE_FIREBALL ||
-                def.type == TYPE_BOULDER)
+            if (isMonsterType(def.type))
             {
                 if (def.type == TYPE_ICECUBE)
                     addMonster(CActor(x, y, def.type, JoyAim::AIM_NONE));
@@ -496,17 +562,22 @@ bool CGame::spawnMonsters()
         else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX))
         {
             const Pos &pos = CMap::toPos(key);
-            Rect hitbox{.x = 16 / 8, .y = 48 / 8, .width = 32 / 8, .height = 16 / 8};
-            CBoss boss(
-                static_cast<int16_t>(pos.x) * CBoss::BOSS_GRANULAR_FACTOR,
-                static_cast<int16_t>(pos.y) * CBoss::BOSS_GRANULAR_FACTOR,
-                hitbox,
-                attr);
-            const int speed = (rand() & 3) + 1;
-            LOGI("boss 0x%.2x speed=%d", attr, speed);
-            boss.setSpeed(speed);
-            m_bosses.emplace_back(std::move(boss));
+            const bossData_t *bossData = getBossData(attr);
+            if (bossData)
+            {
+                CBoss boss(
+                    static_cast<int16_t>(pos.x) * CBoss::BOSS_GRANULAR_FACTOR,
+                    static_cast<int16_t>(pos.y) * CBoss::BOSS_GRANULAR_FACTOR,
+                    bossData);
+                LOGI("boss 0x%.2x speed=%d", attr, bossData->speed);
+                m_bosses.emplace_back(std::move(boss));
+            }
+            else
+            {
+                LOGW("ignored spawn point for unhandled boss type: 0x%.2x", attr);
+            }
             removed.emplace_back(pos);
+            // Rect hitbox{.x = 16 / 8, .y = 48 / 8, .width = 32 / 8, .height = 16 / 8};
         }
     }
 
@@ -517,7 +588,7 @@ bool CGame::spawnMonsters()
 
     if (!m_quiet)
     {
-        LOGI("%zu monsters found.\n", m_monsters.size());
+        LOGI("%zu actors found.\n", m_monsters.size());
         LOGI("%zu bosses found.\n", m_bosses.size());
     }
     return true;
@@ -738,6 +809,17 @@ void CGame::addHealth(const int hp)
     checkClosure();
 }
 
+bool CGame::isLevelCompleted() const
+{
+    // check state of all bosses (if isGoal)
+    for (const auto &boss : m_bosses)
+    {
+        if (boss.isGoal() && !boss.isDone())
+            return false;
+    }
+    return !m_diamonds; // check goal count
+}
+
 /**
  * @brief Check if level closure conditions are meet
  *
@@ -745,11 +827,11 @@ void CGame::addHealth(const int hp)
 void CGame::checkClosure()
 {
     bool doClosure = false;
-    if (!isClosure() && !m_health)
+    if (!isClosure() && !m_health) // player died
     {
         doClosure = true;
     }
-    else if (!isClosure() && !m_diamonds)
+    else if (!isClosure() && isLevelCompleted()) // !m_diamonds
     {
         const uint16_t exitKey = m_map.states().getU(POS_EXIT);
         if (exitKey != 0)
@@ -770,6 +852,13 @@ void CGame::checkClosure()
         {
             doClosure = true;
         }
+    }
+    else if (!isClosure() && m_gameStats->get(S_CHUTE) != 0)
+    {
+        // fallen down a chute
+        // save player position
+        m_chuteTarget = m_player.pos();
+        doClosure = true;
     }
 
     if (doClosure)
@@ -956,6 +1045,29 @@ CActor &CGame::getMonster(int i)
     return m_monsters[i];
 }
 
+bool CGame::validateSignature(const char *signature, const uint32_t version)
+{
+    if (memcmp(signature, GAME_SIGNATURE, sizeof(GAME_SIGNATURE)) != 0)
+    {
+        char tmp[sizeof(GAME_SIGNATURE) + 1];
+        memcpy(tmp, &signature, sizeof(GAME_SIGNATURE));
+        tmp[sizeof(GAME_SIGNATURE)] = '\0';
+
+        char gameSig[sizeof(GAME_SIGNATURE) + 1];
+        memcpy(gameSig, GAME_SIGNATURE, sizeof(GAME_SIGNATURE));
+        gameSig[sizeof(GAME_SIGNATURE)] = '\0';
+
+        LOGW("savefile signature mismatch: `%s` -- expecting `%s`", signature, gameSig);
+        return false;
+    }
+    if (version != ENGINE_VERSION)
+    {
+        LOGW("savegame version mismatched: 0x%.8x -- expecting 0x%.8x\n", version, ENGINE_VERSION);
+        return false;
+    }
+    return true;
+}
+
 /**
  * @brief Deserializes the game state from disk
  *
@@ -972,55 +1084,73 @@ bool CGame::read(IFile &sfile)
 
     // check signature/version
     uint32_t signature = 0;
-    readfile(&signature, sizeof(signature));
+    _R(&signature, sizeof(signature));
     uint32_t version = 0;
-    readfile(&version, sizeof(version));
-    if (memcmp(GAME_SIGNATURE, &signature, sizeof(GAME_SIGNATURE)) != 0)
-    {
-        char sig[] = {0, 0, 0, 0, 0};
-        memcpy(sig, &signature, sizeof(signature));
-        LOGE("savegame signature mismatched: %s\n", sig);
+    _R(&version, sizeof(version));
+    if (!validateSignature(reinterpret_cast<char *>(&signature), version))
         return false;
-    }
-    if (version != ENGINE_VERSION)
-    {
-        LOGE("savegame version mismatched: 0x%.8x\n", version);
-        return false;
-    }
 
     // ptr
     uint32_t indexPtr = 0;
-    readfile(&indexPtr, sizeof(indexPtr));
+    _R(&indexPtr, sizeof(indexPtr));
 
     // general information
-    readfile(&m_lives, sizeof(m_lives));
-    readfile(&m_health, sizeof(m_health));
-    readfile(&m_level, sizeof(m_level));
-    readfile(&m_nextLife, sizeof(m_nextLife));
-    readfile(&m_diamonds, sizeof(m_diamonds));
-    readfile(m_keys.tiles, sizeof(m_keys.tiles));
+    _R(&m_lives, sizeof(m_lives));
+    _R(&m_health, sizeof(m_health));
+    _R(&m_level, sizeof(m_level));
+    _R(&m_nextLife, sizeof(m_nextLife));
+    _R(&m_diamonds, sizeof(m_diamonds));
+    _R(m_keys.tiles, sizeof(m_keys.tiles));
     clearKeyIndicators();
-    readfile(&m_score, sizeof(m_score));
-    m_player.read(sfile);
-    m_gameStats->read(sfile);
+    _R(&m_score, sizeof(m_score));
+    if (!m_player.read(sfile))
+    {
+        LOGE("failed to read player object");
+        return false;
+    };
+    if (!m_gameStats->read(sfile))
+    {
+        LOGE("failed to read gamestats");
+        return false;
+    };
 
     // reading map
     CMap &map = getMap();
     if (!map.read(sfile))
     {
+        LOGE("failed to read map");
         return false;
     }
 
     // monsters
-    uint32_t count = 0;
-    readfile(&count, sizeof(uint32_t));
+    uint32_t actorCount = 0;
+    _R(&actorCount, sizeof(uint32_t));
     m_monsters.clear();
-    for (size_t i = 0; i < count; ++i)
+    m_monsters.resize(actorCount);
+    for (size_t i = 0; i < actorCount; ++i)
     {
-        CActor tmp;
-        tmp.read(sfile);
-        m_monsters.emplace_back(tmp);
+        if (!m_monsters[i].read(sfile))
+        {
+            LOGE("failed to read actor %lu of %u", i, actorCount);
+            return false;
+        }
     }
+
+    // bosses
+    uint32_t bossCount = 0;
+    readfile(&bossCount, sizeof(uint32_t));
+    m_bosses.clear();
+    m_bosses.resize(bossCount);
+    for (size_t i = 0; i < bossCount; ++i)
+    {
+        if (!m_bosses[i].read(sfile))
+        {
+            LOGE("failed to read boss %lu of %u", i, bossCount);
+            return false;
+        }
+    }
+
+    // clear events and sfx
     m_events.clear();
     m_sfx.clear();
     return true;
@@ -1042,36 +1172,65 @@ bool CGame::write(IFile &tfile)
     };
 
     // writing signature/version
-    writefile(&GAME_SIGNATURE, sizeof(GAME_SIGNATURE));
+    _W(&GAME_SIGNATURE, sizeof(GAME_SIGNATURE));
     uint32_t version = ENGINE_VERSION;
-    writefile(&version, sizeof(version));
+    _W(&version, sizeof(version));
 
     // ptr
     uint32_t indexPtr = 0;
-    writefile(&indexPtr, sizeof(indexPtr));
+    _W(&indexPtr, sizeof(indexPtr));
 
     // write general information
-    writefile(&m_lives, sizeof(m_lives));
-    writefile(&m_health, sizeof(m_health));
-    writefile(&m_level, sizeof(m_level));
-    writefile(&m_nextLife, sizeof(m_nextLife));
-    writefile(&m_diamonds, sizeof(m_diamonds));
-    writefile(m_keys.tiles, sizeof(m_keys.tiles));
-    writefile(&m_score, sizeof(m_score));
-    m_player.write(tfile);
-    m_gameStats->write(tfile);
+    _W(&m_lives, sizeof(m_lives));
+    _W(&m_health, sizeof(m_health));
+    _W(&m_level, sizeof(m_level));
+    _W(&m_nextLife, sizeof(m_nextLife));
+    _W(&m_diamonds, sizeof(m_diamonds));
+    _W(m_keys.tiles, sizeof(m_keys.tiles));
+    _W(&m_score, sizeof(m_score));
+    if (!m_player.write(tfile))
+    {
+        LOGE("failed write player object");
+        return false;
+    }
+    if (!m_gameStats->write(tfile))
+    {
+        LOGE("failed write gameStats");
+        return false;
+    }
 
     // saving map
     CMap &map = getMap();
-    map.write(tfile);
+    if (!map.write(tfile))
+    {
+        LOGE("failed to write map");
+        return false;
+    }
 
     // monsters
-    uint32_t count = m_monsters.size();
-    writefile(&count, sizeof(count));
+    size_t actorCount = m_monsters.size();
+    _W(&actorCount, sizeof(uint32_t));
     for (size_t i = 0; i < m_monsters.size(); ++i)
     {
-        m_monsters[i].write(tfile);
+        if (!m_monsters[i].write(tfile))
+        {
+            LOGE("failed to write actor %lu of %lu", i, actorCount);
+            return false;
+        }
     }
+
+    // bosses
+    size_t bossCount = m_bosses.size();
+    _W(&bossCount, sizeof(uint32_t));
+    for (size_t i = 0; i < m_bosses.size(); ++i)
+    {
+        if (!m_bosses[i].write(tfile))
+        {
+            LOGE("failed to write boss %lu of %lu", i, bossCount);
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -1493,4 +1652,14 @@ void CGame::setQuiet(bool state)
 const std::vector<CBoss> &CGame::bosses()
 {
     return m_bosses;
+}
+
+void CGame::deleteMonster(const int i)
+{
+    m_monsters.erase(m_monsters.begin() + i);
+}
+
+Random &CGame::getRandom()
+{
+    return g_randomz;
 }

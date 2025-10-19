@@ -94,6 +94,7 @@ void CDlgTest::paintEvent(QPaintEvent *)
     CFrame bitmap(WIDTH, HEIGHT);
     switch (m_game->mode())
     {
+    case CGame::MODE_CHUTE:
     case CGame::MODE_TIMEOUT:
     case CGame::MODE_LEVEL_INTRO:
     case CGame::MODE_RESTART:

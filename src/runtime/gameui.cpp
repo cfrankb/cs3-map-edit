@@ -30,7 +30,7 @@ CGameUI::~CGameUI()
 
 const button_t &CGameUI::addButton(const button_t &button)
 {
-    m_buttons.push_back(button);
+    m_buttons.emplace_back(button);
     m_height = std::max(m_height, button.y + button.height);
     m_width = std::max(m_width, button.x + button.width);
     return m_buttons.back();

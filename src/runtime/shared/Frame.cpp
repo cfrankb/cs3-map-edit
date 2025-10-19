@@ -183,7 +183,7 @@ bool CFrame::read(IFile &file)
     }
 
     long fileSize = file.getSize();
-    if (file.tell() + compressedSize > fileSize)
+    if (file.tell() + (long)compressedSize > fileSize)
     {
         char tmp[128];
         snprintf(tmp, sizeof(tmp),

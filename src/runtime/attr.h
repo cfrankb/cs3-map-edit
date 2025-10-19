@@ -29,12 +29,14 @@
 #define ATTR_CRUSHERV_MAX 0xd3 // 0xd3 crusherv
 #define ATTR_CRUSHERH_MIN 0xd4 // 0xd4 crusherh
 #define ATTR_CRUSHERH_MAX 0xd7 // 0xd7 crusherh
-#define ATTR_CRUSHER_MIN 0xd0  // 0xd0
-#define ATTR_CRUSHER_MAX 0xd7  // 0xd7
+#define ATTR_CRUSHER_MIN 0xd0  // 0xd0 crusher min
+#define ATTR_CRUSHER_MAX 0xd7  // 0xd7 crusher max
+                               // D8 D9 DA DB DC DD DE DF (unassigned)
 #define ATTR_WAIT_MIN 0xe0     // 0xe0 monster wait
 #define ATTR_WAIT_MAX 0xe9     // 0xe9 monster wait
 #define ATTR_FREEZE_TRAP 0xea  // 0xea freeze trap
 #define ATTR_TRAP 0xeb         // 0xeb trap
+                               // EC ED EE EF (unassigned)
 #define ATTR_MSG_MIN 0xf0      // 0xf0 .. 0xff message string
 #define ATTR_MSG_MAX 0xff      // 0xff .. 0xff message string
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
-project(MyQtApp LANGUAGES CXX)
-
+set(PROJECT_NAME "cs3-map-edit")
+project(${PROJECT_NAME} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOUIC ON)   # UI
@@ -49,7 +49,7 @@ set(UI_FILES
 
 
 # Create executable with Qt-aware handling
-qt_add_executable(MyQtApp
+qt_add_executable(${PROJECT_NAME}
     MANUAL_FINALIZATION
     ${UI_FILES}
     ${CPP_SOURCES}
@@ -62,7 +62,7 @@ qt_add_executable(MyQtApp
 add_subdirectory(external/hunspell hunspell)
 
 # Link Qt libraries
-target_link_libraries(MyQtApp PRIVATE Qt6::Widgets)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 
 #find_library(XMP_LIBRARY xmp)
 find_library(ZLIB_LIBRARY z)
@@ -72,10 +72,10 @@ find_library(ZLIB_LIBRARY z)
 
 # Optional: include Hunspell if available
 # find_package(Hunspell REQUIRED)
-target_link_libraries(MyQtApp PRIVATE hunspell z)
+target_link_libraries(${PROJECT_NAME} PRIVATE hunspell z)
 
 
-target_include_directories(MyQtApp PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/shared
@@ -83,4 +83,4 @@ target_include_directories(MyQtApp PRIVATE
 )
 
 # Finalize Qt setup
-qt_finalize_executable(MyQtApp)
+qt_finalize_executable(${PROJECT_NAME})

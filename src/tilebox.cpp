@@ -10,6 +10,7 @@
 #include "runtime/shared/Frame.h"
 #include "runtime/tilesdata.h"
 #include "runtime/sprtypes.h"
+#include "runtime/tilesdefs.h"
 
 CTileBox::CTileBox(QWidget *parent) :
     QToolBox(parent)
@@ -42,11 +43,13 @@ void CTileBox::setupToolbox(){
 
         const QString labels[] = {
             tr("Background"), tr("Essentials"), tr("Walls"),
-            tr("Pickup"), tr("Monsters"), tr("Keys && doors")
+            tr("Pickup"), tr("Monsters"), tr("Keys && doors"),
+            tr("Special")
         };
         uint8_t icons[] = {
             TILES_PLANTS, TILES_ANNIE2, TILES_WALLS93_2,
-            TILES_CHEST, TILES_OCTOPUS, TILES_DOOR01
+            TILES_CHEST, TILES_OCTOPUS, TILES_DOOR01,
+            TILES_ICECUBE
         };
 
         const int tabCount = sizeof(icons);
@@ -120,7 +123,8 @@ int CTileBox::getTabId(int typeId)
         TAB_WALLS,
         TAB_PICKUP,
         TAB_MONSTERS,
-        TAB_LOCKS
+        TAB_LOCKS,
+        TAB_SPECIAL
     };
 
     int j = TAB_BACKGROUND;
@@ -142,15 +146,20 @@ int CTileBox::getTabId(int typeId)
     case TYPE_MONSTER:
     case TYPE_VAMPLANT:
     case TYPE_FIREBALL:
+    case TYPE_LIGHTNING_BOLT:
         j = TAB_MONSTERS;
         break;
     case TYPE_PICKUP:
         j = TAB_PICKUP;
         break;
     case TYPE_WALLS:
+        j = TAB_WALLS;
+        break;
     case TYPE_ICECUBE:
     case TYPE_BOULDER:
-        j = TAB_WALLS;
+    case TYPE_CHUTE:
+    case TYPE_FIRE:
+        j = TAB_SPECIAL;
     };
     return j;
 }

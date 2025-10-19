@@ -16,9 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 // logger.h
-/// Logging macros for info, warning, error, and fatal messages.
-/// Usage: LOGI("Message %s", str); LOGF("Fatal error %d", code);
-
 #pragma once
 #include <cstdio>
 #include <mutex>

@@ -6,6 +6,7 @@
 #include <qstringlist.h>
 #include "runtime/tilesdebug.h"
 #include "runtime/attr.h"
+#include "runtime/tilesdefs.h"
 
 CDlgStat::CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent)
     : QDialog(parent)

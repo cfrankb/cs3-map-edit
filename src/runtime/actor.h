@@ -61,7 +61,7 @@ public:
     int distance(const CActor &actor) const override;
     void move(const int16_t x, const int16_t y) override;
     void move(const Pos pos) override;
-    inline int16_t granularFactor() const override { return ACTOR_GRANULAR_FACTOR; };
+    inline int16_t getGranularFactor() const override { return ACTOR_GRANULAR_FACTOR; };
 
 private:
     uint8_t m_x;

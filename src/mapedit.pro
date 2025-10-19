@@ -14,7 +14,10 @@ DEFINES += USE_QFILE=1
 DEFINES += USE_HUNSPELL=1
 
 SOURCES += \
+    runtime/ai_path.cpp \
+    runtime/bossdata.cpp \
     runtime/actor.cpp \
+    runtime/randomz.cpp \
     runtime/animator.cpp \
     runtime/game.cpp \
     runtime/game_ai.cpp \
@@ -56,10 +59,17 @@ SOURCES += \
     mapfile.cpp \
     mapscroll.cpp \
     mapwidget.cpp \
-    report.cpp
+    report.cpp \
+    mapprops.cpp
 
 
 HEADERS += \
+    runtime/ai_path.h \
+    runtime/bossdata.h  \
+    runtime/build.h  \
+    runtime/color.h  \
+    runtime/filemacros.h  \
+    runtime/randomz.h  \
     runtime/actor.h \
     runtime/anniedata.h \
     runtime/animzdata.h \
@@ -114,8 +124,8 @@ HEADERS += \
     mapwidget.h \
     report.h \
     tilebox.h \
-    keyvaluedialog.h
-
+    keyvaluedialog.h \
+    mapprops.h
 
 FORMS += \
     dlgattr.ui \

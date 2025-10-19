@@ -19,7 +19,10 @@
 #include "logger.h"
 #include <cstdarg>
 #include <cstring>
+
+#ifndef SDL_NOT_WANTED
 #include <SDL3/SDL.h>
+#endif
 
 Logger::Level Logger::m_minLevel = Logger::INFO;
 FILE *Logger::m_output = nullptr;
