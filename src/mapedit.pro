@@ -146,7 +146,7 @@ RESOURCES += \
     mapedit.qrc
 
 unix:LIBS += -lz
-win32:LIBS += -L"libs" -lzlib
+win32:LIBS += -L"libs" -L"../libs"  -lzlib
 contains(DEFINES, USE_SDL_MIXER=1){
     unix:LIBS += -lSDL2_mixer -lSDL2
     HEADERS += shared/implementers/sn_sdl.h \
@@ -155,6 +155,7 @@ contains(DEFINES, USE_SDL_MIXER=1){
 }
 
 win32:INCLUDEPATH += include
+win32:INCLUDEPATH += ../include
 
 QMAKE_CXXFLAGS_RELEASE += -std=c++20 -O3
 QMAKE_CXXFLAGS_DEBUG += -std=c++20 -g3
