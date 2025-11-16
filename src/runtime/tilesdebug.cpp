@@ -180,6 +180,31 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_LIGHTNING_BOLT),
     _S(TILES_FIRE),
     _S(TILES_BULLETY1),
+    _S(TILES_BOAT),
+    _S(TILES_BARREL2EX),
+    _S(TILES_BARREL2),
+    _S(TILES_FLAME),
+    _S(TILES_WALLS),
+    _S(TILES_WALLS_2),
+    _S(TILES_WALLS_3),
+    _S(TILES_WALLS_4),
+    _S(TILES_WALLS_5),
+    _S(TILES_WALLS_6),
+    _S(TILES_WALLS_7),
+    _S(TILES_WALLS_8),
+    _S(TILES_WALLS_9),
+    _S(TILES_WALLS_A),
+    _S(TILES_WALLS_B),
+    _S(TILES_WALLS_C),
+    _S(TILES_WALLS_D),
+    _S(TILES_WALLS_E),
+    _S(TILES_WALLS_F),
+    _S(TILES_WALLS_10),
+    _S(TILES_WALLS_11),
+    _S(TILES_WALLS_12),
+    _S(TILES_WALLS_13),
+    _S(TILES_WALLS_14),
+    _S(TILES_WALLS_15),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_aiNames = {
@@ -192,19 +217,23 @@ static const std::unordered_map<uint16_t, std::string> g_aiNames = {
     _S(AI_SMART),
 };
 
-static const std::unordered_map<uint16_t, std::string> g_flagsNames = {
-    _S(FLAG_GODMODE),
-    _S(FLAG_EXTRA_LIFE),
-    _S(FLAG_EXTRA_SPEED),
-    _S(FLAG_RAGE),
-};
-
 static const std::unordered_map<uint16_t, std::string> g_speedsNames = {
     _S(SPEED_VERYFAST),
     _S(SPEED_FAST),
     _S(SPEED_NORMAL),
     _S(SPEED_SLOW),
     _S(SPEED_VERYSLOW),
+};
+
+static const std::unordered_map<uint16_t, std::string> g_flagsNames = {
+    _S(FLAG_GODMODE),
+    _S(FLAG_EXTRA_LIFE),
+    _S(FLAG_EXTRA_SPEED),
+    _S(FLAG_RAGE),
+    _S(FLAG_FRUIT),
+    _S(FLAG_TREASURE),
+    _S(FLAG_ONE_TIME),
+    _S(FLAG_HIDDEN),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_typesNames = {
@@ -226,6 +255,7 @@ static const std::unordered_map<uint16_t, std::string> g_typesNames = {
     _S(TYPE_CHUTE),
     _S(TYPE_LIGHTNING_BOLT),
     _S(TYPE_FIRE),
+    _S(TYPE_BARREL),
 };
 
 std::string get_tileNames(const uint16_t i)
@@ -256,20 +286,6 @@ const std::unordered_map<uint16_t, std::string> & get_aiNamesMap()
    return g_aiNames;
 }
 
-std::string get_flagsNames(const uint16_t i)
-{
-    const auto &it = g_flagsNames.find(i);
-    if (it != g_flagsNames.end())
-        return it->second;
-    else
-        return "";
-}
-
-const std::unordered_map<uint16_t, std::string> & get_flagsNamesMap()
-{
-   return g_flagsNames;
-}
-
 std::string get_speedsNames(const uint16_t i)
 {
     const auto &it = g_speedsNames.find(i);
@@ -282,6 +298,20 @@ std::string get_speedsNames(const uint16_t i)
 const std::unordered_map<uint16_t, std::string> & get_speedsNamesMap()
 {
    return g_speedsNames;
+}
+
+std::string get_flagsNames(const uint16_t i)
+{
+    const auto &it = g_flagsNames.find(i);
+    if (it != g_flagsNames.end())
+        return it->second;
+    else
+        return "";
+}
+
+const std::unordered_map<uint16_t, std::string> & get_flagsNamesMap()
+{
+   return g_flagsNames;
 }
 
 std::string get_typesNames(const uint16_t i)

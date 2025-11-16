@@ -24,15 +24,30 @@
 #include "map.h"
 #include "logger.h"
 #include "ai_path.h"
+#include "isprite.h"
+#include "filemacros.h"
+#include "bossdata.h"
+#include "shared/IFile.h"
 
-constexpr JoyAim g_dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
+namespace PathData
+{
+    const AStar aStar;
+    const AStarSmooth aStarSmooth;
+    const BFS bFS;
+    const LineOfSight lineOfSight;
 
-constexpr std::array<Pos, JoyAim::TOTAL_AIMS> g_deltas = {
-    Pos{-1, 0}, // Up
-    Pos{1, 0},  // Down
-    Pos{0, -1}, // Left
-    Pos{0, 1},  // Right
-};
+    constexpr int PATH_TIMEOUT_MAX = 10; // Recompute path every 10 turns
+    constexpr size_t MAX_PATH_SIZE = 4096;
+    constexpr JoyAim g_dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
+    constexpr std::array<Pos, JoyAim::TOTAL_AIMS> g_deltas = {
+        Pos{-1, 0}, // Up
+        Pos{1, 0},  // Down
+        Pos{0, -1}, // Left
+        Pos{0, 1},  // Right
+    };
+}
+
+using namespace PathData;
 
 namespace std
 {
@@ -72,10 +87,10 @@ int AStar::manhattanDistance(const Pos &a, const Pos &b) const
 
 std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
 {
-    int granularFactor = sprite.getGranularFactor();
+    const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    int mapLen = map.len() * granularFactor;
-    int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.len() * granularFactor;
+    const int mapHei = map.hei() * granularFactor;
     std::vector<JoyAim> directions;
     const Pos startPos = sprite.pos();
 
@@ -182,16 +197,11 @@ std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
 
 std::vector<JoyAim> BFS::findPath(ISprite &sprite, const Pos &goalPos) const
 {
-    int granularFactor = sprite.getGranularFactor();
+    const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    int mapLen = map.len() * granularFactor;
-    int mapHei = map.hei() * granularFactor;
-    Pos startPos = sprite.pos();
-    // Pos goalPos = playerPos;
-    //  startPos.x /= granularFactor;
-    //   startPos.y /= granularFactor;
-    //  goalPos.x /= granularFactor;
-    //  goalPos.y /= granularFactor;
+    const int mapLen = map.len() * granularFactor;
+    const int mapHei = map.hei() * granularFactor;
+    const Pos startPos = sprite.pos();
 
     if (startPos.x < 0 || startPos.x >= mapLen || startPos.y < 0 || startPos.y >= mapHei ||
         goalPos.x < 0 || goalPos.x >= mapLen || goalPos.y < 0 || goalPos.y >= mapHei)
@@ -227,8 +237,8 @@ std::vector<JoyAim> BFS::findPath(ISprite &sprite, const Pos &goalPos) const
 
             for (size_t i = 1; i < path.size(); ++i)
             {
-                int dx = path[i].x - path[i - 1].x;
-                int dy = path[i].y - path[i - 1].y;
+                const int dx = path[i].x - path[i - 1].x;
+                const int dy = path[i].y - path[i - 1].y;
                 if (dx == 1 && dy == 0)
                     directions.push_back(JoyAim::AIM_RIGHT);
                 else if (dx == -1 && dy == 0)
@@ -254,7 +264,6 @@ std::vector<JoyAim> BFS::findPath(ISprite &sprite, const Pos &goalPos) const
                 continue;
 
             Pos originalPos = sprite.pos();
-            // sprite.move(newPos.x * granularFactor, newPos.y * granularFactor);
             sprite.move(newPos);
             if (sprite.canMove(g_dirs[i]))
             {
@@ -272,10 +281,10 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
 {
     int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    int mapLen = map.len() * granularFactor; // Half-tile bounds
-    int mapHei = map.hei() * granularFactor;
-    Pos startPos = sprite.pos(); // Half-tile coordinates
-    Pos goalPos = playerPos;
+    const int mapLen = map.len() * granularFactor; // Half-tile bounds
+    const int mapHei = map.hei() * granularFactor;
+    const Pos startPos = sprite.pos(); // Half-tile coordinates
+    const Pos goalPos = playerPos;
 
     if (startPos.x < 0 || startPos.x >= mapLen || startPos.y < 0 || startPos.y >= mapHei ||
         goalPos.x < 0 || goalPos.x >= mapLen || goalPos.y < 0 || goalPos.y >= mapHei)
@@ -289,13 +298,13 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
     std::vector<JoyAim> directions;
     int x = startPos.x;
     int y = startPos.y;
-    int dx = goalPos.x - startPos.x;
-    int dy = goalPos.y - startPos.y;
+    const int dx = goalPos.x - startPos.x;
+    const int dy = goalPos.y - startPos.y;
     int stepsX = std::abs(dx);
     int stepsY = std::abs(dy);
     int stepX = dx >= 0 ? 1 : -1;
     int stepY = dy >= 0 ? 1 : -1;
-    Pos originalPos = sprite.pos();
+    const Pos originalPos = sprite.pos();
 
     while (x != goalPos.x || y != goalPos.y)
     {
@@ -306,7 +315,7 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
             Pos next = {static_cast<int16_t>(x + stepX), static_cast<int16_t>(y)};
             if (next.x >= 0 && next.x < mapLen && next.y >= 0 && next.y < mapHei)
             {
-                const_cast<ISprite &>(sprite).move(next);
+                sprite.move(next);
                 JoyAim aim = (stepX > 0 ? AIM_RIGHT : AIM_LEFT);
                 if (sprite.canMove(aim))
                 {
@@ -315,7 +324,7 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
                     stepsX--;
                     moved = true;
                 }
-                const_cast<ISprite &>(sprite).move(originalPos);
+                sprite.move(originalPos);
             }
         }
         // Then try y movement
@@ -333,7 +342,7 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
                     stepsY--;
                     moved = true;
                 }
-                const_cast<ISprite &>(sprite).move(originalPos);
+                sprite.move(originalPos);
             }
         }
         if (!moved)
@@ -358,10 +367,10 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
 {
     if (path.size() < 2)
         return {};
-    int granularFactor = sprite.getGranularFactor();
+    const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    int mapLen = map.len() * granularFactor; // Half-tile bounds
-    int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.len() * granularFactor; // Half-tile bounds
+    const int mapHei = map.hei() * granularFactor;
     std::vector<Pos> smoothedPath = {path[0]};
 
     LineOfSight los;
@@ -396,8 +405,8 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
     std::vector<JoyAim> directions;
     for (size_t i = 1; i < smoothedPath.size(); ++i)
     {
-        int dx = smoothedPath[i].x - smoothedPath[i - 1].x;
-        int dy = smoothedPath[i].y - smoothedPath[i - 1].y;
+        const int dx = smoothedPath[i].x - smoothedPath[i - 1].x;
+        const int dy = smoothedPath[i].y - smoothedPath[i - 1].y;
         if (dx == 1 && dy == 0)
             directions.push_back(JoyAim::AIM_RIGHT);
         else if (dx == -1 && dy == 0)
@@ -418,12 +427,12 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
 
 std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos) const
 {
-    int granularFactor = sprite.getGranularFactor();
+    const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    int mapLen = map.len() * granularFactor; // Half-tile bounds
-    int mapHei = map.hei() * granularFactor;
-    Pos startPos = sprite.pos(); // Half-tile coordinates
-    Pos goalPos = playerPos;
+    const int mapLen = map.len() * granularFactor; // Half-tile bounds
+    const int mapHei = map.hei() * granularFactor;
+    const Pos startPos = sprite.pos(); // Half-tile coordinates
+    const Pos goalPos = playerPos;
 
     if (startPos.x < 0 || startPos.x >= mapLen || startPos.y < 0 || startPos.y >= mapHei ||
         goalPos.x < 0 || goalPos.x >= mapLen || goalPos.y < 0 || goalPos.y >= mapHei)
@@ -462,18 +471,18 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 
         for (int i = 0; i < 4; ++i)
         {
-            Pos newPos = {static_cast<int16_t>(current->pos.x + g_deltas[i].x), static_cast<int16_t>(current->pos.y + g_deltas[i].y)};
+            const Pos newPos = {static_cast<int16_t>(current->pos.x + g_deltas[i].x), static_cast<int16_t>(current->pos.y + g_deltas[i].y)};
             if (newPos.x < 0 || newPos.x >= mapLen || newPos.y < 0 || newPos.y >= mapHei || closedList[newPos])
                 continue;
 
-            Pos originalPos = sprite.pos();
+            const Pos originalPos = sprite.pos();
             const_cast<ISprite &>(sprite).move(newPos);
             if (!sprite.canMove(g_dirs[i]))
             {
-                const_cast<ISprite &>(sprite).move(originalPos);
+                sprite.move(originalPos);
                 continue;
             }
-            const_cast<ISprite &>(sprite).move(originalPos);
+            sprite.move(originalPos);
 
             int newGCost = current->gCost + 1;
             if (!nodes[newPos] || newGCost < nodes[newPos]->gCost)
@@ -484,4 +493,177 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
         }
     }
     return {};
+}
+
+////////////////////////////////////////////////
+CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPath &astar)
+{
+    if (!sprite.isBoss())
+        LOGI("sprite: %p[%d,%d] aim:%d p[%d,%d] ptr=%d timeout=%d cache:%lu ttl:%d",
+             &sprite, sprite.x(), sprite.y(), sprite.getAim(),
+             playerPos.x, playerPos.y,
+             m_pathIndex, m_pathTimeout, m_cachedDirections.size(), sprite.getTTL());
+
+    // Check if path is invalid or timed out
+    if (m_pathIndex >= m_cachedDirections.size() || m_pathTimeout <= 0)
+    {
+        m_cachedDirections = astar.findPath(sprite, playerPos);
+        m_pathIndex = 0;
+        if (!m_pathTimeout)
+            m_pathTimeout = PATH_TIMEOUT_MAX;
+        if (m_cachedDirections.empty())
+        {
+            if (!sprite.isBoss())
+                LOGI("sprite: %p -- path empty", &sprite);
+            return Result::NoValidPath; // No valid path
+        }
+    }
+
+    // Try the next direction
+    const JoyAim aim = m_cachedDirections[m_pathIndex];
+    sprite.setAim(aim);
+    if (sprite.canMove(aim))
+    {
+        if (sprite.isBoss())
+        {
+            sprite.move(aim);
+        }
+        else
+        {
+            CGame::getGame()->shadowActorMove(*static_cast<CActor *>(&sprite), aim);
+        }
+        ++m_pathIndex;
+        --m_pathTimeout;
+        return Result::MoveSuccesful;
+    }
+
+    // Move failed, invalidate cache and recompute next turn
+    if (!sprite.isBoss())
+        LOGI("sprite: %p -- cannot move", &sprite);
+    m_cachedDirections.clear();
+    m_pathIndex = 0;
+    m_pathTimeout = 0;
+    return Result::Blocked;
+}
+
+bool CPath::read(IFile &sfile)
+{
+    auto readfile = [&sfile](auto ptr, auto size) -> bool
+    {
+        return sfile.read(ptr, size) == IFILE_OK;
+    };
+
+    auto checkBound = [](auto a, auto b)
+    {
+        using T = decltype(a);
+
+        if constexpr (std::is_same_v<T, size_t>)
+        {
+            if (a > b)
+            {
+                LOGE("%s: %lu outside expected -- expected < %lu", _S(a), a, b);
+                return false;
+            }
+        }
+        else if constexpr (std::is_same_v<T, uint8_t>)
+        {
+            if (a > b)
+            {
+                LOGE("%s: %u outside expected -- expected < %u", _S(a), a, b);
+                return false;
+            }
+        }
+        else if constexpr (std::is_integral_v<T>)
+        {
+            if (a > b || a < 0)
+            {
+                LOGE("%s: %d outside expected -- expected > 0 && < %d", _S(a), a, b);
+                return false;
+            }
+        }
+        else
+        {
+            static_assert(std::is_integral_v<T>, "checkBound only supports integral types");
+        }
+
+        return true;
+    };
+
+    constexpr size_t DATA_SIZE = 2;
+    //////////////////////////////////////
+    // Read Path (saved)
+    m_cachedDirections.clear();
+    size_t pathSize = 0;
+    _R(&pathSize, DATA_SIZE);
+    checkBound(pathSize, MAX_PATH_SIZE);
+    for (size_t i = 0; i < pathSize; ++i)
+    {
+        JoyAim dir;
+        _R(&dir, sizeof(dir));
+        m_cachedDirections.emplace_back(dir);
+    }
+    m_pathIndex = 0;
+    _R(&m_pathIndex, DATA_SIZE);
+    checkBound(m_pathIndex, MAX_PATH_SIZE);
+    m_pathTimeout = 0;
+    _R(&m_pathTimeout, DATA_SIZE);
+    checkBound(m_pathTimeout, MAX_PATH_SIZE);
+
+    return true;
+}
+
+bool CPath::write(IFile &tfile)
+{
+    auto writefile = [&tfile](auto ptr, auto size)
+    {
+        return tfile.write(ptr, size) == IFILE_OK;
+    };
+
+    constexpr size_t DATA_SIZE = 2;
+    const auto pathSize = m_cachedDirections.size();
+    _W(&pathSize, DATA_SIZE);
+    for (const auto &dir : m_cachedDirections)
+    {
+        _W(&dir, sizeof(dir));
+    }
+    _W(&m_pathIndex, DATA_SIZE);
+    _W(&m_pathTimeout, DATA_SIZE);
+
+    return true;
+}
+
+CPath::CPath()
+{
+    m_pathIndex = 0;
+    m_pathTimeout = 0;
+}
+
+const IPath *CPath::getPathAlgo(const uint8_t algo)
+{
+    if (algo == BossData::ASTAR)
+    {
+        return &PathData::aStar;
+    }
+    else if (algo == BossData::LOS)
+    {
+        return &PathData::lineOfSight;
+    }
+    else if (algo == BossData::BFS)
+    {
+        return &PathData::bFS;
+    }
+    else if (algo == BossData::ASTAR_SMOOTH)
+    {
+        return &PathData::aStarSmooth;
+    }
+    else
+    {
+        LOGE("unsupported ai algo: %u", algo);
+        return nullptr;
+    }
+}
+
+void CPath::setTimeout(int timeout)
+{
+    m_pathTimeout = timeout;
 }

@@ -23,13 +23,23 @@
 #include "joyaim.h"
 #include "isprite.h"
 #include "bossdata.h"
+#include "ai_path.h"
 
 class IPath;
 class IFile;
 class CActor;
+class CPath;
+class CBoss;
 
-typedef std::function<bool(const Pos &)> hitboxPosCallback_t;
-typedef std::function<bool(const Pos &)> canWalkCallback_t;
+struct HitResult
+{
+    Pos pos;                   // World tile (full-tile)
+    BossData::HitBoxType type; // e.g., MAIN, VULNERABLE, HURTBOX
+};
+
+using hitboxTestCallback_t = std::function<bool(const Pos &, BossData::HitBoxType)>; // Return true to skip/abort this pos
+using hitboxActionCallback_t = std::function<void(const HitResult &)>;               // Collect/process each hit
+using BossTileCheck = bool (CBoss::*)(const Pos &) const;
 
 class CBoss : public ISprite
 {
@@ -43,20 +53,19 @@ public:
         Hurt,
         Death,
         Hidden,
-        MAX_STATE
+        MAX_STATES
     };
     CBoss(const int16_t x = 0, const int16_t y = 0, const bossData_t *data = nullptr);
-    virtual ~CBoss() = default;
+    virtual ~CBoss() {};
     inline int16_t x() const override { return m_x; }
     inline int16_t y() const override { return m_y; }
-    inline const Rect &hitbox() const { return m_bossData->hitbox; }
+    inline const hitbox_t &hitbox() const { return m_bossData->hitbox; }
     uint8_t type() const override { return m_bossData->type; }
-    bool testHitbox(hitboxPosCallback_t testCallback, hitboxPosCallback_t actionCallback) const;
-    static bool isPlayer(const Pos &pos);
-    static bool isIceCube(const Pos &pos);
-    static bool isSolid(const Pos &pos);
-    static bool isGhostBlocked(const Pos &pos);
-    static bool meltIceCube(const Pos &pos);
+    std::vector<HitResult> testHitbox1(const CMap &map, hitboxTestCallback_t testCallback, hitboxActionCallback_t actionCallback) const;
+    std::vector<HitResult> testHitbox2(const CMap &map, hitboxTestCallback_t testCallback, hitboxActionCallback_t actionCallback) const;
+
+    bool isSolid(const Pos &pos) const;
+    bool isGhostBlocked(const Pos &pos) const;
     static const Pos toPos(int x, int y);
     bool canMove(const JoyAim aim) const override;
     void move(const JoyAim aim) override;
@@ -70,8 +79,15 @@ public:
     bool isHidden() const { return m_state == Hidden; }
     bool isDone() const { return m_state == Hidden; }
     bool isGoal() const { return m_bossData->is_goal; }
+    Pos worldPos() const
+    {
+        constexpr int16_t granular = static_cast<int16_t>(BOSS_GRANULAR_FACTOR);
+        return {
+            static_cast<int16_t>(m_x / granular),
+            static_cast<int16_t>(m_y / granular)};
+    }
 
-    void move(const int16_t x, const int16_t y) override
+    inline void move(const int16_t x, const int16_t y) override
     {
         m_x = x;
         m_y = y;
@@ -86,7 +102,7 @@ public:
     inline const Pos pos() const override { return Pos{m_x, m_y}; };
     void animate();
     int currentFrame() const;
-    int damage() const;
+    int damage(const BossData::HitBoxType hbType) const;
     int sheet() const { return m_bossData->sheet; }
     int score() const { return m_bossData->score; }
     const char *name() const { return m_bossData->name; }
@@ -96,12 +112,16 @@ public:
         BOSS_GRANULAR_FACTOR = 2,
     };
     bool followPath(const Pos &playerPos, const IPath &astar);
-    void patrol(); // New method for random patrol behavior
-
+    void patrol();
     bool read(IFile &file);
     bool write(IFile &file);
+    void setAim(const JoyAim aim) override { m_aim = aim; };
+    JoyAim getAim() const override { return m_aim; }
+    bool isBoss() const override { return true; }
+    int getTTL() const override { return BossData::NoTTL; };
 
 private:
+    const boss_seq_t *getCurrentSeq() const;
     const bossData_t *m_bossData;
     int m_framePtr;
     int16_t m_x;
@@ -109,11 +129,8 @@ private:
     int m_hp;
     BossState m_state;
     int m_speed;
-    canWalkCallback_t m_isSolidOperator;
+    JoyAim m_aim;
+    BossTileCheck m_solidCheck = nullptr;
     void setSolidOperator();
-
-    // Path caching
-    std::vector<JoyAim> m_cachedDirections;
-    size_t m_pathIndex;
-    size_t m_pathTimeout;
+    CPath m_path;
 };

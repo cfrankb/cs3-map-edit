@@ -24,13 +24,24 @@
 #include <cstdio>
 #include <cmath>
 #include <stdexcept>
+#include <memory>
 #include "shared/IFile.h"
+#include "logger.h"
+#include "bossdata.h"
 
-constexpr const JoyAim g_aims[] = {
-    AIM_DOWN, AIM_RIGHT, AIM_UP, AIM_LEFT,
-    AIM_UP, AIM_LEFT, AIM_DOWN, AIM_RIGHT,
-    AIM_RIGHT, AIM_UP, AIM_LEFT, AIM_DOWN,
-    AIM_LEFT, AIM_DOWN, AIM_RIGHT, AIM_UP};
+namespace ActorData
+{
+    constexpr const JoyAim g_aims[] = {
+        AIM_DOWN, AIM_RIGHT, AIM_UP, AIM_LEFT,
+        AIM_UP, AIM_LEFT, AIM_DOWN, AIM_RIGHT,
+        AIM_RIGHT, AIM_UP, AIM_LEFT, AIM_DOWN,
+        AIM_LEFT, AIM_DOWN, AIM_RIGHT, AIM_UP};
+
+    constexpr uint8_t PATH_NOT_DEFINED = 0;
+    constexpr uint8_t PATH_DEFINED = 1;
+};
+
+using namespace ActorData;
 
 /**
  * @brief Reverse a given direction
@@ -55,7 +66,7 @@ JoyAim reverseDir(const JoyAim aim)
     }
 }
 
-CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAim aim)
+CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAim aim) : m_path(nullptr)
 {
     if (aim >= TOTAL_AIMS && aim != AIM_NONE)
         throw std::invalid_argument("Invalid aim value");
@@ -64,15 +75,67 @@ CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAi
     m_type = type;
     m_aim = aim;
     m_pu = TILES_BLANK;
+    m_path = nullptr;
+    m_algo = BossData::Path::NONE;
+    m_ttl = CActor::NoTTL;
 }
 
-CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim)
+CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim) : m_path(nullptr)
 {
     m_x = pos.x;
     m_y = pos.y;
     m_type = type;
     m_aim = aim;
     m_pu = TILES_BLANK;
+    m_path = nullptr;
+    m_algo = BossData::Path::NONE;
+    m_ttl = CActor::NoTTL;
+}
+
+CActor::CActor(CActor &&other) noexcept
+    : m_x(other.m_x),
+      m_y(other.m_y),
+      m_type(other.m_type),
+      m_algo(other.m_algo),
+      m_aim(other.m_aim),
+      m_pu(other.m_pu),
+      m_ttl(other.m_ttl),
+      m_path(std::move(other.m_path))
+{
+    // You can't move ISprite, but its state is already constructed
+    // If ISprite has internal state, you may need a reset/init method
+    other.m_x = 0;
+    other.m_y = 0;
+    other.m_type = 0;
+    other.m_aim = AIM_UP;
+    other.m_pu = 0;
+    other.m_algo = BossData::Path::NONE;
+    other.m_ttl = CActor::NoTTL;
+}
+
+CActor &CActor::operator=(CActor &&other) noexcept
+{
+    if (this != &other)
+    {
+        // No ISprite::operator= — skip base move
+        m_x = other.m_x;
+        m_y = other.m_y;
+        m_type = other.m_type;
+        m_aim = other.m_aim;
+        m_pu = other.m_pu;
+        m_algo = other.m_algo;
+        m_path = std::move(other.m_path);
+        m_ttl = other.m_ttl;
+
+        other.m_x = 0;
+        other.m_y = 0;
+        other.m_type = 0;
+        other.m_aim = AIM_UP;
+        other.m_pu = 0;
+        other.m_algo = BossData::Path::NONE;
+        other.m_ttl = CActor::NoTTL;
+    }
+    return *this;
 }
 
 CActor::~CActor()
@@ -123,6 +186,11 @@ bool CActor::canMove(const JoyAim aim) const
     else if (RANGE(m_type, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
     {
         if (def.type == TYPE_PLAYER)
+            return true;
+    }
+    else if (CGame::isMoveableType(m_type) || CGame::isBulletType(m_type))
+    {
+        if (def.type == TYPE_STOP)
             return true;
     }
     return false;
@@ -292,6 +360,39 @@ void CActor::reverveDir()
     m_aim = ::reverseDir(m_aim);
 }
 
+bool CActor::readPath(IFile &sfile)
+{
+    auto readfile = [&sfile](auto ptr, auto size) -> bool
+    {
+        return sfile.read(ptr, size) == IFILE_OK;
+    };
+    // read path
+    uint8_t pathDefined = 0;
+    if (!readfile(&pathDefined, sizeof(pathDefined)))
+        return false;
+    if (pathDefined != PATH_NOT_DEFINED && pathDefined != PATH_DEFINED)
+    {
+        // sanity check
+        LOGE("invalid value for pathDefined: %.2x", pathDefined);
+        return false;
+    }
+    if (pathDefined == PATH_DEFINED)
+    {
+        if (!m_path)
+        {
+            m_path = std::make_unique<CPath>();
+            if (!m_path)
+            {
+                LOGE("failed create CPath");
+                return false;
+            }
+        }
+        if (!m_path->read(sfile))
+            return false;
+    }
+    return true;
+}
+
 bool CActor::read(IFile &sfile)
 {
     auto readfile = [&sfile](auto ptr, auto size) -> bool
@@ -299,7 +400,7 @@ bool CActor::read(IFile &sfile)
         return sfile.read(ptr, size) == IFILE_OK;
     };
 
-    return readCommon(readfile);
+    return readCommon(readfile) && readPath(sfile);
 }
 
 /**
@@ -323,7 +424,26 @@ bool CActor::readCommon(ReadFunc readfile)
         return false;
     if (!readfile(&m_pu, sizeof(m_pu)))
         return false;
+    if (!readfile(&m_algo, sizeof(m_algo)))
+        return false;
+    if (!readfile(&m_ttl, sizeof(m_ttl)))
+        return false;
 
+    return true;
+}
+
+bool CActor::writePath(IFile &tfile) const
+{
+    auto writefile = [&tfile](auto ptr, auto size)
+    {
+        return tfile.write(ptr, size) == IFILE_OK;
+    };
+
+    if (!writefile(m_path ? &PATH_DEFINED : &PATH_NOT_DEFINED, sizeof(PATH_DEFINED)))
+        return false;
+
+    if (m_path && !m_path->write(tfile))
+        return false;
     return true;
 }
 
@@ -333,7 +453,8 @@ bool CActor::write(IFile &tfile) const
     {
         return tfile.write(ptr, size) == IFILE_OK;
     };
-    return writeCommon(writefile);
+
+    return writeCommon(writefile) && writePath(tfile);
 }
 
 /**
@@ -356,6 +477,10 @@ bool CActor::writeCommon(WriteFunc writefile) const
     if (!writefile(&m_aim, sizeof(m_aim)))
         return false;
     if (!writefile(&m_pu, sizeof(m_pu)))
+        return false;
+    if (!writefile(&m_algo, sizeof(m_algo)))
+        return false;
+    if (!writefile(&m_ttl, sizeof(m_ttl)))
         return false;
 
     return true;
@@ -411,4 +536,38 @@ void CActor::move(const int16_t x, const int16_t y)
 void CActor::move(const Pos pos)
 {
     move(pos.x, pos.y);
+}
+
+CPath::Result CActor::followPath(const Pos &playerPos)
+{
+    auto pathAlgo = CPath::getPathAlgo(m_algo);
+    if (!pathAlgo)
+        return CPath::Result::NotConfigured;
+    if (m_path)
+    {
+        decTTL();
+        auto result = m_path->followPath(*this, playerPos, *pathAlgo);
+        if (m_ttl == 0 && CGame::isBulletType(m_type))
+            m_path.reset(); // replaces delete + nullptr
+
+        return result;
+    }
+    return CPath::Result::NotConfigured;
+}
+
+bool CActor::isFollowingPath()
+{
+    return m_path != nullptr;
+}
+
+bool CActor::startPath(const Pos &playerPos, const uint8_t algo, const int ttl)
+{
+    m_algo = algo;
+    auto pathAlgo = CPath::getPathAlgo(algo);
+    if (!pathAlgo)
+        return false;
+    if (!m_path)
+        m_path = std::make_unique<CPath>();
+    m_ttl = ttl;
+    return m_path->followPath(*this, playerPos, *pathAlgo);
 }

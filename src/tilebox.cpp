@@ -72,7 +72,7 @@ void CTileBox::setupToolbox(){
         for (int i=0; i < tiles; ++i) {
              auto icon = frame2icon(* fs[i]);
              const TileDef &def = getTileDef(i);
-             if (def.hidden) {
+             if (def.flags & FLAG_HIDDEN) {
                  continue;
              }
              int j = getTabId(def.type);
@@ -159,6 +159,7 @@ int CTileBox::getTabId(int typeId)
     case TYPE_BOULDER:
     case TYPE_CHUTE:
     case TYPE_FIRE:
+    case TYPE_BARREL:
         j = TAB_SPECIAL;
     };
     return j;

@@ -24,20 +24,39 @@
 #include <cstdint>
 #include "rect.h"
 
+#include "color.h"
 #define FLAG_FIREBALL 0x00000001
+#define BOSS_FLAG_PROXIMITY_ATTACK 0x40000000
 #define BOSS_FLAG_ICE_DAMAGE 0x80000000
 
 #define BOSS_MR_DEMON 0xb0
 #define BOSS_GHOST 0xb1
-
+#define BOSS_HARPY 0xb2
+#define BOSS_BEHOLDER 0xb3
+#define BOSS_COUNT 4
+#define HITBOX_COUNT  27
+#define SHEET_SPACER  1000
+#define MAX_HITBOX_PER_FRAME 4
 
 namespace BossData
 {
     enum Path:uint8_t {
+        NONE,
         ASTAR,
         BFS,
         LOS,
         ASTAR_SMOOTH
+    };
+
+    enum HitBoxType:uint8_t {
+        MAIN,
+        ATTACK,
+        SPECIAL1,
+        SPECIAL2,
+    };
+
+    enum {
+        NoTTL = -1
     };
 }
 
@@ -47,30 +66,78 @@ struct boss_seq_t
     int lenght;
 };
 
+struct hitbox_t
+{
+    int x;
+    int y;
+    int width;
+    int height;
+    int type;
+};
+
+struct sprite_hitbox_t
+{
+    int spriteID;
+    int count;
+    hitbox_t hitboxes[MAX_HITBOX_PER_FRAME];
+};
+
 struct bossData_t
 {
     const char* name;       // boss name
-    int speed;              // movement speed
-    int a_speed;            // animation speed
+    int speed;              // movement speed (lower = faster)
+    int speed_anime;        // animation speed (lower = faster)
     int hp;                 // hp
-    int type;               // type
+    uint8_t type;           // type
     int score;              // score received
-    int damage;             // damage given
+    int damage;             // damage given (primary)
+    int damage_attack;      // damage given (attack)
+    int damage_special1;    // damage given (special1)
+    int damage_special2;    // damage given (special2)
     uint32_t flags;         // custom flags
     uint32_t path;          // path finding algo
     uint8_t bullet;         // boss bullet
-    uint8_t bullet_speed;   // boss bullet speed
-    int chase_distance;     // distance to engage chase
-    int pursuit_distance;   // continue pursuit within distance (chase)
+    uint8_t bullet_rate;    // boss bullet rate (lower = faster)
+    uint8_t bullet_algo;    // bullet algo
+    uint8_t bullet_sound;   // bullet firing sound
+    int bullet_ttl;         // bullet timeout (# of moves)
+    uint8_t attack_sound;   // sound during an attack
+    int distance_chase;     // distance to engage chase
+    int distance_pursuit;   // continue pursuit within distance (chase)
+    int distance_attack;    // distance within which the boss can attack
     bool is_goal;           // is this boss a map goal?
     bool show_details;      // display hp bar/name
+    Color color_hp;         // hp bar color
+    Color color_name;       // namr color
+    int aims;               // aim count (typically 1 or 4)
     boss_seq_t moving;      // animation seq: moving
     boss_seq_t attack;      // animation seq: attack
     boss_seq_t hurt;        // animation seq: hurt
     boss_seq_t death;       // animation seq: death
     boss_seq_t idle;        // animation seq: idle
-    Rect hitbox;            // boss hitbox
+    hitbox_t hitbox;        // primary hitbox
     int sheet;              // sprite sheet used
 };
+extern const bossData_t g_bossData[];
+extern const sprite_hitbox_t g_hitboxes[];
 
-bossData_t *getBossData(const int type);
+inline constexpr const bossData_t *getBossData(const uint8_t type)
+{
+    for (size_t i = 0; i < BOSS_COUNT; ++i)
+    {
+        if (g_bossData[i].type == type)
+            return &g_bossData[i];
+    }
+    return nullptr;
+}
+
+inline constexpr const sprite_hitbox_t *getHitboxes(const int sheet, const int frameID)
+{
+    const int spriteID = sheet * SHEET_SPACER + frameID;
+    for (size_t i = 0; i < HITBOX_COUNT; ++i)
+    {
+        if (g_hitboxes[i].spriteID == spriteID)
+            return &g_hitboxes[i];
+    }
+    return nullptr;
+}

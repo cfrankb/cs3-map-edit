@@ -50,12 +50,6 @@ public:
     bool fromMemory(uint8_t *ptr);
 
 protected:
-    enum
-    {
-        OFFSET_COUNT = 6,
-        OFFSET_INDEX = 8,
-        MAX_MAPS = 1000,
-    };
     template <typename ReadFunc, typename SeekFunc, typename ReadMapFunc>
     bool readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc readmap);
     std::vector<std::unique_ptr<CMap>> m_maps;

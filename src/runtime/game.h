@@ -18,26 +18,37 @@
 #pragma once
 #include <vector>
 #include <cstdint>
-#include <cstdio>
+#include <string>
 #include <set>
+#include <unordered_map>
+#include <memory>
 #include "actor.h"
-#include "boss.h"
 #include "map.h"
-#include "gamesfx.h"
 #include "events.h"
-#include "tilesdefs.h"
 
 class CGameStats;
 class CMapArch;
 class ISound;
 class CBoss;
 class Random;
+class IFile;
+struct TileDef;
+enum Event;
+enum Sfx : uint16_t;
+struct sfx_t;
 
 struct MapReport
 {
     int fruits;
     int bonuses;
     int secrets;
+};
+
+struct bulletData_t
+{
+    uint8_t sound;
+    Sfx sfxID;
+    uint16_t sfxTimeOut;
 };
 
 class CGame
@@ -61,6 +72,7 @@ public:
         MODE_SKLLSELECT,
         MODE_NEW_INPUTNAME,
         MODE_CHUTE,
+        MODE_TEST,
     };
 
     enum : uint32_t
@@ -85,6 +97,7 @@ public:
         uint8_t indicators[MAX_KEYS];
     };
 
+    ~CGame();
     bool loadLevel(const GameMode mode);
     bool move(const JoyAim dir);
     void manageMonsters(const int ticks);
@@ -134,6 +147,7 @@ public:
     int getEvent();
     void purgeSfx();
     static CGame *getGame();
+    static void destroy();
     bool isClosure() const;
     bool isLevelCompleted() const;
     int closusureTimer() const;
@@ -141,7 +155,6 @@ public:
     void decClosure();
     bool isFrozen() const;
     int maxHealth() const;
-    static void destroy();
     int getUserID() const;
     void setUserID(const int userID) const;
     static MapReport generateMapReport(CMap &map);
@@ -149,7 +162,7 @@ public:
     const MapReport &originalMapReport();
     int timeTaken();
     void incTimeTaken();
-    void resetSugar();
+    void resetStatsUponDeath();
     void decKeyIndicators();
     int defaultLives();
     void setDefaultLives(int lives);
@@ -161,6 +174,14 @@ public:
     static Random &getRandom();
     static bool validateSignature(const char *signature, const uint32_t version);
     bool isMonsterType(const uint8_t typeID) const;
+    static bool isFruit(const uint8_t tileID);
+    static bool isBonusItem(const uint8_t tileID);
+    static bool isBulletType(const uint8_t typeID);
+    static bool isMoveableType(const uint8_t typeID);
+    static bool isOneTimeItem(const uint8_t tileID);
+    static bool isPushable(const uint8_t typeID);
+
+    bool shadowActorMove(CActor &actor, const JoyAim aim);
 
     enum
     {
@@ -175,7 +196,7 @@ private:
     int m_score = 0;
     int m_nextLife;
     int m_diamonds = 0;
-    static userKeys_t m_keys;
+    inline static userKeys_t m_keys;
     GameMode m_mode;
     int m_introHint = 0;
     std::vector<Event> m_events;
@@ -187,25 +208,25 @@ private:
     std::shared_ptr<ISound> m_sound;
     std::vector<std::string> m_hints;
     std::unique_ptr<CGameStats> m_gameStats;
+    std::vector<Pos> m_usedItems;
+    std::unordered_map<uint16_t, int> m_monsterGrid;
     MapReport m_report;
     int m_defaultLives;
     bool m_quiet = false;
     void resetKeys();
     void clearKeyIndicators();
     void setQuiet(bool state);
+    void rebuildMonsterGrid();
+    void updateMonsterGrid(const CActor &actor, const int index);
 
     CGame();
-    ~CGame();
     int clearAttr(const uint8_t attr);
     bool spawnMonsters();
-    int addMonster(const CActor actor);
     void addHealth(const int hp);
     void addPoints(const int points);
     void addLife();
     int calcScoreLife() const;
     const char *getHintText();
-    static bool isFruit(const uint8_t tileID);
-    static bool isBonusItem(const uint8_t tileID);
     CGameStats &stats();
     const CGameStats &statsConst() const;
 
@@ -215,19 +236,18 @@ private:
     void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters);
     void handleCrusher(CActor &actor, const bool speeds[]);
     void handleIceCube(CActor &actor);
-    void handleFirball(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
-    void handleLightningBolt(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+    void handleBullet(CActor &actor, const TileDef &def, const int i, const bulletData_t &bullet, std::set<int, std::greater<int>> &deletedMonsters);
+    void handleBarrel(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+    bool pushChain(const int x, const int y, const JoyAim aim);
+    bool fuseBarrel(const Pos &pos);
+    void blastRadius(const Pos &pos, const size_t radius, const int damage, std::set<int, std::greater<int>> &deletedMonsters);
 
     // boss
     CActor *spawnBullet(int x, int y, JoyAim aim, uint8_t tile);
     void handleBossPath(CBoss &boss);
-    void handleBossBullet(CBoss &boss);
+    bool handleBossBullet(CBoss &boss);
+    void handleBossHitboxContact(CBoss &boss);
 
-    inline bool between(int a1, int a2, int b1, int b2) const
-    {
-        return a1 < b2 && a2 > b1;
-    };
-
-    static CMap m_map;
+    inline static CMap m_map;
     friend class CGameMixin;
 };

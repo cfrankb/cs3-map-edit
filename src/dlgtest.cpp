@@ -84,14 +84,14 @@ void CDlgTest::setZoom(bool zoom)
 {
     CGameMixin::setZoom(zoom);
     int factor = m_zoom ? 2 : 1;
-    this->setMaximumSize(QSize(WIDTH * factor, HEIGHT * factor));
-    this->setMinimumSize(QSize(WIDTH * factor, HEIGHT * factor));
-    this->resize(QSize(WIDTH * factor, HEIGHT * factor));
+    this->setMaximumSize(QSize(getWidth() * factor, getHeight() * factor));
+    this->setMinimumSize(QSize(getWidth() * factor, getHeight() * factor));
+    this->resize(QSize(getWidth() * factor, getHeight() * factor));
 }
 
 void CDlgTest::paintEvent(QPaintEvent *)
 {
-    CFrame bitmap(WIDTH, HEIGHT);
+    CFrame bitmap(getWidth(), getHeight());
     switch (m_game->mode())
     {
     case CGame::MODE_CHUTE:
@@ -114,12 +114,13 @@ void CDlgTest::paintEvent(QPaintEvent *)
     case CGame::MODE_LEVEL_SUMMARY:
     case CGame::MODE_SKLLSELECT:
     case CGame::MODE_NEW_INPUTNAME:
+    case CGame::MODE_TEST:
         break;
     }
 
     // show the screen
     const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB().data()), bitmap.width(), bitmap.height(), QImage::Format_RGBX8888);
-    const QPixmap & pixmap = QPixmap::fromImage(m_zoom ? img.scaled(QSize(WIDTH * 2, HEIGHT * 2)): img);
+    const QPixmap & pixmap = QPixmap::fromImage(m_zoom ? img.scaled(QSize(getWidth() * 2, getHeight() * 2)): img);
     QPainter p(this);
     p.drawPixmap(0, 0, pixmap);
     p.end();
@@ -177,7 +178,8 @@ void CDlgTest::preloadAssets()
         {":/data/tiles.obl", &m_tiles},
         {":/data/animz.obl", &m_animz},
         {":/data/annie.obl", &m_users},
-        {":/data/bosses.obl", &m_bosses},
+        {":/data/sheet0.obl", &m_sheet0},
+        {":/data/sheet1.obl", &m_sheet1},
         {":/data/uisheet.png", &m_uisheet}
     };
 

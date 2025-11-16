@@ -24,7 +24,7 @@
 #include "report.h"
 #include "keyvaluedialog.h"
 #include "runtime/statedata.h"
-#include "dlgmsgs.h"
+//#include "dlgmsgs.h"
 #include "mapprops.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -678,7 +678,16 @@ void MainWindow::on_actionEdit_Next_Map_triggered()
 
 void MainWindow::on_actionEdit_Add_Map_triggered()
 {
+    bool ok;
+    QString text = QInputDialog::getText(this, tr("Add New Map"),
+                                         tr("Name:"), QLineEdit::Normal,
+                                         m_doc.map()->title(), &ok);
+    if (!ok)
+        return;
+    text = text.trimmed().mid(0, 254);
+
     std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
+    map->setTitle(text.toLatin1());
     m_doc.add(std::move(map));
     m_doc.setCurrentIndex(m_doc.size() - 1);
     m_doc.setDirty(true);
@@ -706,8 +715,17 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
 
 void MainWindow::on_actionEdit_Insert_Map_triggered()
 {
+    bool ok;
+    QString text = QInputDialog::getText(this, tr("Insert New Map"),
+                                         tr("Name:"), QLineEdit::Normal,
+                                         m_doc.map()->title(), &ok);
+    if (!ok)
+        return;
+    text = text.trimmed().mid(0, 254);
+
     int index = m_doc.currentIndex();
     std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
+    map->setTitle(text.toLatin1());
     m_doc.insertAt(index, std::move(map));  // Only ONE move operation
     m_doc.setDirty(true);
     emit mapChanged(m_doc.map());
@@ -984,12 +1002,10 @@ void MainWindow::on_actionExport_Screenshots_triggered()
 
 void MainWindow::on_actionEdit_Edit_Messages_triggered()
 {
-    CDlgMsgs dialog(this);
-    dialog.setWindowTitle(tr("Edit Messages"));
-    dialog.populateData(*m_doc.map());
+    MapPropertiesDialog dialog(m_doc.map(), this, MapPropertiesDialog::TAB_MESSAGES);
     if (dialog.exec() == QDialog::Accepted) {
+        // Changes have been saved to the states object
         m_doc.setDirty(true);
-        dialog.saveData(*m_doc.map());
     }
 }
 
@@ -1001,4 +1017,3 @@ void MainWindow::on_actionEdit_Map_Properties_triggered()
         m_doc.setDirty(true);
     }
 }
-

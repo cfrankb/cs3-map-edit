@@ -33,9 +33,6 @@
 #include "color.h"
 #include "shared/FileWrap.h"
 
-#define WIDTH getWidth()
-#define HEIGHT getHeight()
-
 class CActor;
 class CFrameSet;
 class CFrame;
@@ -56,11 +53,6 @@ public:
     static int tickRate();
     void setWidth(int w);
     void setHeight(int h);
-    enum : int32_t
-    {
-        DEFAULT_WIDTH = 320,
-        DEFAULT_HEIGHT = 240,
-    };
 
 #ifdef USE_QFILE
 protected slots:
@@ -101,7 +93,8 @@ protected:
         PLAYER_FRAMES = 8,
         PLAYER_STD_FRAMES = 7,
         PLAYER_DOWN_INDEX = 8,
-        PLAYER_TOTAL_FRAMES = 44,
+        PLAYER_TOTAL_FRAMES = 45,
+        PLAYER_BOAT_FRAME = 44,
         PLAYER_IDLE_BASE = 0x28,
         ANIMZ_INSECT1_FRAMES = 8,
         INSECT1_MAX_OFFSET = 7,
@@ -111,14 +104,6 @@ protected:
         INDEX_PLAYER_DEAD = 4,
         HEALTHBAR_CLASSIC = 0,
         HEALTHBAR_HEARTHS = 1,
-    };
-
-    enum
-    {
-        Annie,
-        Lisa,
-        Alana,
-        Paul
     };
 
     enum : int32_t
@@ -220,7 +205,7 @@ protected:
     {
         int16_t x;
         int16_t y;
-        uint8_t tileID;
+        uint16_t tileID;
         uint8_t aim;
         uint8_t attr;
     };
@@ -265,7 +250,9 @@ protected:
     std::unique_ptr<CFrameSet> m_tiles;
     std::unique_ptr<CFrameSet> m_animz;
     std::unique_ptr<CFrameSet> m_users;
-    std::unique_ptr<CFrameSet> m_bosses;
+    // std::unique_ptr<CFrameSet> m_bosses;
+    std::unique_ptr<CFrameSet> m_sheet0;
+    std::unique_ptr<CFrameSet> m_sheet1;
     std::unique_ptr<CFrameSet> m_uisheet;
     std::vector<uint8_t> m_fontData;
     CGame *m_game = nullptr;
@@ -295,8 +282,8 @@ protected:
     int m_currentEvent;
     int m_eventCountdown;
     int m_timer;
-    int _WIDTH = DEFAULT_WIDTH;
-    int _HEIGHT = DEFAULT_HEIGHT;
+    int _WIDTH;
+    int _HEIGHT;
     ColorMaps m_colormaps;
     visualStates_t m_visualStates;
     CGameUI m_ui;
@@ -306,19 +293,20 @@ protected:
     void drawPreScreen(CFrame &bitmap);
     void drawScreen(CFrame &bitmap);
     void fazeScreen(CFrame &bitmap, const int bitShift);
+    void flashScreen(CFrame &bitmap);
     void drawViewPortDynamic(CFrame &bitmap);
     void drawViewPortStatic(CFrame &bitmap);
     void drawBossses(CFrame &bitmap, const int mx, const int my, const int sx, const int sy);
     void drawLevelIntro(CFrame &bitmap);
     void drawFont(CFrame &frame, int x, int y, const char *text, Color color = WHITE, Color bgcolor = BLACK, const int scaleX = 1, const int scaleY = 1);
     void drawFont6x6(CFrame &frame, int x, int y, const char *text, const Color color = WHITE, const Color bgcolor = BLACK);
-    void drawRect(CFrame &frame, const Rect &rect, const Color color = GREEN, bool fill = true);
+    void drawRect(CFrame &frame, const rect_t &rect, const Color color = GREEN, bool fill = true);
     void plotLine(CFrame &frame, int x0, int y0, const int x1, const int y1, const Color color);
     inline void drawTimeout(CFrame &bitmap);
     inline void drawKeys(CFrame &bitmap);
     inline void drawSugarMeter(CFrame &bitmap, const int bx);
     inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
-    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const Rect &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     void drawTileFaz(CFrame &bitmap, const int x, const int y, CFrame &tile, int fazBitShift = 0, const ColorMask colorMask = COLOR_NOCHANGE);
     inline CFrame *tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap, const bool isPlayerHurt);

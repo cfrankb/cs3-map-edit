@@ -20,193 +20,211 @@
 
 #pragma once
 
-#define ANIMZ_SWAMP_LEN           0x02
-#define ANIMZ_DIAMOND_LEN         0x06
-#define ANIMZ_ALPHA_LEN           0x02
-#define ANIMZ_BLUEGHOS_LEN        0x01
-#define ANIMZ_DEICO_LEN           0x02
-#define ANIMZ_FORCEF94_LEN        0x08
-#define ANIMZ_INSECT1_LEN         0x08
-#define ANIMZ_INSECT1_DN_LEN      0x08
-#define ANIMZ_INSECT1_LF_LEN      0x08
-#define ANIMZ_INSECT1_RG_LEN      0x08
-#define ANIMZ_LUTIN_LEN           0x02
-#define ANIMZ_MANKA_LEN           0x06
-#define ANIMZ_OCTOPUS_LEN         0x06
-#define ANIMZ_OOO_LEN             0x02
-#define ANIMZ_TEDDY93_LEN         0x02
-#define ANIMZ_VAMPLANT_LEN        0x02
-#define ANIMZ_YAHOO_LEN           0x02
-#define ANIMZ_YIGA_LEN            0x02
-#define ANIMZ_YELKILLER_LEN       0x02
-#define ANIMZ_ORB_LEN             0x04
-#define ANIMZ_TRIFORCE_LEN        0x04
-#define ANIMZ_SPARKLE_LEN         0x08
-#define ANIMZ_MUSHROOM_LEN        0x03
-#define ANIMZ_MUSH_DOWN_LEN       0x03
-#define ANIMZ_MUSH_LEFT_LEN       0x03
-#define ANIMZ_MUSH_RIGHT_LEN      0x03
-#define ANIMZ_WHTEWORM_LEN        0x04
-#define ANIMZ_ETURTLE_LEN         0x04
-#define ANIMZ_DRAGO_LEN           0x04
-#define ANIMZ_EXPLOSION1_LEN      0x05
-#define ANIMZ_DOORS_LEAF_LEN      0x02
-#define ANIMZ_FIREBALL_LEN        0x04
-#define ANIMZ_EXPLOSION6_LEN      0x06
-#define ANIMZ_FIRE_LEN            0x08
-#define ANIMZ_BULLETY1_LEN        0x04
-#define ANIMZ_EXPLOSION7_LEN      0x04
-
-#define ANIMZ_SWAMP               0x00
-#define ANIMZ_SWAMP_2             0x01
-#define ANIMZ_DIAMOND             0x02
-#define ANIMZ_DIAMOND_2           0x03
-#define ANIMZ_DIAMOND_3           0x04
-#define ANIMZ_DIAMOND_4           0x05
-#define ANIMZ_DIAMOND_5           0x06
-#define ANIMZ_DIAMOND_6           0x07
-#define ANIMZ_ALPHA               0x08
-#define ANIMZ_ALPHA_2             0x09
-#define ANIMZ_BLUEGHOS            0x0a
-#define ANIMZ_DEICO               0x0b
-#define ANIMZ_DEICO_2             0x0c
-#define ANIMZ_FORCEF94            0x0d
-#define ANIMZ_FORCEF94_2          0x0e
-#define ANIMZ_FORCEF94_3          0x0f
-#define ANIMZ_FORCEF94_4          0x10
-#define ANIMZ_FORCEF94_5          0x11
-#define ANIMZ_FORCEF94_6          0x12
-#define ANIMZ_FORCEF94_7          0x13
-#define ANIMZ_FORCEF94_8          0x14
-#define ANIMZ_INSECT1             0x15
-#define ANIMZ_INSECT1_2           0x16
-#define ANIMZ_INSECT1_3           0x17
-#define ANIMZ_INSECT1_4           0x18
-#define ANIMZ_INSECT1_5           0x19
-#define ANIMZ_INSECT1_6           0x1a
-#define ANIMZ_INSECT1_7           0x1b
-#define ANIMZ_INSECT1_8           0x1c
-#define ANIMZ_INSECT1_DN          0x1d
-#define ANIMZ_INSECT1_DN_2        0x1e
-#define ANIMZ_INSECT1_DN_3        0x1f
-#define ANIMZ_INSECT1_DN_4        0x20
-#define ANIMZ_INSECT1_DN_5        0x21
-#define ANIMZ_INSECT1_DN_6        0x22
-#define ANIMZ_INSECT1_DN_7        0x23
-#define ANIMZ_INSECT1_DN_8        0x24
-#define ANIMZ_INSECT1_LF          0x25
-#define ANIMZ_INSECT1_LF_2        0x26
-#define ANIMZ_INSECT1_LF_3        0x27
-#define ANIMZ_INSECT1_LF_4        0x28
-#define ANIMZ_INSECT1_LF_5        0x29
-#define ANIMZ_INSECT1_LF_6        0x2a
-#define ANIMZ_INSECT1_LF_7        0x2b
-#define ANIMZ_INSECT1_LF_8        0x2c
-#define ANIMZ_INSECT1_RG          0x2d
-#define ANIMZ_INSECT1_RG_2        0x2e
-#define ANIMZ_INSECT1_RG_3        0x2f
-#define ANIMZ_INSECT1_RG_4        0x30
-#define ANIMZ_INSECT1_RG_5        0x31
-#define ANIMZ_INSECT1_RG_6        0x32
-#define ANIMZ_INSECT1_RG_7        0x33
-#define ANIMZ_INSECT1_RG_8        0x34
-#define ANIMZ_LUTIN               0x35
-#define ANIMZ_LUTIN_2             0x36
-#define ANIMZ_MANKA               0x37
-#define ANIMZ_MANKA_2             0x38
-#define ANIMZ_MANKA_3             0x39
-#define ANIMZ_MANKA_4             0x3a
-#define ANIMZ_MANKA_5             0x3b
-#define ANIMZ_MANKA_6             0x3c
-#define ANIMZ_OCTOPUS             0x3d
-#define ANIMZ_OCTOPUS_2           0x3e
-#define ANIMZ_OCTOPUS_3           0x3f
-#define ANIMZ_OCTOPUS_4           0x40
-#define ANIMZ_OCTOPUS_5           0x41
-#define ANIMZ_OCTOPUS_6           0x42
-#define ANIMZ_OOO                 0x43
-#define ANIMZ_OOO_2               0x44
-#define ANIMZ_TEDDY93             0x45
-#define ANIMZ_TEDDY93_2           0x46
-#define ANIMZ_VAMPLANT            0x47
-#define ANIMZ_VAMPLANT_2          0x48
-#define ANIMZ_YAHOO               0x49
-#define ANIMZ_YAHOO_2             0x4a
-#define ANIMZ_YIGA                0x4b
-#define ANIMZ_YIGA_2              0x4c
-#define ANIMZ_YELKILLER           0x4d
-#define ANIMZ_YELKILLER_2         0x4e
-#define ANIMZ_ORB                 0x4f
-#define ANIMZ_ORB_2               0x50
-#define ANIMZ_ORB_3               0x51
-#define ANIMZ_ORB_4               0x52
-#define ANIMZ_TRIFORCE            0x53
-#define ANIMZ_TRIFORCE_2          0x54
-#define ANIMZ_TRIFORCE_3          0x55
-#define ANIMZ_TRIFORCE_4          0x56
-#define ANIMZ_SPARKLE             0x57
-#define ANIMZ_SPARKLE_2           0x58
-#define ANIMZ_SPARKLE_3           0x59
-#define ANIMZ_SPARKLE_4           0x5a
-#define ANIMZ_SPARKLE_5           0x5b
-#define ANIMZ_SPARKLE_6           0x5c
-#define ANIMZ_SPARKLE_7           0x5d
-#define ANIMZ_SPARKLE_8           0x5e
-#define ANIMZ_MUSHROOM            0x5f
-#define ANIMZ_MUSHROOM_2          0x60
-#define ANIMZ_MUSHROOM_3          0x61
-#define ANIMZ_MUSH_DOWN           0x62
-#define ANIMZ_MUSH_DOWN_2         0x63
-#define ANIMZ_MUSH_DOWN_3         0x64
-#define ANIMZ_MUSH_LEFT           0x65
-#define ANIMZ_MUSH_LEFT_2         0x66
-#define ANIMZ_MUSH_LEFT_3         0x67
-#define ANIMZ_MUSH_RIGHT          0x68
-#define ANIMZ_MUSH_RIGHT_2        0x69
-#define ANIMZ_MUSH_RIGHT_3        0x6a
-#define ANIMZ_WHTEWORM            0x6b
-#define ANIMZ_WHTEWORM_2          0x6c
-#define ANIMZ_WHTEWORM_3          0x6d
-#define ANIMZ_WHTEWORM_4          0x6e
-#define ANIMZ_ETURTLE             0x6f
-#define ANIMZ_ETURTLE_2           0x70
-#define ANIMZ_ETURTLE_3           0x71
-#define ANIMZ_ETURTLE_4           0x72
-#define ANIMZ_DRAGO               0x73
-#define ANIMZ_DRAGO_2             0x74
-#define ANIMZ_DRAGO_3             0x75
-#define ANIMZ_DRAGO_4             0x76
-#define ANIMZ_EXPLOSION1          0x77
-#define ANIMZ_EXPLOSION1_2        0x78
-#define ANIMZ_EXPLOSION1_3        0x79
-#define ANIMZ_EXPLOSION1_4        0x7a
-#define ANIMZ_EXPLOSION1_5        0x7b
-#define ANIMZ_DOORS_LEAF          0x7c
-#define ANIMZ_DOORS_LEAF_2        0x7d
-#define ANIMZ_FIREBALL            0x7e
-#define ANIMZ_FIREBALL_2          0x7f
-#define ANIMZ_FIREBALL_3          0x80
-#define ANIMZ_FIREBALL_4          0x81
-#define ANIMZ_EXPLOSION6          0x82
-#define ANIMZ_EXPLOSION6_2        0x83
-#define ANIMZ_EXPLOSION6_3        0x84
-#define ANIMZ_EXPLOSION6_4        0x85
-#define ANIMZ_EXPLOSION6_5        0x86
-#define ANIMZ_EXPLOSION6_6        0x87
-#define ANIMZ_FIRE                0x88
-#define ANIMZ_FIRE_2              0x89
-#define ANIMZ_FIRE_3              0x8a
-#define ANIMZ_FIRE_4              0x8b
-#define ANIMZ_FIRE_5              0x8c
-#define ANIMZ_FIRE_6              0x8d
-#define ANIMZ_FIRE_7              0x8e
-#define ANIMZ_FIRE_8              0x8f
-#define ANIMZ_BULLETY1            0x90
-#define ANIMZ_BULLETY1_2          0x91
-#define ANIMZ_BULLETY1_3          0x92
-#define ANIMZ_BULLETY1_4          0x93
-#define ANIMZ_EXPLOSION7          0x94
-#define ANIMZ_EXPLOSION7_2        0x95
-#define ANIMZ_EXPLOSION7_3        0x96
-#define ANIMZ_EXPLOSION7_4        0x97
-#define ANIMZ_TOTAL_COUNT         0x98
+// @enum
+enum Animz
+{
+    ANIMZ_SWAMP               = 0x00,
+    ANIMZ_SWAMP_2             = 0x01,
+    ANIMZ_DIAMOND             = 0x02,
+    ANIMZ_DIAMOND_2           = 0x03,
+    ANIMZ_DIAMOND_3           = 0x04,
+    ANIMZ_DIAMOND_4           = 0x05,
+    ANIMZ_DIAMOND_5           = 0x06,
+    ANIMZ_DIAMOND_6           = 0x07,
+    ANIMZ_FLAME               = 0x08,
+    ANIMZ_FLAME_2             = 0x09,
+    ANIMZ_FLAME_3             = 0x0a,
+    ANIMZ_DEICO               = 0x0b,
+    ANIMZ_DEICO_2             = 0x0c,
+    ANIMZ_FORCEF94            = 0x0d,
+    ANIMZ_FORCEF94_2          = 0x0e,
+    ANIMZ_FORCEF94_3          = 0x0f,
+    ANIMZ_FORCEF94_4          = 0x10,
+    ANIMZ_FORCEF94_5          = 0x11,
+    ANIMZ_FORCEF94_6          = 0x12,
+    ANIMZ_FORCEF94_7          = 0x13,
+    ANIMZ_FORCEF94_8          = 0x14,
+    ANIMZ_INSECT1             = 0x15,
+    ANIMZ_INSECT1_2           = 0x16,
+    ANIMZ_INSECT1_3           = 0x17,
+    ANIMZ_INSECT1_4           = 0x18,
+    ANIMZ_INSECT1_5           = 0x19,
+    ANIMZ_INSECT1_6           = 0x1a,
+    ANIMZ_INSECT1_7           = 0x1b,
+    ANIMZ_INSECT1_8           = 0x1c,
+    ANIMZ_INSECT1_DN          = 0x1d,
+    ANIMZ_INSECT1_DN_2        = 0x1e,
+    ANIMZ_INSECT1_DN_3        = 0x1f,
+    ANIMZ_INSECT1_DN_4        = 0x20,
+    ANIMZ_INSECT1_DN_5        = 0x21,
+    ANIMZ_INSECT1_DN_6        = 0x22,
+    ANIMZ_INSECT1_DN_7        = 0x23,
+    ANIMZ_INSECT1_DN_8        = 0x24,
+    ANIMZ_INSECT1_LF          = 0x25,
+    ANIMZ_INSECT1_LF_2        = 0x26,
+    ANIMZ_INSECT1_LF_3        = 0x27,
+    ANIMZ_INSECT1_LF_4        = 0x28,
+    ANIMZ_INSECT1_LF_5        = 0x29,
+    ANIMZ_INSECT1_LF_6        = 0x2a,
+    ANIMZ_INSECT1_LF_7        = 0x2b,
+    ANIMZ_INSECT1_LF_8        = 0x2c,
+    ANIMZ_INSECT1_RG          = 0x2d,
+    ANIMZ_INSECT1_RG_2        = 0x2e,
+    ANIMZ_INSECT1_RG_3        = 0x2f,
+    ANIMZ_INSECT1_RG_4        = 0x30,
+    ANIMZ_INSECT1_RG_5        = 0x31,
+    ANIMZ_INSECT1_RG_6        = 0x32,
+    ANIMZ_INSECT1_RG_7        = 0x33,
+    ANIMZ_INSECT1_RG_8        = 0x34,
+    ANIMZ_LUTIN               = 0x35,
+    ANIMZ_LUTIN_2             = 0x36,
+    ANIMZ_MANKA               = 0x37,
+    ANIMZ_MANKA_2             = 0x38,
+    ANIMZ_MANKA_3             = 0x39,
+    ANIMZ_MANKA_4             = 0x3a,
+    ANIMZ_MANKA_5             = 0x3b,
+    ANIMZ_MANKA_6             = 0x3c,
+    ANIMZ_OCTOPUS             = 0x3d,
+    ANIMZ_OCTOPUS_2           = 0x3e,
+    ANIMZ_OCTOPUS_3           = 0x3f,
+    ANIMZ_OCTOPUS_4           = 0x40,
+    ANIMZ_OCTOPUS_5           = 0x41,
+    ANIMZ_OCTOPUS_6           = 0x42,
+    ANIMZ_OOO                 = 0x43,
+    ANIMZ_OOO_2               = 0x44,
+    ANIMZ_TEDDY93             = 0x45,
+    ANIMZ_TEDDY93_2           = 0x46,
+    ANIMZ_VAMPLANT            = 0x47,
+    ANIMZ_VAMPLANT_2          = 0x48,
+    ANIMZ_YAHOO               = 0x49,
+    ANIMZ_YAHOO_2             = 0x4a,
+    ANIMZ_YIGA                = 0x4b,
+    ANIMZ_YIGA_2              = 0x4c,
+    ANIMZ_YELKILLER           = 0x4d,
+    ANIMZ_YELKILLER_2         = 0x4e,
+    ANIMZ_ORB                 = 0x4f,
+    ANIMZ_ORB_2               = 0x50,
+    ANIMZ_ORB_3               = 0x51,
+    ANIMZ_ORB_4               = 0x52,
+    ANIMZ_TRIFORCE            = 0x53,
+    ANIMZ_TRIFORCE_2          = 0x54,
+    ANIMZ_TRIFORCE_3          = 0x55,
+    ANIMZ_TRIFORCE_4          = 0x56,
+    ANIMZ_SPARKLE             = 0x57,
+    ANIMZ_SPARKLE_2           = 0x58,
+    ANIMZ_SPARKLE_3           = 0x59,
+    ANIMZ_SPARKLE_4           = 0x5a,
+    ANIMZ_SPARKLE_5           = 0x5b,
+    ANIMZ_SPARKLE_6           = 0x5c,
+    ANIMZ_SPARKLE_7           = 0x5d,
+    ANIMZ_SPARKLE_8           = 0x5e,
+    ANIMZ_MUSHROOM            = 0x5f,
+    ANIMZ_MUSHROOM_2          = 0x60,
+    ANIMZ_MUSHROOM_3          = 0x61,
+    ANIMZ_MUSH_DOWN           = 0x62,
+    ANIMZ_MUSH_DOWN_2         = 0x63,
+    ANIMZ_MUSH_DOWN_3         = 0x64,
+    ANIMZ_MUSH_LEFT           = 0x65,
+    ANIMZ_MUSH_LEFT_2         = 0x66,
+    ANIMZ_MUSH_LEFT_3         = 0x67,
+    ANIMZ_MUSH_RIGHT          = 0x68,
+    ANIMZ_MUSH_RIGHT_2        = 0x69,
+    ANIMZ_MUSH_RIGHT_3        = 0x6a,
+    ANIMZ_WHTEWORM            = 0x6b,
+    ANIMZ_WHTEWORM_2          = 0x6c,
+    ANIMZ_WHTEWORM_3          = 0x6d,
+    ANIMZ_WHTEWORM_4          = 0x6e,
+    ANIMZ_ETURTLE             = 0x6f,
+    ANIMZ_ETURTLE_2           = 0x70,
+    ANIMZ_ETURTLE_3           = 0x71,
+    ANIMZ_ETURTLE_4           = 0x72,
+    ANIMZ_DRAGO               = 0x73,
+    ANIMZ_DRAGO_2             = 0x74,
+    ANIMZ_DRAGO_3             = 0x75,
+    ANIMZ_DRAGO_4             = 0x76,
+    ANIMZ_EXPLOSION1          = 0x77,
+    ANIMZ_EXPLOSION1_2        = 0x78,
+    ANIMZ_EXPLOSION1_3        = 0x79,
+    ANIMZ_EXPLOSION1_4        = 0x7a,
+    ANIMZ_EXPLOSION1_5        = 0x7b,
+    ANIMZ_DOORS_LEAF          = 0x7c,
+    ANIMZ_DOORS_LEAF_2        = 0x7d,
+    ANIMZ_FIREBALL            = 0x7e,
+    ANIMZ_FIREBALL_2          = 0x7f,
+    ANIMZ_FIREBALL_3          = 0x80,
+    ANIMZ_FIREBALL_4          = 0x81,
+    ANIMZ_EXPLOSION6          = 0x82,
+    ANIMZ_EXPLOSION6_2        = 0x83,
+    ANIMZ_EXPLOSION6_3        = 0x84,
+    ANIMZ_EXPLOSION6_4        = 0x85,
+    ANIMZ_EXPLOSION6_5        = 0x86,
+    ANIMZ_EXPLOSION6_6        = 0x87,
+    ANIMZ_FIRE                = 0x88,
+    ANIMZ_FIRE_2              = 0x89,
+    ANIMZ_FIRE_3              = 0x8a,
+    ANIMZ_FIRE_4              = 0x8b,
+    ANIMZ_FIRE_5              = 0x8c,
+    ANIMZ_FIRE_6              = 0x8d,
+    ANIMZ_FIRE_7              = 0x8e,
+    ANIMZ_FIRE_8              = 0x8f,
+    ANIMZ_BULLETY1            = 0x90,
+    ANIMZ_BULLETY1_2          = 0x91,
+    ANIMZ_BULLETY1_3          = 0x92,
+    ANIMZ_BULLETY1_4          = 0x93,
+    ANIMZ_EXPLOSION7          = 0x94,
+    ANIMZ_EXPLOSION7_2        = 0x95,
+    ANIMZ_EXPLOSION7_3        = 0x96,
+    ANIMZ_EXPLOSION7_4        = 0x97,
+    ANIMZ_EXPLOSION5          = 0x98,
+    ANIMZ_EXPLOSION5_2        = 0x99,
+    ANIMZ_EXPLOSION5_3        = 0x9a,
+    ANIMZ_EXPLOSION5_4        = 0x9b,
+    ANIMZ_EXPLOSION5_5        = 0x9c,
+    ANIMZ_EXPLOSION5_6        = 0x9d,
+    ANIMZ_EXPLOSION5_7        = 0x9e,
+    ANIMZ_EXPLOSION0          = 0x9f,
+    ANIMZ_EXPLOSION0_2        = 0xa0,
+    ANIMZ_EXPLOSION0_3        = 0xa1,
+    ANIMZ_EXPLOSION0_4        = 0xa2,
+    ANIMZ_EXPLOSION0_5        = 0xa3,
+    ANIMZ_EXPLOSION0_6        = 0xa4,
+    ANIMZ_EXPLOSION0_7        = 0xa5,
+    ANIMZ_SWAMP_LEN           = 0x02,
+    ANIMZ_DIAMOND_LEN         = 0x06,
+    ANIMZ_FLAME_LEN           = 0x03,
+    ANIMZ_DEICO_LEN           = 0x02,
+    ANIMZ_FORCEF94_LEN        = 0x08,
+    ANIMZ_INSECT1_LEN         = 0x08,
+    ANIMZ_INSECT1_DN_LEN      = 0x08,
+    ANIMZ_INSECT1_LF_LEN      = 0x08,
+    ANIMZ_INSECT1_RG_LEN      = 0x08,
+    ANIMZ_LUTIN_LEN           = 0x02,
+    ANIMZ_MANKA_LEN           = 0x06,
+    ANIMZ_OCTOPUS_LEN         = 0x06,
+    ANIMZ_OOO_LEN             = 0x02,
+    ANIMZ_TEDDY93_LEN         = 0x02,
+    ANIMZ_VAMPLANT_LEN        = 0x02,
+    ANIMZ_YAHOO_LEN           = 0x02,
+    ANIMZ_YIGA_LEN            = 0x02,
+    ANIMZ_YELKILLER_LEN       = 0x02,
+    ANIMZ_ORB_LEN             = 0x04,
+    ANIMZ_TRIFORCE_LEN        = 0x04,
+    ANIMZ_SPARKLE_LEN         = 0x08,
+    ANIMZ_MUSHROOM_LEN        = 0x03,
+    ANIMZ_MUSH_DOWN_LEN       = 0x03,
+    ANIMZ_MUSH_LEFT_LEN       = 0x03,
+    ANIMZ_MUSH_RIGHT_LEN      = 0x03,
+    ANIMZ_WHTEWORM_LEN        = 0x04,
+    ANIMZ_ETURTLE_LEN         = 0x04,
+    ANIMZ_DRAGO_LEN           = 0x04,
+    ANIMZ_EXPLOSION1_LEN      = 0x05,
+    ANIMZ_DOORS_LEAF_LEN      = 0x02,
+    ANIMZ_FIREBALL_LEN        = 0x04,
+    ANIMZ_EXPLOSION6_LEN      = 0x06,
+    ANIMZ_FIRE_LEN            = 0x08,
+    ANIMZ_BULLETY1_LEN        = 0x04,
+    ANIMZ_EXPLOSION7_LEN      = 0x04,
+    ANIMZ_EXPLOSION5_LEN      = 0x07,
+    ANIMZ_EXPLOSION0_LEN      = 0x07,
+    ANIMZ_TOTAL_COUNT         = 0xa6,
+};

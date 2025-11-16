@@ -44,15 +44,14 @@
 #include "bossdata.h"
 #include "randomz.h"
 #include "filemacros.h"
+#include "gamesfx.h"
+#include "boss.h"
+#include "tilesdefs.h"
 
-CMap CGame::m_map(30, 30);
-CGame::userKeys_t CGame::m_keys;
-
-namespace Game
+namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0006;
-    static constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
-    CGame *g_game = nullptr;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0008;
+    constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
     enum
@@ -71,45 +70,13 @@ namespace Game
         TRAP_DAMAGE = -16,
         DEFAULT_PLAYER_SPEED = 3,
         FAST_PLAYER_SPEED = 2,
-    };
-
-    const std::set<uint8_t> g_fruits = {
-        TILES_APPLE,
-        TILES_POMEGRENADE,
-        TILES_WATERMELON,
-        TILES_PEAR,
-        TILES_CHERRY,
-        TILES_STRAWBERRY,
-        TILES_KIWI,
-        TILES_JELLYJAR,
-    };
-
-    const std::set<uint8_t> g_treasures = {
-        TILES_AMULET1,
-        TILES_CHEST,
-        TILES_GIFTBOX,
-        TILES_LIGHTBUL,
-        TILES_SCROLL,
-        TILES_SHIELD,
-        TILES_CLOVER,
-        TILES_1ST_AID,
-        TILES_POTION1,
-        TILES_POTION2,
-        TILES_POTION3,
-        TILES_FLOWERS,
-        TILES_FLOWERS_2,
-        TILES_TRIFORCE,
-        TILES_ORB,
-        TILES_TNTSTICK,
-        TILES_SMALL_MUSH0,
-        TILES_SMALL_MUSH1,
-        TILES_SMALL_MUSH2,
-        TILES_SMALL_MUSH3,
-        TILES_REDBOOK,
+        MAX_SHIELDS = 2,
+        MAX_FACTOR = 4,
+        BARREL_TTL = 20,
     };
 }
 
-using namespace Game;
+using namespace GamePrivate;
 
 /**
  * @brief Construct a new CGame::CGame object
@@ -117,7 +84,7 @@ using namespace Game;
  */
 CGame::CGame()
 {
-    LOGI("starting up engine: 0x%.8x\n", ENGINE_VERSION);
+    LOGI("starting up engine: 0x%.8x", ENGINE_VERSION);
     m_health = 0;
     m_level = 0;
     m_score = 0;
@@ -134,9 +101,7 @@ CGame::CGame()
  */
 CGame::~CGame()
 {
-    // delete m_sound;
-    if (m_sound != nullptr)
-        m_sound->forget();
+    m_sound.reset();
 }
 
 /**
@@ -169,6 +134,29 @@ const CActor &CGame::playerConst() const
     return m_player;
 }
 
+bool CGame::fuseBarrel(const Pos &pos)
+{
+    const int i = findMonsterAt(pos.x, pos.y);
+    if (i != INVALID)
+    {
+        // arm the fuse
+        CActor &barrel = m_monsters[i];
+        if (barrel.getTTL() == CActor::NoTTL)
+        {
+            barrel.setTTL(BARREL_TTL);
+            if (pos.y > 0)
+                m_sfx.emplace_back(sfx_t{
+                    .x = pos.x,
+                    .y = static_cast<int16_t>(pos.y - 1),
+                    .sfxID = SFX_FLAME,
+                    .timeout = SFX_FLAME_TIMEOUT,
+                });
+        }
+        return true;
+    }
+    return false;
+}
+
 /**
  * @brief move player in a give direction
  *
@@ -186,17 +174,19 @@ bool CGame::move(const JoyAim aim)
         consume();
         return true;
     }
-    else if (def.type == TYPE_ICECUBE || def.type == TYPE_BOULDER)
+    else if (isPushable(def.type))
     {
-        const Pos pos = CGame::translate(m_player.pos(), aim);
-        const int i = findMonsterAt(pos.x, pos.y);
-        if (i != INVALID && m_monsters[i].canMove(aim))
+        Pos pushPos = translate(m_player.pos(), aim);
+        if (pushChain(pushPos.x, pushPos.y, aim))
         {
-            m_monsters[i].setAim(aim);
-            m_monsters[i].move(aim);
             m_player.move(aim);
             return true;
         }
+    }
+    else if (def.type == TYPE_BARREL)
+    {
+        const Pos pos = CGame::translate(m_player.pos(), aim);
+        fuseBarrel(pos);
     }
     return false;
 }
@@ -234,7 +224,7 @@ void CGame::consume()
         addHealth(def.health);
         playTileSound(pu);
     }
-    else if (def.type == TYPE_SWAMP)
+    else if (def.type == TYPE_SWAMP && m_gameStats->get(S_BOAT) == 0)
     {
         addHealth(def.health);
     }
@@ -256,6 +246,22 @@ void CGame::consume()
             m_events.emplace_back(EVENT_SUGAR);
     }
 
+    if (pu == TILES_SHIELD)
+    {
+        if (m_gameStats->get(S_SHIELD) < MAX_SHIELDS)
+            m_gameStats->inc(S_SHIELD);
+        m_events.emplace_back(EVENT_SHIELD);
+    }
+
+    if (pu == TILES_BOAT)
+    {
+        m_gameStats->set(S_BOAT, 1);
+        m_events.emplace_back(EVENT_BOAT);
+    }
+
+    if (isOneTimeItem(pu))
+        m_usedItems.push_back(m_player.pos());
+
     // apply flags
     if (def.flags & FLAG_EXTRA_LIFE)
     {
@@ -274,7 +280,8 @@ void CGame::consume()
     {
         if (!m_gameStats->get(S_EXTRA_SPEED_TIMER))
             playSound(SOUND_POWERUP2);
-        m_gameStats->set(S_EXTRA_SPEED_TIMER, EXTRASPEED_TIMER);
+        const int sugarLevel = std::min(m_gameStats->inc(S_SUGAR_LEVEL), (int)MAX_SUGAR_RUSH_LEVEL);
+        m_gameStats->set(S_EXTRA_SPEED_TIMER, (int)EXTRASPEED_TIMER * 1.5 * sugarLevel);
         m_events.emplace_back(EVENT_SUGAR_RUSH);
         m_gameStats->set(S_SUGAR, 0);
     }
@@ -329,18 +336,26 @@ void CGame::consume()
 bool CGame::loadLevel(const GameMode mode)
 {
     if (!m_quiet)
-        LOGI("loading level: %d ...\n", m_level + 1);
+        LOGI("loading level: %d ...", m_level + 1);
     setMode(mode);
+
+    // clear used items list when entering a new level
+    if (mode == MODE_CHUTE || mode == MODE_LEVEL_INTRO)
+        m_usedItems.clear();
 
     // extract level from MapArch
     m_map = *(m_mapArch->at(m_level));
 
+    // remove used item
+    for (const auto &pos : m_usedItems)
+        m_map.set(pos.x, pos.y, TILES_BLANK);
+
     if (!m_quiet)
-        LOGI("level loaded\n");
+        LOGI("level loaded");
+
     if (m_hints.size() == 0)
-    {
-        LOGW("hints not loaded\n");
-    }
+        LOGW("hints not loaded -- not available???");
+
     m_introHint = m_hints.size() ? rand() % m_hints.size() : 0;
     m_events.clear();
 
@@ -371,8 +386,8 @@ bool CGame::loadLevel(const GameMode mode)
         pos = m_map.findFirst(TILES_ANNIE2);
     }
     if (!m_quiet)
-        LOGI("Player at: %d %d\n", pos.x, pos.y);
-    m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
+        LOGI("Player at: %d %d", pos.x, pos.y);
+    m_player = std::move(CActor(pos, TYPE_PLAYER, AIM_DOWN));
     m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : m_map.count(TILES_DIAMOND);
     resetKeys();
     m_health = DEFAULT_HEALTH;
@@ -409,7 +424,7 @@ void CGame::restartLevel()
 {
     m_events.clear();
     resetStats();
-    resetSugar();
+    resetStatsUponDeath();
 }
 
 /**
@@ -423,16 +438,19 @@ void CGame::restartGame()
     m_nextLife = calcScoreLife();
     m_score = 0;
     m_lives = defaultLives();
-    resetSugar();
+    resetStatsUponDeath();
 }
 
 /**
  * @brief Reset SugarMeter to 0.
  *
  */
-void CGame::resetSugar()
+void CGame::resetStatsUponDeath()
 {
     m_gameStats->set(S_SUGAR, 0);
+    m_gameStats->set(S_SUGAR_LEVEL, 0);
+    m_gameStats->set(S_SHIELD, 0);
+    m_gameStats->set(S_BOAT, 0);
 }
 
 /**
@@ -446,6 +464,7 @@ void CGame::decTimers()
         S_EXTRA_SPEED_TIMER,
         S_RAGE_TIMER,
         S_FREEZE_TIMER,
+        S_FLASH,
     };
     for (const auto &stat : stats)
     {
@@ -454,7 +473,7 @@ void CGame::decTimers()
 }
 
 /**
- * @brief reset player state
+ * @brief reset player stats - called to clear stats when the level is loaded
  *
  */
 void CGame::resetStats()
@@ -470,6 +489,7 @@ void CGame::resetStats()
         S_FREEZE_TIMER,
         S_TIME_TAKEN,
         S_CHUTE,
+        S_FLASH,
     };
     for (const auto &stat : stats)
     {
@@ -509,14 +529,16 @@ void CGame::setMapArch(CMapArch *arch)
 
 bool CGame::isMonsterType(const uint8_t typeID) const
 {
-    std::array<uint8_t, 7> monsterTypes = {
+    std::array<uint8_t, 8> monsterTypes = {
         TYPE_MONSTER,
         TYPE_VAMPLANT,
         TYPE_DRONE,
         TYPE_ICECUBE,
         TYPE_BOULDER,
         TYPE_FIREBALL,
-        TYPE_LIGHTNING_BOLT};
+        TYPE_LIGHTNING_BOLT,
+        TYPE_BARREL,
+    };
 
     for (size_t i = 0; i < monsterTypes.size(); ++i)
         if (monsterTypes[i] == typeID)
@@ -542,10 +564,10 @@ bool CGame::spawnMonsters()
             const TileDef &def = getTileDef(c);
             if (isMonsterType(def.type))
             {
-                if (def.type == TYPE_ICECUBE)
-                    addMonster(CActor(x, y, def.type, JoyAim::AIM_NONE));
+                if (isPushable(def.type))
+                    m_monsters.emplace_back(std::move(CActor(x, y, def.type, JoyAim::AIM_NONE)));
                 else
-                    addMonster(CActor(x, y, def.type));
+                    m_monsters.emplace_back(std::move(CActor(x, y, def.type)));
             }
         }
     }
@@ -557,7 +579,7 @@ bool CGame::spawnMonsters()
         {
             const Pos &pos = CMap::toPos(key);
             const JoyAim aim = attr < ATTR_CRUSHERH_MIN ? AIM_UP : AIM_LEFT;
-            addMonster(CActor(pos, attr, aim));
+            m_monsters.emplace_back(std::move(CActor(pos, attr, aim)));
             removed.emplace_back(pos);
         }
         else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX))
@@ -578,7 +600,6 @@ bool CGame::spawnMonsters()
                 LOGW("ignored spawn point for unhandled boss type: 0x%.2x", attr);
             }
             removed.emplace_back(pos);
-            // Rect hitbox{.x = 16 / 8, .y = 48 / 8, .width = 32 / 8, .height = 16 / 8};
         }
     }
 
@@ -587,24 +608,15 @@ bool CGame::spawnMonsters()
         m_map.setAttr(pos.x, pos.y, 0);
     }
 
+    // create a map of all monsters
+    rebuildMonsterGrid();
+
     if (!m_quiet)
     {
-        LOGI("%zu actors found.\n", m_monsters.size());
-        LOGI("%zu bosses found.\n", m_bosses.size());
+        LOGI("%zu actors found.", m_monsters.size());
+        LOGI("%zu bosses found.", m_bosses.size());
     }
     return true;
-}
-
-/**
- * @brief Add a monster to managed list
- *
- * @param actor
- * @return current monster count
- */
-int CGame::addMonster(const CActor actor)
-{
-    m_monsters.emplace_back(actor);
-    return (int)m_monsters.size();
 }
 
 /**
@@ -616,15 +628,11 @@ int CGame::addMonster(const CActor actor)
  */
 int CGame::findMonsterAt(const int x, const int y) const
 {
-    for (size_t i = 0; i < m_monsters.size(); ++i)
-    {
-        const CActor &actor = m_monsters[i];
-        if (actor.x() == x && actor.y() == y)
-        {
-            return (int)i;
-        }
-    }
-    return INVALID;
+    if (!m_map.isValid(x, y))
+        return INVALID;
+    uint16_t key = CMap::toKey(x, y);
+    auto it = m_monsterGrid.find(key);
+    return it != m_monsterGrid.end() ? it->second : INVALID;
 }
 
 /**
@@ -636,10 +644,15 @@ int CGame::findMonsterAt(const int x, const int y) const
 uint8_t CGame::managePlayer(const uint8_t *joystate)
 {
     auto const pu = m_player.getPU();
-    if (pu == TILES_SWAMP)
+    const TileDef &def = getTileDef(pu);
+    if (pu == TILES_SWAMP && m_gameStats->get(S_BOAT) == 0)
     {
         // apply health damage
-        const TileDef &def = getTileDef(pu);
+        addHealth(def.health);
+    }
+    else if (pu == TILES_FLAME)
+    {
+        // apply health damage
         addHealth(def.health);
     }
     const JoyAim aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
@@ -704,7 +717,7 @@ Pos CGame::translate(const Pos &p, const int aim)
  */
 bool CGame::hasKey(const uint8_t c)
 {
-    for (uint32_t i = 0; i < sizeof(m_keys); ++i)
+    for (uint32_t i = 0; i < MAX_KEYS; ++i)
     {
         if (m_keys.tiles[i] == c)
         {
@@ -803,7 +816,9 @@ void CGame::addHealth(const int hp)
              !m_gameStats->get(S_GOD_MODE_TIMER) &&
              hurtStage == HurtNone)
     {
-        const int hpToken = hp * (1 + 1 * skill);
+        const int shields = std::min(m_gameStats->get(S_SHIELD), (int)MAX_SHIELDS);
+        const float damageFactor = (MAX_FACTOR - shields) / (float)MAX_FACTOR;
+        const int hpToken = (int)damageFactor * (hp * (1 + 1 * skill));
         m_health = std::max(m_health + hpToken, 0);
         playSound(SOUND_OUCHFAST);
     }
@@ -1063,7 +1078,7 @@ bool CGame::validateSignature(const char *signature, const uint32_t version)
     }
     if (version != ENGINE_VERSION)
     {
-        LOGW("savegame version mismatched: 0x%.8x -- expecting 0x%.8x\n", version, ENGINE_VERSION);
+        LOGW("savegame version mismatched: 0x%.8x -- expecting 0x%.8x", version, ENGINE_VERSION);
         return false;
     }
     return true;
@@ -1136,6 +1151,7 @@ bool CGame::read(IFile &sfile)
             return false;
         }
     }
+    rebuildMonsterGrid();
 
     // bosses
     uint32_t bossCount = 0;
@@ -1151,9 +1167,31 @@ bool CGame::read(IFile &sfile)
         }
     }
 
-    // clear events and sfx
-    m_events.clear();
+    // used items
+    m_usedItems.clear();
+    size_t usedItemCount = 0;
+    _R(&usedItemCount, sizeof(uint32_t));
+    for (size_t i = 0; i < usedItemCount; ++i)
+    {
+        Pos pos;
+        pos.read(sfile);
+        m_usedItems.emplace_back(pos);
+    }
+
+    // load sfx
     m_sfx.clear();
+    uint16_t sfxCount = 0;
+    _R(&sfxCount, sizeof(sfxCount));
+    for (uint16_t i = 0; i < sfxCount; ++i)
+    {
+        sfx_t sfx;
+        _R(&sfx, sizeof(sfx));
+        m_sfx.emplace_back(std::move(sfx));
+    }
+
+    // clear events
+    m_events.clear();
+
     return true;
 }
 
@@ -1231,6 +1269,18 @@ bool CGame::write(IFile &tfile)
             return false;
         }
     }
+
+    // used items
+    size_t usedItemCount = m_usedItems.size();
+    _W(&usedItemCount, sizeof(uint32_t));
+    for (const Pos &pos : m_usedItems)
+        pos.write(tfile);
+
+    // save sfx
+    uint16_t sfxCount = (uint16_t)m_sfx.size();
+    _W(&sfxCount, sizeof(sfxCount));
+    for (const auto &sfx : m_sfx)
+        _W(&sfx, sizeof(sfx));
 
     return true;
 }
@@ -1384,7 +1434,7 @@ int CGame::getEvent()
  */
 bool CGame::isFruit(const uint8_t tileID)
 {
-    return g_fruits.find(tileID) != g_fruits.end();
+    return getTileDef(tileID).flags & FLAG_FRUIT;
 }
 
 /**
@@ -1396,7 +1446,7 @@ bool CGame::isFruit(const uint8_t tileID)
  */
 bool CGame::isBonusItem(const uint8_t tileID)
 {
-    return g_treasures.find(tileID) != g_treasures.end();
+    return getTileDef(tileID).flags & FLAG_TREASURE;
 }
 
 /**
@@ -1499,9 +1549,8 @@ bool CGame::isRageMode() const
 
 CGame *CGame::getGame()
 {
-    if (!g_game)
-        g_game = new CGame;
-    return g_game;
+    static std::unique_ptr<CGame> instance(new CGame);
+    return instance.get();
 }
 
 /**
@@ -1551,9 +1600,7 @@ bool CGame::isFrozen() const
  */
 void CGame::destroy()
 {
-    if (g_game)
-        delete g_game;
-    g_game = nullptr;
+    getGame();
 }
 
 /**
@@ -1657,10 +1704,71 @@ const std::vector<CBoss> &CGame::bosses()
 
 void CGame::deleteMonster(const int i)
 {
+    if (i < 0 || i >= (int)m_monsters.size())
+        return;
+
+    // Remove from vector
     m_monsters.erase(m_monsters.begin() + i);
+
+    // Rebuild indices
+    rebuildMonsterGrid();
 }
 
 Random &CGame::getRandom()
 {
     return g_randomz;
+}
+
+bool CGame::isBulletType(const uint8_t typeID)
+{
+    return typeID == TYPE_FIREBALL || typeID == TYPE_LIGHTNING_BOLT;
+}
+
+bool CGame::isMoveableType(const uint8_t typeID)
+{
+    return typeID == TYPE_BOULDER || typeID == TYPE_ICECUBE;
+}
+
+bool CGame::isOneTimeItem(const uint8_t tileID)
+{
+    return getTileDef(tileID).flags & FLAG_ONE_TIME;
+}
+
+bool CGame::shadowActorMove(CActor &actor, const JoyAim aim)
+{
+    uint16_t oldKey = CMap::toKey(actor.x(), actor.y());
+    auto it = m_monsterGrid.find(oldKey);
+    int monsterIndex = INVALID;
+    if (it != m_monsterGrid.end())
+    {
+        monsterIndex = it->second;
+        m_monsterGrid.erase(it);
+    }
+
+    const Pos newPos = CGame::translate(actor.pos(), aim);
+    if (monsterIndex != INVALID && m_map.isValid(newPos.x, newPos.y))
+    {
+        m_monsterGrid[CMap::toKey(newPos.x, newPos.y)] = monsterIndex;
+        actor.move(aim);
+        return true;
+    }
+    return false;
+}
+
+void CGame::rebuildMonsterGrid()
+{
+    m_monsterGrid.clear();
+    for (size_t i = 0; i < m_monsters.size(); ++i)
+    {
+        const CActor &m = m_monsters[i];
+        if (m_map.isValid(m.x(), m.y()))
+            updateMonsterGrid(m, i);
+    }
+}
+
+void CGame::updateMonsterGrid(const CActor &actor, const int monsterIndex)
+{
+    const Pos pos = actor.pos();
+    if (monsterIndex != INVALID && m_map.isValid(pos.x, pos.y))
+        m_monsterGrid[CMap::toKey(pos.x, pos.y)] = monsterIndex;
 }

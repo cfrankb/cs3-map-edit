@@ -29,10 +29,10 @@ class Logger
 public:
     enum Level
     {
-        INFO,
-        WARN,
-        ERROR,
-        FATAL
+        L_INFO,
+        L_WARN,
+        L_ERROR,
+        L_FATAL
     };
     static void setLevel(Level minLevel) { m_minLevel = minLevel; }
     static void setOutputFile(const std::string &filename);
@@ -53,16 +53,16 @@ private:
 #define LOGE(...) qCritical(__VA_ARGS__)
 #define LOGF(...) qFatal(__VA_ARGS__)
 #else
-#define LOGI(...)                        \
-    if (Logger::level() <= Logger::INFO) \
-    Logger::log(Logger::INFO, __FILE_NAME__, __VA_ARGS__)
-#define LOGW(...)                        \
-    if (Logger::level() <= Logger::WARN) \
-    Logger::log(Logger::WARN, __FILE_NAME__, __VA_ARGS__)
-#define LOGE(...)                         \
-    if (Logger::level() <= Logger::ERROR) \
-    Logger::log(Logger::ERROR, __FILE_NAME__, __VA_ARGS__)
-#define LOGF(...)                                           \
-    Logger::log(Logger::FATAL, __FILE_NAME__, __VA_ARGS__); \
+#define LOGI(...)                          \
+    if (Logger::level() <= Logger::L_INFO) \
+    Logger::log(Logger::L_INFO, __FILE_NAME__, __VA_ARGS__)
+#define LOGW(...)                          \
+    if (Logger::level() <= Logger::L_WARN) \
+    Logger::log(Logger::L_WARN, __FILE_NAME__, __VA_ARGS__)
+#define LOGE(...)                           \
+    if (Logger::level() <= Logger::L_ERROR) \
+    Logger::log(Logger::L_ERROR, __FILE_NAME__, __VA_ARGS__)
+#define LOGF(...)                                             \
+    Logger::log(Logger::L_FATAL, __FILE_NAME__, __VA_ARGS__); \
     exit(1)
 #endif

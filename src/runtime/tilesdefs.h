@@ -22,18 +22,26 @@
 
 #include <cstdint>
 
-typedef struct
+struct TileDef
 {
-    uint8_t flags;
+    uint16_t flags;
     uint8_t type;
     uint8_t score;
     int8_t health;
-    uint8_t speed;
-    uint8_t ai;
+    uint16_t speed;
+    uint16_t ai;
     bool hidden;
     const char * basename;
-} TileDef;
-uint8_t getChTile(uint8_t i) ;
-const TileDef * getTileDefs();
-const TileDef & getTileDef(int i);
+};
 
+extern const TileDef tileDefs[];
+uint8_t getChTile(uint8_t i) ;
+constexpr const inline TileDef * getTileDefs()
+{
+    return tileDefs;
+}
+
+constexpr const inline TileDef &getTileDef(int i)
+{
+    return tileDefs[i];
+}

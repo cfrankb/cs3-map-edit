@@ -172,14 +172,14 @@ std::vector<uint8_t> readFile(const char *fname)
     FILEWRAP file;
     if (!file.open(fname, "rb"))
     {
-        LOGE("failed to read:%s\n", fname);
+        LOGE("failed to read:%s", fname);
         return {};
     }
     size_t size = file.getSize();
     std::vector<uint8_t> data(size);
     if (file.read(data.data(), size) != IFILE_OK)
     {
-        LOGE("can't read data for %s\n", fname);
+        LOGE("can't read data for %s", fname);
         return {};
     }
     return data;

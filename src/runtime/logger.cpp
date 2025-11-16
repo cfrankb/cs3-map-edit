@@ -24,7 +24,7 @@
 #include <SDL3/SDL.h>
 #endif
 
-Logger::Level Logger::m_minLevel = Logger::INFO;
+Logger::Level Logger::m_minLevel = Logger::L_INFO;
 FILE *Logger::m_output = nullptr;
 std::mutex Logger::m_mutex;
 
@@ -43,28 +43,28 @@ void Logger::log(Level level, const char *tag, const char *format, ...)
     va_list args;
     va_start(args, format);
 #if defined(__ANDROID__) && defined(SDL_MAJOR_VERSION)
-    SDL_LogPriority priority = level == INFO ? SDL_LOG_PRIORITY_INFO : level == WARN ? SDL_LOG_PRIORITY_WARN
-                                                                   : level == ERROR  ? SDL_LOG_PRIORITY_ERROR
-                                                                                     : SDL_LOG_PRIORITY_CRITICAL;
+    SDL_LogPriority priority = level == L_INFO ? SDL_LOG_PRIORITY_INFO : level == L_WARN ? SDL_LOG_PRIORITY_WARN
+                                                                     : level == L_ERROR  ? SDL_LOG_PRIORITY_ERROR
+                                                                                         : SDL_LOG_PRIORITY_CRITICAL;
     SDL_LogMessageV(SDL_LOG_CATEGORY_APPLICATION, priority, format, args);
 #elif defined(__ANDROID__)
-    int priority = level == INFO ? ANDROID_LOG_INFO : level == WARN ? ANDROID_LOG_WARN
-                                                  : level == ERROR  ? ANDROID_LOG_ERROR
-                                                                    : ANDROID_LOG_FATAL;
+    int priority = level == L_INFO ? ANDROID_LOG_INFO : level == L_WARN ? ANDROID_LOG_WARN
+                                                    : level == L_ERROR  ? ANDROID_LOG_ERROR
+                                                                        : ANDROID_LOG_FATAL;
     __android_log_vprint(priority, tag, format, args);
 #else
-    FILE *out = m_output ? m_output : (level == ERROR || level == FATAL) ? stderr
-                                                                         : stdout;
-    fprintf(out, "[%s/%s] ", tag, level == INFO ? "INFO" : level == WARN ? "WARN"
-                                                       : level == ERROR  ? "ERROR"
-                                                                         : "FATAL");
+    FILE *out = m_output ? m_output : (level == L_ERROR || level == L_FATAL) ? stderr
+                                                                             : stdout;
+    fprintf(out, "[%s/%s] ", tag, level == L_INFO ? "INFO" : level == L_WARN ? "WARN"
+                                                         : level == L_ERROR  ? "ERROR"
+                                                                             : "FATAL");
     vfprintf(out, format, args);
 
     std::string s = std::string(format);
     auto p = s.rfind('\n');
     if (p == std::string::npos || p != s.size() - 1)
         fprintf(out, "\n");
-    if (level == FATAL)
+    if (level == L_FATAL)
         exit(1);
 #endif
     va_end(args);

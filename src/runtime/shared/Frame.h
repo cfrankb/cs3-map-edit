@@ -72,7 +72,8 @@ public:
     void flipV();
     void flipH();
     void rotate();
-    CFrameSet *split(int pxSize, bool whole = true);
+    // CFrameSet *split(int pxSize, bool whole = true);
+    CFrameSet *split(int pxSize, int pySize);
     void shrink();
     const CSS3Map &getMap() const;
     void shiftUP(const bool wrap = true);

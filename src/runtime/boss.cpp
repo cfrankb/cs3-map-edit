@@ -28,13 +28,17 @@
 #include "bossdata.h"
 #include "filemacros.h"
 #include "map.h"
+#include "tilesdefs.h"
 
-constexpr int PATH_TIMEOUT_MAX = 10; // Recompute path every 10 turns
-constexpr size_t MAX_PATH_SIZE = 4096;
-constexpr int16_t MAX_POS = 512;
-constexpr int MAX_HP = 4096;
-constexpr int MAX_SPEED = 10;
-constexpr int MAX_FRAME = 16;
+namespace BossPrivate
+{
+    constexpr int16_t MAX_POS = 512;
+    constexpr int MAX_HP = 4096;
+    constexpr int MAX_SPEED = 10;
+    constexpr int MAX_FRAME = 16;
+};
+
+using namespace BossPrivate;
 
 CBoss::CBoss(const int16_t x, const int16_t y, const bossData_t *data) : m_bossData(data)
 {
@@ -43,43 +47,11 @@ CBoss::CBoss(const int16_t x, const int16_t y, const bossData_t *data) : m_bossD
     m_speed = data->speed;
     m_state = Patrol;
     m_framePtr = 0;
-    m_hp = data->hp;
-    m_pathIndex = 0;
-    m_pathTimeout = 0;
+    m_hp = maxHp(); // data->hp;
     setSolidOperator();
 }
 
-bool CBoss::isPlayer(const Pos &pos)
-{
-    const CMap &map = CGame::getMap();
-    const auto c = map.at(pos.x, pos.y);
-    const TileDef &def = getTileDef(c);
-    return def.type == TYPE_PLAYER;
-}
-
-bool CBoss::isIceCube(const Pos &pos)
-{
-    const CMap &map = CGame::getMap();
-    const auto c = map.at(pos.x, pos.y);
-    const TileDef &def = getTileDef(c);
-    return def.type == TYPE_ICECUBE;
-}
-
-bool CBoss::meltIceCube(const Pos &pos)
-{
-    CGame *game = CGame::getGame();
-    CMap &map = CGame::getMap();
-    int i = game->findMonsterAt(pos.x, pos.y);
-    if (i != CGame::INVALID)
-    {
-        game->deleteMonster(i);
-        game->getSfx().emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
-        map.set(pos.x, pos.y, TILES_BLANK);
-    }
-    return true;
-}
-
-bool CBoss::isSolid(const Pos &pos)
+bool CBoss::isSolid(const Pos &pos) const
 {
     CMap &map = CGame::getMap();
     const auto c = map.at(pos.x, pos.y);
@@ -87,30 +59,169 @@ bool CBoss::isSolid(const Pos &pos)
     return def.type != TYPE_BACKGROUND && def.type != TYPE_PLAYER;
 }
 
-bool CBoss::isGhostBlocked(const Pos &pos)
+bool CBoss::isGhostBlocked(const Pos &pos) const
 {
     CMap &map = CGame::getMap();
     const auto c = map.at(pos.x, pos.y);
     const TileDef &def = getTileDef(c);
-    return def.type == TYPE_SWAMP || def.type == TYPE_ICECUBE;
+    return def.type == TYPE_SWAMP || def.type == TYPE_ICECUBE || c == TILES_WALLS93_3;
 }
 
-bool CBoss::testHitbox(hitboxPosCallback_t testCallback, hitboxPosCallback_t actionCallback) const
+std::vector<HitResult> CBoss::testHitbox2(const CMap &map,
+                                          hitboxTestCallback_t testCallback,
+                                          hitboxActionCallback_t actionCallback) const
 {
-    const int x = m_x / BOSS_GRANULAR_FACTOR;
-    const int y = m_y / BOSS_GRANULAR_FACTOR;
-    const int w = m_bossData->hitbox.width / BOSS_GRANULAR_FACTOR;
-    const int h = m_bossData->hitbox.height / BOSS_GRANULAR_FACTOR;
-    for (int ay = 0; ay < h; ++ay)
+    std::vector<HitResult> results;
+
+    // Build hitboxes in HALF-TILE units ===
+    std::vector<hitbox_t> hitboxes; // now in half-tiles
+
+    // Primary
+    hitboxes.push_back({m_x,
+                        m_y,
+                        m_bossData->hitbox.width,
+                        m_bossData->hitbox.height,
+                        static_cast<int>(BossData::HitBoxType::MAIN)});
+
+    // Secondary (frame-specific)
+    const sprite_hitbox_t *hbData = getHitboxes(m_bossData->sheet, currentFrame());
+    for (int i = 0; hbData && i < hbData->count; ++i)
     {
-        for (int ax = 0; ax < w; ++ax)
+        const auto &c = hbData->hitboxes[i];
+        hitboxes.push_back({m_x + c.x - m_bossData->hitbox.x,
+                            m_y + c.y - m_bossData->hitbox.y,
+                            c.width,
+                            c.height,
+                            c.type});
+    }
+
+    // === 2. For each hitbox, scan WORLD TILES it covers ===
+    for (const auto &hb : hitboxes)
+    {
+        const int left = hb.x;
+        const int top = hb.y;
+        const int right = left + hb.width - 1;
+        const int bottom = top + hb.height - 1;
+
+        const int wx1 = left >> 1;
+        const int wy1 = top >> 1;
+        const int wx2 = right >> 1;
+        const int wy2 = bottom >> 1;
+
+        BossData::HitBoxType type = static_cast<BossData::HitBoxType>(hb.type);
+
+        for (int wy = wy1; wy <= wy2; ++wy)
         {
-            const Pos pos{static_cast<int16_t>(x + ax), static_cast<int16_t>(y + ay)};
-            if (testCallback(pos))
-                return actionCallback ? actionCallback(pos) : true;
+            for (int wx = wx1; wx <= wx2; ++wx)
+            {
+                // Out-of-map?
+                if (!map.isValid(wx, wy))
+                    continue;
+
+                Pos pos{static_cast<int16_t>(wx), static_cast<int16_t>(wy)};
+
+                // Does this world tile actually overlap the hitbox?
+                // (Optional: skip if no overlap — but usually yes)
+                const int tileLeft = wx << 1; // wx * 2
+                const int tileRight = tileLeft + 1;
+                const int tileTop = wy << 1;
+                const int tileBottom = tileTop + 1;
+
+                if (right < tileLeft || left > tileRight ||
+                    bottom < tileTop || top > tileBottom)
+                    continue; // no overlap
+
+                // Test callback
+                if (testCallback && !testCallback(pos, type))
+                    continue;
+
+                // HIT!
+                HitResult r{pos, type};
+                if (actionCallback)
+                    actionCallback(r);
+                results.push_back(r);
+            }
         }
     }
-    return false;
+
+    return results;
+}
+
+std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
+                                          hitboxTestCallback_t testCallback,
+                                          hitboxActionCallback_t actionCallback) const
+{
+    std::vector<HitResult> results;
+
+    // Primary hitbox (half-tiles)
+    const auto &hbMain = m_bossData->hitbox;
+    std::vector<hitbox_t> hitboxes;
+    hitboxes.push_back({m_x, m_y, // Keep half-tile coords
+                        hbMain.width, hbMain.height,
+                        static_cast<int>(BossData::HitBoxType::MAIN)});
+
+    // Secondary hitboxes (relative to main, half-tiles)
+    const sprite_hitbox_t *hbData = getHitboxes(m_bossData->sheet, currentFrame());
+    for (int i = 0; hbData != nullptr && i < hbData->count; ++i)
+    {
+        const hitbox_t &c = hbData->hitboxes[i];
+        const hitbox_t hb{
+            m_x + c.x - hbMain.x,
+            m_y + c.y - hbMain.y,
+            c.width,
+            c.height,
+            c.type};
+        hitboxes.push_back(hb);
+    }
+
+    // Test each hitbox
+    for (const auto &hb : hitboxes)
+    {
+        BossData::HitBoxType hbType = static_cast<BossData::HitBoxType>(hb.type);
+
+        // Compute world tile bounds (half-tiles to full tiles)
+        const int left = hb.x;               // Half-tile x
+        const int right = hb.x + hb.width;   // Half-tile x+width
+        const int top = hb.y;                // Half-tile y
+        const int bottom = hb.y + hb.height; // Half-tile y+height
+
+        // World tile range (inclusive)
+        const int x_start = left / BOSS_GRANULAR_FACTOR;       // floor(left/2)
+        const int x_end = (right - 1) / BOSS_GRANULAR_FACTOR;  // floor((right-1)/2)
+        const int y_start = top / BOSS_GRANULAR_FACTOR;        // floor(top/2)
+        const int y_end = (bottom - 1) / BOSS_GRANULAR_FACTOR; // floor((bottom-1)/2)
+
+        // Scan all world tiles in range
+        for (int wy = y_start; wy <= y_end; ++wy)
+        {
+            for (int wx = x_start; wx <= x_end; ++wx)
+            {
+                // Out-of-map check
+                if (!map.isValid(wx, wy))
+                {
+                    continue;
+                }
+
+                const Pos pos{static_cast<int16_t>(wx), static_cast<int16_t>(wy)};
+
+                // Test with type
+                if (testCallback && !testCallback(pos, hbType))
+                {
+                    continue;
+                }
+
+                // Collect hit
+                HitResult result{pos, hbType};
+                if (actionCallback)
+                {
+                    actionCallback(result);
+                }
+                results.emplace_back(std::move(result));
+            }
+        }
+    }
+
+    return results;
 }
 
 bool CBoss::canMove(const JoyAim aim) const
@@ -165,7 +276,7 @@ bool CBoss::canMove(const JoyAim aim) const
             if (ax < 0 || ax >= mapLen)
                 continue;
             const Pos pos{static_cast<int16_t>(ax), static_cast<int16_t>(y - 1)};
-            if (m_isSolidOperator(pos))
+            if ((this->*m_solidCheck)(pos))
                 return false;
         }
         break;
@@ -178,7 +289,7 @@ bool CBoss::canMove(const JoyAim aim) const
             if (ax < 0 || ax >= mapLen)
                 continue;
             const Pos pos{static_cast<int16_t>(ax), static_cast<int16_t>(y + h)};
-            if (m_isSolidOperator(pos))
+            if ((this->*m_solidCheck)(pos))
                 return false;
         }
         break;
@@ -191,7 +302,7 @@ bool CBoss::canMove(const JoyAim aim) const
             if (ay < 0 || ay >= mapHei)
                 continue;
             const Pos pos{static_cast<int16_t>(x - 1), static_cast<int16_t>(ay)};
-            if (m_isSolidOperator(pos))
+            if ((this->*m_solidCheck)(pos))
                 return false;
         }
         break;
@@ -204,7 +315,7 @@ bool CBoss::canMove(const JoyAim aim) const
             if (ay < 0 || ay >= mapHei)
                 continue;
             const Pos pos{static_cast<int16_t>(x + w), static_cast<int16_t>(ay)};
-            if (m_isSolidOperator(pos))
+            if ((this->*m_solidCheck)(pos))
                 return false;
         }
         break;
@@ -233,7 +344,9 @@ void CBoss::move(const JoyAim aim)
         break;
     default:
         LOGE("invalid aim: %.2x", aim);
+        return;
     }
+    m_aim = aim;
 }
 
 /**
@@ -254,34 +367,40 @@ void CBoss::move(const Pos pos)
     move(pos.x, pos.y);
 }
 
+const boss_seq_t *CBoss::getCurrentSeq() const
+{
+    switch (m_state)
+    {
+    case BossState::Patrol:
+        return &m_bossData->idle;
+
+    case BossState::Chase:
+        return &m_bossData->moving;
+
+    case BossState::Attack:
+        return &m_bossData->attack;
+
+    case BossState::Hurt:
+        return &m_bossData->hurt;
+
+    case BossState::Death:
+        return &m_bossData->death;
+
+    default:
+        return nullptr;
+    }
+}
+
 void CBoss::animate()
 {
-    int maxFrames = 0;
-    if (m_state == BossState::Patrol)
+    const boss_seq_t *seq = getCurrentSeq();
+    if (seq == nullptr)
     {
-        maxFrames = m_bossData->idle.lenght;
-    }
-    else if (m_state == BossState::Chase)
-    {
-        maxFrames = m_bossData->moving.lenght;
-    }
-    else if (m_state == BossState::Attack)
-    {
-        maxFrames = m_bossData->attack.lenght;
-    }
-    else if (m_state == BossState::Hurt)
-    {
-        maxFrames = m_bossData->hurt.lenght;
-    }
-    else if (m_state == BossState::Death)
-    {
-        maxFrames = m_bossData->death.lenght;
-    }
-    else
-    {
-        LOGW("animated - unknown state: %d", m_state);
+        m_framePtr = 0;
+        return;
     }
 
+    int maxFrames = seq->lenght;
     // sanity check
     if (maxFrames == 0)
     {
@@ -290,7 +409,7 @@ void CBoss::animate()
     }
 
     ++m_framePtr;
-    if (m_framePtr == maxFrames)
+    if (m_framePtr >= maxFrames)
     {
         m_framePtr = 0;
         if (m_state == BossState::Hurt)
@@ -304,32 +423,11 @@ void CBoss::animate()
 
 int CBoss::currentFrame() const
 {
-    int baseFrame = 0;
-    if (m_state == BossState::Patrol)
-    {
-        baseFrame = m_bossData->idle.base;
-    }
-    else if (m_state == BossState::Chase)
-    {
-        baseFrame = m_bossData->moving.base;
-    }
-    else if (m_state == BossState::Attack)
-    {
-        baseFrame = m_bossData->attack.base;
-    }
-    else if (m_state == BossState::Hurt)
-    {
-        baseFrame = m_bossData->hurt.base;
-    }
-    else if (m_state == BossState::Death)
-    {
-        baseFrame = m_bossData->death.base;
-    }
-    else
-    {
-        LOGW("currentFrame - unknown state: %d", m_state);
-    }
-
+    const boss_seq_t *seq = getCurrentSeq();
+    if (seq == nullptr)
+        return 0;
+    const int normalizedAim = m_aim % m_bossData->aims;
+    const int baseFrame = seq->base + seq->lenght * normalizedAim;
     return baseFrame + m_framePtr;
 }
 
@@ -341,7 +439,8 @@ void CBoss::setState(const BossState state)
 
 int CBoss::maxHp() const
 {
-    return m_bossData->hp;
+    auto skill = (int)CGame::getGame()->skill();
+    return (int)m_bossData->hp * ((skill * 0.5) + 1);
 }
 
 bool CBoss::subtainDamage(const int lostHP)
@@ -363,9 +462,21 @@ bool CBoss::subtainDamage(const int lostHP)
     return justDied;
 }
 
-int CBoss::damage() const
+int CBoss::damage(const BossData::HitBoxType hbType) const
 {
-    return m_bossData->damage;
+    switch (hbType)
+    {
+    case BossData::HitBoxType::MAIN:
+        return m_bossData->damage;
+    case BossData::HitBoxType::ATTACK:
+        return m_bossData->damage_attack;
+    case BossData::HitBoxType::SPECIAL1:
+        return m_bossData->damage_special1;
+    case BossData::HitBoxType::SPECIAL2:
+        return m_bossData->damage_special2;
+    default:
+        return m_bossData->damage;
+    }
 }
 
 const Pos CBoss::toPos(int x, int y)
@@ -375,34 +486,7 @@ const Pos CBoss::toPos(int x, int y)
 
 bool CBoss::followPath(const Pos &playerPos, const IPath &astar)
 {
-    // Check if path is invalid or timed out
-    if (m_pathIndex >= m_cachedDirections.size() || m_pathTimeout <= 0)
-    {
-        // CBoss tmp{*this};
-        m_cachedDirections = astar.findPath(*this, playerPos);
-        m_pathIndex = 0;
-        m_pathTimeout = PATH_TIMEOUT_MAX;
-        if (m_cachedDirections.empty())
-        {
-            return false; // No valid path
-        }
-    }
-
-    // Try the next direction
-    JoyAim aim = m_cachedDirections[m_pathIndex];
-    if (canMove(aim))
-    {
-        move(aim);
-        ++m_pathIndex;
-        --m_pathTimeout;
-        return true;
-    }
-
-    // Move failed, invalidate cache and recompute next turn
-    m_cachedDirections.clear();
-    m_pathIndex = 0;
-    m_pathTimeout = 0;
-    return false;
+    return m_path.followPath(*this, playerPos, astar) == CPath::Result::MoveSuccesful;
 }
 
 void CBoss::patrol()
@@ -469,7 +553,7 @@ bool CBoss::read(IFile &sfile)
         LOGE("invalid boss type 0x%.2x", type);
         return false;
     }
-    m_bossData = data; // const_cast<const bossData_t *>(data);
+    m_bossData = data;
 
     m_framePtr = 0;
     _R(&m_framePtr, DATA_SIZE);
@@ -484,30 +568,17 @@ bool CBoss::read(IFile &sfile)
     checkBound(m_hp, MAX_HP);
 
     _R(&m_state, sizeof(m_state)); // uint8_t
-    checkBound((uint8_t)m_state, (uint8_t)BossState::MAX_STATE);
+    checkBound((uint8_t)m_state, (uint8_t)BossState::MAX_STATES);
 
     m_speed = 0;
     _R(&m_speed, DATA_SIZE);
     checkBound(m_speed, MAX_SPEED);
 
-    //////////////////////////////////////
-    // Read Path (saved)
-    m_cachedDirections.clear();
-    size_t pathSize = 0;
-    _R(&pathSize, DATA_SIZE);
-    checkBound(pathSize, MAX_PATH_SIZE);
-    for (size_t i = 0; i < pathSize; ++i)
-    {
-        JoyAim dir;
-        _R(&dir, sizeof(dir));
-        m_cachedDirections.emplace_back(dir);
-    }
-    m_pathIndex = 0;
-    _R(&m_pathIndex, DATA_SIZE);
-    checkBound(m_pathIndex, MAX_PATH_SIZE);
-    m_pathTimeout = 0;
-    _R(&m_pathTimeout, DATA_SIZE);
-    checkBound(m_pathTimeout, MAX_PATH_SIZE);
+    _R(&m_aim, sizeof(m_aim)); // uint8_t
+    checkBound(static_cast<uint8_t>(m_aim), JoyAim::TOTAL_AIMS);
+
+    // read path
+    m_path.read(sfile);
 
     setSolidOperator();
     return true;
@@ -528,15 +599,11 @@ bool CBoss::write(IFile &tfile)
     _W(&m_hp, DATA_SIZE);
     _W(&m_state, sizeof(m_state)); // uint8_t
     _W(&m_speed, DATA_SIZE);
+    _W(&m_aim, sizeof(m_aim)); // uint8_t
 
-    auto pathSize = m_cachedDirections.size();
-    _W(&pathSize, DATA_SIZE);
-    for (const auto &dir : m_cachedDirections)
-    {
-        _W(&dir, sizeof(dir));
-    }
-    _W(&m_pathIndex, DATA_SIZE);
-    _W(&m_pathTimeout, DATA_SIZE);
+    // write path
+    m_path.write(tfile);
+
     return true;
 }
 
@@ -544,9 +611,14 @@ void CBoss::setSolidOperator()
 {
     LOGI("set solidOperator for boss %.2x", m_bossData->type);
     if (m_bossData->type == BOSS_MR_DEMON)
-        m_isSolidOperator = isSolid;
+        m_solidCheck = &CBoss::isSolid;
     else if (m_bossData->type == BOSS_GHOST)
-        m_isSolidOperator = isGhostBlocked;
+        m_solidCheck = &CBoss::isGhostBlocked;
+    else if (m_bossData->type == BOSS_HARPY)
+        m_solidCheck = &CBoss::isSolid;
     else
-        m_isSolidOperator = nullptr;
+    {
+        LOGW("No custom solidOperator for this boss");
+        m_solidCheck = &CBoss::isSolid;
+    }
 }

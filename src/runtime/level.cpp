@@ -22,7 +22,6 @@
 #include "tilesdata.h"
 #include "tilesdefs.h"
 #include "logger.h"
-#include "shared/FileWrap.h"
 #include "strhelper.h"
 #include "shared/helper.h"
 
@@ -56,11 +55,11 @@ bool getChMap(const char *mapFile, char *chMap)
     auto data = readFile(mapFile);
     if (data.empty())
     {
-        LOGE("cannot read %s\n", mapFile);
+        LOGE("cannot read %s", mapFile);
         return false;
     }
     std::string p(reinterpret_cast<char *>(data.data()));
-    LOGI("parsing tiles.map: %zu\n", p.length());
+    LOGI("parsing tiles.map: %zu", p.length());
     int i = 0;
     size_t pos = 0;
     while (pos < p.length())
@@ -84,7 +83,7 @@ bool processLevel(CMap &map, const char *fname)
     auto data = readFile(fname);
     if (data.empty())
     {
-        LOGE("failed read: %s\n", fname);
+        LOGE("failed read: %s", fname);
         return false;
     }
     std::string input(reinterpret_cast<char *>(data.data()));
@@ -179,7 +178,7 @@ bool convertCs3Level(CMap &map, const char *fname)
     auto data = readFile(fname);
     if (data.size() == 0)
     {
-        LOGE("failed read: %s\n", fname);
+        LOGE("failed read: %s", fname);
         return false;
     }
 
@@ -193,7 +192,7 @@ bool convertCs3Level(CMap &map, const char *fname)
             uint8_t oldTile = data[p];
             if (oldTile >= sizeof(convTable) / 2)
             {
-                LOGI("oldTile: %d\n", oldTile);
+                LOGI("oldTile: %d", oldTile);
                 oldTile = 0;
             }
             const uint16_t data = convTable[oldTile];
@@ -211,7 +210,7 @@ bool fetchLevel(CMap &map, const char *fname, std::string &error)
 {
     const int bufferSize = strlen(fname) + 128;
     std::vector<char> tmp(bufferSize);
-    LOGI("fetching: %s\n", fname);
+    LOGI("fetching: %s", fname);
 
     FILE *sfile = fopen(fname, "rb");
     auto readfile = [sfile](auto ptr, auto size)
@@ -231,7 +230,7 @@ bool fetchLevel(CMap &map, const char *fname, std::string &error)
     if (memcmp(sig, MAPZ_SIGNATURE, sizeof(MAPZ_SIGNATURE)) == 0)
     {
         fclose(sfile);
-        LOGI("level is MAPZ\n");
+        LOGI("level is MAPZ");
         return map.read(fname);
     }
 
@@ -240,11 +239,11 @@ bool fetchLevel(CMap &map, const char *fname, std::string &error)
     if (size == CS3_MAP_LEN * CS3_MAP_HEI + CS3_MAP_OFFSET)
     {
         fclose(sfile);
-        LOGI("level is cs3\n");
+        LOGI("level is cs3");
         return convertCs3Level(map, fname);
     }
 
     fclose(sfile);
-    LOGI("level is map\n");
+    LOGI("level is map");
     return processLevel(map, fname);
 }

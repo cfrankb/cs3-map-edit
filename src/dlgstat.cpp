@@ -68,7 +68,7 @@ CDlgStat::CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent)
 QString CDlgStat::attr2text(const uint8_t attr) {
     if (RANGE(attr, ATTR_MSG_MIN, ATTR_MSG_MAX)) {
         return "Message";
-    } else if (RANGE(attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX)) {
+    } else if (RANGE(attr, ATTR_IDLE_MIN, ATTR_IDLE_MAX)) {
         return tr("Wait");
     } else if (attr == ATTR_FREEZE_TRAP) {
         return tr("Freeze Trap");

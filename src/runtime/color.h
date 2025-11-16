@@ -55,4 +55,9 @@ enum Color : uint32_t
     DEEPSKYBLUE = RGBA(0x00, 0xBF, 0xFF),    // #00BFFF
     LAVENDER = RGBA(0xE6, 0xE6, 0xFA),       // #E6E6FA
     DARKSLATEGREY = RGBA(0x2F, 0x4F, 0x4F),  // #2F4F4F
+    BROWN = RGBA(150, 75, 0),                // rgb(150, 75, 0)
+    RED_BROWN = RGBA(165, 42, 42),           // rgb(165, 42, 42)
+    PALE_BROWN = RGBA(152, 117, 84),         // rgb(152, 117, 84)
+    DARK_BROWN = RGBA(101, 67, 33),          // rgb(101, 67, 33)
+    DARK_BROWN2 = RGBA(86, 43, 0),           // rgb(86, 43, 0)
 };

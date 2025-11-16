@@ -22,8 +22,9 @@
         <file>data/icons/go-first.png</file>
         <file>data/icons/go-last.png</file>
         <file>data/Annie.ini</file>
-        <file>data/bosses.obl</file>
         <file>data/uisheet.png</file>
         <file>data/icons/scroll.png</file>
+        <file>data/sheet0.obl</file>
+        <file>data/sheet1.obl</file>
     </qresource>
 </RCC>

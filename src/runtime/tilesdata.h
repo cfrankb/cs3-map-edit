@@ -20,157 +20,186 @@
 
 #pragma once
 
-#define TILES_BLANK               0x00
-#define TILES_STOP                0x01
-#define TILES_ANNIE2              0x02
-#define TILES_WALLS93             0x03
-#define TILES_WALLS93_2           0x04
-#define TILES_WALLS93_3           0x05
-#define TILES_WALLS93_4           0x06
-#define TILES_WALLS93_5           0x07
-#define TILES_WALLS93_6           0x08
-#define TILES_WALLS93_7           0x09
-#define TILES_ROCKS0              0x0a
-#define TILES_ROCKS1              0x0b
-#define TILES_ROCKS2              0x0c
-#define TILES_WALL_BRICK          0x0d
-#define TILES_WALL_BRICK_2        0x0e
-#define TILES_WALL_BRICK_3        0x0f
-#define TILES_WALL_BRICK_4        0x10
-#define TILES_WALL_BRICK_5        0x11
-#define TILES_WALL_BRICK_6        0x12
-#define TILES_WALL_BRICK_7        0x13
-#define TILES_BRICKS              0x14
-#define TILES_BRICKS_2            0x15
-#define TILES_BRICKS_3            0x16
-#define TILES_BRICKS_4            0x17
-#define TILES_BRICKS_5            0x18
-#define TILES_BRICKS_6            0x19
-#define TILES_BRICKS_7            0x1a
-#define TILES_BRICKS_8            0x1b
-#define TILES_BRICKS_9            0x1c
-#define TILES_BRICKS_A            0x1d
-#define TILES_BRICKS_B            0x1e
-#define TILES_BRICKS_C            0x1f
-#define TILES_BRICKS_D            0x20
-#define TILES_BRICKS_E            0x21
-#define TILES_BRICKS_F            0x22
-#define TILES_BRICKS_10           0x23
-#define TILES_TREE                0x24
-#define TILES_PLANTS              0x25
-#define TILES_PLANTS_2            0x26
-#define TILES_PLANTS_3            0x27
-#define TILES_PLANTS_4            0x28
-#define TILES_PLANTS_5            0x29
-#define TILES_PLANTS_6            0x2a
-#define TILES_PLANTS_7            0x2b
-#define TILES_THISWAY             0x2c
-#define TILES_THISWAY_2           0x2d
-#define TILES_POMEGRENADE         0x2e
-#define TILES_AMULET1             0x2f
-#define TILES_APPLE               0x30
-#define TILES_REDBOOK             0x31
-#define TILES_JELLYJAR            0x32
-#define TILES_STRAWBERRY          0x33
-#define TILES_KIWI                0x34
-#define TILES_CHEST               0x35
-#define TILES_STATUE              0x36
-#define TILES_TOMB5               0x37
-#define TILES_MUSHROOM            0x38
-#define TILES_SMALL_MUSH0         0x39
-#define TILES_SMALL_MUSH1         0x3a
-#define TILES_SMALL_MUSH2         0x3b
-#define TILES_SMALL_MUSH3         0x3c
-#define TILES_POT                 0x3d
-#define TILES_POT_2               0x3e
-#define TILES_JAR1                0x3f
-#define TILES_WATERMELON          0x40
-#define TILES_BOULDER             0x41
-#define TILES_BOULDER2            0x42
-#define TILES_GIFTBOX             0x43
-#define TILES_MAGICBOT            0x44
-#define TILES_LIGHTBUL            0x45
-#define TILES_1ST_AID             0x46
-#define TILES_SCROLL              0x47
-#define TILES_SHIELD              0x48
-#define TILES_POTION1             0x49
-#define TILES_POTION2             0x4a
-#define TILES_POTION3             0x4b
-#define TILES_PEAR                0x4c
-#define TILES_CLOVER              0x4d
-#define TILES_CHERRY              0x4e
-#define TILES_FLOWERS             0x4f
-#define TILES_FLOWERS_2           0x50
-#define TILES_DOOR03              0x51
-#define TILES_KEY03               0x52
-#define TILES_DOOR01              0x53
-#define TILES_KEY01               0x54
-#define TILES_DOOR02              0x55
-#define TILES_KEY02               0x56
-#define TILES_DOOR06              0x57
-#define TILES_KEY06               0x58
-#define TILES_DOOR04              0x59
-#define TILES_KEY04               0x5a
-#define TILES_SWAMP               0x5b
-#define TILES_DIAMOND             0x5c
-#define TILES_TRIFORCE            0x5d
-#define TILES_ORB                 0x5e
-#define TILES_TNTSTICK            0x5f
-#define TILES_ALPHA               0x60
-#define TILES_BLUEGHOS            0x61
-#define TILES_DEICO               0x62
-#define TILES_FORCEF94            0x63
-#define TILES_FORCEFIH            0x64
-#define TILES_FORCEFIV            0x65
-#define TILES_INSECT1             0x66
-#define TILES_LUTIN               0x67
-#define TILES_MANKA               0x68
-#define TILES_MUSH_IDLE           0x69
-#define TILES_OCTOPUS             0x6a
-#define TILES_OOO                 0x6b
-#define TILES_TEDDY93             0x6c
-#define TILES_VAMPLANT            0x6d
-#define TILES_YAHOO               0x6e
-#define TILES_YIGA                0x6f
-#define TILES_YELKILLER           0x70
-#define TILES_WHTEWORM            0x71
-#define TILES_ETURTLE             0x72
-#define TILES_DRAGO               0x73
-#define TILES_DOORS_LEAF          0x74
-#define TILES_ICECUBE             0x75
-#define TILES_FIREBALL            0x76
-#define TILES_ICEBOULDER          0x77
-#define TILES_ICEMOUNTAIN         0x78
-#define TILES_SKULL               0x79
-#define TILES_COBWEB1             0x7a
-#define TILES_SKULLBN1            0x7b
-#define TILES_SHARD1              0x7c
-#define TILES_SHARD2              0x7d
-#define TILES_SHARD3              0x7e
-#define TILES_SHARD4              0x7f
-#define TILES_SHARD5              0x80
-#define TILES_HRIB1               0x81
-#define TILES_HBONE1              0x82
-#define TILES_HBONE2              0x83
-#define TILES_HXBONE2             0x84
-#define TILES_HXBONE1             0x85
-#define TILES_PEBBLE              0x86
-#define TILES_PEBBLE2             0x87
-#define TILES_ROCKP1              0x88
-#define TILES_ROCKPEBBLE1         0x89
-#define TILES_TREESTUMP           0x8a
-#define TILES_TREESTUMP2          0x8b
-#define TILES_TREESTUMP3          0x8c
-#define TILES_TREESTUMP4          0x8d
-#define TILES_TOMB1               0x8e
-#define TILES_TOMB2               0x8f
-#define TILES_TOMB3               0x90
-#define TILES_TOMB4               0x91
-#define TILES_HSKULLBONE1         0x92
-#define TILES_HSKULLBONE2         0x93
-#define TILES_HSKULL1             0x94
-#define TILES_CHUTE               0x95
-#define TILES_LIGHTNING_BOLT      0x96
-#define TILES_FIRE                0x97
-#define TILES_BULLETY1            0x98
-#define TILES_TOTAL_COUNT         0x99
+// @enum
+enum Tiles
+{
+    TILES_BLANK               = 0x00,
+    TILES_STOP                = 0x01,
+    TILES_ANNIE2              = 0x02,
+    TILES_WALLS93             = 0x03,
+    TILES_WALLS93_2           = 0x04,
+    TILES_WALLS93_3           = 0x05,
+    TILES_WALLS93_4           = 0x06,
+    TILES_WALLS93_5           = 0x07,
+    TILES_WALLS93_6           = 0x08,
+    TILES_WALLS93_7           = 0x09,
+    TILES_ROCKS0              = 0x0a,
+    TILES_ROCKS1              = 0x0b,
+    TILES_ROCKS2              = 0x0c,
+    TILES_WALL_BRICK          = 0x0d,
+    TILES_WALL_BRICK_2        = 0x0e,
+    TILES_WALL_BRICK_3        = 0x0f,
+    TILES_WALL_BRICK_4        = 0x10,
+    TILES_WALL_BRICK_5        = 0x11,
+    TILES_WALL_BRICK_6        = 0x12,
+    TILES_WALL_BRICK_7        = 0x13,
+    TILES_BRICKS              = 0x14,
+    TILES_BRICKS_2            = 0x15,
+    TILES_BRICKS_3            = 0x16,
+    TILES_BRICKS_4            = 0x17,
+    TILES_BRICKS_5            = 0x18,
+    TILES_BRICKS_6            = 0x19,
+    TILES_BRICKS_7            = 0x1a,
+    TILES_BRICKS_8            = 0x1b,
+    TILES_BRICKS_9            = 0x1c,
+    TILES_BRICKS_A            = 0x1d,
+    TILES_BRICKS_B            = 0x1e,
+    TILES_BRICKS_C            = 0x1f,
+    TILES_BRICKS_D            = 0x20,
+    TILES_BRICKS_E            = 0x21,
+    TILES_BRICKS_F            = 0x22,
+    TILES_BRICKS_10           = 0x23,
+    TILES_TREE                = 0x24,
+    TILES_PLANTS              = 0x25,
+    TILES_PLANTS_2            = 0x26,
+    TILES_PLANTS_3            = 0x27,
+    TILES_PLANTS_4            = 0x28,
+    TILES_PLANTS_5            = 0x29,
+    TILES_PLANTS_6            = 0x2a,
+    TILES_PLANTS_7            = 0x2b,
+    TILES_THISWAY             = 0x2c,
+    TILES_THISWAY_2           = 0x2d,
+    TILES_POMEGRENADE         = 0x2e,
+    TILES_AMULET1             = 0x2f,
+    TILES_APPLE               = 0x30,
+    TILES_REDBOOK             = 0x31,
+    TILES_JELLYJAR            = 0x32,
+    TILES_STRAWBERRY          = 0x33,
+    TILES_KIWI                = 0x34,
+    TILES_CHEST               = 0x35,
+    TILES_STATUE              = 0x36,
+    TILES_TOMB5               = 0x37,
+    TILES_MUSHROOM            = 0x38,
+    TILES_SMALL_MUSH0         = 0x39,
+    TILES_SMALL_MUSH1         = 0x3a,
+    TILES_SMALL_MUSH2         = 0x3b,
+    TILES_SMALL_MUSH3         = 0x3c,
+    TILES_POT                 = 0x3d,
+    TILES_POT_2               = 0x3e,
+    TILES_JAR1                = 0x3f,
+    TILES_WATERMELON          = 0x40,
+    TILES_BOULDER             = 0x41,
+    TILES_BOULDER2            = 0x42,
+    TILES_GIFTBOX             = 0x43,
+    TILES_MAGICBOT            = 0x44,
+    TILES_LIGHTBUL            = 0x45,
+    TILES_1ST_AID             = 0x46,
+    TILES_SCROLL              = 0x47,
+    TILES_SHIELD              = 0x48,
+    TILES_POTION1             = 0x49,
+    TILES_POTION2             = 0x4a,
+    TILES_POTION3             = 0x4b,
+    TILES_PEAR                = 0x4c,
+    TILES_CLOVER              = 0x4d,
+    TILES_CHERRY              = 0x4e,
+    TILES_FLOWERS             = 0x4f,
+    TILES_FLOWERS_2           = 0x50,
+    TILES_DOOR03              = 0x51,
+    TILES_KEY03               = 0x52,
+    TILES_DOOR01              = 0x53,
+    TILES_KEY01               = 0x54,
+    TILES_DOOR02              = 0x55,
+    TILES_KEY02               = 0x56,
+    TILES_DOOR06              = 0x57,
+    TILES_KEY06               = 0x58,
+    TILES_DOOR04              = 0x59,
+    TILES_KEY04               = 0x5a,
+    TILES_SWAMP               = 0x5b,
+    TILES_DIAMOND             = 0x5c,
+    TILES_TRIFORCE            = 0x5d,
+    TILES_ORB                 = 0x5e,
+    TILES_TNTSTICK            = 0x5f,
+    TILES_ALPHA               = 0x60,
+    TILES_BLUEGHOS            = 0x61,
+    TILES_DEICO               = 0x62,
+    TILES_FORCEF94            = 0x63,
+    TILES_FORCEFIH            = 0x64,
+    TILES_FORCEFIV            = 0x65,
+    TILES_INSECT1             = 0x66,
+    TILES_LUTIN               = 0x67,
+    TILES_MANKA               = 0x68,
+    TILES_MUSH_IDLE           = 0x69,
+    TILES_OCTOPUS             = 0x6a,
+    TILES_OOO                 = 0x6b,
+    TILES_TEDDY93             = 0x6c,
+    TILES_VAMPLANT            = 0x6d,
+    TILES_YAHOO               = 0x6e,
+    TILES_YIGA                = 0x6f,
+    TILES_YELKILLER           = 0x70,
+    TILES_WHTEWORM            = 0x71,
+    TILES_ETURTLE             = 0x72,
+    TILES_DRAGO               = 0x73,
+    TILES_DOORS_LEAF          = 0x74,
+    TILES_ICECUBE             = 0x75,
+    TILES_FIREBALL            = 0x76,
+    TILES_ICEBOULDER          = 0x77,
+    TILES_ICEMOUNTAIN         = 0x78,
+    TILES_SKULL               = 0x79,
+    TILES_COBWEB1             = 0x7a,
+    TILES_SKULLBN1            = 0x7b,
+    TILES_SHARD1              = 0x7c,
+    TILES_SHARD2              = 0x7d,
+    TILES_SHARD3              = 0x7e,
+    TILES_SHARD4              = 0x7f,
+    TILES_SHARD5              = 0x80,
+    TILES_HRIB1               = 0x81,
+    TILES_HBONE1              = 0x82,
+    TILES_HBONE2              = 0x83,
+    TILES_HXBONE2             = 0x84,
+    TILES_HXBONE1             = 0x85,
+    TILES_PEBBLE              = 0x86,
+    TILES_PEBBLE2             = 0x87,
+    TILES_ROCKP1              = 0x88,
+    TILES_ROCKPEBBLE1         = 0x89,
+    TILES_TREESTUMP           = 0x8a,
+    TILES_TREESTUMP2          = 0x8b,
+    TILES_TREESTUMP3          = 0x8c,
+    TILES_TREESTUMP4          = 0x8d,
+    TILES_TOMB1               = 0x8e,
+    TILES_TOMB2               = 0x8f,
+    TILES_TOMB3               = 0x90,
+    TILES_TOMB4               = 0x91,
+    TILES_HSKULLBONE1         = 0x92,
+    TILES_HSKULLBONE2         = 0x93,
+    TILES_HSKULL1             = 0x94,
+    TILES_CHUTE               = 0x95,
+    TILES_LIGHTNING_BOLT      = 0x96,
+    TILES_FIRE                = 0x97,
+    TILES_BULLETY1            = 0x98,
+    TILES_BOAT                = 0x99,
+    TILES_BARREL2EX           = 0x9a,
+    TILES_BARREL2             = 0x9b,
+    TILES_FLAME               = 0x9c,
+    TILES_WALLS               = 0x9d,
+    TILES_WALLS_2             = 0x9e,
+    TILES_WALLS_3             = 0x9f,
+    TILES_WALLS_4             = 0xa0,
+    TILES_WALLS_5             = 0xa1,
+    TILES_WALLS_6             = 0xa2,
+    TILES_WALLS_7             = 0xa3,
+    TILES_WALLS_8             = 0xa4,
+    TILES_WALLS_9             = 0xa5,
+    TILES_WALLS_A             = 0xa6,
+    TILES_WALLS_B             = 0xa7,
+    TILES_WALLS_C             = 0xa8,
+    TILES_WALLS_D             = 0xa9,
+    TILES_WALLS_E             = 0xaa,
+    TILES_WALLS_F             = 0xab,
+    TILES_WALLS_10            = 0xac,
+    TILES_WALLS_11            = 0xad,
+    TILES_WALLS_12            = 0xae,
+    TILES_WALLS_13            = 0xaf,
+    TILES_WALLS_14            = 0xb0,
+    TILES_WALLS_15            = 0xb1,
+    TILES_TOTAL_COUNT         = 0xb2,
+};

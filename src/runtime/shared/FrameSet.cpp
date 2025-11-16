@@ -357,7 +357,11 @@ bool CFrameSet::readSolid(IFile &file, int size)
     if (err != Z_OK)
     {
         char tmp[128];
+#if defined(__EMSCRIPTEN__)
         snprintf(tmp, sizeof(tmp), "Zlib error %d or size mismatch (%lu != %lld)", err, destLen, totalSize);
+#else
+        snprintf(tmp, sizeof(tmp), "Zlib error %d or size mismatch (%lu != %ld)", err, destLen, totalSize);
+#endif
         m_lastError = tmp;
         return false;
     }
@@ -540,6 +544,10 @@ CFrameSet &CFrameSet::operator=(CFrameSet &s)
     return *this;
 }
 
+/**
+ * @brief Delete  all the frame and reset vector
+ *
+ */
 void CFrameSet::clear()
 {
     const size_t size = m_frames.size();
@@ -597,6 +605,7 @@ void CFrameSet::setName(const char *str)
     m_name = str;
 }
 
+/** clear vector; don't delete frames */
 void CFrameSet::removeAll()
 {
     m_frames.clear();

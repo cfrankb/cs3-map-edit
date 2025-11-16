@@ -57,7 +57,7 @@ char *processLine(char *&p)
     return e ? e + 1 : nullptr;
 }
 
-std::string processLine(std::string &input, size_t &pos)
+std::string processLine(const std::string &input, size_t &pos)
 {
     if (pos >= input.size())
         return "";
@@ -76,7 +76,7 @@ std::string processLine(std::string &input, size_t &pos)
     {
         line = line.substr(0, comment);
     }
-    return trimString(line);
+    return trimString(line.data());
 }
 
 /**
@@ -126,31 +126,6 @@ void splitString2(const std::string &str, std::vector<std::string> &list)
 }
 
 /**
- * @brief parse string into uint16_t. diffentiate between decimal and hex notations
- *
- * @param s
- * @param isValid
- * @return uint16_t
- */
-uint16_t parseStringToUShort(const std::string &s, bool &isValid)
-{
-    uint16_t v = 0;
-    isValid = false;
-    if (s.substr(0, 2) == "0x" ||
-        s.substr(0, 2) == "0X")
-    {
-        v = std::stoul(s.substr(2), 0, 16);
-        isValid = true;
-    }
-    else if (isdigit(s[0]) || s[0] == '-')
-    {
-        v = std::stoul(s, 0, 10);
-        isValid = true;
-    }
-    return v;
-}
-
-/**
  * @brief remove preceding and trailing spaces
  *
  * @param s
@@ -181,18 +156,6 @@ bool endswith(const char *str, const char *end)
     const char *t = strstr(str, end);
     return t && strcmp(t, end) == 0;
 }
-
-/*
-bool endswith(const std::string_view s1, const std::string_view s2)
-{
-    if (s1.length() < s2.length())
-        return false;
-    const size_t offset = s1.length() - s2.length();
-    return std::mismatch(s1.begin() + offset, s1.end(), s2.begin(), s2.end(), [](const auto &c1, const auto &c2)
-                         { return std::tolower(c1) == std::tolower(c2); })
-               .first == s1.end();
-}
-*/
 
 std::vector<std::string> split(const std::string &input, char delimiter)
 {

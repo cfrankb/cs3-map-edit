@@ -21,18 +21,18 @@
 #include <cstring>
 #include "logger.h"
 
-bool parseListKV(std::vector<std::string> &list, uint32_t &k, uint32_t &v, int line)
+bool parseListKV(std::vector<std::string> &list, uint32_t &k, uint32_t &v, const int line)
 {
     if (list.size() != 2)
     {
-        LOGE("Expected 2 items, found %zu on line %d\n", list.size(), line);
+        LOGE("Expected 2 items, found %zu on line %d", list.size(), line);
         return false;
     }
     try
     {
         if (list[0].substr(0, 2) != "0x" || list[1].substr(0, 2) != "0x")
         {
-            LOGE("Invalid hex format on line %d\n", line);
+            LOGE("Invalid hex format on line %d", line);
             return false;
         }
         k = std::stoul(list[0].substr(2), nullptr, 16);
@@ -40,7 +40,7 @@ bool parseListKV(std::vector<std::string> &list, uint32_t &k, uint32_t &v, int l
     }
     catch (const std::exception &e)
     {
-        LOGE("Failed to parse hex values on line %d: %s\n", line, e.what());
+        LOGE("Failed to parse hex values on line %d: %s", line, e.what());
         return false;
     }
     return true;
@@ -48,12 +48,10 @@ bool parseListKV(std::vector<std::string> &list, uint32_t &k, uint32_t &v, int l
 
 bool parseColorMaps(IFile &file, ColorMaps &colorMaps)
 {
-    size_t size = file.getSize();
+    const size_t size = file.getSize();
     std::vector<char> buffer(size + 1);
     if (file.read(buffer.data(), size) != IFILE_OK)
-    {
         return false;
-    }
     buffer[size] = '\0';
     return parseColorMaps(buffer.data(), colorMaps);
 }
@@ -66,21 +64,21 @@ void clearColorMaps(ColorMaps &colorMaps)
     colorMaps.sugarRush.clear();
 }
 
-bool parseColorMaps(char *tmp, ColorMaps &colorMaps)
+bool parseColorMaps(const char *tmp, ColorMaps &colorMaps)
 {
     if (!tmp)
     {
-        LOGE("Null input buffer\n");
+        LOGE("Null input buffer");
         return false;
     }
     clearColorMaps(colorMaps);
-    std::string input(tmp);
+    const std::string input(tmp);
     size_t pos = 0;
     std::string section;
     int line = 1;
     while (pos < input.size())
     {
-        std::string current = processLine(input, pos);
+        const std::string current = processLine(input, pos);
         if (current.empty())
         {
             ++line;
@@ -88,16 +86,16 @@ bool parseColorMaps(char *tmp, ColorMaps &colorMaps)
         }
         if (current[0] == '[')
         {
-            size_t end = current.find(']');
+            const size_t end = current.find(']');
             if (end == std::string::npos)
             {
-                LOGE("Missing section terminator on line %d\n", line);
+                LOGE("Missing section terminator on line %d", line);
                 return false;
             }
             section = current.substr(1, end - 1);
             if (section.empty() || (section != "sugarrush" && section != "godmode" && section != "rage"))
             {
-                LOGE("Invalid section '%s' on line %d\n", section.c_str(), line);
+                LOGE("Invalid section '%s' on line %d", section.c_str(), line);
                 return false;
             }
         }
@@ -124,7 +122,7 @@ bool parseColorMaps(char *tmp, ColorMaps &colorMaps)
             }
             else
             {
-                LOGE("No section defined for key-value pair on line %d\n", line);
+                LOGE("No section defined for key-value pair on line %d", line);
                 return false;
             }
         }

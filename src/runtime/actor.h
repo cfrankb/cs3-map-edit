@@ -20,14 +20,30 @@
 #include "map.h"
 #include "joyaim.h"
 #include "isprite.h"
+#include "ai_path.h"
 
 class IFile;
+class IPath;
+class CPath;
+
 class CActor : public ISprite
 {
 
 public:
+    enum
+    {
+        NoTTL = -1
+    };
+
     CActor(const uint8_t x = 0, const uint8_t y = 0, const uint8_t type = 0, const JoyAim aim = AIM_UP);
     CActor(const Pos &pos, uint8_t type = 0, JoyAim aim = AIM_UP);
+
+    CActor(CActor &&other) noexcept;
+    CActor &operator=(CActor &&other) noexcept;
+
+    CActor(const CActor &) = delete;
+    CActor &operator=(const CActor &) = delete;
+
     ~CActor();
 
     bool canMove(const JoyAim aim) const override;
@@ -47,8 +63,8 @@ public:
     uint8_t getPU() const;
     void setPU(const uint8_t c);
     void setPos(const Pos &pos);
-    JoyAim getAim() const;
-    void setAim(const JoyAim aim);
+    JoyAim getAim() const override;
+    void setAim(const JoyAim aim) override;
     JoyAim findNextDir(const bool reverse = false) const;
     bool isPlayerThere(JoyAim aim) const;
     uint8_t tileAt(JoyAim aim) const;
@@ -62,13 +78,28 @@ public:
     void move(const int16_t x, const int16_t y) override;
     void move(const Pos pos) override;
     inline int16_t getGranularFactor() const override { return ACTOR_GRANULAR_FACTOR; };
+    CPath::Result followPath(const Pos &playerPos);
+    bool startPath(const Pos &playerPos, const uint8_t algo, const int timeout);
+    bool isFollowingPath();
+    bool isBoss() const override { return false; }
+    const CPath *path() const { return m_path.get(); };
+    int getTTL() const override { return m_ttl; };
+    void setTTL(int ttl) { m_ttl = ttl; };
+    int decTTL()
+    {
+        if (m_ttl > 0)
+            --m_ttl;
+        return m_ttl;
+    }
 
 private:
     uint8_t m_x;
     uint8_t m_y;
     uint8_t m_type;
+    uint8_t m_algo;
     JoyAim m_aim;
     uint8_t m_pu;
+    int m_ttl;
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);
     template <typename WriteFunc>
@@ -79,4 +110,7 @@ private:
     {
         ACTOR_GRANULAR_FACTOR = 1
     };
+    std::unique_ptr<CPath> m_path;
+    bool readPath(IFile &sfile);
+    bool writePath(IFile &tfile) const;
 };

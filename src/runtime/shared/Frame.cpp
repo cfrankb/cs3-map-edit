@@ -316,7 +316,7 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
     if (err != Z_OK)
     {
         m_lastError = "Zlib decompression error " + std::to_string(err) + ": " + zError(err);
-        LOGE("CFrame::toPng error: %d\n", err);
+        LOGE("CFrame::toPng error: %d", err);
         return true;
     }
 
@@ -459,45 +459,34 @@ bool CFrame::hasTransparency() const
     return false;
 }
 
-CFrameSet *CFrame::split(int pxSize, bool whole)
+CFrameSet *CFrame::split(int px, int py)
 {
-    // std::string m_lastError;
-
-    if (pxSize <= 0 || m_width <= 0 || m_height <= 0)
+    if (px <= 0 || py < 0 || m_width <= 0 || m_height <= 0)
     {
-        m_lastError = "Invalid split parameters: pxSize=" + std::to_string(pxSize) +
+        m_lastError = "Invalid split parameters: px=" + std::to_string(px) +
                       ", width=" + std::to_string(m_width) + ", height=" + std::to_string(m_height);
         return nullptr;
     }
-    if (whole && (m_width % pxSize != 0))
-    {
-        m_lastError = "pxSize=" + std::to_string(pxSize) + " does not evenly divide width=" + std::to_string(m_width);
-        return nullptr;
-    }
-
     auto set = std::make_unique<CFrameSet>();
-    int count = whole ? m_width / pxSize : 1;
-    if (count > 10000)
-    {
-        m_lastError = "Too many sub-frames: " + std::to_string(count);
-        return nullptr;
-    }
 
-    set->reserve(count); // Pre-allocate frames
-    int mx = 0;
-    for (int i = 0; i < count; ++i)
+    int yPieces = py ? m_height / py : 1;
+    int xPieces = m_width / px;
+
+    for (int y = 0; y < yPieces; ++y)
     {
-        auto frame = std::unique_ptr<CFrame>(clip(mx, 0, pxSize, m_height));
-        if (!frame)
+        for (int x = 0; x < xPieces; ++x)
         {
-            m_lastError = "Failed to clip frame at x=" + std::to_string(mx);
-            return nullptr;
+            int mx = x * px;
+            int my = y * py;
+            auto frame = std::unique_ptr<CFrame>(clip(mx, my, px, py ? py : m_height));
+            if (!frame)
+            {
+                m_lastError = "Failed to clip frame at x=" + std::to_string(mx);
+                return nullptr;
+            }
+            set->add(frame.release());
         }
-        // set->add(std::move(frame));
-        set->add(frame.release());
-        mx += pxSize;
     }
-
     return set.release();
 }
 

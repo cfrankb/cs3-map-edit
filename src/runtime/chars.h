@@ -19,8 +19,12 @@
 
 #include <cstdint>
 #pragma once
-const uint8_t * getCustomChars();
 
+extern const uint8_t custom_chars_data[];
+
+constexpr inline const uint8_t * getCustomChars() {
+    return custom_chars_data;
+}
 #define CHARS_CUSTOM           0x80
 #define CHARS_CUR_UP           0x80
 #define CHARS_CUR_DOWN         0x81

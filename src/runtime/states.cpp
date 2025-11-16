@@ -213,16 +213,16 @@ void CStates::clear()
 
 void CStates::debug() const
 {
-    LOGI("\n**** m_stateU: %zu\n\n", m_stateU.size());
+    LOGI("\n**** m_stateU: %zu", m_stateU.size());
     for (const auto &[k, v] : m_stateU)
     {
-        LOGI("[%d / 0x%.2x] => [%d / 0x%.2x]\n", k, k, v, v);
+        LOGI("[%d / 0x%.2x] => [%d / 0x%.2x]", k, k, v, v);
     }
 
-    LOGI("\n***** m_stateS: %zu\n\n", m_stateS.size());
+    LOGI("\n***** m_stateS: %zu", m_stateS.size());
     for (const auto &[k, v] : m_stateS)
     {
-        LOGI("[%d / 0x%.2x] => [%s]\n", k, k, v.c_str());
+        LOGI("[%d / 0x%.2x] => [%s]", k, k, v.c_str());
     }
 }
 

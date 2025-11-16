@@ -42,7 +42,7 @@ public:
 
     struct animzSeq_t
     {
-        uint8_t srcTile;   ///< Source tile ID.
+        uint16_t srcTile;  ///< Source tile ID.
         uint8_t startSeq;  ///< Starting frame ID of animation.
         uint8_t count;     ///< Number of frames in sequence.
         uint8_t specialID; ///< Base ID for special animations (0 if none).

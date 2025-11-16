@@ -29,4 +29,6 @@ enum Event
     EVENT_TRAP,
     EVENT_PASSAGE,
     EVENT_EXIT_OPENED,
+    EVENT_SHIELD,
+    EVENT_BOAT,
 };

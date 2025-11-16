@@ -34,8 +34,12 @@ class MapPropertiesDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit MapPropertiesDialog(CMap *map, QWidget *parent = nullptr);
+    explicit MapPropertiesDialog(CMap *map, QWidget *parent = nullptr, int tab=0);
     ~MapPropertiesDialog();
+
+    enum {
+        TAB_GENERAL, TAB_MESSAGES
+    };
 
 private slots:
     void onAccept();
@@ -57,6 +61,8 @@ private:
     };
 
     CMap *m_map;
+
+    QTabWidget *m_tabWidget;
 
     // General tab UI Components
     QLineEdit *m_titleLineEdit;

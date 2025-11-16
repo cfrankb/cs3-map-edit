@@ -17,12 +17,11 @@
 */
 #pragma once
 
-#include <cstdint>
-#include <cstdio>
 #include <unordered_map>
 #include <string>
 #include <functional>
 #include <memory> // For unique_ptr
+#include "shared/IFile.h"
 
 typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
 struct Pos
@@ -36,6 +35,23 @@ struct Pos
     bool operator!=(const Pos &other) const
     {
         return x != other.x || y != other.y;
+    }
+
+    bool write(IFile &tfile) const
+    {
+        if (tfile.write(&x, sizeof(x)) != IFILE_OK)
+            return false;
+        if (tfile.write(&y, sizeof(y)) != IFILE_OK)
+            return false;
+        return true;
+    }
+    bool read(IFile &sfile)
+    {
+        if (sfile.read(&x, sizeof(x)) != IFILE_OK)
+            return false;
+        if (sfile.read(&y, sizeof(y)) != IFILE_OK)
+            return false;
+        return true;
     }
 };
 
@@ -75,6 +91,7 @@ public:
     void replaceTile(const uint8_t, const uint8_t);
     const AttrMap &attrs() { return m_attrs; }
     CStates &states();
+    inline const CStates &statesConst() const { return *m_states; };
     static uint16_t toKey(const uint8_t x, const uint8_t y);
     static uint16_t toKey(const Pos &pos);
     static Pos toPos(const uint16_t key);
@@ -92,7 +109,6 @@ public:
         MAX = RIGHT,
         NOT_FOUND = -1 // 0xffff
     };
-    // void shift(int aim);
     void shift(Direction aim);
     void debug();
 
@@ -101,12 +117,6 @@ private:
     bool writeCommon(WriteFunc writefile) const;
     template <typename ReadFunc>
     bool readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates);
-
-    enum
-    {
-        XTR_VER0 = 0,
-        XTR_VER1 = 1,
-    };
 
     uint16_t m_len;
     uint16_t m_hei;

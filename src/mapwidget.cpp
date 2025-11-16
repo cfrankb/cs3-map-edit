@@ -209,7 +209,7 @@ uint32_t CMapWidget::attr2color(const uint8_t attr)
 {
     if (RANGE(attr, ATTR_MSG_MIN, ATTR_MSG_MAX)) {
         return CYAN;
-    } else if (RANGE(attr, ATTR_WAIT_MIN, ATTR_WAIT_MAX)) {
+    } else if (RANGE(attr, ATTR_IDLE_MIN, ATTR_IDLE_MAX)) {
         return HOTPINK;
     } else if (attr == ATTR_FREEZE_TRAP) {
         return LIGHTGRAY;

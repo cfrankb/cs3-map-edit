@@ -23,8 +23,19 @@
 #include "shared/FileWrap.h"
 #include "logger.h"
 
-constexpr const char MAAZ_SIG[]{'M', 'A', 'A', 'Z'};
-const uint16_t MAAZ_VERSION = 0;
+namespace MapArchPrivate
+{
+    constexpr const char MAAZ_SIG[]{'M', 'A', 'A', 'Z'};
+    constexpr uint16_t MAAZ_VERSION = 0;
+    enum
+    {
+        OFFSET_COUNT = 6,
+        OFFSET_INDEX = 8,
+        MAX_MAPS = 1000,
+    };
+};
+
+using namespace MapArchPrivate;
 
 // Define header structure
 struct Header
@@ -174,7 +185,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
     if (readfile(&hdr, sizeof(Header)) != IFILE_OK)
     {
         m_lastError = "Failed to read header";
-        LOGE("%s\n", m_lastError.c_str());
+        LOGE("%s", m_lastError.c_str());
         return false;
     }
 
@@ -182,7 +193,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
     if (memcmp(hdr.sig, MAAZ_SIG, sizeof(MAAZ_SIG)) != 0)
     {
         m_lastError = "MAAZ signature is incorrect";
-        LOGE("%s\n", m_lastError.c_str());
+        LOGE("%s", m_lastError.c_str());
         return false;
     }
 
@@ -190,7 +201,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
     if (hdr.version != MAAZ_VERSION)
     {
         m_lastError = "MAAZ Version is incorrect";
-        LOGE("%s\n", m_lastError.c_str());
+        LOGE("%s", m_lastError.c_str());
         return false;
     }
 
@@ -198,7 +209,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
     if (!seekfile(hdr.offset))
     {
         m_lastError = "Failed to seek to index";
-        LOGE("%s\n", m_lastError.c_str());
+        LOGE("%s", m_lastError.c_str());
         return false;
     }
 
@@ -206,7 +217,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
     if (!readfile(indexPtr.data(), sizeof(uint32_t) * hdr.count))
     {
         m_lastError = "Failed to read index";
-        LOGE("%s\n", m_lastError.c_str());
+        LOGE("%s", m_lastError.c_str());
         return false;
     }
 
@@ -217,7 +228,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
         if (!seekfile(indexPtr[i]))
         {
             m_lastError = "Failed to seek to map data";
-            LOGE("%s\n", m_lastError.c_str());
+            LOGE("%s", m_lastError.c_str());
             return false;
         }
 
@@ -225,7 +236,7 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
         if (!readmap(map))
         {
             m_lastError = "Failed to read map data [ma]";
-            LOGE("%s\n", m_lastError.c_str());
+            LOGE("%s", m_lastError.c_str());
             return false;
         }
         m_maps.emplace_back(std::move(map));
@@ -351,7 +362,7 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     CFileWrap file;
     if (!file.open(filename, "rb"))
     {
-        LOGE("Failed to open file: %s\n", filename);
+        LOGE("Failed to open file: %s", filename);
         return false;
     }
 
@@ -360,7 +371,7 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     // Read header
     if (file.read(&hdr, sizeof(Header)) != IFILE_OK)
     {
-        LOGE("Failed to read header from %s\n", filename);
+        LOGE("Failed to read header from %s", filename);
         return false;
     }
     // check signature
@@ -371,17 +382,17 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     // check version
     if (hdr.version != MAAZ_VERSION)
     {
-        LOGE("Unsupported MAAZ version %d in %s\n", hdr.version, filename);
+        LOGE("Unsupported MAAZ version %d in %s", hdr.version, filename);
         return false;
     }
     if (hdr.count > MAX_MAPS)
     {
-        LOGE("Invalid map count %d in %s\n", hdr.count, filename);
+        LOGE("Invalid map count %d in %s", hdr.count, filename);
         return false;
     }
     if (hdr.offset == 0)
     {
-        LOGE("Invalid offset table position in %s\n", filename);
+        LOGE("Invalid offset table position in %s", filename);
         return false;
     }
     const long filesize = file.getSize();
@@ -390,13 +401,13 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     file.seek(hdr.offset);
     /* if (!file.seek(hdr.offset))
     {
-        LOGE("Failed to seek to offset table in %s\n", filename);
+        LOGE("Failed to seek to offset table in %s", filename);
         return false;
     }*/
     std::vector<uint32_t> offsets(hdr.count);
     if (file.read(offsets.data(), sizeof(uint32_t) * hdr.count) != IFILE_OK)
     {
-        LOGE("Failed to read offsets from %s\n", filename);
+        LOGE("Failed to read offsets from %s", filename);
         return false;
     }
     index.clear();
@@ -404,7 +415,7 @@ bool CMapArch::indexFromFile(const char *filename, IndexVector &index)
     {
         if (off > (uint32_t)filesize)
         {
-            LOGE("Invalid offset %u in %s\n", off, filename);
+            LOGE("Invalid offset %u in %s", off, filename);
             return false;
         }
         index.emplace_back(static_cast<long>(off));
@@ -425,14 +436,14 @@ bool CMapArch::indexFromMemory(uint8_t *ptr, IndexVector &index)
 {
     if (!ptr)
     {
-        LOGE("Null pointer passed to indexFromMemory\n");
+        LOGE("Null pointer passed to indexFromMemory");
         return false;
     }
 
     constexpr size_t headerSize = sizeof(Header);
     if (memcmp(ptr, MAAZ_SIG, sizeof(MAAZ_SIG)) != 0)
     {
-        LOGE("Invalid MAAZ signature in memory buffer\n");
+        LOGE("Invalid MAAZ signature in memory buffer");
         return false;
     }
 
@@ -440,17 +451,17 @@ bool CMapArch::indexFromMemory(uint8_t *ptr, IndexVector &index)
     memcpy(&hdr, ptr, headerSize); // Safe: headerSize is fixed
     if (hdr.version != MAAZ_VERSION)
     {
-        LOGE("Unsupported MAAZ version %d in memory buffer\n", hdr.version);
+        LOGE("Unsupported MAAZ version %d in memory buffer", hdr.version);
         return false;
     }
     if (hdr.count > MAX_MAPS)
     {
-        LOGE("Invalid map count %d in memory buffer\n", hdr.count);
+        LOGE("Invalid map count %d in memory buffer", hdr.count);
         return false;
     }
     if (hdr.offset < headerSize)
     {
-        LOGE("Invalid offset table position %u in memory buffer\n", hdr.offset);
+        LOGE("Invalid offset table position %u in memory buffer", hdr.offset);
         return false;
     }
 
@@ -465,7 +476,7 @@ bool CMapArch::indexFromMemory(uint8_t *ptr, IndexVector &index)
         ptr += sizeof(uint32_t);
         if (offset < headerSize)
         {
-            LOGE("Invalid map offset %u at index %d\n", offset, i);
+            LOGE("Invalid map offset %u at index %d", offset, i);
             return false;
         }
         index.emplace_back(static_cast<long>(offset));

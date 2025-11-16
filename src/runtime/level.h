@@ -22,7 +22,6 @@
 class CMap;
 
 typedef std::vector<std::string> StringVector;
-// uint8_t *readFile(const char *fname);
 std::vector<uint8_t> readFile(const char *fname);
 bool processLevel(CMap &map, const char *fname);
 bool convertCs3Level(CMap &map, const char *fname);

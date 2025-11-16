@@ -36,4 +36,4 @@ void clearColorMaps(ColorMaps &colorMaps);
 /// Parses color mappings from a file in format: [section] key=value.
 bool parseColorMaps(IFile &file, ColorMaps &colorMaps);
 /// Parses color mappings from a char buffer.
-bool parseColorMaps(char *tmp, ColorMaps &colorMaps);
+bool parseColorMaps(const char *tmp, ColorMaps &colorMaps);

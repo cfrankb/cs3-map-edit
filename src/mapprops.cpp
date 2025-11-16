@@ -34,7 +34,7 @@
 #include "SpellHighlighter.h"
 #endif
 
-MapPropertiesDialog::MapPropertiesDialog(CMap *map, QWidget *parent)
+MapPropertiesDialog::MapPropertiesDialog(CMap *map, QWidget *parent, int tab)
     : QDialog(parent), m_map(map), m_currentIndex(-1)
 {
     setWindowTitle("Map Properties");
@@ -45,6 +45,9 @@ MapPropertiesDialog::MapPropertiesDialog(CMap *map, QWidget *parent)
     // Set minimum dialog size
     setMinimumWidth(450);
     setMinimumHeight(400);
+
+    // change current tab
+    m_tabWidget->setCurrentIndex(tab);
 }
 
 MapPropertiesDialog::~MapPropertiesDialog()
@@ -59,7 +62,7 @@ void MapPropertiesDialog::setupUI()
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
     // Create tab widget
-    QTabWidget *tabWidget = new QTabWidget(this);
+    m_tabWidget = new QTabWidget(this);
 
     // ===== General Tab =====
     QWidget *generalTab = new QWidget();
@@ -143,10 +146,10 @@ void MapPropertiesDialog::setupUI()
     messagesLayout->addWidget(m_sStatus);
 
     // Add tabs to tab widget
-    tabWidget->addTab(generalTab, "General");
-    tabWidget->addTab(messagesTab, "Messages");
+    m_tabWidget->addTab(generalTab, "General");
+    m_tabWidget->addTab(messagesTab, "Messages");
 
-    mainLayout->addWidget(tabWidget);
+    mainLayout->addWidget(m_tabWidget);
 
     // Add some spacing
     mainLayout->addSpacing(10);

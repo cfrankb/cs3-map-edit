@@ -11,7 +11,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 INCLUDEPATH += runtime/shared/
 DEFINES += USE_QFILE=1
 #DEFINES += USE_SDL_MIXER=1
-#DEFINES += USE_HUNSPELL=1
+DEFINES += USE_HUNSPELL=1
 
 SOURCES += \
     runtime/ai_path.cpp \
@@ -46,7 +46,7 @@ SOURCES += \
     runtime/strhelper.cpp \
     runtime/boss.cpp \
     dlgattr.cpp \
-    dlgmsgs.cpp \
+    #dlgmsgs.cpp \
     dlgresize.cpp \
     dlgabout.cpp \
     dlgselect.cpp \
@@ -112,7 +112,7 @@ HEADERS += \
     runtime/joyaim.h \
     app_version.h \
     dlgattr.h \
-    dlgmsgs.h \
+    #dlgmsgs.h \
     dlgresize.h \
     dlgabout.h \
     dlgselect.h \
@@ -129,7 +129,7 @@ HEADERS += \
 
 FORMS += \
     dlgattr.ui \
-    dlgmsgs.ui \
+#    dlgmsgs.ui \
     dlgresize.ui \
     dlgabout.ui \
     dlgselect.ui \

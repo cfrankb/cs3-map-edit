@@ -243,7 +243,7 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
                 LOGI("ColorType: %d", ihdr.ColorType);
                 LOGI("Compression: %d", ihdr.Compression);
                 LOGI("Filter: %d", ihdr.Filter);
-                LOGI("Interlace: %d\n", ihdr.Interlace);
+                LOGI("Interlace: %d", ihdr.Interlace);
             }
         }
 
