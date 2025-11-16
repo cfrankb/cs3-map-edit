@@ -64,9 +64,10 @@ jobs:
           sudo apt install libfuse2
           wget -O deploy.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod +x deploy.AppImage
-          ls ${{ env.SOURCE_DIR }}
+          ls -l ${{ env.SOURCE_DIR }}
           cp ${{ env.SOURCE_DIR }}/linux/* .
-          cp ${{ env.SOURCE_DIR }}/linux/* ..
+          ls -l ${{ runner.temp }}
+          cp ${{ env.SOURCE_DIR }}/linux/* ${{ runner.temp }}
           ./deploy.AppImage CS3MapEdit.desktop -appimage -no-translations -qmldir=${{ env.SOURCE_DIR }} -extra-plugins=renderers
           ls -l
           mkdir ${{ env.SOURCE_DIR }}/build/release
