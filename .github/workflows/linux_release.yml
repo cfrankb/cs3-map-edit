@@ -33,6 +33,14 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Copy AppIcon
+        run: |
+          echo "SOURCEDIR: ${{ env.SOURCE_DIR }}/"
+          echo "RUNNERDIR: ${{ runner.temp }}"
+          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png /home/runner/work/cs3-map-edit/CS3MapEdit-icon.png
+          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png ${{ runner.temp }}
+          ls -l /home/runner/work/cs3-map-edit/
+
       - name: Run Python script
         run: |
           python3 bin/patch.py
