@@ -3,7 +3,7 @@ name: Windows Release
 on:
   push:
     branches:
-      - "master"
+      #- "master"
       - "develop"
       # - "continuous-integration"
     tags:
