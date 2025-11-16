@@ -33,6 +33,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Run Python script
+        run: |
+          python3 bin/patch.py
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -42,8 +46,6 @@ jobs:
           arch: gcc_64
           dir: ${{ runner.temp }}
           setup-python: false
-
-
 
       - name: Create build directory
         run: mkdir ${{ env.SOURCE_DIR }}/build
