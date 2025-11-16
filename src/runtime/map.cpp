@@ -24,6 +24,7 @@
 #include "shared/IFile.h"
 #include "states.h"
 #include "logger.h"
+#include <cstdint>
 
 namespace MapPrivate
 {
@@ -34,6 +35,8 @@ namespace MapPrivate
     };
     constexpr char SIG[]{'M', 'A', 'P', 'Z'};
     constexpr char XTR_SIG[]{"XTR"};
+    constexpr uint16_t VERSION0 = 0;
+    constexpr uint16_t VERSION1 = 1;
     constexpr uint16_t VERSION = 0;
     constexpr uint16_t MAX_SIZE = 256;
     constexpr uint16_t MAX_TITLE = 255;
@@ -47,14 +50,14 @@ typedef struct
     char ver;
 } extrahdr_t;
 
-CMap::CMap(uint16_t len, uint16_t hei, uint8_t t) : m_states(std::make_unique<CStates>())
+CMap::CMap(uint16_t len, uint16_t hei, uint8_t t) : m_mainLayer(len, hei), m_states(std::make_unique<CStates>())
 {
     resize(len, hei, t, true);
 };
 
 CMap::CMap(const CMap &map) : m_len(map.m_len),
                               m_hei(map.m_hei),
-                              m_map(map.m_map),
+                              m_mainLayer(map.m_mainLayer),
                               m_attrs(map.m_attrs),
                               m_title(map.m_title),
                               m_states(std::make_unique<CStates>(*map.m_states)) {}
@@ -64,35 +67,10 @@ CMap::~CMap()
     clear();
 };
 
-uint8_t &CMap::get(const int x, const int y)
-{
-    if (!isValid(x, y))
-    {
-        LOGE("invalid coordonates [get] (%d, %d) -- upper bound(%d,%d)", x, y, m_len, m_hei);
-        throw std::out_of_range("Invalid map access");
-    }
-    return m_map[x + y * m_len];
-}
-
-uint8_t CMap::at(const int x, const int y) const
-{
-    if (!isValid(x, y))
-    {
-        LOGE("invalid coordonates [at] (%d, %d) -- upper bound(%d,%d)", x, y, m_len, m_hei);
-        throw std::out_of_range("Invalid map access");
-    }
-    return m_map[x + y * m_len];
-}
-
-void CMap::set(const int x, const int y, const uint8_t t)
-{
-    get(x, y) = t;
-}
-
 void CMap::clear()
 {
     m_states->clear();
-    m_map.clear();
+    m_mainLayer.clear();
     m_len = 0;
     m_hei = 0;
     m_attrs.clear();
@@ -209,27 +187,14 @@ bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::func
         return false;
     }
 
-    // Read map dimensions - preserving original read sizes
-    uint16_t len = 0;
-    uint16_t hei = 0;
-    if (!readfile(&len, sizeof(uint8_t)) || !readfile(&hei, sizeof(uint8_t)))
+    if (!m_mainLayer.readImpl(readfile))
     {
-        m_lastError = "failed to read dimensions";
+        m_lastError = m_mainLayer.lastError();
         LOGE("%s", m_lastError.c_str());
         return false;
     }
-
-    len = len ? len : MAX_SIZE;
-    hei = hei ? hei : MAX_SIZE;
-    resize(len, hei, 0, true);
-
-    // Read map data
-    if (!readfile(m_map.data(), len * hei))
-    {
-        m_lastError = "failed to read map data [m]";
-        LOGE("%s", m_lastError.c_str());
-        return false;
-    }
+    m_len = m_mainLayer.len();
+    m_hei = m_mainLayer.hei();
 
     // Read attributes
     m_attrs.clear();
@@ -367,12 +332,20 @@ bool CMap::writeCommon(WriteFunc writefile) const
         return false;
     if (!writefile(&VERSION, sizeof(VERSION)))
         return false;
-    if (!writefile(&m_len, sizeof(uint8_t)))
+
+    /*
+       if (!writefile(&m_len, sizeof(uint8_t)))
+           return false;
+       if (!writefile(&m_hei, sizeof(uint8_t)))
+           return false;
+       if (!writefile(m_map.data(), m_len * m_hei))
+           return false;
+    */
+    if (!m_mainLayer.writeCommon(writefile))
+    {
+        LOGE("failed to write mainlayer");
         return false;
-    if (!writefile(&m_hei, sizeof(uint8_t)))
-        return false;
-    if (!writefile(m_map.data(), m_len * m_hei))
-        return false;
+    }
 
     // Write attributes
     size_t attrCount = m_attrs.size();
@@ -412,24 +385,15 @@ bool CMap::writeCommon(WriteFunc writefile) const
     return true;
 }
 
-int CMap::len() const
-{
-    return m_len;
-}
-int CMap::hei() const
-{
-    return m_hei;
-}
-
 const Pos CMap::findFirst(const uint8_t tileId) const
 {
-    for (int16_t y = 0; y < m_hei; ++y)
+    for (int y = 0; y < m_hei; ++y)
     {
-        for (int16_t x = 0; x < m_len; ++x)
+        for (int x = 0; x < m_len; ++x)
         {
             if (at(x, y) == tileId)
             {
-                return Pos{x, y};
+                return Pos{static_cast<int16_t>(x), static_cast<int16_t>(y)};
             }
         }
     }
@@ -454,9 +418,7 @@ size_t CMap::count(const uint8_t tileId) const
 
 void CMap::fill(uint8_t ch)
 {
-    if (m_len * m_hei > 0)
-        for (int i = 0; i < m_len * m_hei; ++i)
-            m_map[i] = ch;
+    m_mainLayer.fill(ch);
     m_attrs.clear();
 }
 
@@ -494,7 +456,7 @@ const char *CMap::lastError()
 
 size_t CMap::size() const
 {
-    return m_map.size();
+    return m_mainLayer.size(); //  m_map.size();
 }
 
 CMap &CMap::operator=(const CMap &map)
@@ -503,7 +465,7 @@ CMap &CMap::operator=(const CMap &map)
     {
         m_len = map.m_len;
         m_hei = map.m_hei;
-        m_map = map.m_map;
+        m_mainLayer = map.m_mainLayer;
         m_attrs = map.m_attrs;
         m_title = map.m_title;
         *m_states = *map.m_states;
@@ -516,16 +478,17 @@ void CMap::shift(Direction aim)
     if (m_len == 0 || m_hei == 0)
         return; // No-op for empty map
 
-    std::vector<uint8_t> tmp(m_len); // Temporary buffer for row/column
-    AttrMap newAttrs;                // New attribute map for shifted positions
+    if (!m_mainLayer.shift(aim))
+    {
+        return;
+    }
 
+    attrMap_t newAttrs; // New attribute map for shifted positions
+
+    // Update attributes
     switch (aim)
     {
     case Direction::UP:
-        // Save top row, rotate tiles upward, place top row at bottom
-        std::copy(m_map.begin(), m_map.begin() + m_len, tmp.begin());
-        std::rotate(m_map.begin(), m_map.begin() + m_len, m_map.end());
-        // Update attributes
         for (const auto &[key, attr] : m_attrs)
         {
             Pos pos = toPos(key);
@@ -535,10 +498,6 @@ void CMap::shift(Direction aim)
         break;
 
     case Direction::DOWN:
-        // Save bottom row, rotate tiles downward, place bottom row at top
-        std::copy(m_map.end() - m_len, m_map.end(), tmp.begin());
-        std::rotate(m_map.rbegin(), m_map.rbegin() + m_len, m_map.rend());
-        // Update attributes
         for (const auto &[key, attr] : m_attrs)
         {
             Pos pos = toPos(key);
@@ -548,15 +507,6 @@ void CMap::shift(Direction aim)
         break;
 
     case Direction::LEFT:
-        // Shift each row left, wrap first column to last
-        for (int y = 0; y < m_hei; ++y)
-        {
-            auto start = m_map.begin() + y * m_len;
-            tmp[0] = *start; // Save first element
-            std::rotate(start, start + 1, start + m_len);
-            *(start + m_len - 1) = tmp[0];
-        }
-        // Update attributes
         for (const auto &[key, attr] : m_attrs)
         {
             Pos pos = toPos(key);
@@ -566,15 +516,6 @@ void CMap::shift(Direction aim)
         break;
 
     case Direction::RIGHT:
-        // Shift each row right, wrap last column to first
-        for (int y = 0; y < m_hei; ++y)
-        {
-            auto start = m_map.begin() + y * m_len;
-            tmp[0] = *(start + m_len - 1); // Save last element
-            std::rotate(start, start + m_len - 1, start + m_len);
-            *start = tmp[0];
-        }
-        // Update attributes
         for (const auto &[key, attr] : m_attrs)
         {
             Pos pos = toPos(key);
@@ -641,34 +582,27 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     in_len = std::min(in_len, MAX_SIZE);
     in_hei = std::min(in_hei, MAX_SIZE);
 
-    if (fast)
-    {
-        m_map.resize(in_len * in_hei, t);
-        m_attrs.clear();
-    }
-    else
-    {
-        std::vector<uint8_t> map(in_len * in_hei);
-        for (int y = 0; y < std::min(m_hei, in_hei); ++y)
-        {
-            for (int x = 0; x < std::min(m_len, in_len); ++x)
-            {
-                map[x + y * in_len] = m_map[x + y * m_len];
-            }
-        }
-        m_map = std::move(map);
-    }
-
     m_len = in_len;
     m_hei = in_hei;
+
+    if (!m_mainLayer.resize(in_hei, in_hei, t, fast))
+    {
+        return false;
+    }
+
+    attrMap_t newAttrs;
+    for (const auto &[key, attr] : m_attrs)
+    {
+        Pos pos = toPos(key);
+        if (pos.x >= in_len || pos.y >= in_hei)
+            continue;
+        newAttrs[toKey(pos.x, pos.y)] = attr;
+    }
+    m_attrs = std::move(newAttrs); // Update attributes
     return true;
 }
 
 void CMap::replaceTile(const uint8_t src, const uint8_t repl)
 {
-    for (auto &tileID : m_map)
-    {
-        if (tileID == src)
-            tileID = repl;
-    }
+    m_mainLayer.replaceTile(src, repl);
 }

@@ -9,6 +9,7 @@
 #include "runtime/tilesdata.h"
 #include "runtime/states.h"
 #include "runtime/statedata.h"
+#include "runtime/dirs.h"
 
 CDlgSelect::CDlgSelect(QWidget *parent) :
     QDialog(parent),

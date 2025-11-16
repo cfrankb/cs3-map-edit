@@ -12,6 +12,7 @@
 #include "runtime/shared/FrameSet.h"
 #include "runtime/shared/Frame.h"
 #include "runtime/game.h"
+#include "runtime/tilesdefs.h"
 
 #define ALPHA 0xff000000
 #define BLACK 0xff000000

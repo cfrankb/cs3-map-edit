@@ -179,28 +179,7 @@ constexpr const TileDef tileDefs[] = {
     {0x2000, TYPE_PICKUP, 125, 0, 0, 0, false, "boat.png"},                 // 99 TILES_BOAT
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "barrel2ex.png"},                 // 9a TILES_BARREL2EX
     {0x00, TYPE_BARREL, 0, -20, 0, 0, false, "barrel2.png"},                // 9b TILES_BARREL2
-    {0x00, TYPE_FIRE, 0, -1, 0, 0, false, "flame16x16.zip"},                // 9c TILES_FLAME
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // 9d TILES_WALLS
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // 9e TILES_WALLS_2
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // 9f TILES_WALLS_3
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a0 TILES_WALLS_4
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a1 TILES_WALLS_5
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a2 TILES_WALLS_6
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a3 TILES_WALLS_7
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a4 TILES_WALLS_8
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a5 TILES_WALLS_9
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a6 TILES_WALLS_A
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a7 TILES_WALLS_B
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a8 TILES_WALLS_C
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // a9 TILES_WALLS_D
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // aa TILES_WALLS_E
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // ab TILES_WALLS_F
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // ac TILES_WALLS_10
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // ad TILES_WALLS_11
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // ae TILES_WALLS_12
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // af TILES_WALLS_13
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"},                     // b0 TILES_WALLS_14
-    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "walls.png"}                      // b1 TILES_WALLS_15
+    {0x00, TYPE_FIRE, 0, -1, 0, 0, false, "flame16x16.zip"}                 // 9c TILES_FLAME
 };
 
 const uint8_t chMap[] = {

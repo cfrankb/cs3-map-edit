@@ -22,8 +22,10 @@
 #include <functional>
 #include <memory> // For unique_ptr
 #include "shared/IFile.h"
+#include "dirs.h"
+#include "layer.h"
 
-typedef std::unordered_map<uint16_t, uint8_t> AttrMap;
+typedef std::unordered_map<uint16_t, uint8_t> attrMap_t;
 struct Pos
 {
     int16_t x;
@@ -57,6 +59,7 @@ struct Pos
 
 class IFile;
 class CStates;
+class CLayer;
 
 class CMap
 {
@@ -64,9 +67,6 @@ public:
     CMap(uint16_t len = 0, uint16_t hei = 0, uint8_t t = 0);
     CMap(const CMap &map);
     ~CMap();
-    uint8_t at(const int x, const int y) const;
-    void set(const int x, const int y, const uint8_t t);
-    uint8_t &get(const int x, const int y);
     bool read(const char *fname);
     bool write(const char *fname) const;
     bool read(FILE *sfile);
@@ -74,8 +74,8 @@ public:
     bool write(FILE *tfile) const;
     bool write(IFile &tfile) const;
     void clear();
-    int len() const;
-    int hei() const;
+    inline int len() const { return m_len; };
+    inline int hei() const { return m_hei; };
     bool resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast);
     const Pos findFirst(const uint8_t tileId) const;
     size_t count(const uint8_t tileId) const;
@@ -89,7 +89,7 @@ public:
     const char *title();
     void setTitle(const char *title);
     void replaceTile(const uint8_t, const uint8_t);
-    const AttrMap &attrs() { return m_attrs; }
+    const attrMap_t &attrs() { return m_attrs; }
     CStates &states();
     inline const CStates &statesConst() const { return *m_states; };
     static uint16_t toKey(const uint8_t x, const uint8_t y);
@@ -100,17 +100,27 @@ public:
         return x >= 0 && x < m_len && y >= 0 && y < m_hei;
     }
 
-    enum Direction : int16_t
-    {
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT,
-        MAX = RIGHT,
-        NOT_FOUND = -1 // 0xffff
-    };
     void shift(Direction aim);
     void debug();
+    inline uint8_t &get(const int x, const int y)
+    {
+        return m_mainLayer.get(x, y);
+    }
+
+    inline uint8_t at(const int x, const int y) const
+    {
+        return m_mainLayer.at(x, y);
+    }
+
+    inline void set(const int x, const int y, const uint8_t t)
+    {
+        get(x, y) = t;
+    }
+
+    enum : int16_t
+    {
+        NOT_FOUND = -1,
+    };
 
 private:
     template <typename WriteFunc>
@@ -120,8 +130,8 @@ private:
 
     uint16_t m_len;
     uint16_t m_hei;
-    std::vector<uint8_t> m_map;
-    AttrMap m_attrs;
+    CLayer m_mainLayer;
+    attrMap_t m_attrs;
     std::string m_lastError;
     std::string m_title;
     std::unique_ptr<CStates> m_states;

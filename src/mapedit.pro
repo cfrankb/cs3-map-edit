@@ -33,6 +33,7 @@ SOURCES += \
     runtime/shared/PngMagic.cpp \
     runtime/shared/helper.cpp \
     runtime/map.cpp \
+    runtime/layer.cpp \
     runtime/shared/qtgui/qfilewrap.cpp \
     runtime/shared/qtgui/qthelper.cpp \
     runtime/tilesdata.cpp \
@@ -46,7 +47,6 @@ SOURCES += \
     runtime/strhelper.cpp \
     runtime/boss.cpp \
     dlgattr.cpp \
-    #dlgmsgs.cpp \
     dlgresize.cpp \
     dlgabout.cpp \
     dlgselect.cpp \
@@ -87,6 +87,7 @@ HEADERS += \
     runtime/shared/PngMagic.h \
     runtime/shared/helper.h \
     runtime/map.h \
+    runtime/layer.h \
     runtime/shared/qtgui/cheat.h \
     runtime/shared/qtgui/qfilewrap.h \
     runtime/shared/qtgui/qthelper.h \
@@ -112,7 +113,6 @@ HEADERS += \
     runtime/joyaim.h \
     app_version.h \
     dlgattr.h \
-    #dlgmsgs.h \
     dlgresize.h \
     dlgabout.h \
     dlgselect.h \
@@ -129,7 +129,6 @@ HEADERS += \
 
 FORMS += \
     dlgattr.ui \
-#    dlgmsgs.ui \
     dlgresize.ui \
     dlgabout.ui \
     dlgselect.ui \

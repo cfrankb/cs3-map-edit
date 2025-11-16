@@ -24,7 +24,7 @@
 #include "report.h"
 #include "keyvaluedialog.h"
 #include "runtime/statedata.h"
-//#include "dlgmsgs.h"
+#include "runtime/dirs.h"
 #include "mapprops.h"
 
 MainWindow::MainWindow(QWidget *parent)
@@ -71,25 +71,25 @@ void MainWindow::updateStatus()
 
 void MainWindow::shiftUp()
 {
-    m_doc.map()->shift(CMap::UP);
+    m_doc.map()->shift(Direction::UP);
     m_doc.setDirty(true);
 }
 
 void MainWindow::shiftDown()
 {
-    m_doc.map()->shift(CMap::DOWN);
+    m_doc.map()->shift(Direction::DOWN);
     m_doc.setDirty(true);
 }
 
 void MainWindow::shiftLeft()
 {
-    m_doc.map()->shift(CMap::LEFT);
+    m_doc.map()->shift(Direction::LEFT);
     m_doc.setDirty(true);
 }
 
 void MainWindow::shiftRight()
 {
-    m_doc.map()->shift(CMap::RIGHT);
+    m_doc.map()->shift(Direction::RIGHT);
     m_doc.setDirty(true);
 }
 

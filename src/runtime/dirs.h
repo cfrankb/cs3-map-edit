@@ -15,5 +15,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define BUILD_HASH "(dev)"
-#define VERSION "dev-version"
+#pragma once
+#include <cstdint>
+
+enum Direction : int16_t
+{
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    MAX = RIGHT,
+};

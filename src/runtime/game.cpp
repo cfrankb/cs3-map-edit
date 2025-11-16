@@ -1489,7 +1489,7 @@ MapReport CGame::generateMapReport(CMap &map)
     }
 
     std::unordered_map<uint8_t, int> secrets;
-    const AttrMap &attrs = map.attrs();
+    const attrMap_t &attrs = map.attrs();
     for (const auto &[k, v] : attrs)
     {
         if (RANGE(v, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
