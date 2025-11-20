@@ -32,7 +32,7 @@
 #include "tilesdefs.h"
 #include "gamesfx.h"
 
-namespace Game
+namespace GamePrivate
 {
     enum
     {
@@ -42,7 +42,7 @@ namespace Game
     };
 }
 
-using namespace Game;
+using namespace GamePrivate;
 
 /////////////////////////////////////////////////////////////////////
 

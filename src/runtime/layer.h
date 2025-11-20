@@ -18,21 +18,37 @@
 #pragma once
 
 #include <functional>
+#include <stdexcept>
 #include <vector>
 #include <cstdint>
 #include <string>
 #include "dirs.h"
 #include "logger.h"
+#include "shared/helper.h"
+#include "shared/IFile.h"
+#include "zlib.h"
+
+class CMap;
 
 class CLayer
 {
 
 public:
-    CLayer(uint16_t len, uint16_t hei)
+    enum LayerType : uint8_t
+    {
+        LAYER_MAIN,
+        LAYER_FLOOR,
+        LAYER_WALLS,
+        LAYER_DECOR,
+    };
+
+    CLayer(const uint16_t len, const uint16_t hei, const LayerType layerType = LAYER_MAIN, const char *name = "untitled")
     {
         m_len = len;
         m_hei = hei;
         m_tiles.resize(len * hei);
+        m_layerType = layerType;
+        m_name = name;
     };
     ~CLayer() = default;
 
@@ -76,13 +92,15 @@ public:
         get(x, y) = t;
     }
 
-    enum LayerType : uint8_t
+    void setName(const std::string_view &name)
     {
-        LAYER_MAIN,
-        LAYER_FLOOR,
-        LAYER_WALLS,
-        LAYER_DECOR,
-    };
+        m_name = name;
+    }
+
+    const char *getName()
+    {
+        return m_name.c_str();
+    }
 
 protected:
     enum : uint16_t
@@ -97,12 +115,42 @@ protected:
             return false;
         if (!writefile(&m_hei, sizeof(uint8_t)))
             return false;
-        if (!writefile(m_tiles.data(), m_len * m_hei))
+        // if (!writefile(m_tiles.data(), m_len * m_hei))
+        //    return false;
+
+        if (!writefile(&m_layerType, sizeof(m_layerType)))
+        {
+            LOGE("fail to write layer type");
             return false;
+        }
+        std::vector<u_int8_t> compr;
+        const int err = compressData(m_tiles, compr);
+        if (err != Z_OK)
+        {
+            LOGE("Zlib compression error %d: %s", err, zError(err));
+            return false;
+        }
+
+        size_t size = compr.size();
+        if (!writefile(&size, sizeof(uint32_t)))
+            return false;
+        if (!writefile(compr.data(), size))
+            return false;
+
+        // write layer name
+        size_t nameSize = m_name.size();
+        if (!writefile(&nameSize, sizeof(uint16_t)))
+        {
+            return false;
+        }
+        if (nameSize && !writefile(m_name.c_str(), nameSize))
+        {
+            return false;
+        }
         return true;
     }
     template <typename ReadFunc>
-    inline bool readImpl(ReadFunc &&readfile)
+    inline bool readCommon(ReadFunc &&readfile, const int version)
     {
         // Read map dimensions - preserving original read sizes
         uint16_t len = 0;
@@ -119,20 +167,85 @@ protected:
         resize(len, hei, 0, true);
 
         // Read map data
-        if (!readfile(m_tiles.data(), len * hei))
+        enum
         {
-            m_lastError = "failed to read layer data";
-            LOGE("%s", m_lastError.c_str());
+            VERSION0,
+            VERSION1,
+        };
+
+        if (version == VERSION0)
+        {
+            m_layerType = LAYER_MAIN;
+            if (!readfile(m_tiles.data(), len * hei))
+            {
+                m_lastError = "failed to read layer data";
+                LOGE("%s", m_lastError.c_str());
+                return false;
+            }
+            m_name = "main";
+        }
+        else if (version == VERSION1)
+        {
+            if (!readfile(&m_layerType, sizeof(m_layerType)))
+            {
+                m_lastError = "fail to read layer type";
+                LOGE("%s", m_lastError.c_str());
+                return false;
+            }
+
+            uint32_t compressedSize;
+            if (readfile(&compressedSize, sizeof(compressedSize)) != IFILE_OK)
+            {
+                m_lastError = "Failed to read compressed size";
+                return false;
+            }
+
+            // read compressed data from disk
+            std::vector<uint8_t> cData(compressedSize);
+            if (readfile(cData.data(), compressedSize) != IFILE_OK)
+            {
+                m_lastError = "Failed to read compressed data";
+                return false;
+            }
+
+            uLong destLen = len * hei;
+            int err = uncompress((uint8_t *)m_tiles.data(), &destLen, cData.data(), compressedSize);
+            if (err != Z_OK || destLen != len * hei)
+            {
+                m_lastError = "Zlib decompression error " + std::to_string(err) + ": " + zError(err);
+                return false;
+            }
+
+            // read layer name
+            size_t nameSize = 0;
+            m_name = "";
+            if (!readfile(&nameSize, sizeof(uint16_t)))
+            {
+                return false;
+            }
+            std::vector<char> nameBuffer(nameSize);
+            if (nameSize && !readfile(nameBuffer.data(), nameSize))
+            {
+                return false;
+            }
+            m_name.assign(nameBuffer.data(), nameBuffer.size());
+        }
+        else
+        {
+            m_lastError = "invalid map version";
+            LOGE("invalid map version:%u", version);
             return false;
         }
         return true;
     }
 
 private:
+    std::string m_name;
     std::string m_lastError;
     std::vector<uint8_t> m_tiles;
     uint16_t m_len;
     uint16_t m_hei;
+    LayerType m_layerType;
 
     friend class CMap;
 };
