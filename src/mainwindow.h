@@ -91,6 +91,7 @@ private:
     void initTilebox();
     void initMapShortcuts();
     void initToolBar();
+    void initSelectorWidget();
     int currentTool();
 
     enum {

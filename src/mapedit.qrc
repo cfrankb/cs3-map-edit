@@ -26,5 +26,6 @@
         <file>data/icons/scroll.png</file>
         <file>data/sheet0.obl</file>
         <file>data/sheet1.obl</file>
+        <file>data/cs3layers.png</file>
     </qresource>
 </RCC>

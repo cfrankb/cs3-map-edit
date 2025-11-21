@@ -26,6 +26,8 @@
 #include "runtime/statedata.h"
 #include "runtime/dirs.h"
 #include "mapprops.h"
+#include "TileSelectorWidget.h"
+#include <QScrollArea>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -50,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     updateTitle();
     initTilebox();
+    initSelectorWidget();
     initFileMenu();
     initMapShortcuts();
     initToolBar();
@@ -117,6 +120,66 @@ void MainWindow::initTilebox()
             this, SLOT(changeTile(int)));
     connect(this, SIGNAL(newTile(int)),
             tilebox, SLOT(setTile(int)));
+
+}
+
+void MainWindow::initSelectorWidget()
+{
+    auto dock = new QDockWidget();
+    dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    dock->setWindowTitle(tr("Toolbox"));
+
+
+    TileSelectorWidget *selectorWidget = new TileSelectorWidget(dock);
+    // 1. Load the image
+    QPixmap image(":/data/cs3layers.png");
+    selectorWidget->setImage(image);
+
+    // 2. Configure Tiling (e.g., 32x32 tiles instead of default 16x16)
+    selectorWidget->setTileSize(16);
+
+    // 3. Configure Zoom (e.g., 200% zoom)
+    selectorWidget->setZoomLevel(2);
+
+    //auto tilebox = new CTileBox(dock);
+    selectorWidget->show();
+
+    // 2. Create the QScrollArea
+    QScrollArea *scrollArea = new QScrollArea();
+
+    // Set policies: Always allow scrolling if the content exceeds the viewport.
+    scrollArea->setWidgetResizable(false); // CRITICAL: Set to false. We want the scroll area
+    // to use the TileSelectorWidget's sizeHint/minimumSize.
+
+    // 3. Set the TileSelectorWidget as the scroll area's widget
+    scrollArea->setWidget(selectorWidget);
+
+    QTabWidget *tabWidget = new QTabWidget(dock);
+
+    // 4. Add the QScrollArea (not the TileSelectorWidget) to the QTabWidget
+    tabWidget->addTab(scrollArea, "Tile Selector");
+
+    // Optional: Set scrollbar policies for visual consistency
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    dock->setWidget(tabWidget);
+    addDockWidget(Qt::RightDockWidgetArea, dock);
+    dock->setAllowedAreas(Qt::RightDockWidgetArea);
+
+    QObject::connect(
+        selectorWidget,
+        &TileSelectorWidget::tilesSelected,
+        this, // The context object for lifetime management
+        [this]() { // Lambda function (captures 'this' to access ui members)
+            (void)this;
+          //  QMessageBox::information(this, "Exiting", "Goodbye!");
+           // QApplication::quit();
+          qDebug("selection received");
+        }
+        );
+
+    ///home/cfrankb/toolkit/workspace/modified/cs3layers.png
 }
 
 MainWindow::~MainWindow()

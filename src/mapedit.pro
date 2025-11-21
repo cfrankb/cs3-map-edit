@@ -60,7 +60,8 @@ SOURCES += \
     mapscroll.cpp \
     mapwidget.cpp \
     report.cpp \
-    mapprops.cpp
+    mapprops.cpp \
+    TileSelectorWidget.cpp
 
 
 HEADERS += \
@@ -125,7 +126,8 @@ HEADERS += \
     report.h \
     tilebox.h \
     keyvaluedialog.h \
-    mapprops.h
+    mapprops.h \
+    TileSelectorWidget.h
 
 FORMS += \
     dlgattr.ui \
