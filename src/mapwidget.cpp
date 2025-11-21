@@ -1,22 +1,39 @@
 #include "mapwidget.h"
-#include "qpainter.h"
+#include <QPainter>
+#include <QScrollBar>
 #include "runtime/shared/qtgui/qfilewrap.h"
 #include "runtime/shared/FrameSet.h"
 #include "runtime/shared/Frame.h"
 #include "runtime/map.h"
-#include "mapscroll.h"
 #include "runtime/animator.h"
 #include "runtime/states.h"
 #include "runtime/statedata.h"
 #include "runtime/attr.h"
-#include <QScrollBar>
+#include "runtime/color.h"
+#include "runtime/shared/logger.h"
+#include "mapscroll.h"
 
+/*
+
+// Add this once in your project
+constexpr QImage::Format Native32BitFormat =
+#if Q_BYTE_ORDER == Q_BIG_ENDIAN
+    QImage::Format_ARGB32;           // big-endian needs ARGB
+#else
+    QImage::Format_ARGB32;           // little-endian: our BGRA-in-memory layout
+#endif
+// QImage::Format_ARGB32_Premultiplied   // works even if you ever add transparency
+
+
+*/
+
+constexpr pixel_t GRIDCOLOR    = RGB(0x79, 0xa0, 0xbf);
 #define RANGE(_x, _min, _max) (_x >= _min && _x <= _max)
 
 CMapWidget::CMapWidget(QWidget *parent)
     : QWidget{parent}
 {
-    m_animator = new CAnimator();
+    m_animator = std::make_unique<CAnimator>();
     m_timer.setInterval(1000 / TICK_RATE);
     m_timer.start();
     preloadAssets();
@@ -48,7 +65,7 @@ void CMapWidget::preloadAssets()
     QFileWrap file;
     typedef struct {
         const char *filename;
-        CFrameSet **frameset;
+        std::unique_ptr<CFrameSet> *frameset;
     } asset_t;
 
     asset_t assets[] = {
@@ -56,60 +73,70 @@ void CMapWidget::preloadAssets()
         {":/data/animz.obl", &m_animz},
     };
 
-    for (int i=0; i < 2; ++i) {
+    constexpr size_t assetCount = sizeof(assets)/sizeof(assets[0]);
+    for (size_t i=0; i < assetCount; ++i) {
         asset_t & asset = assets[i];
-        *(asset.frameset) = new CFrameSet();
-        if (file.open(asset.filename, "rb")) {
-            qDebug("reading %s", asset.filename);
-            if ((*(asset.frameset))->extract(file)) {
-                qDebug("extracted: %lu", (*(asset.frameset))->getSize());
-            }
-            file.close();
+        *(asset.frameset) = std::make_unique<CFrameSet>();
+        if (!file.open(asset.filename, "rb")) {
+            LOGE("can't open %s", asset.filename);
+            continue;
         }
+        LOGI("reading %s", asset.filename);
+        if ((*(asset.frameset))->extract(file)) {
+            LOGI("extracted: %lu", (*(asset.frameset))->getSize());
+        } else {
+            LOGE("failed to extract frames");
+        }
+        file.close();
     }
 
-    const char fontName [] = ":/data/bitfont.bin";
+    constexpr const char fontName [] = ":/data/bitfont.bin";
     int size = 0;
     if (file.open(fontName, "rb")) {
         size = file.getSize();
-        m_fontData = new uint8_t[size];
-        file.read(m_fontData, size);
+        m_fontData.resize(size);// = new uint8_t[size];
+        if (!file.read(m_fontData.data(), size)) {
+            LOGE("failed to read font");
+        }
         file.close();
-        qDebug("loading font: %d bytes", size);
+        LOGI("loading font: %d bytes", size);
     } else {
-        qDebug("failed to open %s", fontName);
+        LOGE("failed to open %s", fontName);
     }
 }
 
 void CMapWidget::paintEvent(QPaintEvent *)
 {
     const QSize widgetSize = size();
-    const int width = widgetSize.width() / 2 + TILE_SIZE;
-    const int height = widgetSize.height() / 2 + TILE_SIZE;
+    const int width = widgetSize.width() / SCALE_FACTOR + TILE_SIZE;
+    const int height = widgetSize.height() / SCALE_FACTOR + TILE_SIZE;
 
     if (!m_map) {
-        qDebug("map is null");
+        LOGE("map is null");
         return;
     }
 
     // animate tiles
     ++m_ticks;
-    if (m_animate && m_ticks % 3 == 0) {
+    if (m_animate && m_ticks % ANIMATION_RATE == 0) {
         m_animator->animate();
     }
 
     // draw screen
-    CFrame bitmap(width, height);
-    drawScreen(bitmap);
-    if (m_showGrid) {
-        drawGrid(bitmap);
+    if (!m_frame) {
+        m_frame = std::make_unique<CFrame>(width, height);
+    } else if (m_frame->width() != width || m_frame->height()!= height) {
+        m_frame->resize(width, height);
     }
+    CFrame & bitmap = *m_frame;
+    drawScreen(bitmap);
 
     // show the screen
-    const QImage & img = QImage(reinterpret_cast<uint8_t*>(bitmap.getRGB().data()), bitmap.width(), bitmap.height(), QImage::Format_RGBX8888);
-    const QPixmap & pixmap = QPixmap::fromImage(img.scaled(QSize(width * 2, height * 2)));
+    const QImage img(reinterpret_cast<uint8_t*>(bitmap.getRGB().data()),
+               bitmap.width(), bitmap.height(),
+               QImage::Format_RGBX8888); // or RGBX8888
     QPainter p(this);
-    p.drawPixmap(0, 0, pixmap);
+    p.drawImage(0, 0, img.scaled(QSize(width * SCALE_FACTOR, height * SCALE_FACTOR), Qt::IgnoreAspectRatio, Qt::FastTransformation));
     p.end();
 }
 
@@ -144,8 +171,8 @@ void CMapWidget::drawRect(CFrame &frame, const Rect &rect, const uint32_t color,
 
 void CMapWidget::drawScreen(CFrame &bitmap)
 {
-    CMap *map = m_map;
-    auto & states = map->states();
+    const CMap *map = m_map;
+    const auto & states = map->statesConst();
     const uint16_t startPos = states.getU(POS_ORIGIN);
     const uint16_t exitPos = states.getU(POS_EXIT);
 
@@ -153,10 +180,11 @@ void CMapWidget::drawScreen(CFrame &bitmap)
     const int maxCols = bitmap.width() / TILE_SIZE;
     const int rows = std::min(maxRows, map->hei());
     const int cols = std::min(maxCols, map->len());
-    CMapScroll *scr = static_cast<CMapScroll*>(parent());
-    const int mx = scr->horizontalScrollBar()->value();
-    const int my = scr->verticalScrollBar()->value();
-    const char hexchar[] = "0123456789ABCDEF";
+    CMapScroll *mapScroll = qobject_cast<CMapScroll*>(parent());
+    if (!mapScroll) return;
+    const int mx = mapScroll->horizontalScrollBar()->value();
+    const int my = mapScroll->verticalScrollBar()->value();
+    constexpr const char *hexchar = "0123456789ABCDEF";
 
     CFrameSet & tiles = *m_tiles;
     CFrameSet & animz = *m_animz;
@@ -180,6 +208,9 @@ void CMapWidget::drawScreen(CFrame &bitmap)
                 tile = animz[j];
             }
             drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
+
+
+
             if (startPos && startPos == CMap::toKey(mx+x, my+y)) {
                 drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, YELLOW, false);
             }
@@ -196,10 +227,17 @@ void CMapWidget::drawScreen(CFrame &bitmap)
                 drawFont(bitmap, x*TILE_SIZE, y*TILE_SIZE + 4, s, attr2color(a), true);
             }
             if (a != 0 && a == m_attr) {
-                bool alt = ((m_ticks >> 2) & 1) == 1;
+                bool alt = ((m_ticks / BLINK_RATE) & 1) == 1;
                 drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, alt ? PINK : CYAN, false);
             } else if (m_hx != 0 && m_hy != 0 && mx + x == m_hx && my + y == m_hy) {
                 drawRect(bitmap, Rect{.x=x*TILE_SIZE, .y=y*TILE_SIZE, .width=TILE_SIZE, .height=TILE_SIZE}, CORAL, false);
+            }
+
+            if (m_showGrid) {
+                const int tx = x * TILE_SIZE;
+                const int ty = y * TILE_SIZE;
+                bitmap.dotted_hline(tx, ty, TILE_SIZE, GRIDCOLOR);  // top
+                bitmap.dotted_vline(tx, ty, TILE_SIZE, GRIDCOLOR);  // left
             }
         }
     }
@@ -230,40 +268,6 @@ uint32_t CMapWidget::attr2color(const uint8_t attr)
     }
 }
 
-void CMapWidget::drawGrid(CFrame & bitmap)
-{
-    CMap *map = m_map;
-    int maxRows = bitmap.height() / TILE_SIZE;
-    int maxCols = bitmap.width() / TILE_SIZE;
-    const int rows = std::min(maxRows, map->hei());
-    const int cols = std::min(maxCols, map->len());
-    CMapScroll *scr = static_cast<CMapScroll*>(parent());
-    const int mx = scr->horizontalScrollBar()->value();
-    const int my = scr->verticalScrollBar()->value();
-
-    for (int y=0; y < rows; ++y) {
-        if (y + my >= map->hei())
-        {
-            break;
-        }
-        for (int x=0; x < cols; ++x) {
-            if (x + mx >= map->len())
-            {
-                break;
-            }
-            for (unsigned int yy=0; yy< TILE_SIZE; yy += 2) {
-                for (unsigned int xx=0; xx< TILE_SIZE; xx += 2) {
-                    if (xx == 0 || yy == 0) {
-                        bitmap.at(x * TILE_SIZE + xx, y * TILE_SIZE + yy) = GRIDCOLOR;
-                        if (yy !=0) {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 void CMapWidget::drawFont(CFrame & frame, int x, int y, const char *text, const uint32_t color, const bool alpha)
 {
@@ -274,20 +278,23 @@ void CMapWidget::drawFont(CFrame & frame, int x, int y, const char *text, const 
     const int textSize = strlen(text);
     for (int i=0; i < textSize; ++i) {
         const uint8_t c = static_cast<uint8_t>(text[i]) - ' ';
-        uint8_t *font = m_fontData + c * fontOffset;
+        uint8_t *font = m_fontData.data() + c * fontOffset;
+
+        // shadow logic
         if (alpha) {
-            for (int yy=0; yy < fontSize; ++yy) {
+            for (int yy = 0; yy < fontSize; ++yy) {
                 uint8_t bitFilter = 1;
-                for (int xx=0; xx < fontSize; ++xx) {
-                    uint8_t lb = 0;
-                    if (xx > 0) lb = font[xx] & (bitFilter >> 1);
-                    if (yy > 0 && lb == 0) lb = font[xx - 1] & bitFilter;
-                    if (font[yy] & bitFilter) {
-                        rgba[ (yy + y) * rowPixels + xx + x] = color;
-                    } else if (lb) {
-                        rgba[ (yy + y) * rowPixels + xx + x] = BLACK;
-                    }
-                    bitFilter = bitFilter << 1;
+                for (int xx = 0; xx < fontSize; ++xx) {
+                    bool pixelOn = (font[yy] & bitFilter) != 0;
+
+                    // Drop shadow: if current pixel is off, but either left or top neighbor was on → draw black shadow
+                    bool shadow = !pixelOn && (
+                                      (xx > 0 && (font[yy] & (bitFilter << 1))) ||      // left neighbor
+                                      (yy > 0 && (font[yy-1] & bitFilter))              // top neighbor
+                                      );
+
+                    rgba[(yy + y) * rowPixels + xx + x] = pixelOn ? color : (shadow ? BLACK : CLEAR); // 0 = transparent/no change
+                    bitFilter <<= 1;
                 }
             }
         } else {
@@ -321,27 +328,11 @@ void CMapWidget::drawTile(CFrame & bitmap, const int x, const int y, CFrame & ti
         }
     } else {
         for (int row=0; row < tile.height(); ++row) {
-            int i = 0;
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
-            dest[i++] = *(tileData++);
+            for (int col=0; col < tile.width(); ++col) {
+                dest[col] = tileData[col];
+            }
             dest += WIDTH;
+            tileData += tile.width();
         }
     }
 }
@@ -356,4 +347,3 @@ void CMapWidget::highlight(uint8_t x, uint8_t y)
     m_hx = x;
     m_hy = y;
 }
-
