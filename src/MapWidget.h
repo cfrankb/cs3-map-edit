@@ -4,10 +4,10 @@
 #include <QPixmap>
 #include <QCache>
 #include <QTimer>
-#include <memory>
 #include <vector>
 #include "runtime/map.h"
 #include "runtime/shared/Frame.h"
+#include "stamp.h"
 
 class QPainter;
 class QMouseEvent;
@@ -30,23 +30,14 @@ public:
     enum class Tool
     {
         None,
-        Stamp,    // Place single or multi-tile stamp
-        Picker,   // Pick tile under cursor
+        Stamp,     // Place single or multi-tile stamp
+        Picker,    // Pick tile under cursor
         Selection, // Rectangular selection (with move/copy later)
         Eraser
     };
 
-    enum class TileSet {
-        Main,
-        Other,
-    };
-
     void setTool(Tool tool);
     Tool currentTool() const { return m_tool; }
-
-    // Current tile(s) to paint with (for Stamp tool)
-    void setCurrentTile(uint8_t tileId);
-    void setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols); // for multi-tile stamps
 
     // Zoom control
     void setZoom(int factor); // 1 = 100%, 2 = 200%, etc.
@@ -60,7 +51,7 @@ public:
     QRect currentSelection() const { return m_selection; }
     void clearSelection();
 
-    void fillSelection(uint8_t tileId = UINT8_MAX);   // UINT8_MAX = use current brush
+    void fillSelection(uint8_t tileId = UINT8_MAX); // UINT8_MAX = use current brush
     void preloadAssets();
     void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
 
@@ -69,10 +60,16 @@ signals:
     void selectionChanged(const QRect &rect); // in tile coordinates
     void mapModified();                       // emitted after commit
 
-//signals:
+    // signals:
     void copyRequested(const QRect &tileRect);
     void pasteRequested(const QPoint &atTilePos);
     void tilePropertiesRequested(int tileX, int tileY);
+
+public slots:
+    // Current tile(s) to paint with (for Stamp tool)
+    void setCurrentTile(uint8_t tileId);
+    void setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols); // for multi-tile stamps
+    void setCurrentStamp(const Stamp &stamp);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -84,10 +81,6 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
-    enum:uint16_t {
-        MainTilesetBaseID = 0,  // tileset
-        OtherTilesetBaseID = 256, // other tileset
-    };
 
     // Convert between screen and map coordinates
     QPoint screenToTile(const QPoint &pos) const;
@@ -97,9 +90,9 @@ private:
     // Rendering helpers
     void drawMap(QPainter &painter);
     void drawGrid(QPainter &painter);
-    void drawShadowTile(QPainter &painter);
+    void drawShadowTile(QPainter &painter, const Stamp &stamp);
     void drawSelectionRect(QPainter &painter);
-    void createContextMenu();
+    void createContextMenu(QMenu *menu, const QPoint &point);
     QColor attr2color(const uint8_t attr);
     QColor rgbaToQColor(const uint32_t rgba);
 
@@ -107,18 +100,13 @@ private:
     QPixmap getCachedPixmap(uint8_t tileId, uint16_t baseId);
 
     // Commit current shadow stamp
-    void commitStampAt(const QPoint &tilePos);
+    void commitStampAt(const QPoint &tilePos, const Stamp &stamp);
     void updateCursor();
 
-    QMenu *m_contextMenu = nullptr;
-    QPoint m_lastRightClickTile { -1, -1 };   // tile coordinates of the right-click
     CMap *m_map = nullptr;
-
     Tool m_tool = Tool::None;
     uint8_t m_currentTile = 0;
-    std::vector<uint8_t> m_currentStamp; // for multi-tile stamps
-    int m_stampCols = 1;
-    int m_stampRows = 1;
+    Stamp m_currentStamp{{0}, 1, 1, Stamp::MainTilesetBaseID};
 
     int m_zoom = 2; // 2x by default (32x32 visible tiles)
     bool m_showGrid = false;
@@ -134,15 +122,15 @@ private:
     // Mouse state
     bool m_leftPressed = false;
 
-    QTimer   m_flashTimer;
-    bool     m_flashState = false;        // true = visible, false = hidden
+    QTimer m_flashTimer;
+    bool m_flashState = false; // true = visible, false = hidden
     uint8_t m_attr = 0;
     int m_hx = 0;
     int m_hy = 0;
 
     // Tile rendering cache
-    std::vector<CFrame *> m_tileFrames;     // owned externally
-    std::vector<CFrame *> m_tileOthers;     // owned externally
+    std::vector<CFrame *> m_tileFrames;      // owned externally
+    std::vector<CFrame *> m_tileOthers;      // owned externally
     QCache<uint16_t, QPixmap> m_pixmapCache; // key: tileId + zoom*1000
 
     MainWindow *m_mainWindow = nullptr;

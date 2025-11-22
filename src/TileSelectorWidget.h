@@ -5,6 +5,7 @@
 #include <QPoint>
 #include <QSize>
 #include <QList>
+#include "stamp.h"
 
 // Structure to hold information about a selected tile
 struct TileInfo
@@ -28,6 +29,7 @@ public:
 
     // The main public method to get the result
     QList<TileInfo> getSelectedTiles() const;
+    Stamp getSelectedStamp() const;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -39,6 +41,7 @@ protected:
 
 signals:
     void tilesSelected(QList<TileInfo>);
+    void stampSelected(const Stamp &stamp);
 
 private:
     QPixmap m_image;

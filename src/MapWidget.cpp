@@ -13,7 +13,7 @@
 #include "runtime/shared/FrameSet.h"
 #include "runtime/shared/Frame.h"
 #include "runtime/shared/qtgui/qfilewrap.h"
-#include "mainwindow.h"
+//#include "mainwindow.h"
 #include "runtime/attr.h"
 #include "runtime/color.h"
 #include "runtime/states.h"
@@ -37,7 +37,6 @@ MapWidget::MapWidget(QWidget *parent)
     setMinimumSize(320, 240);
 
     QFont f("Courier New"); // or "Consolas", "DejaVu Sans Mono", etc.
-    // QFont f("Consolas");        // or "Consolas", "DejaVu Sans Mono", etc.
     f.setStyleHint(QFont::TypeWriter); // forces monospaced
     f.setBold(true);
     setFont(f); // This sets the widget’s base font
@@ -58,7 +57,6 @@ MapWidget::~MapWidget() = default;
 
 void MapWidget::setMap(CMap *map)
 {
-    // m_mapView->ensureVisible(0, 0, 0, 0);
     if (m_map != map)
     {
         m_map = map;
@@ -78,26 +76,29 @@ void MapWidget::setTool(Tool tool)
         clearSelection();
         m_shadowTilePos = {-1, -1};
         update();
-        updateCursor(); // ← important!
+        updateCursor();
     }
 }
 
 void MapWidget::setCurrentTile(uint8_t tileId)
 {
     qDebug("current tile: 0x%.2x", tileId);
-
     m_currentTile = tileId;
-    m_currentStamp = {tileId};
-    m_stampCols = m_stampRows = 1;
+    m_currentStamp = Stamp{{tileId},1,1, Stamp::MainTilesetBaseID};
     setTool(Tool::Stamp);
     update();
 }
 
 void MapWidget::setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols)
 {
-    m_currentStamp = tileIds;
-    m_stampCols = cols;
-    m_stampRows = (tileIds.size() + cols - 1) / cols;
+    const int rows = (tileIds.size() + cols - 1) / cols;
+    m_currentStamp = Stamp{tileIds,cols,rows, Stamp::MainTilesetBaseID};
+    update();
+}
+
+void MapWidget::setCurrentStamp(const Stamp &stamp)
+{
+    m_currentStamp = stamp;
     update();
 }
 
@@ -239,11 +240,11 @@ QPixmap MapWidget::getCachedPixmap(uint8_t tileID, uint16_t baseID)
         return *cached;
 
     CFrame *frame = nullptr;
-    if (baseID == MainTilesetBaseID)
+    if (baseID == Stamp::MainTilesetBaseID)
     {
         frame = m_tileFrames[tileID];
     }
-    else if (baseID == OtherTilesetBaseID)
+    else if (baseID == Stamp::OtherTilesetBaseID)
     {
         frame = m_tileOthers[tileID];
     }
@@ -288,11 +289,10 @@ void MapWidget::paintEvent(QPaintEvent *)
 
     if (m_tool == Tool::Selection && m_selection.isValid())
         drawSelectionRect(painter);
-
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Stamp))
-        drawShadowTile(painter);
+        drawShadowTile(painter, m_currentStamp);
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Eraser))
-        drawShadowTile(painter);
+        drawShadowTile(painter, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
 }
 
 void MapWidget::drawMap(QPainter &painter)
@@ -326,7 +326,7 @@ void MapWidget::drawMap(QPainter &painter)
             if (x < 0)
                 continue;
             uint8_t tileId = m_map->at(x, y);
-            QPixmap pm = getCachedPixmap(tileId, MainTilesetBaseID);
+            QPixmap pm = getCachedPixmap(tileId, Stamp::MainTilesetBaseID);
             if (!pm.isNull())
             {
                 painter.drawPixmap(x * tileSize, y * tileSize, pm);
@@ -390,7 +390,7 @@ void MapWidget::drawGrid(QPainter &painter)
     }
 }
 
-void MapWidget::drawShadowTile(QPainter &painter)
+void MapWidget::drawShadowTile(QPainter &painter, const Stamp &stamp)
 {
     if (m_shadowTilePos.x() < 0 || m_shadowTilePos.x() >= m_map->len() ||
         m_shadowTilePos.y() < 0 || m_shadowTilePos.y() >= m_map->hei())
@@ -399,34 +399,21 @@ void MapWidget::drawShadowTile(QPainter &painter)
     const int tileSize = TILE_SIZE * m_zoom;
     painter.setOpacity(0.6);
 
-    if (m_tool == Tool::Eraser)
+    for (int dy = 0; dy < stamp.rows; ++dy)
     {
-        int tx = m_shadowTilePos.x();
-        int ty = m_shadowTilePos.y();
-        uint8_t tileId = 0;
-        QPixmap pm = getCachedPixmap(tileId, MainTilesetBaseID);
-        if (!pm.isNull())
-        {
-            painter.drawPixmap(tx * tileSize, ty * tileSize, pm);
-        }
-        return;
-    }
-
-    for (int dy = 0; dy < m_stampRows; ++dy)
-    {
-        for (int dx = 0; dx < m_stampCols; ++dx)
+        for (int dx = 0; dx < stamp.cols; ++dx)
         {
             int tx = m_shadowTilePos.x() + dx;
             int ty = m_shadowTilePos.y() + dy;
             if (tx >= m_map->len() || ty >= m_map->hei())
                 continue;
 
-            size_t idx = dy * m_stampCols + dx;
-            if (idx >= m_currentStamp.size())
+            size_t idx = dy * stamp.cols + dx;
+            if (idx >= stamp.tiles.size())
                 break;
 
-            uint8_t tileId = m_currentStamp[idx];
-            QPixmap pm = getCachedPixmap(tileId, MainTilesetBaseID);
+            uint8_t tileId = stamp.tiles[idx];
+            QPixmap pm = getCachedPixmap(tileId, stamp.baseID);// Stamp::MainTilesetBaseID
             if (!pm.isNull())
             {
                 painter.drawPixmap(tx * tileSize, ty * tileSize, pm);
@@ -449,47 +436,30 @@ void MapWidget::drawSelectionRect(QPainter &painter)
     painter.drawRect(r);
 }
 
-void MapWidget::commitStampAt(const QPoint &tilePos)
+void MapWidget::commitStampAt(const QPoint &tilePos, const Stamp & stamp)
 {
-    if (!m_map || m_currentStamp.empty())
+    if (!m_map || stamp.tiles.empty())
         return;
 
     bool changed = false;
+    for (int dy = 0; dy < stamp.rows; ++dy)
+    {
+        for (int dx = 0; dx < stamp.cols; ++dx)
+        {
+            int tx = tilePos.x() + dx;
+            int ty = tilePos.y() + dy;
+            if (!m_map->isValid(tx, ty))
+                continue;
 
-    if (m_tool == Tool::Eraser)
-    {
-        int tx = tilePos.x();
-        int ty = tilePos.y();
-        if (!m_map->isValid(tx, ty))
-            return;
-        uint8_t newTile = 0;
-        if (m_map->at(tx, ty) != newTile)
-        {
-            m_map->set(tx, ty, newTile);
-            changed = true;
-        }
-    }
-    else
-    {
-        for (int dy = 0; dy < m_stampRows; ++dy)
-        {
-            for (int dx = 0; dx < m_stampCols; ++dx)
+            size_t idx = dy * stamp.cols + dx;
+            if (idx >= stamp.tiles.size())
+                break;
+
+            uint8_t newTile = stamp.tiles[idx];
+            if (m_map->at(tx, ty) != newTile)
             {
-                int tx = tilePos.x() + dx;
-                int ty = tilePos.y() + dy;
-                if (!m_map->isValid(tx, ty))
-                    continue;
-
-                size_t idx = dy * m_stampCols + dx;
-                if (idx >= m_currentStamp.size())
-                    break;
-
-                uint8_t newTile = m_currentStamp[idx];
-                if (m_map->at(tx, ty) != newTile)
-                {
-                    m_map->set(tx, ty, newTile);
-                    changed = true;
-                }
+                m_map->set(tx, ty, newTile);
+                changed = true;
             }
         }
     }
@@ -512,13 +482,13 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
     {
         m_leftPressed = true;
 
-        if (m_tool == Tool::Eraser)
+        if (m_tool == Tool::Stamp)
         {
-            commitStampAt(tile);
+            commitStampAt(tile, m_currentStamp);
         }
-        else if (m_tool == Tool::Stamp)
+        else if (m_tool == Tool::Eraser)
         {
-            commitStampAt(tile);
+            commitStampAt(tile, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
         }
         else if (m_tool == Tool::Picker)
         {
@@ -548,7 +518,11 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
 
     if (m_leftPressed && m_tool == Tool::Stamp)
     {
-        commitStampAt(tile);
+        commitStampAt(tile, m_currentStamp);
+    }
+    else if (m_leftPressed && m_tool == Tool::Eraser)
+    {
+        commitStampAt(tile, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
     }
     else if (m_selecting && m_tool == Tool::Selection)
     {
@@ -627,21 +601,15 @@ void MapWidget::updateCursor()
     }
 }
 
-void MapWidget::createContextMenu()
+void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
 {
-    if (m_contextMenu)
-        return;
-
-    m_contextMenu = new QMenu(this);
-
     // mapEdit actions
-    QAction *actionSetAttr = new QAction(tr("Set raw attribute"), m_mainWindow);
+    QAction *actionSetAttr = new QAction(tr("Set raw attribute"), this);
     actionSetAttr->setStatusTip(tr("Set the raw attribute for this tile"));
-    m_contextMenu->addAction(actionSetAttr);
-    connect(actionSetAttr, &QAction::triggered, this, [this]()
+    connect(actionSetAttr, &QAction::triggered, this, [this, point]()
             {
-        const int x = m_lastRightClickTile.x();
-        const int y = m_lastRightClickTile.y();
+        const int x = point.x();
+        const int y = point.y();
         const uint8_t originalAttr = m_map->getAttr(x,y );
         CDlgAttr dlg(this);
         dlg.attr(originalAttr);
@@ -654,62 +622,63 @@ void MapWidget::createContextMenu()
             }
         }
         update(); });
+    menu->addAction(actionSetAttr);
 
     QAction *actionHighlight = new QAction(tr("highlight attribute"), this);
     actionHighlight->setStatusTip(tr("hightlight this attribute"));
-    m_contextMenu->addAction(actionHighlight);
-    connect(actionHighlight, &QAction::triggered, this, [this]()
+    menu->addAction(actionHighlight);
+    connect(actionHighlight, &QAction::triggered, this, [this, point]()
             {
         if (m_map) {
-            m_attr =  m_map->getAttr(m_lastRightClickTile.x(), m_lastRightClickTile.y());
+            m_attr =  m_map->getAttr(point.x(), point.y());
             qDebug("m_attr : %.2x", m_attr);
         }
         update(); });
 
     QAction *actionHighlightXY = new QAction(tr("highlight this position"), this);
     actionHighlightXY->setStatusTip(tr("hightlight this position"));
-    m_contextMenu->addAction(actionHighlightXY);
-    connect(actionHighlightXY, &QAction::triggered, this, [this]()
+    menu->addAction(actionHighlightXY);
+    connect(actionHighlightXY, &QAction::triggered, this, [this, point]()
             {
         if (m_map) {
-            m_hx = m_lastRightClickTile.x();
-            m_hy = m_lastRightClickTile.y();
+            m_hx = point.x();
+            m_hy = point.y();
             qDebug("m_hx : %.2x  -- m_hy : %.2x", m_hx, m_hy);
         }
         update(); });
 
     QAction *actionStatTile = new QAction(tr("see tile stats"), this);
-    m_contextMenu->addAction(actionStatTile);
-    connect(actionStatTile, &QAction::triggered, this, [this]()
+    menu->addAction(actionStatTile);
+    connect(actionStatTile, &QAction::triggered, this, [this, point]()
             {
-        const int x = m_lastRightClickTile.x();
-        const int y = m_lastRightClickTile.y();
+        const int x = point.x();
+        const int y = point.y();
         CDlgStat dlg(m_map->at(x, y), m_map->getAttr(x, y), this);
         dlg.setWindowTitle(tr("Tile Statistics"));
         dlg.exec(); });
     actionStatTile->setStatusTip(tr("Show the data information on this tile"));
-    m_contextMenu->addSeparator();
+    menu->addSeparator();
 
     QAction *actionSetStartPos = new QAction(tr("set start pos"), this);
-    connect(actionSetStartPos, &QAction::triggered, this, [this]()
+    connect(actionSetStartPos, &QAction::triggered, this, [this, point]()
             {
-           m_map->states().setU(POS_ORIGIN, CMap::toKey(m_lastRightClickTile.x(), m_lastRightClickTile.y()));
+           m_map->states().setU(POS_ORIGIN, CMap::toKey(point.x(), point.y()));
            emit mapModified();
            update(); });
     actionSetStartPos->setStatusTip(tr("Set the start position for this map"));
-    m_contextMenu->addAction(actionSetStartPos);
+    menu->addAction(actionSetStartPos);
 
     QAction *actionSetExitPos = new QAction(tr("set exit pos"), this);
-    connect(actionSetExitPos, &QAction::triggered, this, [this]()
+    connect(actionSetExitPos, &QAction::triggered, this, [this, point]()
             {
-        m_map->states().setU(POS_EXIT, CMap::toKey(m_lastRightClickTile.x(), m_lastRightClickTile.y()));
+        m_map->states().setU(POS_EXIT, CMap::toKey(point.x(), point.y()));
         emit mapModified();
         update(); });
     actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
-    m_contextMenu->addAction(actionSetExitPos);
-    m_contextMenu->addSeparator();
+    menu->addAction(actionSetExitPos);
+    menu->addSeparator();
 
-    QMenu *selectMenu = m_contextMenu->addMenu(tr("selection"));
+    QMenu *selectMenu = menu->addMenu(tr("selection"));
 
     bool isSelectionValid = currentSelection().isValid(); // !m_selection.isEmpty();
 
@@ -730,7 +699,7 @@ void MapWidget::createContextMenu()
     QAction *clearSel = selectMenu->addAction(tr("Clear Selection"));
     clearSel->setEnabled(isSelectionValid);
 
-    m_contextMenu->addSeparator();
+    menu->addSeparator();
 
     // ─── Connect actions ─────────────────────────────────────
     connect(copy, &QAction::triggered, this, [this]()
@@ -747,8 +716,8 @@ void MapWidget::createContextMenu()
             emit mapModified();
         } });
 
-    connect(paste, &QAction::triggered, this, [this]()
-            { emit pasteRequested(m_lastRightClickTile); });
+    connect(paste, &QAction::triggered, this, [this, point]()
+            { emit pasteRequested(point); });
 
     connect(del, &QAction::triggered, this, [this]()
             {
@@ -788,15 +757,14 @@ void MapWidget::contextMenuEvent(QContextMenuEvent *event)
     if (!m_map)
         return;
 
-    createContextMenu();
-
     // Convert click position → tile coordinates
-    QPoint tilePos = screenToTile(event->pos());
+    const QPoint tilePos = screenToTile(event->pos());
     if (!m_map->isValid(tilePos.x(), tilePos.y()))
         return;
 
-    m_lastRightClickTile = tilePos;
-    m_contextMenu->exec(event->globalPos());
+    QMenu menu (this);
+    createContextMenu(&menu, tilePos);
+    menu.exec(event->globalPos());
 }
 
 void MapWidget::fillSelection(uint8_t tileId /* = UINT8_MAX */)
@@ -808,8 +776,8 @@ void MapWidget::fillSelection(uint8_t tileId /* = UINT8_MAX */)
     if (tileId == UINT8_MAX)
     {
         // For multi-tile stamps we just use the top-left tile (most common)
-        if (!m_currentStamp.empty())
-            tileId = m_currentStamp[0];
+        if (!m_currentStamp.tiles.empty())
+            tileId = m_currentStamp.tiles[0];
         else
             tileId = m_currentTile;
     }

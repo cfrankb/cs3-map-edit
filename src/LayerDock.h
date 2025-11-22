@@ -5,6 +5,7 @@
 #include <QIcon>
 
 class CMap;
+class QPushButton;
 
 
 class LayerDock : public QDockWidget
@@ -23,7 +24,8 @@ public slots:
 
 private:
     CMap *m_map;
-    QListWidget *m_list;
+    QListWidget *m_listWidget;
+    QPushButton *m_addButton;
 
     QIcon m_eyeOpen;
     QIcon m_eyeClosed;

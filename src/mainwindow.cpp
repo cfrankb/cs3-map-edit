@@ -11,8 +11,6 @@
 #include <QScrollBar>
 #include <QInputDialog>
 #include <QLabel>
-#include "mapscroll.h"
-#include "mapwidget.h"
 #include "dlgresize.h"
 #include "dlgselect.h"
 #include "dlgtest.h"
@@ -166,7 +164,7 @@ void MainWindow::initSelectorWidget()
     addDockWidget(Qt::RightDockWidgetArea, dock);
     dock->setAllowedAreas(Qt::RightDockWidgetArea);
 
-    QObject::connect(
+    connect(
         selectorWidget,
         &TileSelectorWidget::tilesSelected,
         this,      // The context object for lifetime management
@@ -176,6 +174,8 @@ void MainWindow::initSelectorWidget()
             // QApplication::quit();
             qDebug("selection received");
         });
+
+    connect(selectorWidget, &TileSelectorWidget::stampSelected, m_mapView->mapWidget(), &MapWidget::setCurrentStamp);
 }
 
 void MainWindow::initLayerBox()
@@ -658,7 +658,7 @@ void MainWindow::initToolBar()
             {
         //emit mapChanged(m_mapView->mapWidget()->map());  // re-emit with current map pointer
         // also mark document as dirty
-        setWindowModified(true);
+//        setWindowModified(true);
         setDirty(true); });
 }
 

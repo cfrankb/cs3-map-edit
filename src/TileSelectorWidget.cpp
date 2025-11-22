@@ -122,6 +122,7 @@ void TileSelectorWidget::mouseReleaseEvent(QMouseEvent *event)
         update();
         // Here you might emit a signal like tilesSelected(getSelectedTiles())
         emit tilesSelected(getSelectedTiles());
+        emit stampSelected(getSelectedStamp());
     }
 }
 
@@ -232,6 +233,50 @@ void TileSelectorWidget::paintEvent(QPaintEvent *event)
         painter.setBrush(Qt::NoBrush);
         painter.drawRect(selectionRect);
     }
+}
+
+
+Stamp TileSelectorWidget::getSelectedStamp() const
+{
+    Stamp stamp;
+    if (m_image.isNull() || m_tileSize == 0)
+        return stamp;
+
+    stamp.baseID = Stamp::OtherTilesetBaseID;
+
+    // Determine the max possible tile indices based on image size
+    int maxColIndex = (m_image.width() - 1) / m_tileSize;
+    int maxRowIndex = (m_image.height() - 1) / m_tileSize;
+
+    // Calculate the tile coordinates for the min/max bounds based on the clamped selection pixels
+    QPoint startTile = imagePixelToTileCoord(m_selectionStart);
+    QPoint endTile = imagePixelToTileCoord(m_selectionEnd);
+
+    // Determine the selection bounds
+    int minCol = qBound(0, qMin(startTile.x(), endTile.x()), maxColIndex);
+    int maxCol = qBound(0, qMax(startTile.x(), endTile.x()), maxColIndex);
+    int minRow = qBound(0, qMin(startTile.y(), endTile.y()), maxRowIndex);
+    int maxRow = qBound(0, qMax(startTile.y(), endTile.y()), maxRowIndex);
+
+    stamp.cols = maxCol - minCol + 1;
+    stamp.rows = maxRow - minRow + 1;
+
+    // The top-left most tile selected (which sets the relative 0,0)
+    QPoint topLeftTile(minCol, minRow);
+
+    for (int r = minRow; r <= maxRow; ++r)
+    {
+        for (int c = minCol; c <= maxCol; ++c)
+        {
+            //TileInfo info;
+            //info.id = getTileId(r, c);
+            // Relative position to the top-left tile
+            //info.relativePos = QPoint(c - topLeftTile.x(), r - topLeftTile.y());
+            stamp.tiles.emplace_back(static_cast<uint8_t>(getTileId(r, c)));
+        }
+    }
+
+    return stamp;
 }
 
 QList<TileInfo> TileSelectorWidget::getSelectedTiles() const
