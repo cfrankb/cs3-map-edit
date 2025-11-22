@@ -14,6 +14,9 @@ TileSelectorWidget::TileSelectorWidget(QWidget *parent)
     setAutoFillBackground(true);
     // Enable mouse tracking so mouseMoveEvent fires even without a button pressed
     setMouseTracking(true);
+
+    setMaximumHeight(512);
+    setMaximumSize(512,512);
 }
 
 // Helper function to clamp a pixel point (x, y) to the image boundaries

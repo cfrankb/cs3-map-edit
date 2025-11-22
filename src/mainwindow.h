@@ -8,6 +8,7 @@
 class CMapScroll;
 class QComboBox;
 class QLabel;
+class MapView;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,29 +26,19 @@ signals:
     void resizeMap(int, int);   // notify of a map resize
     void mapChanged(CMap *);    // notify of a map change
     void newTile(int);          // select a diffent tile in the tilebox
-    void setHighlight(uint8_t); // set attr to highlight
-    void setHighlightXY(uint8_t, uint8_t); // set x,y for highlight
+    //void setHighlight(uint8_t); // set attr to highlight
+    //void setHighlightXY(uint8_t, uint8_t); // set x,y for highlight
+
+public slots:
 
 private slots:
     void loadFile(const QString & filename);
     void setStatus(const QString str);
-    void showAttrDialog();
-    void on_setStartPos();
-    void on_setExitPos();
-    void on_deleteTile();
     void on_actionFile_New_File_triggered();
     void on_actionFile_Open_triggered();
     void on_actionFile_Save_triggered();
     void on_actionFile_Save_as_triggered();
     void on_actionEdit_ResizeMap_triggered();
-    void showContextMenu(const QPoint&pos);
-    void changeTile(int tile);
-    void onLeftClick(int x, int y);
-    void openRecentFile();
-    void shiftUp();
-    void shiftDown();
-    void shiftLeft();
-    void shiftRight();
     void on_actionClear_Map_triggered();
     void on_actionHelp_About_triggered();
     void on_actionHelp_About_Qt_triggered();
@@ -64,18 +55,22 @@ private slots:
     void on_actionEdit_Rename_Map_triggered();
     void on_actionEdit_Last_Map_triggered();
     void on_actionEdit_First_Map_triggered();
-    void showStatDialog();
     void on_actionFile_Generate_Report_triggered();
     void on_actionEdit_Map_States_triggered();
-    void on_highlight();
-    void on_highlightXY();
-    void updateStatus();
     void on_actionExport_Screenshots_triggered();
     void on_actionEdit_Edit_Messages_triggered();
     void on_actionEdit_Map_Properties_triggered();
+    //void showAttrDialog(int x, int y);
+    //void showStatDialog(int x, int y);
+    void updateStatus();
+    void openRecentFile();
+    void shiftUp();
+    void shiftDown();
+    void shiftLeft();
+    void shiftRight();
 
 private:
-    virtual void closeEvent(QCloseEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
     bool maybeSave();
     void setDocument(const QString);
     void warningMessage(const QString message);
@@ -92,26 +87,24 @@ private:
     void initMapShortcuts();
     void initToolBar();
     void initSelectorWidget();
+    void initLayerBox();
+    void updateWindowTitle();
+    void setDirty(bool dirty);
     int currentTool();
 
     enum {
         MAX_RECENT_FILES = 12,
-        GRID_SIZE = 32,
-        TOOL_SELECT = 0,
-        TOOL_PAINT=1,
-        TOOL_ERASE=2
     };
 
     QString m_appName = tr("mapedit");
     QString m_allFilter = tr("All Supported Maps (*.dat *.cs3 *.map *.mapz)");
     Ui::MainWindow *ui;
-    CMapScroll *m_scrollArea;
+    MapView *m_mapView;
     QComboBox *m_cbSkill;
     CMapFile m_doc;
     int m_hx = -1;
     int m_hy = -1;
     QActionGroup *m_toolGroup;
-    uint8_t m_currTile = 0;
     QAction *m_recentFileActs[MAX_RECENT_FILES];
     QLabel *m_label;
     QLabel *m_label0;

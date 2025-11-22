@@ -102,6 +102,8 @@ public:
         return m_name.c_str();
     }
 
+    LayerType layerType() { return m_layerType; }
+
 protected:
     enum : uint16_t
     {

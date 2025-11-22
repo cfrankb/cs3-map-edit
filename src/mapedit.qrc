@@ -27,5 +27,35 @@
         <file>data/sheet0.obl</file>
         <file>data/sheet1.obl</file>
         <file>data/cs3layers.png</file>
+        <file>data/icons/rubber-bands.png</file>
+        <file>data/cursors/dagobert83_cancelx16.png</file>
+        <file>data/cursors/eyedropper.png</file>
+        <file>data/cursors/not_possible.png</file>
+        <file>data/cursors/paintbrush.png</file>
+        <file>data/cursors/paint_bucket.png</file>
+        <file>data/cursors/pen.png</file>
+        <file>data/cursors/pencil.png</file>
+        <file>data/cursors/pencil_2.png</file>
+        <file>data/cursors/tinyglass.png</file>
+        <file>data/cursors/tiny_pen.png</file>
+        <file>data/cursors/tools-hammer_and_nails.png</file>
+        <file>data/cursors/water_drop_1.png</file>
+        <file>data/icons/1439410433.png</file>
+        <file>data/icons/cards-club.png</file>
+        <file>data/icons/cards-diamond.png</file>
+        <file>data/icons/face-monkey-2.png</file>
+        <file>data/icons/footprint.png</file>
+        <file>data/icons/ftview-grid.png</file>
+        <file>data/icons/options.png</file>
+        <file>data/icons/six-sided-dice.png</file>
+        <file>data/icons/sketchpntbrush.png</file>
+        <file>data/icons/small_chemistry.png</file>
+        <file>data/icons/warning-17_16x14.png</file>
+        <file>data/icons/water_drop_1.png</file>
+        <file>data/cursors/efface.png</file>
+        <file>data/cursors/sketchpntbrush.png</file>
+        <file>data/icons/secretlondon_Manga_Eye_(right).png</file>
+        <file>data/icons/blind_795831.png</file>
+        <file>data/icons/eye_818577.png</file>
     </qresource>
 </RCC>

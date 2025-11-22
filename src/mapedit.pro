@@ -57,11 +57,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mapfile.cpp \
-    mapscroll.cpp \
-    mapwidget.cpp \
+    #mapscroll.cpp \
+    #mapwidget.cpp \
     report.cpp \
     mapprops.cpp \
-    TileSelectorWidget.cpp
+    TileSelectorWidget.cpp \
+    MapWidget.cpp \
+    MapView.cpp \
+    LayerDock.cpp
 
 
 HEADERS += \
@@ -121,13 +124,17 @@ HEADERS += \
     dlgtest.h \
     mainwindow.h \
     mapfile.h \
-    mapscroll.h \
-    mapwidget.h \
+    #mapscroll.h \
+    #mapwidget.h \
     report.h \
     tilebox.h \
     keyvaluedialog.h \
     mapprops.h \
-    TileSelectorWidget.h
+    TileSelectorWidget.h \
+    MapWidget.h \
+    MapView.h \
+    LayerDock.h
+
 
 FORMS += \
     dlgattr.ui \

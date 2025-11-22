@@ -13,13 +13,11 @@
 #include <QLabel>
 #include "mapscroll.h"
 #include "mapwidget.h"
-#include "dlgattr.h"
 #include "dlgresize.h"
 #include "dlgselect.h"
 #include "dlgtest.h"
 #include "tilebox.h"
 #include "runtime/tilesdata.h"
-#include "dlgstat.h"
 #include "runtime/map.h"
 #include "report.h"
 #include "keyvaluedialog.h"
@@ -28,31 +26,28 @@
 #include "mapprops.h"
 #include "TileSelectorWidget.h"
 #include <QScrollArea>
+#include "MapView.h"
+#include "LayerDock.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    m_scrollArea = new CMapScroll(this);
-    m_scrollArea->viewport()->update();
-    CMapWidget *glw = dynamic_cast<CMapWidget *>(m_scrollArea->viewport());
-    glw->setMap(m_doc.map());
-    connect(ui->actionView_Grid, SIGNAL(toggled(bool)), glw, SLOT(showGrid(bool)));
-    connect(ui->actionView_Animate, SIGNAL(toggled(bool)), glw, SLOT(setAnimate(bool)));
-    setCentralWidget(m_scrollArea);
 
-    connect(m_scrollArea, SIGNAL(statusChanged(QString)), this, SLOT(setStatus(QString)));
-    connect(m_scrollArea, SIGNAL(leftClickedAt(int, int)), this, SLOT(onLeftClick(int, int)));
-    connect(this, SIGNAL(mapChanged(CMap *)), m_scrollArea, SLOT(newMap(CMap *)));
+    m_mapView = new MapView(this);
+    m_mapView->mapWidget()->setMainWindow(this);
+    m_mapView->setMap(m_doc.map());
+    m_mapView->setZoom(2); // start at 200%
+    m_mapView->centerOnMap();
+    setCentralWidget(m_mapView);
+    // connect(this, SIGNAL(mapChanged(CMap *)), m_mapView, SLOT(setMap(CMap *)));
     connect(this, SIGNAL(mapChanged(CMap *)), this, SLOT(updateStatus()));
-    connect(m_scrollArea, SIGNAL(customContextMenuRequested(const QPoint &)),
-            this, SLOT(showContextMenu(const QPoint &)));
-    connect(this, SIGNAL(setHighlight(uint8_t)), glw, SLOT(highlight(uint8_t)));
-    connect(this, SIGNAL(setHighlightXY(uint8_t, uint8_t)), glw, SLOT(highlight(uint8_t, uint8_t)));
+    connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
 
-    updateTitle();
+    setDirty(false);
     initTilebox();
     initSelectorWidget();
+    initLayerBox();
     initFileMenu();
     initMapShortcuts();
     initToolBar();
@@ -68,37 +63,36 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::updateStatus()
 {
-    QString s = QString(tr("%1 of %2 ")).arg(m_doc.currentIndex()+1).arg(m_doc.size());
+    QString s = QString(tr("%1 of %2 ")).arg(m_doc.currentIndex() + 1).arg(m_doc.size());
     m_label->setText(s);
 }
 
 void MainWindow::shiftUp()
 {
     m_doc.map()->shift(Direction::UP);
-    m_doc.setDirty(true);
+    setDirty(true);
 }
 
 void MainWindow::shiftDown()
 {
     m_doc.map()->shift(Direction::DOWN);
-    m_doc.setDirty(true);
+    setDirty(true);
 }
 
 void MainWindow::shiftLeft()
 {
     m_doc.map()->shift(Direction::LEFT);
-    m_doc.setDirty(true);
+    setDirty(true);
 }
 
 void MainWindow::shiftRight()
 {
     m_doc.map()->shift(Direction::RIGHT);
-    m_doc.setDirty(true);
+    setDirty(true);
 }
 
 void MainWindow::initMapShortcuts()
 {
-    connect(this, SIGNAL(resizeMap(int, int)), m_scrollArea, SLOT(newMapSize(int, int)));
     emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
     new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Up)), this, SLOT(shiftUp()));
     new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Down)), this, SLOT(shiftDown()));
@@ -116,11 +110,17 @@ void MainWindow::initTilebox()
     dock->setWidget(tilebox);
     addDockWidget(Qt::LeftDockWidgetArea, dock);
     dock->setAllowedAreas(Qt::LeftDockWidgetArea);
-    connect(tilebox, SIGNAL(tileChanged(int)),
-            this, SLOT(changeTile(int)));
     connect(this, SIGNAL(newTile(int)),
             tilebox, SLOT(setTile(int)));
 
+    // Stamp tool + tileID
+    connect(tilebox, &CTileBox::tileChanged, this, [this](int tileID)
+            {
+        m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
+        m_mapView->mapWidget()->setCurrentTile(tileID); });
+
+    m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
+    m_mapView->mapWidget()->setCurrentTile(0);
 }
 
 void MainWindow::initSelectorWidget()
@@ -129,22 +129,19 @@ void MainWindow::initSelectorWidget()
     dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     dock->setWindowTitle(tr("Toolbox"));
 
-
     TileSelectorWidget *selectorWidget = new TileSelectorWidget(dock);
-    // 1. Load the image
+    // Load the image
     QPixmap image(":/data/cs3layers.png");
     selectorWidget->setImage(image);
 
-    // 2. Configure Tiling (e.g., 32x32 tiles instead of default 16x16)
+    // Configure Tiling
     selectorWidget->setTileSize(16);
 
-    // 3. Configure Zoom (e.g., 200% zoom)
+    // Configure Zoom (e.g., 200% zoom)
     selectorWidget->setZoomLevel(2);
-
-    //auto tilebox = new CTileBox(dock);
     selectorWidget->show();
 
-    // 2. Create the QScrollArea
+    // Create the QScrollArea
     QScrollArea *scrollArea = new QScrollArea();
 
     // Set policies: Always allow scrolling if the content exceeds the viewport.
@@ -170,16 +167,29 @@ void MainWindow::initSelectorWidget()
     QObject::connect(
         selectorWidget,
         &TileSelectorWidget::tilesSelected,
-        this, // The context object for lifetime management
+        this,      // The context object for lifetime management
         [this]() { // Lambda function (captures 'this' to access ui members)
             (void)this;
-          //  QMessageBox::information(this, "Exiting", "Goodbye!");
-           // QApplication::quit();
-          qDebug("selection received");
-        }
-        );
+            //  QMessageBox::information(this, "Exiting", "Goodbye!");
+            // QApplication::quit();
+            qDebug("selection received");
+        });
+}
 
-    ///home/cfrankb/toolkit/workspace/modified/cs3layers.png
+void MainWindow::initLayerBox()
+{
+    LayerDock *dock = new LayerDock(m_doc.map(), this);
+    dock->show();
+    addDockWidget(Qt::RightDockWidgetArea, dock);
+
+    connect(dock, &LayerDock::visibilityChanged,
+            this, [&](int layerID, bool visible)
+            {
+                qDebug("layerID: %d visible %d", layerID, visible);
+                // you decide what to do
+                // e.g. map renderer hides layer
+            });
+    connect(this, &MainWindow::mapChanged, dock, &LayerDock::refreshList);
 }
 
 MainWindow::~MainWindow()
@@ -209,11 +219,10 @@ bool MainWindow::maybeSave()
 {
     if (isDirty())
     {
-        QMessageBox::StandardButton ret = QMessageBox::warning(
+        QMessageBox::StandardButton ret = QMessageBox::question(
             this,
-            m_appName,
-            tr("The document has been modified.\n"
-               "Do you want to save your changes?"),
+            tr("Unsaved changes"),
+            tr("The map has unsaved changes. Do you want to save before closing?"),
             QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
         if (ret == QMessageBox::Save)
             return save();
@@ -271,7 +280,8 @@ void MainWindow::loadFile(const QString &fileName)
             files.removeAll(fileName);
             settings.setValue("recentFileList", files);
         }
-        updateTitle();
+        // updateTitle();
+        setDirty(false);
         updateRecentFileActions();
         reloadRecentFileActions();
         emit mapChanged(m_doc.map());
@@ -287,13 +297,14 @@ bool MainWindow::save()
             return false;
     }
 
-    if (!m_doc.write() || !updateTitle())
+    if (!m_doc.write())
     {
         warningMessage(tr("Can't write file"));
         m_doc.setFilename(oldFileName);
         return false;
     }
 
+    setDirty(false);
     updateRecentFileActions();
     reloadRecentFileActions();
     return true;
@@ -328,7 +339,7 @@ bool MainWindow::saveAs()
         result = m_doc.write();
     }
 
-    updateTitle();
+    setDirty(false);
     delete dlg;
     return result;
 }
@@ -342,22 +353,6 @@ void MainWindow::setDocument(const QString fileName)
 {
     m_doc.setFilename(fileName);
     m_doc.read();
-}
-
-bool MainWindow::updateTitle()
-{
-    QString file;
-    if (m_doc.filename().isEmpty())
-    {
-        file = tr("untitled");
-    }
-    else
-    {
-        file = QFileInfo(m_doc.filename()).fileName();
-    }
-    m_doc.setDirty(false);
-    setWindowTitle(tr("%1[*] - %2").arg(file, m_appName));
-    return true;
 }
 
 void MainWindow::updateMenus()
@@ -374,7 +369,7 @@ void MainWindow::updateMenus()
 
 void MainWindow::setStatus(const QString msg)
 {
-    //ui->statusbar->showMessage(msg);
+    // ui->statusbar->showMessage(msg);
     m_label0->setText(msg);
 }
 
@@ -384,10 +379,9 @@ void MainWindow::on_actionFile_New_File_triggered()
     {
         m_doc.setFilename("");
         m_doc.forget();
-        //CMap *map = new CMap(40, 40);
-        std::unique_ptr<CMap> map = std::make_unique<CMap>(40,40);
+        std::unique_ptr<CMap> map = std::make_unique<CMap>(40, 40);
         m_doc.add(std::move(map));
-        updateTitle();
+        setDirty(false);
         emit mapChanged(m_doc.map());
         updateMenus();
     }
@@ -429,162 +423,36 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
         if (reply == QMessageBox::Yes)
         {
             map.resize(dlg.width(), dlg.height(), '\0', false);
-            m_doc.setDirty(true);
+            // m_doc.
+            setDirty(true);
             emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
         }
     }
 }
 
-void MainWindow::showContextMenu(const QPoint &pos)
-{
-    int x = pos.x() / GRID_SIZE;
-    int y = pos.y() / GRID_SIZE;
-    int mx = m_scrollArea->horizontalScrollBar()->value();
-    int my = m_scrollArea->verticalScrollBar()->value();
-
-    CMap &map = *m_doc.map();
-    if (x >= 0 && y >= 0 && x + mx < map.len() && y + my < map.hei())
-    {
-        QMenu menu(this);
-        QAction *actionSetAttr = new QAction(tr("set raw attribute"), this);
-        connect(actionSetAttr, SIGNAL(triggered()),
-                this, SLOT(showAttrDialog()));
-        actionSetAttr->setStatusTip(tr("Set the raw attribute for this tile"));
-        menu.addAction(actionSetAttr);
-
-        QAction *actionHighlight =  new QAction(tr("highlight attribute"), this);
-        connect(actionHighlight, SIGNAL(triggered()),
-                this, SLOT(on_highlight()));
-        menu.addAction(actionHighlight);
-        actionHighlight->setStatusTip(tr("hightlight this attribute"));
-
-        QAction *actionHighlightXY =  new QAction(tr("highlight this position"), this);
-        connect(actionHighlightXY, SIGNAL(triggered()),
-                this, SLOT(on_highlightXY()));
-        menu.addAction(actionHighlightXY);
-        actionHighlightXY->setStatusTip(tr("hightlight this position"));
-
-        QAction *actionStatAttr = new QAction(tr("see tile stats"), this);
-        connect(actionStatAttr, SIGNAL(triggered()),
-                this, SLOT(showStatDialog()));
-        menu.addAction(actionStatAttr);
-        actionStatAttr->setStatusTip(tr("Show the data information on this tile"));
-        menu.addSeparator();
-
-        QAction *actionSetStartPos = new QAction(tr("set start pos"), this);
-        connect(actionSetStartPos, SIGNAL(triggered()),
-                this, SLOT(on_setStartPos()));
-        actionSetStartPos->setStatusTip(tr("Set the start position for this map"));
-        menu.addAction(actionSetStartPos);
-
-        QAction *actionSetExitPos = new QAction(tr("set exit pos"), this);
-        connect(actionSetExitPos, SIGNAL(triggered()),
-                this, SLOT(on_setExitPos()));
-        actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
-        menu.addAction(actionSetExitPos);
-        menu.addSeparator();
-
-        QAction *actionDeleteTile = new QAction(tr("delete tile"), this);
-        connect(actionDeleteTile, SIGNAL(triggered()),
-                this, SLOT(on_deleteTile()));
-        menu.addAction(actionDeleteTile);
-        actionDeleteTile->setStatusTip(tr("delete this tile"));
-
-        m_hx = x + mx;
-        m_hy = y + my;
-        menu.exec(m_scrollArea->mapToGlobal(pos));
-    }
-}
-
-void MainWindow::on_highlight()
+/*
+void MainWindow::showAttrDialog(int x, int y)
 {
     CMap &map = *m_doc.map();
-    uint8_t attr = map.getAttr(m_hx, m_hy);
-    emit setHighlight(attr);
-}
-
-void MainWindow::on_highlightXY()
-{
-    emit setHighlightXY(m_hx, m_hy);
-}
-
-void MainWindow::on_deleteTile()
-{
-    CMap &map = *m_doc.map();
-    if (map.at(m_hx, m_hy) != TILES_BLANK) {
-        map.set(m_hx, m_hy, TILES_BLANK);
-        m_doc.setDirty(true);
-    }
-}
-
-void MainWindow::on_setStartPos()
-{
-    CMap &map = *m_doc.map();
-    map.states().setU(POS_ORIGIN, CMap::toKey(m_hx, m_hy));
-    m_doc.setDirty(true);
-}
-
-void MainWindow::on_setExitPos()
-{
-    CMap &map = *m_doc.map();
-    map.states().setU(POS_EXIT, CMap::toKey(m_hx, m_hy));
-    m_doc.setDirty(true);
-}
-
-void MainWindow::showAttrDialog()
-{
-    CMap &map = *m_doc.map();
-    uint8_t a = map.getAttr(m_hx, m_hy);
+    uint8_t a = map.getAttr(x, y);
     CDlgAttr dlg(this);
     dlg.attr(a);
     if (dlg.exec() == QDialog::Accepted)
     {
         a = dlg.attr();
-        map.setAttr(m_hx, m_hy, a);
-        m_doc.setDirty(true);
+        map.setAttr(x, y, a);
+            setDirty(true);
     }
 }
 
-void MainWindow::showStatDialog()
+void MainWindow::showStatDialog(int x, int y)
 {
     CMap &map = *m_doc.map();
-    CDlgStat dlg(map.at(m_hx, m_hy), map.getAttr(m_hx, m_hy), this);
+    CDlgStat dlg(map.at(x, y), map.getAttr(x, y), this);
     dlg.setWindowTitle(tr("Tile Statistics"));
     dlg.exec();
 }
-
-void MainWindow::changeTile(int tile)
-{
-    m_currTile = tile;
-    ui->actionTools_Paint->setChecked(true);
-}
-
-void MainWindow::onLeftClick(int x, int y)
-{
-    if ((x >= 0) && (y >= 0) && (x < m_doc.map()->len()) && (y < m_doc.map()->hei()))
-    {
-        const uint8_t tile = m_doc.map()->at(x, y);
-        uint8_t newTileId = tile;
-        switch (currentTool())
-        {
-        case TOOL_PAINT:
-            newTileId = m_currTile;
-            break;
-        case TOOL_ERASE:
-            newTileId = 0;
-            break;
-        case TOOL_SELECT:
-            m_currTile = m_doc.map()->at(x, y);
-            emit newTile(m_currTile);
-        }
-
-        if (newTileId != tile)
-        {
-            m_doc.map()->set(x, y,newTileId);
-            m_doc.setDirty(true);
-        }
-    }
-}
+*/
 
 void MainWindow::initFileMenu()
 {
@@ -665,6 +533,7 @@ void MainWindow::initToolBar()
     ui->toolBar->addSeparator();
     ui->toolBar->addAction(ui->actionTools_Paint);
     ui->toolBar->addAction(ui->actionTools_Erase);
+    ui->toolBar->addAction(ui->actionTools_Picker);
     ui->toolBar->addAction(ui->actionTools_Select);
     ui->toolBar->addSeparator();
     m_cbSkill = new QComboBox(this);
@@ -677,17 +546,109 @@ void MainWindow::initToolBar()
     m_toolGroup = new QActionGroup(this);
     m_toolGroup->addAction(ui->actionTools_Paint);
     m_toolGroup->addAction(ui->actionTools_Erase);
+    m_toolGroup->addAction(ui->actionTools_Picker);
     m_toolGroup->addAction(ui->actionTools_Select);
     m_toolGroup->setExclusive(true);
     ui->actionTools_Paint->setChecked(true);
-    ui->actionTools_Paint->setData(TOOL_PAINT);
-    ui->actionTools_Erase->setData(TOOL_ERASE);
-    ui->actionTools_Select->setData(TOOL_SELECT);
+    //  ui->actionTools_Paint->setData(TOOL_PAINT);
+    //  ui->actionTools_Erase->setData(TOOL_ERASE);
+    //  ui->actionTools_Picker->setData(TOOL_SELECT);
+    //  ui->actionTools_Select->setData(TOOL_SELECT);
 
     QAction *actionToolBar = ui->toolBar->toggleViewAction();
     actionToolBar->setText(tr("ToolBar"));
     actionToolBar->setStatusTip(tr("Show or hide toolbar"));
     ui->menuView->addAction(actionToolBar);
+
+    // ──────────────────────────────────────────────────────────────
+    //  TOOLBAR → MapWidget TOOL WIRING (add this once)
+    // ──────────────────────────────────────────────────────────────
+
+    // enable stamp by default
+    m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
+
+    // 1. Paint = Stamp tool
+    connect(ui->actionTools_Paint, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp); });
+
+    // 2. Erase = Stamp tool + tile 0 (or your transparent tile ID)
+    connect(ui->actionTools_Erase, &QAction::triggered, this, [this]()
+            {
+                m_mapView->mapWidget()->setTool(MapWidget::Tool::Eraser);
+                // m_mapView->mapWidget()->setCurrentTile(0); // ← change if your empty tile is not 0
+            });
+
+    // Tile Picker tool
+    connect(ui->actionTools_Picker, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Picker); });
+
+    // area selection tool
+    connect(ui->actionTools_Select, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Selection); });
+
+    // ──────────────────────────────────────────────────────────────
+    //  BONUS: When user picks a tile from tileset → auto-switch to Paint
+    // ──────────────────────────────────────────────────────────────
+    connect(m_mapView->mapWidget(), &MapWidget::tilePicked, this, [this](uint8_t tileId)
+            {
+                // Update current brush
+                m_mapView->mapWidget()->setCurrentTile(tileId);
+
+                // Auto-activate Paint tool (this is the UX of Tiled, Godot, Aseprite, etc.)
+                ui->actionTools_Paint->trigger(); // this will fire the connection above
+            });
+
+    // ──────────────────────────────────────────────────────────────
+    //  FULL TWO-WAY WIRING: MainWindow ↔ MapWidget
+    // ──────────────────────────────────────────────────────────────
+
+    // 1. When user picks a tile with the Picker tool → tell MainWindow
+    connect(m_mapView->mapWidget(), &MapWidget::tilePicked, this, &MainWindow::newTile);
+
+    // 2. When MainWindow wants to change the current brush tile (e.g. user clicked in tile palette)
+    connect(this, &MainWindow::newTile, this, [this](int tileId)
+            {
+        uint8_t id = static_cast<uint8_t>(tileId);
+        m_mapView->mapWidget()->setCurrentTile(id);
+
+        // Auto-switch to Paint tool (this is the correct, expected UX)
+        ui->actionTools_Paint->setChecked(true);
+        m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp); });
+
+    // 3. When map is resized or replaced → tell MapView + update size
+    connect(this, &MainWindow::resizeMap, this, [this](int w, int h)
+            {
+        if (m_mapView->mapWidget()->map()) {
+            int tileSize = 16 * m_mapView->mapWidget()->zoom();
+            m_mapView->mapWidget()->resize(w * tileSize, h * tileSize);
+        } });
+
+    connect(this, &MainWindow::mapChanged, this, [this](CMap *newMap)
+            {
+                m_mapView->setMap(newMap); // MapView handles resize + centering
+                // optional: reset zoom/scroll position
+                // m_mapView->setZoom(2);
+                // m_mapView->centerOnMap();
+            });
+
+    // 5. Bonus: When selection changes → you can show coordinates or copy buffer
+    connect(m_mapView->mapWidget(), &MapWidget::selectionChanged, this, [this](const QRect &rect)
+            {
+        if (rect.isValid()) {
+            statusBar()->showMessage(QString("Selection: %1×%2  at (%3,%4)")
+                                         .arg(rect.width()).arg(rect.height())
+                                         .arg(rect.x()).arg(rect.y()));
+        } else {
+            statusBar()->clearMessage();
+        } });
+
+    // 6. When map is modified inside MapWidget → notify MainWindow (for undo/save flag)
+    connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]()
+            {
+        //emit mapChanged(m_mapView->mapWidget()->map());  // re-emit with current map pointer
+        // also mark document as dirty
+        setWindowModified(true);
+        setDirty(true); });
 }
 
 void MainWindow::on_actionClear_Map_triggered()
@@ -697,7 +658,8 @@ void MainWindow::on_actionClear_Map_triggered()
     if (reply == QMessageBox::Yes)
     {
         m_doc.map()->clear();
-        m_doc.setDirty(true);
+        // m_doc.
+        setDirty(true);
     }
 }
 
@@ -744,16 +706,16 @@ void MainWindow::on_actionEdit_Add_Map_triggered()
     bool ok;
     QString text = QInputDialog::getText(this, tr("Add New Map"),
                                          tr("Name:"), QLineEdit::Normal,
-                                         m_doc.map()->title(), &ok);
+                                         "", &ok);
     if (!ok)
         return;
     text = text.trimmed().mid(0, 254);
 
-    std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
+    std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
     map->setTitle(text.toLatin1());
     m_doc.add(std::move(map));
     m_doc.setCurrentIndex(m_doc.size() - 1);
-    m_doc.setDirty(true);
+    setDirty(true);
     emit mapChanged(m_doc.map());
     updateMenus();
 }
@@ -769,7 +731,7 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
         {
             CMap *delMap = m_doc.removeAt(index);
             delete delMap;
-            m_doc.setDirty(true);
+            setDirty(true);
             emit mapChanged(m_doc.map());
             updateMenus();
         }
@@ -789,8 +751,9 @@ void MainWindow::on_actionEdit_Insert_Map_triggered()
     int index = m_doc.currentIndex();
     std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
     map->setTitle(text.toLatin1());
-    m_doc.insertAt(index, std::move(map));  // Only ONE move operation
-    m_doc.setDirty(true);
+    m_doc.insertAt(index, std::move(map)); // Only ONE move operation
+                                           // m_doc.
+    setDirty(true);
     emit mapChanged(m_doc.map());
     updateMenus();
 }
@@ -805,9 +768,9 @@ void MainWindow::on_actionEdit_Move_Map_triggered()
     {
         int i = dlg.index();
         CMap *map = m_doc.removeAt(currIndex);
-        m_doc.insertAt(i,  std::unique_ptr<CMap>{map});
+        m_doc.insertAt(i, std::unique_ptr<CMap>{map});
         m_doc.setCurrentIndex(i);
-        m_doc.setDirty(true);
+        setDirty(true);
         emit mapChanged(m_doc.map());
         updateMenus();
     }
@@ -833,22 +796,20 @@ void MainWindow::on_actionEdit_Test_Map_triggered()
     if (m_doc.size())
     {
         CMap *map = m_doc.map();
-        CStates & states = map->states();
+        CStates &states = map->states();
         const uint16_t startPos = states.getU(POS_ORIGIN);
         // Sanitycheck
-        const Pos pos = startPos !=0 ? CMap::toPos(startPos): map->findFirst(TILES_ANNIE2);
+        const Pos pos = startPos != 0 ? CMap::toPos(startPos) : map->findFirst(TILES_ANNIE2);
         QStringList listIssues;
         if ((pos.x == CMap::NOT_FOUND) && (pos.y == CMap::NOT_FOUND))
         {
             listIssues.push_back(tr("No player on map"));
             emit newTile(TILES_ANNIE2);
-            m_currTile = TILES_ANNIE2;
         }
         if (map->count(TILES_DIAMOND) == 0)
         {
             listIssues.push_back(tr("No diamond on map"));
             emit newTile(TILES_DIAMOND);
-            m_currTile = TILES_DIAMOND;
         }
         if (listIssues.count() > 0)
         {
@@ -892,18 +853,13 @@ void MainWindow::on_actionFile_Import_Maps_triggered()
         CMapArch arch;
         if (arch.extract(fileName.toLocal8Bit().toStdString().c_str()))
         {
-            while(arch.size())
+            while (arch.size())
             {
                 auto map = arch.removeAt(0);
                 m_doc.add(std::move(map));
-                //arch.at(i)
-                //m_doc.add(arch.at(i));
-                //std::unique_ptr<CMap>
-
             }
-            //arch.removeAll();
             m_doc.setCurrentIndex(m_doc.size() - 1);
-            m_doc.setDirty(true);
+            setDirty(true);
             emit mapChanged(m_doc.map());
             updateMenus();
         }
@@ -946,8 +902,6 @@ void MainWindow::on_actionFile_Export_Map_triggered()
             QMessageBox::warning(this, m_appName, msg, QMessageBox::Button::Ok);
         }
     }
-
-    updateTitle();
     delete dlg;
 }
 
@@ -961,7 +915,7 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
     if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0)
     {
         m_doc.map()->setTitle(text.toLatin1());
-        m_doc.setDirty(true);
+        setDirty(true);
     }
 }
 
@@ -1019,24 +973,31 @@ void MainWindow::on_actionFile_Generate_Report_triggered()
 
 void MainWindow::on_actionEdit_Map_States_triggered()
 {
-    CStates & states = m_doc.map()->states();
+    CStates &states = m_doc.map()->states();
     KeyValueDialog dialog(this);
     std::vector<StateValuePair> data = states.getValues();
     dialog.populateData(data);
-    if (dialog.exec() == QDialog::Accepted) {
-        m_doc.setDirty(true);
+    if (dialog.exec() == QDialog::Accepted)
+    {
+        setDirty(true);
         const auto pairs = dialog.getKeyValuePairs();
         // Process the key-value pairs
         states.clear();
-        for (size_t i=0; i < pairs.size(); ++i) {
-            auto& p = pairs[i];
-            if (KeyValueDialog::getOptionType(p.key)== TYPE_U) {
+        for (size_t i = 0; i < pairs.size(); ++i)
+        {
+            auto &p = pairs[i];
+            if (KeyValueDialog::getOptionType(p.key) == TYPE_U)
+            {
                 bool ok;
                 uint16_t value = KeyValueDialog::parseStringToUint16(p.value, ok);
                 states.setU(p.key, value);
-            } else if (KeyValueDialog::getOptionType(p.key)== TYPE_S) {
+            }
+            else if (KeyValueDialog::getOptionType(p.key) == TYPE_S)
+            {
                 states.setS(p.key, p.value);
-            } else {
+            }
+            else
+            {
                 qDebug("unhandled key: %.2x", p.key);
             }
         }
@@ -1048,35 +1009,70 @@ void MainWindow::on_actionExport_Screenshots_triggered()
     QString folder = QFileDialog::getExistingDirectory(
         this,
         tr("Select Destination Folder"),
-        QDir::homePath(),  // default path
-        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
-    );
+        QDir::homePath(), // default path
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
-    if (!folder.isEmpty()) {
+    if (!folder.isEmpty())
+    {
         QMessageBox::information(this, "Export", "Exporting to:\n" + folder);
-        for (size_t i=0; i < m_doc.size();++i) {
+        for (size_t i = 0; i < m_doc.size(); ++i)
+        {
             CMap *map = m_doc.at(i);
-            const QString filename = folder + QString("/level%1.png").arg(i + 1, 2, 10, QLatin1Char('0')) ;
-            generateScreenshot(filename, map, 24,24);
+            const QString filename = folder + QString("/level%1.png").arg(i + 1, 2, 10, QLatin1Char('0'));
+            generateScreenshot(filename, map, 24, 24);
         }
     }
 }
 
-
 void MainWindow::on_actionEdit_Edit_Messages_triggered()
 {
     MapPropertiesDialog dialog(m_doc.map(), this, MapPropertiesDialog::TAB_MESSAGES);
-    if (dialog.exec() == QDialog::Accepted) {
+    if (dialog.exec() == QDialog::Accepted)
+    {
         // Changes have been saved to the states object
-        m_doc.setDirty(true);
+        setDirty(true);
     }
 }
 
 void MainWindow::on_actionEdit_Map_Properties_triggered()
 {
     MapPropertiesDialog dialog(m_doc.map(), this);
-    if (dialog.exec() == QDialog::Accepted) {
+    if (dialog.exec() == QDialog::Accepted)
+    {
         // Changes have been saved to the states object
-        m_doc.setDirty(true);
+        setDirty(true);
+    }
+}
+
+void MainWindow::updateWindowTitle()
+{
+    QString title = m_appName;
+    if (!m_doc.filename().isEmpty())
+    {
+        title += " — " + QFileInfo(m_doc.filename()).fileName();
+    }
+    else
+    {
+        title += " — Untitled";
+    }
+
+    // On macOS, Qt automatically shows asterisk in title bar.
+    // On Windows/Linux, you usually add it manually for clarity:
+#ifndef Q_OS_MACOS
+    if (m_doc.isDirty())
+        title += " [*]";
+#endif
+
+    setWindowTitle(title);
+    // This is the official Qt way — it adds the asterisk on ALL platforms
+    setWindowModified(m_doc.isDirty());
+}
+
+void MainWindow::setDirty(bool dirty)
+{
+    if (m_doc.isDirty() != dirty)
+    {
+        m_doc.setDirty(dirty);
+        updateWindowTitle();
     }
 }
