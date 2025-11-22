@@ -29,7 +29,7 @@ MapView::MapView(QWidget *parent)
 
 void MapView::setMap(CMap *map)
 {
-    qDebug("MapView::setMap(CMap *map)");
+    qDebug("MapView::setMap(CMap *map) %p", map);
 
     ensureVisible(0, 0, 0, 0);
     m_mapWidget->setMap(map);
@@ -41,6 +41,7 @@ void MapView::setMap(CMap *map)
         m_mapWidget->resize(0, 0);
     }
 
+     qDebug("MapView::setMap(CMap *map) out");
    // centerOnMap();
 }
 

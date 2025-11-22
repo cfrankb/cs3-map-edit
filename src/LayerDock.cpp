@@ -33,41 +33,21 @@ LayerDock::LayerDock(CMap *map, QWidget *parent)
 
     connect(m_listWidget, &QListWidget::itemClicked, this, &LayerDock::onItemClicked);
     connect(m_addButton, &QPushButton::clicked, this, [this]() {
-        m_map->addLayer(CLayer::LAYER_FLOOR, "floor");
         m_map->addLayer(CLayer::LAYER_WALLS, "walls");
+        m_map->addLayer(CLayer::LAYER_FLOOR, "floor");
         refreshList(m_map);
     });
 }
 
 void LayerDock::refreshList(CMap *map)
 {
-    if (map) {
-        m_map = map;
-    }
-
+    m_map = map;
     m_visibility.clear();
     m_listWidget->clear();
 
     if (!m_map) return;
     if (m_addButton)
-        m_addButton->setEnabled(map->layerCount() == 0);
-
-    //
-    // Add mainLayer → id = -1
-    //
-
-    QString text = QString("%1 (%2)")
-                       .arg(QString::fromStdString(m_map->getMainLayer().getName()))
-                       .arg("Main");
-
-    QListWidgetItem *item = new QListWidgetItem(text);
-    item->setData(Qt::UserRole, -1);
-
-    bool visible = true; // default
-    m_visibility[-1] = visible;
-    item->setIcon(m_eyeOpen);
-
-    m_listWidget->addItem(item);
+        m_addButton->setEnabled(map->layerCount() == 1);
 
     //
     // Add other layers: IDs = index in vector

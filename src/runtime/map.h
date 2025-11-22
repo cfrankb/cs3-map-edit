@@ -104,12 +104,12 @@ public:
     void debug();
     inline uint8_t &get(const int x, const int y)
     {
-        return m_mainLayer.get(x, y);
+        return getMainLayer()->get(x, y);
     }
 
     inline uint8_t at(const int x, const int y) const
     {
-        return m_mainLayer.at(x, y);
+        return getMainLayer()->at(x, y);
     }
 
     inline void set(const int x, const int y, const uint8_t t)
@@ -122,9 +122,9 @@ public:
         return m_layers;
     }
 
-    inline CLayer &getMainLayer()
+    inline CLayer *getMainLayer() const
     {
-        return m_mainLayer;
+        return m_layers[0].get();
     }
 
     inline size_t layerCount()
@@ -147,6 +147,7 @@ public:
     };
 
 private:
+    void addMainLayer();
     template <typename WriteFunc>
     bool writeCommon(WriteFunc writefile) const;
     template <typename ReadFunc>
@@ -154,7 +155,6 @@ private:
 
     uint16_t m_len;
     uint16_t m_hei;
-    CLayer m_mainLayer;
     attrMap_t m_attrs;
     std::string m_lastError;
     std::string m_title;

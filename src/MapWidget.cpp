@@ -32,6 +32,7 @@ using namespace MapWidgetPrivate;
 MapWidget::MapWidget(QWidget *parent)
     : QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
 {
+    m_map =nullptr;
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
     setMinimumSize(320, 240);
@@ -40,6 +41,7 @@ MapWidget::MapWidget(QWidget *parent)
     f.setStyleHint(QFont::TypeWriter); // forces monospaced
     f.setBold(true);
     setFont(f); // This sets the widget’s base font
+    preloadAssets();
 
     m_flashTimer.setInterval(250);
     m_flashTimer.start();
@@ -50,7 +52,6 @@ MapWidget::MapWidget(QWidget *parent)
             update();
      } });
 
-    preloadAssets();
 }
 
 MapWidget::~MapWidget() = default;
@@ -297,6 +298,9 @@ void MapWidget::paintEvent(QPaintEvent *)
 
 void MapWidget::drawMap(QPainter &painter)
 {
+    if (!m_map)
+        return;
+
     auto drawRect = [&painter](const auto &color, const auto &tileRect, const int width)
     {
         painter.setPen(QPen(color, width, Qt::SolidLine));

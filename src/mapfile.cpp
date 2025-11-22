@@ -3,10 +3,7 @@
 
 CMapFile::CMapFile() : CMapArch()
 {
-    std::unique_ptr<CMap> map = std::make_unique<CMap>(64,64);
-    //m_doc.add(std::move(map));
-    //m_maps[0] = new CMap(64, 64);
-    add(std::move(map));
+    add(std::make_unique<CMap>(64,64));
     m_currIndex = 0;
 }
 

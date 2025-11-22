@@ -222,8 +222,9 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
     }
 
     // read levels
-    clear();
-    for (int i = 0; i < hdr.count; ++i)
+    m_maps.resize(hdr.count);
+    int i = 0;
+    for (auto &map : m_maps)
     {
         if (!seekfile(indexPtr[i]))
         {
@@ -232,14 +233,15 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
             return false;
         }
 
-        std::unique_ptr<CMap> map(new CMap);
+        if (!map)
+            map = std::make_unique<CMap>();
         if (!readmap(map))
         {
             m_lastError = "Failed to read map data [ma]";
             LOGE("%s", m_lastError.c_str());
             return false;
         }
-        m_maps.emplace_back(std::move(map));
+        ++i;
     }
     return true;
 }
@@ -523,4 +525,9 @@ bool CMapArch::fromMemory(uint8_t *ptr)
     };
 
     return readCommon(copyData, seekmem, readmap);
+}
+
+void CMapArch::debug()
+{
+    LOGI("maps: %lu", m_maps.size());
 }

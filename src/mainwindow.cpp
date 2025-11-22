@@ -266,6 +266,7 @@ void MainWindow::loadFile(const QString &fileName)
 {
     if (!fileName.isEmpty())
     {
+       // emit mapChanged(nullptr);
         QString oldFileName = m_doc.filename();
         m_doc.setFilename(fileName);
         if (m_doc.read())
@@ -1081,6 +1082,6 @@ void MainWindow::setDirty(bool dirty)
     if (m_doc.isDirty() != dirty)
     {
         m_doc.setDirty(dirty);
-        updateWindowTitle();
     }
+    updateWindowTitle();
 }
