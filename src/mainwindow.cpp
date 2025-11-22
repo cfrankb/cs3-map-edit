@@ -117,7 +117,9 @@ void MainWindow::initTilebox()
     connect(tilebox, &CTileBox::tileChanged, this, [this](int tileID)
             {
         m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
-        m_mapView->mapWidget()->setCurrentTile(tileID); });
+        m_mapView->mapWidget()->setCurrentTile(tileID);//
+        ui->actionTools_Paint->setChecked(true);
+    });
 
     m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
     m_mapView->mapWidget()->setCurrentTile(0);
@@ -543,6 +545,17 @@ void MainWindow::initToolBar()
     m_cbSkill->setCurrentIndex(1);
     ui->toolBar->addWidget(m_cbSkill);
 
+    QComboBox* cbZoom = new QComboBox(this);
+    cbZoom->addItem("100%", 1);
+    cbZoom->addItem("200%", 2);
+    cbZoom->addItem("300%", 3);
+    cbZoom->addItem("400%", 4);
+    cbZoom->setCurrentIndex(1);
+    ui->toolBar->addWidget(cbZoom);
+    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i) {
+        m_mapView->setZoom(i + 1);
+    });
+
     m_toolGroup = new QActionGroup(this);
     m_toolGroup->addAction(ui->actionTools_Paint);
     m_toolGroup->addAction(ui->actionTools_Erase);
@@ -550,15 +563,14 @@ void MainWindow::initToolBar()
     m_toolGroup->addAction(ui->actionTools_Select);
     m_toolGroup->setExclusive(true);
     ui->actionTools_Paint->setChecked(true);
-    //  ui->actionTools_Paint->setData(TOOL_PAINT);
-    //  ui->actionTools_Erase->setData(TOOL_ERASE);
-    //  ui->actionTools_Picker->setData(TOOL_SELECT);
-    //  ui->actionTools_Select->setData(TOOL_SELECT);
 
     QAction *actionToolBar = ui->toolBar->toggleViewAction();
     actionToolBar->setText(tr("ToolBar"));
     actionToolBar->setStatusTip(tr("Show or hide toolbar"));
     ui->menuView->addAction(actionToolBar);
+
+    connect(ui->actionView_Zoom_In, &QAction::triggered, m_mapView, &MapView::zoomIn);
+    connect(ui->actionView_Zoom_Out, &QAction::triggered, m_mapView, &MapView::zoomOut);
 
     // ──────────────────────────────────────────────────────────────
     //  TOOLBAR → MapWidget TOOL WIRING (add this once)
@@ -567,15 +579,14 @@ void MainWindow::initToolBar()
     // enable stamp by default
     m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
 
-    // 1. Paint = Stamp tool
+    // Paint = Stamp tool
     connect(ui->actionTools_Paint, &QAction::triggered, this, [this]()
             { m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp); });
 
-    // 2. Erase = Stamp tool + tile 0 (or your transparent tile ID)
+    // Erase = Stamp tool + tile 0 (or your transparent tile ID)
     connect(ui->actionTools_Erase, &QAction::triggered, this, [this]()
             {
                 m_mapView->mapWidget()->setTool(MapWidget::Tool::Eraser);
-                // m_mapView->mapWidget()->setCurrentTile(0); // ← change if your empty tile is not 0
             });
 
     // Tile Picker tool
@@ -658,7 +669,6 @@ void MainWindow::on_actionClear_Map_triggered()
     if (reply == QMessageBox::Yes)
     {
         m_doc.map()->clear();
-        // m_doc.
         setDirty(true);
     }
 }
@@ -946,10 +956,8 @@ void MainWindow::on_actionFile_Generate_Report_triggered()
     QStringList filters;
     QString suffix = "txt";
     QString fileName = "";
-
     QFileDialog *dlg = new QFileDialog(this, tr("Generate Report"), "", m_allFilter);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
-
     dlg->setNameFilters(filters);
     dlg->setAcceptMode(QFileDialog::AcceptSave);
     dlg->setDefaultSuffix(suffix);

@@ -25,10 +25,7 @@ MapView::MapView(QWidget *parent)
     // Optional: nice scroll behavior
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-
-
 }
-
 
 void MapView::setMap(CMap *map)
 {

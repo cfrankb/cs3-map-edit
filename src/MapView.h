@@ -15,18 +15,17 @@ public:
 
     // Convenience wrappers
 
-    void setTileSet(const std::vector<CFrame *> &frames) { m_mapWidget->setTileSet(frames); }
-    void setZoom(int factor);
+    //void setTileSet(const std::vector<CFrame *> &frames) { m_mapWidget->setTileSet(frames); }
     int zoom() const { return m_mapWidget->zoom(); }
-
-    void zoomIn() { setZoom(zoom() + 1); }
-    void zoomOut() { setZoom(zoom() - 1); }
 
     void centerOnMap();
     void centerOnTile(int tileX, int tileY);
 
 public slots:
     void setMap(CMap *map);
+    void setZoom(int factor);
+    void zoomIn() { setZoom(zoom() + 1); }
+    void zoomOut() { setZoom(zoom() - 1); }
 
 
 protected:

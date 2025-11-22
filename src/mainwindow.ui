@@ -100,6 +100,9 @@
     </property>
     <addaction name="actionView_Grid"/>
     <addaction name="actionView_Animate"/>
+    <addaction name="separator"/>
+    <addaction name="actionView_Zoom_In"/>
+    <addaction name="actionView_Zoom_Out"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -525,6 +528,16 @@
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionView_Zoom_In">
+   <property name="text">
+    <string>Zoom In</string>
+   </property>
+  </action>
+  <action name="actionView_Zoom_Out">
+   <property name="text">
+    <string>Zoom Out</string>
    </property>
   </action>
  </widget>

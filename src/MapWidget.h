@@ -36,6 +36,11 @@ public:
         Eraser
     };
 
+    enum class TileSet {
+        Main,
+        Other,
+    };
+
     void setTool(Tool tool);
     Tool currentTool() const { return m_tool; }
 
@@ -54,9 +59,6 @@ public:
     // Selection
     QRect currentSelection() const { return m_selection; }
     void clearSelection();
-
-    // Access to tile pixmaps (from CFrameSet or similar)
-    void setTileSet(const std::vector<CFrame *> &frames); // one frame per tile ID
 
     void fillSelection(uint8_t tileId = UINT8_MAX);   // UINT8_MAX = use current brush
     void preloadAssets();
@@ -82,6 +84,10 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
+    enum:uint16_t {
+        MainTilesetBaseID = 0,  // tileset
+        OtherTilesetBaseID = 256, // other tileset
+    };
 
     // Convert between screen and map coordinates
     QPoint screenToTile(const QPoint &pos) const;
@@ -98,11 +104,10 @@ private:
     QColor rgbaToQColor(const uint32_t rgba);
 
     // Tile pixmap cache: tileId → QPixmap (scaled)
-    QPixmap getCachedPixmap(uint8_t tileId);
+    QPixmap getCachedPixmap(uint8_t tileId, uint16_t baseId);
 
     // Commit current shadow stamp
     void commitStampAt(const QPoint &tilePos);
-
     void updateCursor();
 
     QMenu *m_contextMenu = nullptr;
@@ -137,8 +142,8 @@ private:
 
     // Tile rendering cache
     std::vector<CFrame *> m_tileFrames;     // owned externally
-    QCache<uint8_t, QPixmap> m_pixmapCache; // key: tileId + zoom*1000
+    std::vector<CFrame *> m_tileOthers;     // owned externally
+    QCache<uint16_t, QPixmap> m_pixmapCache; // key: tileId + zoom*1000
 
     MainWindow *m_mainWindow = nullptr;
-
 };
