@@ -11,6 +11,10 @@
 #include <QScrollBar>
 #include <QInputDialog>
 #include <QLabel>
+#include <QScrollArea>
+#include <QDialog>
+#include <QTextEdit>
+#include <QVBoxLayout>
 #include "dlgresize.h"
 #include "dlgselect.h"
 #include "dlgtest.h"
@@ -23,9 +27,10 @@
 #include "runtime/dirs.h"
 #include "mapprops.h"
 #include "TileSelectorWidget.h"
-#include <QScrollArea>
 #include "MapView.h"
 #include "LayerDock.h"
+#include "runtime/shared/qtgui/qfilewrap.h"
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -41,6 +46,9 @@ MainWindow::MainWindow(QWidget *parent)
     // connect(this, SIGNAL(mapChanged(CMap *)), m_mapView, SLOT(setMap(CMap *)));
     connect(this, SIGNAL(mapChanged(CMap *)), this, SLOT(updateStatus()));
     connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
+    connect(this, &MainWindow::refreshMap, this, [this](){
+        m_mapView->mapWidget()->update();
+    });
 
     setDirty(false);
     initTilebox();
@@ -69,24 +77,28 @@ void MainWindow::shiftUp()
 {
     m_doc.map()->shift(Direction::UP);
     setDirty(true);
+    emit refreshMap();
 }
 
 void MainWindow::shiftDown()
 {
     m_doc.map()->shift(Direction::DOWN);
     setDirty(true);
+    emit refreshMap();
 }
 
 void MainWindow::shiftLeft()
 {
     m_doc.map()->shift(Direction::LEFT);
     setDirty(true);
+    emit refreshMap();
 }
 
 void MainWindow::shiftRight()
 {
     m_doc.map()->shift(Direction::RIGHT);
     setDirty(true);
+    emit refreshMap();
 }
 
 void MainWindow::initMapShortcuts()
@@ -135,7 +147,7 @@ void MainWindow::initSelectorWidget()
     selectorWidget->setImage(image);
 
     // Configure Tiling
-    selectorWidget->setTileSize(16);
+    selectorWidget->setTileSize(TILE_SIZE);
 
     // Configure Zoom (e.g., 200% zoom)
     selectorWidget->setZoomLevel(2);
@@ -164,17 +176,6 @@ void MainWindow::initSelectorWidget()
     addDockWidget(Qt::RightDockWidgetArea, dock);
     dock->setAllowedAreas(Qt::RightDockWidgetArea);
 
-    connect(
-        selectorWidget,
-        &TileSelectorWidget::tilesSelected,
-        this,      // The context object for lifetime management
-        [this]() { // Lambda function (captures 'this' to access ui members)
-            (void)this;
-            //  QMessageBox::information(this, "Exiting", "Goodbye!");
-            // QApplication::quit();
-            qDebug("selection received");
-        });
-
     connect(selectorWidget, &TileSelectorWidget::stampSelected, m_mapView->mapWidget(), &MapWidget::setCurrentStamp);
 }
 
@@ -191,6 +192,23 @@ void MainWindow::initLayerBox()
                 // you decide what to do
                 // e.g. map renderer hides layer
             });
+
+    connect(dock, &LayerDock::layerSelected,
+            this, [&](int layerID)
+            {
+                qDebug("layerID: %d selected", layerID);
+
+                // you decide what to do
+                // e.g. map renderer hides layer
+            });
+
+    connect(dock, &LayerDock::visibilityChanged, m_mapView->mapWidget(), &MapWidget::updateLayerVisibility);
+    connect(dock, &LayerDock::layerSelected, m_mapView->mapWidget(), &MapWidget::changeActiveLayer);
+    connect(dock, &LayerDock::layersChanged, m_mapView->mapWidget(), &MapWidget::resetLayerVisibilityList);
+    connect(dock, &LayerDock::layersChanged, this, [this](){
+        setDirty(true);
+    });
+
     connect(this, &MainWindow::mapChanged, dock, &LayerDock::refreshList);
 }
 
@@ -266,7 +284,6 @@ void MainWindow::loadFile(const QString &fileName)
 {
     if (!fileName.isEmpty())
     {
-       // emit mapChanged(nullptr);
         QString oldFileName = m_doc.filename();
         m_doc.setFilename(fileName);
         if (m_doc.read())
@@ -283,7 +300,6 @@ void MainWindow::loadFile(const QString &fileName)
             files.removeAll(fileName);
             settings.setValue("recentFileList", files);
         }
-        // updateTitle();
         setDirty(false);
         updateRecentFileActions();
         reloadRecentFileActions();
@@ -433,30 +449,6 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
     }
 }
 
-/*
-void MainWindow::showAttrDialog(int x, int y)
-{
-    CMap &map = *m_doc.map();
-    uint8_t a = map.getAttr(x, y);
-    CDlgAttr dlg(this);
-    dlg.attr(a);
-    if (dlg.exec() == QDialog::Accepted)
-    {
-        a = dlg.attr();
-        map.setAttr(x, y, a);
-            setDirty(true);
-    }
-}
-
-void MainWindow::showStatDialog(int x, int y)
-{
-    CMap &map = *m_doc.map();
-    CDlgStat dlg(map.at(x, y), map.getAttr(x, y), this);
-    dlg.setWindowTitle(tr("Tile Statistics"));
-    dlg.exec();
-}
-*/
-
 void MainWindow::initFileMenu()
 {
     // gray out the open recent `nothin' yet`
@@ -538,6 +530,7 @@ void MainWindow::initToolBar()
     ui->toolBar->addAction(ui->actionTools_Erase);
     ui->toolBar->addAction(ui->actionTools_Picker);
     ui->toolBar->addAction(ui->actionTools_Select);
+    ui->toolBar->addAction(ui->actionTools_Dice);
     ui->toolBar->addSeparator();
     m_cbSkill = new QComboBox(this);
     m_cbSkill->addItem("Easy Mode");
@@ -545,7 +538,7 @@ void MainWindow::initToolBar()
     m_cbSkill->addItem("Hard Mode");
     m_cbSkill->setCurrentIndex(1);
     ui->toolBar->addWidget(m_cbSkill);
-
+    ui->toolBar->addSeparator();
     QComboBox* cbZoom = new QComboBox(this);
     cbZoom->addItem("100%", 1);
     cbZoom->addItem("200%", 2);
@@ -562,6 +555,7 @@ void MainWindow::initToolBar()
     m_toolGroup->addAction(ui->actionTools_Erase);
     m_toolGroup->addAction(ui->actionTools_Picker);
     m_toolGroup->addAction(ui->actionTools_Select);
+    m_toolGroup->addAction(ui->actionTools_Dice);
     m_toolGroup->setExclusive(true);
     ui->actionTools_Paint->setChecked(true);
 
@@ -597,6 +591,11 @@ void MainWindow::initToolBar()
     // area selection tool
     connect(ui->actionTools_Select, &QAction::triggered, this, [this]()
             { m_mapView->mapWidget()->setTool(MapWidget::Tool::Selection); });
+
+    // area selection tool
+    connect(ui->actionTools_Dice, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Dice); });
+
 
     // ──────────────────────────────────────────────────────────────
     //  BONUS: When user picks a tile from tileset → auto-switch to Paint
@@ -635,13 +634,7 @@ void MainWindow::initToolBar()
             m_mapView->mapWidget()->resize(w * tileSize, h * tileSize);
         } });
 
-    connect(this, &MainWindow::mapChanged, this, [this](CMap *newMap)
-            {
-                m_mapView->setMap(newMap); // MapView handles resize + centering
-                // optional: reset zoom/scroll position
-                // m_mapView->setZoom(2);
-                // m_mapView->centerOnMap();
-            });
+    connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
 
     // 5. Bonus: When selection changes → you can show coordinates or copy buffer
     connect(m_mapView->mapWidget(), &MapWidget::selectionChanged, this, [this](const QRect &rect)
@@ -655,12 +648,9 @@ void MainWindow::initToolBar()
         } });
 
     // 6. When map is modified inside MapWidget → notify MainWindow (for undo/save flag)
-    connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]()
-            {
-        //emit mapChanged(m_mapView->mapWidget()->map());  // re-emit with current map pointer
-        // also mark document as dirty
-//        setWindowModified(true);
-        setDirty(true); });
+    connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]() {
+        setDirty(true);
+    });
 }
 
 void MainWindow::on_actionClear_Map_triggered()
@@ -669,7 +659,7 @@ void MainWindow::on_actionClear_Map_triggered()
     QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes | QMessageBox::No);
     if (reply == QMessageBox::Yes)
     {
-        m_doc.map()->clear();
+        m_doc.map()->getMainLayer()->clear();
         setDirty(true);
     }
 }
@@ -1085,3 +1075,38 @@ void MainWindow::setDirty(bool dirty)
     }
     updateWindowTitle();
 }
+
+
+void MainWindow::on_actionHelp_Credits_triggered()
+{
+    QDialog* dialog = new QDialog(this);
+    dialog->setWindowTitle(tr("Credits"));
+
+    std::vector<char> tmp;
+    QFileWrap file;
+    const char filename [] = ":/data/credits.txt";
+    if (file.open(filename, "rb")) {
+        auto size = file.getSize();
+        tmp.resize(size+1);
+        tmp[size] = '\0';
+        if (!file.read(tmp.data(), size)) {
+            LOGE("can't read %s", filename);
+        }
+        file.close();
+    } else {
+        LOGE("can't open %s", filename);
+    }
+
+    QTextEdit* textEdit = new QTextEdit(dialog);
+    textEdit->setReadOnly(true); // Ensures text can't be edited
+    textEdit->setPlainText(tmp.data());
+
+    // Vertical scrollbar appears automatically when needed
+    QVBoxLayout* layout = new QVBoxLayout(dialog);
+    layout->addWidget(textEdit);
+
+    dialog->setLayout(layout);
+    dialog->resize(400, 300); // Optional: set initial size
+    dialog->exec(); // Show the dialog modally
+}
+

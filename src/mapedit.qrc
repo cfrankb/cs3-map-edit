@@ -57,5 +57,9 @@
         <file>data/icons/secretlondon_Manga_Eye_(right).png</file>
         <file>data/icons/blind_795831.png</file>
         <file>data/icons/eye_818577.png</file>
+        <file>data/icons/stamp.png</file>
+        <file>data/icons/select-rectangle-svgrepo-com.png</file>
+        <file>data/icons/trash-svgrepo-com.png</file>
+        <file>data/credits.txt</file>
     </qresource>
 </RCC>

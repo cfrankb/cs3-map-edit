@@ -26,6 +26,7 @@ signals:
     void resizeMap(int, int);   // notify of a map resize
     void mapChanged(CMap *);    // notify of a map change
     void newTile(int);          // select a diffent tile in the tilebox
+    void refreshMap();
 
 private slots:
     void loadFile(const QString & filename);
@@ -63,6 +64,8 @@ private slots:
     void shiftLeft();
     void shiftRight();
 
+    void on_actionHelp_Credits_triggered();
+
 private:
     void closeEvent(QCloseEvent *event) override;
     bool maybeSave();
@@ -88,6 +91,7 @@ private:
 
     enum {
         MAX_RECENT_FILES = 12,
+        TILE_SIZE = 16,
     };
 
     QString m_appName = tr("mapedit");

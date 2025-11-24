@@ -29,20 +29,14 @@ MapView::MapView(QWidget *parent)
 
 void MapView::setMap(CMap *map)
 {
-    qDebug("MapView::setMap(CMap *map) %p", map);
-
     ensureVisible(0, 0, 0, 0);
     m_mapWidget->setMap(map);
-
     if (map) {
-        int tileSize = 16 * m_mapWidget->zoom();
+        int tileSize = TILE_SIZE * m_mapWidget->zoom();
         m_mapWidget->resize(map->len() * tileSize, map->hei() * tileSize);
     } else {
         m_mapWidget->resize(0, 0);
     }
-
-     qDebug("MapView::setMap(CMap *map) out");
-   // centerOnMap();
 }
 
 void MapView::setZoom(int factor)
@@ -63,7 +57,7 @@ void MapView::setZoom(int factor)
 
     // Force MapWidget to exact pixel size
     if (m_mapWidget->map()) {
-        int tileSize = 16 * factor;
+        int tileSize = TILE_SIZE * factor;
         int pixelW = m_mapWidget->map()->len() * tileSize;
         int pixelH = m_mapWidget->map()->hei() * tileSize;
         m_mapWidget->resize(pixelW, pixelH);
@@ -83,8 +77,8 @@ void MapView::centerOnMap()
     if (!m_mapWidget->map())
         return;
 
-    const int tileW = 16 * m_mapWidget->zoom();
-    const int tileH = 16 * m_mapWidget->zoom();
+    const int tileW = TILE_SIZE * m_mapWidget->zoom();
+    const int tileH = TILE_SIZE * m_mapWidget->zoom();
 
     int centerX = (m_mapWidget->map()->len() * tileW) / 2;
     int centerY = (m_mapWidget->map()->hei() * tileH) / 2;
@@ -96,7 +90,7 @@ void MapView::centerOnTile(int tileX, int tileY)
 {
     qDebug("centerOnTile");
 
-    const int tileSize = 16 * m_mapWidget->zoom();
+    const int tileSize = TILE_SIZE * m_mapWidget->zoom();
     int pixelX = tileX * tileSize + tileSize / 2;
     int pixelY = tileY * tileSize + tileSize / 2;
     ensureVisible(pixelX, pixelY, width() / 2, height() / 2);
@@ -141,83 +135,6 @@ bool MapView::eventFilter(QObject *obj, QEvent *event)
         setCursor(Qt::ArrowCursor);
         return true;
     }
-
-
     return QScrollArea::eventFilter(obj, event);
 }
 
-/*
-
-// In your MainWindow constructor
-#include "MapView.h"
-
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-{
-    m_mapView = new MapView(this);
-    setCentralWidget(m_mapView);
-
-    // Connect signals
-    connect(m_mapView->mapWidget(), &MapWidget::tilePicked,
-            this, &MainWindow::onTilePicked);
-
-    connect(m_mapView->mapWidget(), &MapWidget::mapModified,
-            this, &MainWindow::setWindowModified);
-
-    // Example: load a level
-    loadLevel("levels/level1.map");
-}
-
-void MainWindow::loadLevel(const QString &fileName)
-{
-    CMap *map = new CMap();
-    if (map->read(fileName.toLocal8Bit().constData())) {
-        m_mapView->setMap(map);
-        m_mapView->setTileSet(m_globalTileSetFrames); // your vector<CFrame*>
-        m_mapView->setZoom(2);        // start at 200%
-        m_mapView->centerOnMap();
-    } else {
-        delete map;
-        QMessageBox::warning(this, "Error", map->lastError());
-    }
-}
-
-// Optional toolbar actions
-void MainWindow::on_actionZoom_In_triggered()
-{
-    m_mapView->zoomIn();
-}
-
-void MainWindow::on_actionZoom_Out_triggered()
-{
-    m_mapView->zoomOut();
-}
-
-void MainWindow::on_actionFit_Map_triggered()
-{
-    if (!m_mapView->mapWidget()->map()) return;
-
-    int mapPixelW = m_mapView->mapWidget()->map()->len() * 16;
-    int mapPixelH = m_mapView->mapWidget()->map()->hei() * 16;
-
-    int zoomX = width() / mapPixelW;
-    int zoomY = height() / mapPixelH;
-    int newZoom = qMax(1, qMin(zoomX, zoomY));
-
-    m_mapView->setZoom(newZoom);
-    m_mapView->centerOnMap();
-}
-
-
-void MainWindow::on_actionRevert_triggered()
-{
-    if (!m_isDirty) return;
-
-    auto ret = QMessageBox::question(this, "Revert",
-        "Discard all changes and reload from disk?");
-    if (ret == QMessageBox::Yes) {
-        openFile(currentFileName());   // reloads and sets dirty = false
-    }
-}
-
-*/

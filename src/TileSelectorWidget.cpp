@@ -268,10 +268,6 @@ Stamp TileSelectorWidget::getSelectedStamp() const
     {
         for (int c = minCol; c <= maxCol; ++c)
         {
-            //TileInfo info;
-            //info.id = getTileId(r, c);
-            // Relative position to the top-left tile
-            //info.relativePos = QPoint(c - topLeftTile.x(), r - topLeftTile.y());
             stamp.tiles.emplace_back(static_cast<uint8_t>(getTileId(r, c)));
         }
     }

@@ -64,7 +64,9 @@ SOURCES += \
     TileSelectorWidget.cpp \
     MapWidget.cpp \
     MapView.cpp \
-    LayerDock.cpp
+    LayerDock.cpp \
+    LayerRowWidget.cpp \
+    layerdata.cpp
 
 
 HEADERS += \
@@ -133,7 +135,9 @@ HEADERS += \
     TileSelectorWidget.h \
     MapWidget.h \
     MapView.h \
-    LayerDock.h
+    LayerDock.h \
+    LayerRowWidget.h \
+    layerdata.h
 
 
 FORMS += \

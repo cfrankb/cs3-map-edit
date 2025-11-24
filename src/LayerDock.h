@@ -16,9 +16,15 @@ public:
 
 signals:
     void visibilityChanged(int layerID, bool visible);
+    void layerSelected(int layerID);
+    void layersChanged();
+    void requestRenameLayer(int layerID);
+    void requestDeleteLayer(int layerID);
 
 private slots:
-    void onItemClicked(QListWidgetItem *item);
+    void onContextMenu(const QPoint& pos);
+    void updateRowHighlights();
+
 public slots:
     void refreshList(CMap *map);
 

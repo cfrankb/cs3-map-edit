@@ -33,7 +33,8 @@ public:
         Stamp,     // Place single or multi-tile stamp
         Picker,    // Pick tile under cursor
         Selection, // Rectangular selection (with move/copy later)
-        Eraser
+        Eraser,
+        Dice
     };
 
     void setTool(Tool tool);
@@ -70,6 +71,9 @@ public slots:
     void setCurrentTile(uint8_t tileId);
     void setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols); // for multi-tile stamps
     void setCurrentStamp(const Stamp &stamp);
+    void changeActiveLayer(int layerID);
+    void updateLayerVisibility(int layerID, bool visibility);
+    void resetLayerVisibilityList();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -102,6 +106,23 @@ private:
     // Commit current shadow stamp
     void commitStampAt(const QPoint &tilePos, const Stamp &stamp);
     void updateCursor();
+    uint8_t pickDiceTile(const std::vector<uint8_t> & tiles);
+
+    // Layers
+
+    enum {
+        MAIN_LAYER_ID = 0,
+    };
+    int m_activeLayer = MAIN_LAYER_ID;
+    QList<bool> m_layerVisibilityList;
+    inline bool validateBaseIDForCurrentLayer(uint16_t baseID) {
+        if (m_activeLayer == MAIN_LAYER_ID && baseID == Stamp::MainTilesetBaseID)
+            return true;
+        else if (m_activeLayer != MAIN_LAYER_ID && baseID == Stamp::OtherTilesetBaseID)
+            return true;
+        else
+            return false;
+    }
 
     CMap *m_map = nullptr;
     Tool m_tool = Tool::None;

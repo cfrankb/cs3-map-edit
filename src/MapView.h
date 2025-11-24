@@ -33,4 +33,8 @@ protected:
 
 private:
     MapWidget *m_mapWidget;
+
+    enum {
+        TILE_SIZE = 16,
+    };
 };

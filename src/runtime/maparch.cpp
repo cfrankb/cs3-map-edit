@@ -337,7 +337,7 @@ bool CMapArch::extract(const char *filename)
     else
     {
         clear();
-        std::unique_ptr<CMap> map;
+        std::unique_ptr<CMap> map = std::make_unique<CMap>();
         m_maps.emplace_back(std::move(map));
         return fetchLevel(*m_maps[0], filename, m_lastError);
     }

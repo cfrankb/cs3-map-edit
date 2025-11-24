@@ -200,6 +200,8 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
         return false;
     }
 
+    m_layers.clear();
+
     // read layers
     if (ver >= VERSION1)
     {
@@ -210,34 +212,31 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
             LOGE("%s", m_lastError.c_str());
             return false;
         }
-        m_layers.resize(layerCount);
-
+        m_layers.reserve(layerCount);
         for (size_t i = 0; i < layerCount; ++i)
         {
-            std::unique_ptr<CLayer> &layer = m_layers[i];
-            if (!layer)
-                layer = std::make_unique<CLayer>(m_len, m_hei);
+            // LOGI("layer %lu", i);
+            std::unique_ptr<CLayer> layer = std::make_unique<CLayer>(m_len, m_hei);
             if (!layer->readCommon(readfile, ver))
             {
                 m_lastError = std::string("failed read Layer: ") + layer->lastError();
                 LOGE("%s", m_lastError.c_str());
                 return false;
             }
+            m_layers.emplace_back(std::move(layer));
         }
     }
     else
     {
         // add main layer for compatibility w/ older versions
-        m_layers.resize(1);
-        std::unique_ptr<CLayer> &layer = m_layers[0];
-        if (!layer)
-            layer = std::make_unique<CLayer>(m_len, m_hei);
+        std::unique_ptr<CLayer> layer = std::make_unique<CLayer>(m_len, m_hei);
         if (!layer->readCommon(readfile, ver))
         {
             m_lastError = std::string("failed read MainLayer: ") + getMainLayer()->lastError();
             LOGE("%s", m_lastError.c_str());
             return false;
         }
+        m_layers.emplace_back(std::move(layer));
     }
 
     m_len = getMainLayer()->len();

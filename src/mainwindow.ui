@@ -57,38 +57,12 @@
     <property name="title">
      <string>Edit</string>
     </property>
-    <widget class="QMenu" name="menuTools">
-     <property name="title">
-      <string>Tools</string>
-     </property>
-     <addaction name="actionTools_Paint"/>
-     <addaction name="actionTools_Picker"/>
-     <addaction name="actionTools_Erase"/>
-     <addaction name="actionTools_Select"/>
-    </widget>
-    <widget class="QMenu" name="menuGo_to">
-     <property name="title">
-      <string>Navigate</string>
-     </property>
-     <addaction name="actionEdit_Previous_Map"/>
-     <addaction name="actionEdit_Next_Map"/>
-     <addaction name="separator"/>
-     <addaction name="actionEdit_First_Map"/>
-     <addaction name="actionEdit_Last_Map"/>
-     <addaction name="separator"/>
-     <addaction name="actionEdit_Goto_Map"/>
-    </widget>
+    <addaction name="actionEdit_Undo"/>
+    <addaction name="actionEdit_Redo"/>
+    <addaction name="separator"/>
     <addaction name="actionEdit_ResizeMap"/>
-    <addaction name="menuGo_to"/>
     <addaction name="actionEdit_Test_Map"/>
     <addaction name="actionEdit_Rename_Map"/>
-    <addaction name="menuTools"/>
-    <addaction name="separator"/>
-    <addaction name="actionEdit_Add_Map"/>
-    <addaction name="actionEdit_Move_Map"/>
-    <addaction name="actionEdit_Insert_Map"/>
-    <addaction name="actionClear_Map"/>
-    <addaction name="actionEdit_Delete_Map"/>
     <addaction name="separator"/>
     <addaction name="actionEdit_Map_States"/>
     <addaction name="actionEdit_Edit_Messages"/>
@@ -110,9 +84,44 @@
     </property>
     <addaction name="actionHelp_About"/>
     <addaction name="actionHelp_About_Qt"/>
+    <addaction name="separator"/>
+    <addaction name="actionHelp_Credits"/>
+   </widget>
+   <widget class="QMenu" name="menuMap">
+    <property name="title">
+     <string>Map</string>
+    </property>
+    <widget class="QMenu" name="menuNavigate">
+     <property name="title">
+      <string>Navigate</string>
+     </property>
+     <addaction name="actionEdit_First_Map"/>
+     <addaction name="actionEdit_Previous_Map"/>
+     <addaction name="actionEdit_Next_Map"/>
+     <addaction name="actionEdit_Last_Map"/>
+     <addaction name="actionEdit_Goto_Map"/>
+    </widget>
+    <addaction name="actionEdit_Add_Map"/>
+    <addaction name="actionEdit_Insert_Map"/>
+    <addaction name="actionEdit_Move_Map"/>
+    <addaction name="actionClear_Map"/>
+    <addaction name="actionEdit_Delete_Map"/>
+    <addaction name="menuNavigate"/>
+   </widget>
+   <widget class="QMenu" name="menuTools_2">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionTools_Paint"/>
+    <addaction name="actionTools_Picker"/>
+    <addaction name="actionTools_Erase"/>
+    <addaction name="actionTools_Select"/>
+    <addaction name="actionTools_Dice"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
+   <addaction name="menuTools_2"/>
+   <addaction name="menuMap"/>
    <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -237,10 +246,13 @@
    </property>
    <property name="icon">
     <iconset resource="mapedit.qrc">
-     <normaloff>:/data/icons/strawberrypntbrush.png</normaloff>:/data/icons/strawberrypntbrush.png</iconset>
+     <normaloff>:/data/icons/stamp.png</normaloff>:/data/icons/stamp.png</iconset>
    </property>
    <property name="text">
-    <string>Paint</string>
+    <string>Stamp Brush</string>
+   </property>
+   <property name="toolTip">
+    <string>Stamp Brush</string>
    </property>
    <property name="statusTip">
     <string>Paint Tile on the map.</string>
@@ -357,7 +369,7 @@
   <action name="actionEdit_Delete_Map">
    <property name="icon">
     <iconset resource="mapedit.qrc">
-     <normaloff>:/data/icons/minus.png</normaloff>:/data/icons/minus.png</iconset>
+     <normaloff>:/data/icons/trash-svgrepo-com.png</normaloff>:/data/icons/trash-svgrepo-com.png</iconset>
    </property>
    <property name="text">
     <string>Delete Map</string>
@@ -518,13 +530,16 @@
    </property>
    <property name="icon">
     <iconset resource="mapedit.qrc">
-     <normaloff>:/data/icons/rubber-bands.png</normaloff>:/data/icons/rubber-bands.png</iconset>
+     <normaloff>:/data/icons/select-rectangle-svgrepo-com.png</normaloff>:/data/icons/select-rectangle-svgrepo-com.png</iconset>
    </property>
    <property name="text">
     <string>Select</string>
    </property>
    <property name="toolTip">
     <string>Select</string>
+   </property>
+   <property name="statusTip">
+    <string>Select a Map Region</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -538,6 +553,36 @@
   <action name="actionView_Zoom_Out">
    <property name="text">
     <string>Zoom Out</string>
+   </property>
+  </action>
+  <action name="actionTools_Dice">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="mapedit.qrc">
+     <normaloff>:/data/icons/six-sided-dice.png</normaloff>:/data/icons/six-sided-dice.png</iconset>
+   </property>
+   <property name="text">
+    <string>Random Mode</string>
+   </property>
+   <property name="statusTip">
+    <string>Random Tile From Selection</string>
+   </property>
+  </action>
+  <action name="actionEdit_Undo">
+   <property name="text">
+    <string>Undo</string>
+   </property>
+  </action>
+  <action name="actionEdit_Redo">
+   <property name="text">
+    <string>Redo</string>
+   </property>
+  </action>
+  <action name="actionHelp_Credits">
+   <property name="text">
+    <string>Credits</string>
    </property>
   </action>
  </widget>
