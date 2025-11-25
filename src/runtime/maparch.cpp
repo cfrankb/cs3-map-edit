@@ -82,7 +82,7 @@ void CMapArch::clear()
  * @return size_t mapIndex pos
  */
 
-size_t CMapArch::add(std::unique_ptr<CMap> map)
+size_t CMapArch::add(std::unique_ptr<CMap> &map)
 {
     m_maps.emplace_back(std::move(map));
     return m_maps.size() - 1;
@@ -111,7 +111,7 @@ std::unique_ptr<CMap> CMapArch::removeAt(int i)
  * @param map
  */
 
-void CMapArch::insertAt(int i, std::unique_ptr<CMap> map)
+void CMapArch::insertAt(int i, std::unique_ptr<CMap> &map)
 {
     if (i < 0 || i > static_cast<int>(m_maps.size()))
         return;
@@ -147,9 +147,9 @@ bool CMapArch::read(IFile &file)
     return readCommon(readfile, seekfile, readmap);
 }
 
-bool CMapArch::read(const char *filename)
+bool CMapArch::read(const std::string_view &filename)
 {
-    FILE *sfile = fopen(filename, "rb");
+    FILE *sfile = fopen(filename.data(), "rb");
     if (!sfile)
     {
         m_lastError = "can't read file[0]";
@@ -253,11 +253,11 @@ bool CMapArch::readCommon(ReadFunc readfile, SeekFunc seekfile, ReadMapFunc read
  * @return true
  * @return false
  */
-bool CMapArch::write(const char *filename)
+bool CMapArch::write(const std::string_view &filename)
 {
     bool result;
     // write levelArch
-    FILE *tfile = fopen(filename, "wb");
+    FILE *tfile = fopen(filename.data(), "wb");
     if (tfile)
     {
         std::vector<long> index;
@@ -314,9 +314,9 @@ const char *CMapArch::signature()
  * @return true
  * @return false
  */
-bool CMapArch::extract(const char *filename)
+bool CMapArch::extract(const std::string_view &filename)
 {
-    FILE *sfile = fopen(filename, "rb");
+    FILE *sfile = fopen(filename.data(), "rb");
     auto readfile = [sfile](auto ptr, auto size)
     {
         return fread(ptr, size, 1, sfile) == 1;
@@ -339,7 +339,7 @@ bool CMapArch::extract(const char *filename)
         clear();
         std::unique_ptr<CMap> map = std::make_unique<CMap>();
         m_maps.emplace_back(std::move(map));
-        return fetchLevel(*m_maps[0], filename, m_lastError);
+        return fetchLevel(*m_maps[0], filename.data(), m_lastError);
     }
 }
 
@@ -530,4 +530,10 @@ bool CMapArch::fromMemory(uint8_t *ptr)
 void CMapArch::debug()
 {
     LOGI("maps: %lu", m_maps.size());
+    int i = 0;
+    for (const auto &map : m_maps)
+    {
+        LOGI("map %d: %p", i, map.get());
+        ++i;
+    }
 }

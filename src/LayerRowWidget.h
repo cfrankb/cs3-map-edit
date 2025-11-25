@@ -8,6 +8,8 @@ class LayerRowWidget : public QWidget
     Q_OBJECT
 public:
     explicit LayerRowWidget(const QString &text, bool visible, QWidget *parent = nullptr);
+    void setLabel(const QString &label);
+
 
 signals:
     void eyeClicked();

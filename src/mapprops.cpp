@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "mapprops.h"
-#include "runtime/map.h"
+#include "mainwindow.h"
 #include "runtime/statedata.h"
-#include "runtime/states.h"
+#include "undo/MapPropertiesCommand.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
@@ -28,16 +28,19 @@
 #include <QDialogButtonBox>
 #include <QTabWidget>
 #include <QFrame>
+#include <QUndoStack>
 
 #if defined(USE_HUNSPELL)
 #include <hunspell.hxx>
 #include "SpellHighlighter.h"
 #endif
 
-MapPropertiesDialog::MapPropertiesDialog(CMap *map, QWidget *parent, int tab)
-    : QDialog(parent), m_map(map), m_currentIndex(-1)
+
+
+MapPropertiesDialog::MapPropertiesDialog(CMap *map, QUndoStack* stack, QWidget *parent, int tab)
+    :  QDialog(parent), m_map(map), m_mainWindow(qobject_cast<MainWindow*>(parent)), m_currentIndex(-1), m_undoStack(stack)
 {
-    setWindowTitle("Map Properties");
+    setWindowTitle(tr("Map Properties"));
     setupUI();
     loadFromMap();
     populateMessages();
@@ -201,31 +204,40 @@ void MapPropertiesDialog::loadFromMap()
     m_authorLineEdit->setText(QString::fromUtf8(states.getS(StateValue::AUTHOR)));
 }
 
-void MapPropertiesDialog::saveToMap()
+void MapPropertiesDialog::applyChanges()
 {
-    if (!m_map)
+    if (!m_map) return;
+
+    CStates newStates = m_map->states(); // start with current
+    // apply dialog values into newStates
+    newStates.setU(StateValue::TIMEOUT, m_timeoutSpinBox->value());
+    newStates.setU(StateValue::MAP_GOAL, m_mapGoalSpinBox->value());
+    newStates.setU(StateValue::PAR_TIME, m_parTimeSpinBox->value());
+    newStates.setU(StateValue::YEAR, m_yearSpinBox->value());
+    newStates.setU(StateValue::PRIVATE, m_privateCheckBox->isChecked() ? 1 : 0);
+    newStates.setS(StateValue::AUTHOR, m_authorLineEdit->text().toStdString());
+
+    // Save current message being edited
+    if (m_currentIndex != -1)
+    {
+        m_messages[m_currentIndex] = m_eMessage->toPlainText().trimmed();
+    }
+
+    // messages
+    for (size_t i = 0; i < MAX_MESSAGES; ++i)
+        newStates.setS(BASE_ID + i, m_messages[i].toStdString());
+
+    std::string newTitle = m_titleLineEdit->text().toStdString();
+    if (newStates == m_map->states() && newTitle == m_map->title())
         return;
 
-    // Save title to CMap
-    m_map->setTitle(m_titleLineEdit->text().toUtf8().constData());
-
-    // Get the states object from CMap
-    CStates &states = m_map->states();
-
-    // Save uint16_t values
-    states.setU(StateValue::TIMEOUT, m_timeoutSpinBox->value());
-    states.setU(StateValue::MAP_GOAL, m_mapGoalSpinBox->value());
-    states.setU(StateValue::PAR_TIME, m_parTimeSpinBox->value());
-    states.setU(StateValue::YEAR, m_yearSpinBox->value());
-
-    // Save private checkbox (1 if checked, 0 if not)
-    states.setU(StateValue::PRIVATE, m_privateCheckBox->isChecked() ? 1 : 0);
-
-    // Save string value
-    states.setS(StateValue::AUTHOR, m_authorLineEdit->text().toStdString());
-
-    // Save messages
-    saveMessages();
+    m_undoStack->push(new MapPropertiesCommand(
+        m_map,
+        m_mainWindow,
+        newStates,
+        newTitle,
+        MapPropertiesCommand::EditMode::StatesAndTitle
+        ));
 }
 
 void MapPropertiesDialog::populateMessages()
@@ -305,7 +317,7 @@ void MapPropertiesDialog::onCursorPositionChanged()
 
 void MapPropertiesDialog::onAccept()
 {
-    saveToMap();
+    applyChanges();
     accept();
 }
 

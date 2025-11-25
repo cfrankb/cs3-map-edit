@@ -57,8 +57,6 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mapfile.cpp \
-    #mapscroll.cpp \
-    #mapwidget.cpp \
     report.cpp \
     mapprops.cpp \
     TileSelectorWidget.cpp \
@@ -126,8 +124,6 @@ HEADERS += \
     dlgtest.h \
     mainwindow.h \
     mapfile.h \
-    #mapscroll.h \
-    #mapwidget.h \
     report.h \
     tilebox.h \
     keyvaluedialog.h \
@@ -137,7 +133,11 @@ HEADERS += \
     MapView.h \
     LayerDock.h \
     LayerRowWidget.h \
-    layerdata.h
+    layerdata.h \
+    undo/MapPropertiesCommand.h \
+    undo/MapCommand.h
+   # undo/LayerChangeBaseIDCommand.h \
+  #  undo/LayerRenameCommand.h
 
 
 FORMS += \

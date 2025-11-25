@@ -25,6 +25,9 @@
 #include "dirs.h"
 #include "layer.h"
 
+#ifndef ___POS_T
+#define ___POS_T
+
 typedef std::unordered_map<uint16_t, uint8_t> attrMap_t;
 struct Pos
 {
@@ -56,6 +59,7 @@ struct Pos
         return true;
     }
 };
+#endif
 
 class IFile;
 class CStates;
@@ -87,7 +91,7 @@ public:
     CMap &operator=(const CMap &map);
     bool fromMemory(uint8_t *mem);
     const char *title();
-    void setTitle(const char *title);
+    void setTitle(const std::string_view &title);
     void replaceTile(const uint8_t, const uint8_t);
     const attrMap_t &attrs() { return m_attrs; }
     CStates &states();
@@ -132,8 +136,9 @@ public:
         return m_layers.size();
     }
 
-    CLayer *addLayer(const CLayer::LayerType lt, const std::string_view &name);
+    CLayer *addLayer(const CLayer::LayerType lt, const std::string_view &name, uint16_t baseID);
     CLayer *getLayer(const size_t index);
+    std::unique_ptr<CLayer> popLayer();
 
     enum : int16_t
     {
@@ -144,6 +149,7 @@ public:
     {
         VERSION0 = 0,
         VERSION1 = 1,
+        VERSION2 = 2,
     };
 
 private:

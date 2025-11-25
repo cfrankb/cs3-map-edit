@@ -9,6 +9,9 @@ class CMapScroll;
 class QComboBox;
 class QLabel;
 class MapView;
+class QUndoStack;
+class QListWidget;
+class QPushButton;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -21,14 +24,17 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    QUndoStack* stack() { return m_undoStack; }
 
 signals:
     void resizeMap(int, int);   // notify of a map resize
     void mapChanged(CMap *);    // notify of a map change
     void newTile(int);          // select a diffent tile in the tilebox
-    void refreshMap();
+    void refreshMap();          // notify the mapview to refreshMap
+    void propertiesChanged();   // notify that map property was changed
 
 private slots:
+    void updateHistoryList();
     void loadFile(const QString & filename);
     void setStatus(const QString str);
     void on_actionFile_New_File_triggered();
@@ -39,6 +45,7 @@ private slots:
     void on_actionClear_Map_triggered();
     void on_actionHelp_About_triggered();
     void on_actionHelp_About_Qt_triggered();
+    void on_actionHelp_Credits_triggered();
     void on_actionEdit_Previous_Map_triggered();
     void on_actionEdit_Next_Map_triggered();
     void on_actionEdit_Add_Map_triggered();
@@ -57,14 +64,14 @@ private slots:
     void on_actionExport_Screenshots_triggered();
     void on_actionEdit_Edit_Messages_triggered();
     void on_actionEdit_Map_Properties_triggered();
+    void on_actionEdit_Undo_triggered();
+    void on_actionEdit_Redo_triggered();
     void updateStatus();
     void openRecentFile();
     void shiftUp();
     void shiftDown();
     void shiftLeft();
-    void shiftRight();
-
-    void on_actionHelp_Credits_triggered();
+    void shiftRight();    
 
 private:
     void closeEvent(QCloseEvent *event) override;
@@ -85,6 +92,7 @@ private:
     void initToolBar();
     void initSelectorWidget();
     void initLayerBox();
+    void initHistoryWidget();
     void updateWindowTitle();
     void setDirty(bool dirty);
     int currentTool();
@@ -99,12 +107,17 @@ private:
     Ui::MainWindow *ui;
     MapView *m_mapView;
     QComboBox *m_cbSkill;
-    CMapFile m_doc;
+    CMapFile m_doc = CMapFile(this);
     int m_hx = -1;
     int m_hy = -1;
     QActionGroup *m_toolGroup;
     QAction *m_recentFileActs[MAX_RECENT_FILES];
     QLabel *m_label;
     QLabel *m_label0;
+    QUndoStack* m_undoStack;
+
+    QListWidget* m_historyList;
+    QPushButton* m_undoButton;
+    QPushButton* m_redoButton;
 };
 #endif // MAINWINDOW_H

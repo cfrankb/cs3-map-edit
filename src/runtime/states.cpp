@@ -261,3 +261,15 @@ bool CStates::hasS(const uint16_t k) const
 {
     return m_stateS.count(k) != 0;
 }
+
+bool CStates::operator==(const CStates &other) const
+{
+
+    return m_stateU == other.m_stateU &&
+           m_stateS == other.m_stateS;
+}
+
+bool CStates::operator!=(const CStates &states) const
+{
+    return !(*this == states);
+}

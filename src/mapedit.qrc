@@ -61,5 +61,7 @@
         <file>data/icons/select-rectangle-svgrepo-com.png</file>
         <file>data/icons/trash-svgrepo-com.png</file>
         <file>data/credits.txt</file>
+        <file>data/icons/redo.png</file>
+        <file>data/icons/undo.png</file>
     </qresource>
 </RCC>

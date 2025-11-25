@@ -34,3 +34,8 @@ void LayerRowWidget::mousePressEvent(QMouseEvent *e)
 
     QWidget::mousePressEvent(e);
 }
+
+void LayerRowWidget::setLabel(const QString &label)
+{
+    m_label->setText(label);
+}

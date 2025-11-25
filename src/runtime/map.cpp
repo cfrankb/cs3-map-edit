@@ -36,7 +36,7 @@ namespace MapPrivate
     constexpr char SIG[]{'M', 'A', 'P', 'Z'};
     constexpr char XTR_SIG[]{"XTR"};
 
-    constexpr uint16_t VERSION = CMap::VERSION1;
+    constexpr uint16_t VERSION = CMap::VERSION2;
     constexpr uint16_t MAX_SIZE = 256;
     constexpr uint16_t MAX_TITLE = 255;
 };
@@ -77,7 +77,7 @@ CMap::~CMap() {
 
 void CMap::addMainLayer()
 {
-    m_layers.emplace_back(std::make_unique<CLayer>(m_len, m_hei, CLayer::LayerType::LAYER_MAIN, "main"));
+    m_layers.emplace_back(std::make_unique<CLayer>(m_len, m_hei, CLayer::LayerType::LAYER_MAIN, 0, "main"));
 }
 
 void CMap::clear()
@@ -616,7 +616,7 @@ const char *CMap::title()
     return m_title.c_str();
 }
 
-void CMap::setTitle(const char *title)
+void CMap::setTitle(const std::string_view &title)
 {
     m_title = title;
 }
@@ -655,9 +655,9 @@ void CMap::replaceTile(const uint8_t src, const uint8_t repl)
     getMainLayer()->replaceTile(src, repl);
 }
 
-CLayer *CMap::addLayer(const CLayer::LayerType lt, const std::string_view &name)
+CLayer *CMap::addLayer(const CLayer::LayerType lt, const std::string_view &name, uint16_t baseID)
 {
-    return m_layers.emplace_back(new CLayer(m_len, m_hei, lt, name.data())).get();
+    return m_layers.emplace_back(new CLayer(m_len, m_hei, lt, baseID, name.data())).get();
 }
 
 CLayer *CMap::getLayer(const size_t index)
@@ -666,4 +666,15 @@ CLayer *CMap::getLayer(const size_t index)
         return m_layers[index].get();
     else
         return nullptr;
+}
+
+std::unique_ptr<CLayer> CMap::popLayer()
+{
+    if (m_layers.empty())
+        return nullptr;
+
+    // Move out the last element
+    std::unique_ptr<CLayer> layer = std::move(m_layers.back());
+    m_layers.pop_back(); // cleaner than resize(size-1)
+    return layer;
 }

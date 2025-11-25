@@ -24,8 +24,10 @@
 #include <QComboBox>
 #include <QPlainTextEdit>
 #include <QLabel>
+#include <QUndoStack>
 #include <array>
 
+class MainWindow;
 class CMap;
 class SpellHighlighter;
 
@@ -34,12 +36,15 @@ class MapPropertiesDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit MapPropertiesDialog(CMap *map, QWidget *parent = nullptr, int tab=0);
+    explicit MapPropertiesDialog(CMap *map, QUndoStack* stack, QWidget *parent = nullptr, int tab=0);
     ~MapPropertiesDialog();
 
     enum {
         TAB_GENERAL, TAB_MESSAGES
     };
+
+signals:
+    void propertiesChanged();
 
 private slots:
     void onAccept();
@@ -50,7 +55,7 @@ private slots:
 private:
     void setupUI();
     void loadFromMap();
-    void saveToMap();
+    void applyChanges();
     void populateMessages();
     void saveMessages();
 
@@ -61,6 +66,7 @@ private:
     };
 
     CMap *m_map;
+    MainWindow *m_mainWindow;
 
     QTabWidget *m_tabWidget;
 
@@ -79,6 +85,7 @@ private:
     QLabel *m_sStatus;
     std::array<QString, MAX_MESSAGES> m_messages;
     int m_currentIndex;
+    QUndoStack* m_undoStack;
 
 #if defined(USE_HUNSPELL)
     SpellHighlighter *m_highlighter = nullptr;
