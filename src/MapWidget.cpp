@@ -26,22 +26,99 @@
 namespace MapWidgetPrivate
 {
     constexpr const int TILE_SIZE = 16;
-    constexpr const int PIXMAP_CACHE_SIZE = 768;  // cache up to 768 scaled pixmaps
+    constexpr const int PIXMAP_CACHE_SIZE = 768; // cache up to 768 scaled pixmaps
     constexpr const int ZOOM_CACHE_SPACE = 1024;
 };
 
 using namespace MapWidgetPrivate;
 
+struct TileDelta
+{
+    uint8_t oldTile;
+    uint8_t newTile;
+};
+
+class PaintCommand : public QUndoCommand
+{
+public:
+    PaintCommand(CMapFile *doc, CLayer *layer, MapWidget::Tool tool)
+        : m_doc(doc), m_layer(layer), m_tool(tool)
+    {
+        setText(MapWidget::toolName(m_tool));
+    }
+
+    void recordChange(int x, int y, uint8_t oldTile, uint8_t newTile)
+    {
+        auto key = CMap::toKey(x, y);
+        auto it = m_changes.find(key);
+        if (it == m_changes.end())
+        {
+            // First time this tile is touched → store old and new
+            m_changes[key] = {oldTile, newTile};
+        }
+        else
+        {
+            // Already touched → update only the new value
+            it->second.newTile = newTile;
+        }
+        /*
+        auto& delta = m_changes[key];
+        if (delta.oldTile == 0) delta.oldTile = oldTile; // first time
+        delta.newTile = newTile; // always update
+        */
+    }
+
+    MapWidget::Tool tool() { return m_tool; }
+
+    void undo() override
+    {
+        for (const auto &[key, delta] : m_changes)
+        {
+            const Pos pos = CMap::toPos(key);
+            m_layer->set(pos.x, pos.y, delta.oldTile);
+        }
+        notify();
+    }
+
+    void redo() override
+    {
+        for (const auto &[key, delta] : m_changes)
+        {
+            const Pos pos = CMap::toPos(key);
+            m_layer->set(pos.x, pos.y, delta.newTile);
+        }
+        notify();
+    }
+
+    bool isEmpty() const { return m_changes.empty(); }
+
+private:
+    void notify()
+    {
+        if (m_doc)
+        {
+            m_doc->setDirty(true);
+            emit m_doc->dirtyChanged(true);
+            emit m_doc->refreshMap();
+        }
+    }
+
+    CMapFile *m_doc;
+    CLayer *m_layer;
+    MapWidget::Tool m_tool;
+    std::unordered_map<uint32_t, TileDelta> m_changes;
+};
+
 MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
-    :   QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
+    : QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
 {
     m_doc = doc;
-    m_map =nullptr;
+    m_map = nullptr;
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
     setMinimumSize(320, 240);
 
-    QFont f("Courier New"); // or "Consolas", "DejaVu Sans Mono", etc.
+    QFont f("Courier New");            // or "Consolas", "DejaVu Sans Mono", etc.
     f.setStyleHint(QFont::TypeWriter); // forces monospaced
     f.setBold(true);
     setFont(f); // This sets the widget’s base font
@@ -55,7 +132,6 @@ MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
      if (m_attr || m_hx || m_hy) {
             update();
      } });
-
 }
 
 MapWidget::~MapWidget() = default;
@@ -90,7 +166,7 @@ void MapWidget::setCurrentTile(uint8_t tileId)
 {
     qDebug("current tile: 0x%.2x", tileId);
     m_currentTile = tileId;
-    m_currentStamp = Stamp{{tileId},1,1, Stamp::MainTilesetBaseID};
+    m_currentStamp = Stamp{{tileId}, 1, 1, Stamp::MainTilesetBaseID};
     setTool(Tool::Stamp);
     update();
 }
@@ -98,7 +174,7 @@ void MapWidget::setCurrentTile(uint8_t tileId)
 void MapWidget::setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols)
 {
     const int rows = (tileIds.size() + cols - 1) / cols;
-    m_currentStamp = Stamp{tileIds,cols,rows, Stamp::MainTilesetBaseID};
+    m_currentStamp = Stamp{tileIds, cols, rows, Stamp::MainTilesetBaseID};
     update();
 }
 
@@ -194,8 +270,8 @@ void MapWidget::preloadAssets()
     {
         int tileSize = TILE_SIZE * zoom();
         resize(
-            map()->len() * tileSize,
-            map()->hei() * tileSize);
+            map()->width() * tileSize,
+            map()->height() * tileSize);
     }
 
     /*
@@ -293,17 +369,17 @@ void MapWidget::paintEvent(QPaintEvent *)
     if (m_showGrid)
         drawGrid(painter);
 
-    const Stamp & stamp = m_currentStamp;
+    const Stamp &stamp = m_currentStamp;
     if (m_tool == Tool::Selection && m_selection.isValid())
         drawSelectionRect(painter);
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Stamp))
         drawShadowTile(painter, m_currentStamp);
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Eraser))
-        drawShadowTile(painter, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
+        drawShadowTile(painter, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::FloodFill))
-        drawShadowTile(painter, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
-    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Dice) && (stamp.tiles.size()!=0))
-        drawShadowTile(painter, Stamp{{stamp.tiles[0]}, 1,1, stamp.baseID});
+        drawShadowTile(painter, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
+    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Dice) && (stamp.tiles.size() != 0))
+        drawShadowTile(painter, Stamp{{stamp.tiles[0]}, 1, 1, stamp.baseID});
 }
 
 void MapWidget::drawMap(QPainter &painter)
@@ -314,7 +390,7 @@ void MapWidget::drawMap(QPainter &painter)
     const int tileSize = TILE_SIZE * m_zoom;
 
     // draw map background color
-    painter.fillRect(rect(), Qt::black);// Qt::darkGray);
+    painter.fillRect(rect(), Qt::black); // Qt::darkGray);
 
     auto drawRect = [&painter](const auto &color, const auto &tileRect, const int width)
     {
@@ -324,7 +400,8 @@ void MapWidget::drawMap(QPainter &painter)
         painter.drawRect(tileRect);
     };
 
-    auto drawTile = [this, tileSize, &painter](const uint8_t tileID, const auto baseID, const int x, const int y) {
+    auto drawTile = [this, tileSize, &painter](const uint8_t tileID, const auto baseID, const int x, const int y)
+    {
         QPixmap pm = getCachedPixmap(tileID, baseID);
         if (!pm.isNull())
         {
@@ -343,26 +420,28 @@ void MapWidget::drawMap(QPainter &painter)
     font.setPixelSize(12 * m_zoom);
     painter.setFont(font);
 
-    for (int y = topLeftTile.y(); y <= bottomRightTile.y() && y < m_map->hei(); ++y)
+    for (int y = topLeftTile.y(); y <= bottomRightTile.y() && y < m_map->height(); ++y)
     {
         if (y < 0)
             continue;
-        for (int x = topLeftTile.x(); x <= bottomRightTile.x() && x < m_map->len(); ++x)
+        for (int x = topLeftTile.x(); x <= bottomRightTile.x() && x < m_map->width(); ++x)
         {
             if (x < 0)
                 continue;
 
             // draw secondary layers
-            for (size_t i = m_map->layerCount() -1; i > 0; --i) {
+            for (size_t i = m_map->layerCount() - 1; i > 0; --i)
+            {
                 if (!m_layerVisibilityList[i])
                     continue;
-                const uint8_t tileID = m_map->getLayer(i)->at(x,y);
+                const uint8_t tileID = m_map->getLayer(i)->at(x, y);
                 if (tileID)
                     drawTile(tileID, Stamp::OtherTilesetBaseID, x, y);
             }
 
             // draw primary layer (main)
-            if (m_layerVisibilityList[0]) {
+            if (m_layerVisibilityList[0])
+            {
                 const uint8_t tileID = m_map->at(x, y);
                 if (tileID)
                     drawTile(tileID, Stamp::MainTilesetBaseID, x, y);
@@ -414,12 +493,12 @@ void MapWidget::drawGrid(QPainter &painter)
     const int tileSize = TILE_SIZE * m_zoom;
     painter.setPen(QColor(255, 255, 0, 80));
 
-    for (int x = 0; x <= m_map->len(); ++x)
+    for (int x = 0; x <= m_map->width(); ++x)
     {
         int sx = x * tileSize;
         painter.drawLine(sx, 0, sx, height());
     }
-    for (int y = 0; y <= m_map->hei(); ++y)
+    for (int y = 0; y <= m_map->height(); ++y)
     {
         int sy = y * tileSize;
         painter.drawLine(0, sy, width(), sy);
@@ -428,8 +507,8 @@ void MapWidget::drawGrid(QPainter &painter)
 
 void MapWidget::drawShadowTile(QPainter &painter, const Stamp &stamp)
 {
-    if (m_shadowTilePos.x() < 0 || m_shadowTilePos.x() >= m_map->len() ||
-        m_shadowTilePos.y() < 0 || m_shadowTilePos.y() >= m_map->hei())
+    if (m_shadowTilePos.x() < 0 || m_shadowTilePos.x() >= m_map->width() ||
+        m_shadowTilePos.y() < 0 || m_shadowTilePos.y() >= m_map->height())
         return;
 
     const int tileSize = TILE_SIZE * m_zoom;
@@ -441,7 +520,7 @@ void MapWidget::drawShadowTile(QPainter &painter, const Stamp &stamp)
         {
             int tx = m_shadowTilePos.x() + dx;
             int ty = m_shadowTilePos.y() + dy;
-            if (tx >= m_map->len() || ty >= m_map->hei())
+            if (tx >= m_map->width() || ty >= m_map->height())
                 continue;
 
             size_t idx = dy * stamp.cols + dx;
@@ -449,7 +528,7 @@ void MapWidget::drawShadowTile(QPainter &painter, const Stamp &stamp)
                 break;
 
             uint8_t tileId = stamp.tiles[idx];
-            QPixmap pm = getCachedPixmap(tileId, stamp.baseID);// Stamp::MainTilesetBaseID
+            QPixmap pm = getCachedPixmap(tileId, stamp.baseID); // Stamp::MainTilesetBaseID
             if (!pm.isNull())
             {
                 painter.drawPixmap(tx * tileSize, ty * tileSize, pm);
@@ -472,13 +551,14 @@ void MapWidget::drawSelectionRect(QPainter &painter)
     painter.drawRect(r);
 }
 
-void MapWidget::commitStampAt(const QPoint &tilePos, const Stamp & stamp)
+void MapWidget::commitStampAt(const QPoint &tilePos, const Stamp &stamp)
 {
     if (!m_map || stamp.tiles.empty())
         return;
 
     CLayer *layer = m_map->getLayer(m_activeLayer);
-    if (!layer) {
+    if (!layer)
+    {
         LOGE("returned invalid layer");
         return;
     }
@@ -524,7 +604,7 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
     {
         m_leftPressed = true;
 
-        const Stamp & stamp = m_currentStamp;
+        const Stamp &stamp = m_currentStamp;
 
         const bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID);
         if (canStamp && m_tool == Tool::Stamp)
@@ -542,12 +622,12 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
         }
         else if (m_tool == Tool::Eraser)
         {
-            commitStampAt(tilePos, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
+            commitStampAt(tilePos, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
         }
         else if (canStamp && m_tool == Tool::Dice && stamp.tiles.size() != 0)
         {
             uint8_t tileID = pickDiceTile(stamp.tiles);
-            commitStampAt(tilePos, Stamp{{tileID}, 1,1, stamp.baseID});
+            commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
         }
         else if (m_tool == Tool::Picker)
         {
@@ -567,37 +647,6 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
-uint8_t MapWidget::pickDiceTile(const std::vector<uint8_t> & tiles)
-{
-    //const auto &tiles = m_currentStamp.tiles;
-    // Create random generator
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-
-    // Compute total weight
-    double totalWeight = 0.0;
-    for (const auto& tileID : tiles) {
-        const auto &def = getLayerTileDef(tileID);
-        totalWeight += def.weight;
-    }
-
-    // Uniform distribution in [0, totalWeight)
-    std::uniform_real_distribution<> dist(0.0, totalWeight);
-    double r = dist(gen);
-
-    // Find the item corresponding to r
-    double cumulative = 0.0;
-    for (const auto& tileID : tiles) {
-        const auto &def = getLayerTileDef(tileID);
-        cumulative += def.weight;
-        if (r < cumulative) {
-            return tileID;
-        }
-    }
-    // Fallback (shouldn't happen if weights > 0)
-    //return items.back();
-    return tiles.front();
-}
 
 void MapWidget::mouseMoveEvent(QMouseEvent *event)
 {
@@ -606,7 +655,7 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
 
     QPoint tilePos = screenToTile(event->pos());
     m_shadowTilePos = tilePos;
-    const Stamp & stamp = m_currentStamp;
+    const Stamp &stamp = m_currentStamp;
     bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID);
     if (canStamp && m_leftPressed && m_tool == Tool::Stamp)
     {
@@ -614,12 +663,12 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
     }
     else if (m_leftPressed && m_tool == Tool::Eraser)
     {
-        commitStampAt(tilePos, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
+        commitStampAt(tilePos, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
     }
     else if (m_leftPressed && canStamp && m_tool == Tool::Dice && stamp.tiles.size() != 0)
     {
         uint8_t tileID = pickDiceTile(stamp.tiles);
-        commitStampAt(tilePos, Stamp{{tileID}, 1,1, stamp.baseID});
+        commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
     }
     else if (m_leftPressed && canStamp && m_tool == Tool::FloodFill)
     {
@@ -849,7 +898,7 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
     connect(selectAll, &QAction::triggered, this, [this]()
             {
         if (m_map) {
-            QRect all(0, 0, m_map->len(), m_map->hei());
+            QRect all(0, 0, m_map->width(), m_map->height());
             m_selection = all;
             emit selectionChanged(all);
             update();
@@ -873,7 +922,7 @@ void MapWidget::contextMenuEvent(QContextMenuEvent *event)
     if (!m_map->isValid(tilePos.x(), tilePos.y()))
         return;
 
-    QMenu menu (this);
+    QMenu menu(this);
     createContextMenu(&menu, tilePos);
     menu.exec(event->globalPos());
 }
@@ -897,7 +946,7 @@ void MapWidget::fillSelection(uint8_t tileId /* = UINT8_MAX */)
     if (!area.isValid())
     {
         // nothing selected → fill entire map
-        area = QRect(0, 0, m_map->len(), m_map->hei());
+        area = QRect(0, 0, m_map->width(), m_map->height());
     }
 
     bool changed = false;
@@ -985,7 +1034,8 @@ void MapWidget::resetLayerVisibilityList()
 {
     size_t layerCount = m_map->layerCount();
     m_layerVisibilityList.resize(layerCount);
-    for (auto &layerVisibility: m_layerVisibilityList) {
+    for (auto &layerVisibility : m_layerVisibilityList)
+    {
         layerVisibility = true;
     }
     changeActiveLayer(MAIN_LAYER_ID); // reset to default
@@ -999,10 +1049,37 @@ void MapWidget::updateLayerVisibility(int layerID, bool visibility)
     update();
 }
 
-/*
-  void MainWindow::doFloodFill(int x, int y, uint8_t value)
+uint8_t MapWidget::pickDiceTile(const std::vector<uint8_t> &tiles)
 {
-    auto cmd = new FloodFillCommand(&m_doc, x, y, value);
-    m_doc.docStack()->push(cmd);
+    // const auto &tiles = m_currentStamp.tiles;
+    //  Create random generator
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    // Compute total weight
+    double totalWeight = 0.0;
+    for (const auto &tileID : tiles)
+    {
+        const auto &def = getLayerTileDef(tileID);
+        totalWeight += def.weight;
+    }
+
+    // Uniform distribution in [0, totalWeight)
+    std::uniform_real_distribution<> dist(0.0, totalWeight);
+    double r = dist(gen);
+
+    // Find the item corresponding to r
+    double cumulative = 0.0;
+    for (const auto &tileID : tiles)
+    {
+        const auto &def = getLayerTileDef(tileID);
+        cumulative += def.weight;
+        if (r < cumulative)
+        {
+            return tileID;
+        }
+    }
+    // Fallback (shouldn't happen if weights > 0)
+    // return items.back();
+    return tiles.front();
 }
-*/

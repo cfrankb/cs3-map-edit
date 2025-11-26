@@ -40,8 +40,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // Create undo/redo actions from the group
-    QAction* undoAction = m_doc.undoGroup()->createUndoAction(this, tr("&Undo"));
-    QAction* redoAction = m_doc.undoGroup()->createRedoAction(this, tr("&Redo"));
+    QAction *undoAction = m_doc.undoGroup()->createUndoAction(this, tr("&Undo"));
+    QAction *redoAction = m_doc.undoGroup()->createRedoAction(this, tr("&Redo"));
 
     // Assign shortcuts
     undoAction->setShortcut(QKeySequence::Undo);
@@ -52,16 +52,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionEdit_Redo, &QAction::triggered, redoAction, &QAction::trigger);
 
     // Replace the UI actions with these
-  //  ui->actionEdit_Undo->setShortcut(QKeySequence::Undo);
-   // ui->actionEdit_Redo->setShortcut(QKeySequence::Redo);
+    //  ui->actionEdit_Undo->setShortcut(QKeySequence::Undo);
+    // ui->actionEdit_Redo->setShortcut(QKeySequence::Redo);
 
     // Keep your custom logging slot connected too
-    connect(ui->actionEdit_Undo, &QAction::triggered, this, []{
-        qDebug("undo triggered (custom log)");
-    });
-    connect(ui->actionEdit_Redo, &QAction::triggered, this, []{
-        qDebug("redo triggered (custom log)");
-    });
+    connect(ui->actionEdit_Undo, &QAction::triggered, this, []
+            { qDebug("undo triggered (custom log)"); });
+    connect(ui->actionEdit_Redo, &QAction::triggered, this, []
+            { qDebug("redo triggered (custom log)"); });
 
     // hook MapView
     m_mapView = new MapView(this, &m_doc);
@@ -71,14 +69,13 @@ MainWindow::MainWindow(QWidget *parent)
     m_mapView->centerOnMap();
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
-    //connect(this, SIGNAL(mapChanged(CMap *)), this, SLOT(updateStatus()));
+    // connect(this, SIGNAL(mapChanged(CMap *)), this, SLOT(updateStatus()));
     connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
-    //connect(this, &MainWindow::refreshMap, this, [this](){
-    //    m_mapView->mapWidget()->update();
-    //});
-    connect(&m_doc, &CMapFile::refreshMap, this, [this](){
-        m_mapView->mapWidget()->update();
-    });
+    // connect(this, &MainWindow::refreshMap, this, [this](){
+    //     m_mapView->mapWidget()->update();
+    // });
+    connect(&m_doc, &CMapFile::refreshMap, this, [this]()
+            { m_mapView->mapWidget()->update(); });
 
     setDirty(false);
     initTilebox();
@@ -98,18 +95,19 @@ MainWindow::MainWindow(QWidget *parent)
     updateStatus();
 
     // debug
-    connect(this, &MainWindow::mapChanged, this, [this](CMap *map){
-        LOGI("mapChanged %p", map);
-        updateMenus();
-        updateStatus();
-     //   updateMapHistoryList();
-    });
-    connect(&m_doc, &CMapFile::currentMapChanged, this, [this](CMap *map){
+    connect(this, &MainWindow::mapChanged, this, [this](CMap *map)
+            {
+                LOGI("mapChanged %p", map);
+                updateMenus();
+                updateStatus();
+                //   updateMapHistoryList();
+            });
+    connect(&m_doc, &CMapFile::currentMapChanged, this, [this](CMap *map)
+            {
         LOGI("currentMapChanged %p", map);
         updateMenus();
         updateStatus();
-        updateMapHistoryList();
-    });
+        updateMapHistoryList(); });
     connect(&m_doc, &CMapFile::dirtyChanged, this, &MainWindow::setDirty);
 }
 
@@ -145,7 +143,7 @@ void MainWindow::shiftRight()
 
 void MainWindow::initMapShortcuts()
 {
-    emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
+    emit resizeMap(m_doc.map()->width(), m_doc.map()->height());
     new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Up)), this, SLOT(shiftUp()));
     new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Down)), this, SLOT(shiftDown()));
     new QShortcut(QKeySequence(QKeyCombination(Qt::CTRL, Qt::Key_Left)), this, SLOT(shiftLeft()));
@@ -155,7 +153,7 @@ void MainWindow::initMapShortcuts()
 void MainWindow::initTilebox()
 {
     auto tileBoxDoc = new QDockWidget();
-   // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     tileBoxDoc->setWindowTitle(tr("Main Tileset"));
     auto tilebox = new CTileBox(tileBoxDoc);
     tilebox->show();
@@ -170,26 +168,25 @@ void MainWindow::initTilebox()
             {
         m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
         m_mapView->mapWidget()->setCurrentTile(tileID);//
-        ui->actionTools_Paint->setChecked(true);
-    });
+        ui->actionTools_Paint->setChecked(true); });
 
     m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
     m_mapView->mapWidget()->setCurrentTile(0);
 
     // Create a menu action bound to the dock
-    QAction* toggleTileBoxAction = tileBoxDoc->toggleViewAction();
+    QAction *toggleTileBoxAction = tileBoxDoc->toggleViewAction();
     toggleTileBoxAction->setText(tr("Main Tileset")); // optional override
     toggleTileBoxAction->setStatusTip(tr("Show or hide main tileset"));
 
     // Add the action to your View menu
-    QMenu* viewMenu =  ui->menuView;
+    QMenu *viewMenu = ui->menuView;
     viewMenu->addAction(toggleTileBoxAction);
 }
 
 void MainWindow::initSelectorWidget()
 {
     auto dock = new QDockWidget();
-    //dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     dock->setWindowTitle(tr("Toolbox"));
 
     TileSelectorWidget *selectorWidget = new TileSelectorWidget(dock);
@@ -230,12 +227,12 @@ void MainWindow::initSelectorWidget()
     connect(selectorWidget, &TileSelectorWidget::stampSelected, m_mapView->mapWidget(), &MapWidget::setCurrentStamp);
 
     // Create a menu action bound to the dock
-    QAction* toggleTileBoxAction = dock->toggleViewAction();
+    QAction *toggleTileBoxAction = dock->toggleViewAction();
     toggleTileBoxAction->setText(tr("Floor && Walls")); // optional override
     toggleTileBoxAction->setStatusTip(tr("Show or hide floor and walls tileset"));
 
     // Add the action to your View menu
-    QMenu* viewMenu =  ui->menuView;
+    QMenu *viewMenu = ui->menuView;
     viewMenu->addAction(toggleTileBoxAction);
 }
 
@@ -263,29 +260,25 @@ void MainWindow::initLayerBox()
     connect(dock, &LayerDock::visibilityChanged, m_mapView->mapWidget(), &MapWidget::updateLayerVisibility);
     connect(dock, &LayerDock::layerSelected, m_mapView->mapWidget(), &MapWidget::changeActiveLayer);
     connect(dock, &LayerDock::layersChanged, m_mapView->mapWidget(), &MapWidget::resetLayerVisibilityList);
-    connect(dock, &LayerDock::layersChanged, this, [this](){
-        setDirty(true);
-    });
-    connect(dock, &LayerDock::layerUpdated, this, [this](){
-        setDirty(true);
-    });
-    connect(this, &MainWindow::propertiesChanged, this, [this](){
-        setDirty(true);
-    });
+    connect(dock, &LayerDock::layersChanged, this, [this]()
+            { setDirty(true); });
+    connect(dock, &LayerDock::layerUpdated, this, [this]()
+            { setDirty(true); });
+    connect(this, &MainWindow::propertiesChanged, this, [this]()
+            { setDirty(true); });
     connect(this, &MainWindow::mapChanged, dock, &LayerDock::refreshList);
 
     // Create a menu action bound to the dock
-    QAction* toggleTileBoxAction = dock->toggleViewAction();
+    QAction *toggleTileBoxAction = dock->toggleViewAction();
     toggleTileBoxAction->setText(tr("Layers")); // optional override
     toggleTileBoxAction->setStatusTip(tr("Show or hide layers"));
 
     // Add the action to your View menu
-    QMenu* viewMenu =  ui->menuView;
+    QMenu *viewMenu = ui->menuView;
     viewMenu->addAction(toggleTileBoxAction);
 
     // refresh undo stack
     connect(m_doc.undoGroup(), &QUndoGroup::activeStackChanged, dock, &LayerDock::newUndoStack);
-
 }
 
 MainWindow::~MainWindow()
@@ -476,8 +469,8 @@ void MainWindow::on_actionFile_New_File_triggered()
         setDirty(false);
         emit mapChanged(m_doc.map());
         updateMenus();
-     //   updateDocHistoryList();
-       // updateMapHistoryList();
+        //   updateDocHistoryList();
+        // updateMapHistoryList();
     }
 }
 
@@ -503,12 +496,12 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
     CMap &map = *m_doc.map();
     CDlgResize dlg(this);
     dlg.setWindowTitle(tr("Resize Map"));
-    dlg.width(map.len());
-    dlg.height(map.hei());
+    dlg.width(map.width());
+    dlg.height(map.height());
     if (dlg.exec() == QDialog::Accepted)
     {
         QMessageBox::StandardButton reply = QMessageBox::Yes;
-        if (dlg.width() < map.len() || dlg.height() < map.hei())
+        if (dlg.width() < map.width() || dlg.height() < map.height())
         {
             reply = QMessageBox::warning(
                 this, m_appName, tr("Resizing map may lead to data lost. Continue?"),
@@ -519,9 +512,9 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
             // Push undo command instead of direct resize
             m_doc.undoGroup()->activeStack()->push(
                 new ResizeMapCommand(&m_doc, &map, dlg.width(), dlg.height()));
-           // map.resize(dlg.width(), dlg.height(), '\0', false);
+            // map.resize(dlg.width(), dlg.height(), '\0', false);
             setDirty(true);
-           // emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
+            // emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
         }
     }
 }
@@ -617,16 +610,15 @@ void MainWindow::initToolBar()
     m_cbSkill->setCurrentIndex(1);
     ui->toolBar->addWidget(m_cbSkill);
     ui->toolBar->addSeparator();
-    QComboBox* cbZoom = new QComboBox(this);
+    QComboBox *cbZoom = new QComboBox(this);
     cbZoom->addItem("100%", 1);
     cbZoom->addItem("200%", 2);
     cbZoom->addItem("300%", 3);
     cbZoom->addItem("400%", 4);
     cbZoom->setCurrentIndex(1);
     ui->toolBar->addWidget(cbZoom);
-    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i) {
-        m_mapView->setZoom(i + 1);
-    });
+    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i)
+            { m_mapView->setZoom(i + 1); });
 
     m_toolGroup = new QActionGroup(this);
     m_toolGroup->addAction(ui->actionTools_Paint);
@@ -659,9 +651,7 @@ void MainWindow::initToolBar()
 
     // Erase = Stamp tool + tile 0 (or your transparent tile ID)
     connect(ui->actionTools_Erase, &QAction::triggered, this, [this]()
-            {
-                m_mapView->mapWidget()->setTool(MapWidget::Tool::Eraser);
-            });
+            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Eraser); });
 
     // Tile Picker tool
     connect(ui->actionTools_Picker, &QAction::triggered, this, [this]()
@@ -735,9 +725,8 @@ void MainWindow::initToolBar()
         } });
 
     // 6. When map is modified inside MapWidget → notify MainWindow (for undo/save flag)
-    connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]() {
-        setDirty(true);
-    });
+    connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]()
+            { setDirty(true); });
 }
 
 void MainWindow::on_actionClear_Map_triggered()
@@ -801,13 +790,13 @@ void MainWindow::on_actionEdit_Add_Map_triggered()
         return;
     text = text.trimmed().mid(0, 254);
 
-    //std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
-    auto map = std::make_unique<CMap>(64,64);
+    // std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
+    auto map = std::make_unique<CMap>(64, 64);
     map->setTitle(text.toStdString());
     auto cmd = new InsertMapCommand(&m_doc, m_doc.size(), std::move(map));
     m_doc.docStack()->push(cmd);
 
-//    m_doc.addMap(map);
+    //    m_doc.addMap(map);
     m_doc.setCurrentIndex(m_doc.size() - 1);
     setDirty(true);
     emit mapChanged(m_doc.map());
@@ -823,13 +812,14 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
         QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes | QMessageBox::No);
         if (reply == QMessageBox::Yes)
         {
-            //int index = m_mapFile->currentIndex();
+            // int index = m_mapFile->currentIndex();
             auto cmd = new DeleteMapCommand(&m_doc, index);
             m_doc.docStack()->push(cmd);
 
-            //CMap *delMap = m_doc.removeAt(index);
-            //delete delMap;
-            if (index >= m_doc.size()) {
+            // CMap *delMap = m_doc.removeAt(index);
+            // delete delMap;
+            if (index >= m_doc.size())
+            {
                 m_doc.setCurrentIndex(index - 1);
             }
             setDirty(true);
@@ -853,12 +843,12 @@ void MainWindow::on_actionEdit_Insert_Map_triggered()
     std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
     map->setTitle(text.toStdString());
 
-    //int index = m_mapFile->currentIndex(); // insert before current
-   // auto map = std::make_unique<CMap>(64,64);
+    // int index = m_mapFile->currentIndex(); // insert before current
+    // auto map = std::make_unique<CMap>(64,64);
     auto cmd = new InsertMapCommand(&m_doc, index, std::move(map));
     m_doc.docStack()->push(cmd);
-    //m_doc.insertAt(index, map); // Only ONE move operation
-                                           // m_doc.
+    // m_doc.insertAt(index, map); // Only ONE move operation
+    //  m_doc.
     setDirty(true);
     emit mapChanged(m_doc.map());
     updateMenus();
@@ -873,13 +863,13 @@ void MainWindow::on_actionEdit_Move_Map_triggered()
     if (dlg.exec() == QDialog::Accepted && dlg.index() != currIndex)
     {
         int i = dlg.index();
-        //int from = m_mapFile->currentIndex();
-        //int to   = /* determine from UI drag/drop */;
+        // int from = m_mapFile->currentIndex();
+        // int to   = /* determine from UI drag/drop */;
         auto cmd = new MoveMapCommand(&m_doc, currIndex, i);
         m_doc.docStack()->push(cmd);
 
-        //auto map =  std::unique_ptr<CMap>(m_doc.removeAt(currIndex));
-        //m_doc.insertAt(i, map);
+        // auto map =  std::unique_ptr<CMap>(m_doc.removeAt(currIndex));
+        // m_doc.insertAt(i, map);
         m_doc.setCurrentIndex(i);
         setDirty(true);
         emit mapChanged(m_doc.map());
@@ -1025,8 +1015,8 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
     text = text.trimmed().mid(0, 254);
     if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0)
     {
-        //m_doc.map()->setTitle(text.toStdString());
-        // Push command onto the active undo stack
+        // m_doc.map()->setTitle(text.toStdString());
+        //  Push command onto the active undo stack
         m_doc.undoGroup()->activeStack()->push(new RenameMapCommand(&m_doc, m_doc.map(), text));
         setDirty(true);
     }
@@ -1089,7 +1079,8 @@ void MainWindow::on_actionEdit_Map_States_triggered()
     std::vector<StateValuePair> data = states.getValues();
     dialog.populateData(data);
 
-    if (dialog.exec() == QDialog::Accepted) {
+    if (dialog.exec() == QDialog::Accepted)
+    {
         setDirty(true);
         const auto pairs = dialog.getKeyValuePairs();
 
@@ -1098,14 +1089,21 @@ void MainWindow::on_actionEdit_Map_States_triggered()
 
         // save states
         CStates newStates = states;
-        for (const auto& p : pairs) {
-            if (KeyValueDialog::getOptionType(p.key) == TYPE_U) {
+        for (const auto &p : pairs)
+        {
+            if (KeyValueDialog::getOptionType(p.key) == TYPE_U)
+            {
                 bool ok;
                 uint16_t value = KeyValueDialog::parseStringToUint16(p.value, ok);
-                if (ok) newStates.setU(p.key, value);
-            } else if (KeyValueDialog::getOptionType(p.key) == TYPE_S) {
+                if (ok)
+                    newStates.setU(p.key, value);
+            }
+            else if (KeyValueDialog::getOptionType(p.key) == TYPE_S)
+            {
                 newStates.setS(p.key, p.value);
-            } else {
+            }
+            else
+            {
                 LOGE("unhandled key: %.2x", p.key);
             }
         }
@@ -1118,9 +1116,8 @@ void MainWindow::on_actionEdit_Map_States_triggered()
             this,
             newStates,
             m_doc.map()->title(),
-            MapPropertiesCommand::EditMode::StatesOnly
-            ));
-        //emit propertiesChanged(); // optional notifier
+            MapPropertiesCommand::EditMode::StatesOnly));
+        // emit propertiesChanged(); // optional notifier
     }
 }
 
@@ -1182,7 +1179,7 @@ void MainWindow::updateWindowTitle()
 
 void MainWindow::setDirty(bool dirty)
 {
-   // LOGI(">>>SetDirty %d", dirty);
+    // LOGI(">>>SetDirty %d", dirty);
     if (m_doc.isDirty() != dirty)
     {
         m_doc.setDirty(dirty);
@@ -1202,16 +1199,16 @@ void MainWindow::on_actionEdit_Redo_triggered()
 
 void MainWindow::initHistoryWidget()
 {
-    QDockWidget* historyDock = new QDockWidget(tr("History"), this);
-    QWidget* dockContent = new QWidget(historyDock);
-    QVBoxLayout* layout = new QVBoxLayout(dockContent);
+    QDockWidget *historyDock = new QDockWidget(tr("History"), this);
+    QWidget *dockContent = new QWidget(historyDock);
+    QVBoxLayout *layout = new QVBoxLayout(dockContent);
 
     // Document History
-    QLabel* docLabel = new QLabel(tr("Document History"), dockContent);
-    QListWidget* docHistoryList = new QListWidget(dockContent);
+    QLabel *docLabel = new QLabel(tr("Document History"), dockContent);
+    QListWidget *docHistoryList = new QListWidget(dockContent);
     m_docUndoButton = new QPushButton(QIcon(":/data/icons/undo.png"), tr("Undo"), dockContent);
     m_docRedoButton = new QPushButton(QIcon(":/data/icons/redo.png"), tr("Redo"), dockContent);
-    auto* docButtonLayout = new QHBoxLayout;
+    auto *docButtonLayout = new QHBoxLayout;
     docButtonLayout->addWidget(m_docUndoButton);
     docButtonLayout->addWidget(m_docRedoButton);
     docButtonLayout->addStretch(); // push buttons to the left
@@ -1222,11 +1219,11 @@ void MainWindow::initHistoryWidget()
     dockContent->setLayout(layout);
 
     // Map history
-    QLabel* mapLabel = new QLabel(tr("Map History"), dockContent);
-    QListWidget* mapHistoryList = new QListWidget(dockContent);
-    m_mapUndoButton = new QPushButton(QIcon(":/data/icons/undo.png"),tr("Undo Map"), dockContent);
+    QLabel *mapLabel = new QLabel(tr("Map History"), dockContent);
+    QListWidget *mapHistoryList = new QListWidget(dockContent);
+    m_mapUndoButton = new QPushButton(QIcon(":/data/icons/undo.png"), tr("Undo Map"), dockContent);
     m_mapRedoButton = new QPushButton(QIcon(":/data/icons/redo.png"), tr("Redo Map"), dockContent);
-    auto* mapButtonLayout = new QHBoxLayout;
+    auto *mapButtonLayout = new QHBoxLayout;
     mapButtonLayout->addWidget(m_mapUndoButton);
     mapButtonLayout->addWidget(m_mapRedoButton);
     mapButtonLayout->addStretch(); // push buttons to the left
@@ -1247,19 +1244,19 @@ void MainWindow::initHistoryWidget()
     connect(m_doc.docStack(), &QUndoStack::cleanChanged,
             this, &MainWindow::updateDocHistoryList);
 
-    connect(m_docUndoButton, &QPushButton::clicked, this, [this] {
+    connect(m_docUndoButton, &QPushButton::clicked, this, [this]
+            {
         CMap* currentMap = m_doc.map();
         if (!currentMap) return;
         m_doc.docStack()->undo();
-        updateDocHistoryList();
-    });
+        updateDocHistoryList(); });
 
-    connect(m_docRedoButton, &QPushButton::clicked, this, [this] {
+    connect(m_docRedoButton, &QPushButton::clicked, this, [this]
+            {
         CMap* currentMap = m_doc.map();
         if (!currentMap) return;
         m_doc.docStack()->redo();
-        updateDocHistoryList();
-    });
+        updateDocHistoryList(); });
 
     updateDocHistoryList();
 
@@ -1271,59 +1268,61 @@ void MainWindow::initHistoryWidget()
     connect(m_doc.undoGroup(), &QUndoGroup::cleanChanged,
             this, &MainWindow::updateMapHistoryList);
 
-    connect(m_mapUndoButton, &QPushButton::clicked, this, [this] {
+    connect(m_mapUndoButton, &QPushButton::clicked, this, [this]
+            {
         CMap* currentMap = m_doc.map();
         if (!currentMap) return;
         QUndoGroup* group = m_doc.undoGroup();
         group->undo();
-        updateMapHistoryList();
-    });
+        updateMapHistoryList(); });
 
-    connect(m_mapRedoButton, &QPushButton::clicked, this, [this] {
+    connect(m_mapRedoButton, &QPushButton::clicked, this, [this]
+            {
         CMap* currentMap = m_doc.map();
         if (!currentMap) return;
         QUndoGroup* group = m_doc.undoGroup();
         group->redo();
-        updateMapHistoryList();
-    });
+        updateMapHistoryList(); });
 
     updateMapHistoryList();
 
     // Create a menu action bound to the dock
-    QAction* toggleHistoryAction = historyDock->toggleViewAction();
+    QAction *toggleHistoryAction = historyDock->toggleViewAction();
     toggleHistoryAction->setText(tr("Undo/Redo History")); // optional override
     toggleHistoryAction->setStatusTip(tr("Show or hide history for undo/redo"));
 
     // Add the action to your View menu
-    QMenu* viewMenu =  ui->menuView;//  menuBar()->addMenu(tr("&View"));
+    QMenu *viewMenu = ui->menuView; //  menuBar()->addMenu(tr("&View"));
     viewMenu->addAction(toggleHistoryAction);
 }
 
 void MainWindow::updateDocHistoryList()
 {
-    //qDebug("updateDocHistoryList in ");
+    // qDebug("updateDocHistoryList in ");
     m_docHistoryList->clear();
     auto stack = m_doc.docStack();
     if (!stack)
         return;
-    for (int i = 0; i < stack->count(); ++i) {
+    for (int i = 0; i < stack->count(); ++i)
+    {
         m_docHistoryList->addItem(stack->command(i)->text());
     }
     int idx = stack->index();
-    if (idx >= 0 && idx < m_docHistoryList->count()) {
+    if (idx >= 0 && idx < m_docHistoryList->count())
+    {
         m_docHistoryList->setCurrentRow(idx);
     }
 
     // Enable/disable buttons based on stack state
     m_docUndoButton->setEnabled(stack->canUndo());
     m_docRedoButton->setEnabled(stack->canRedo());
-    //qDebug("updateDocHistoryList out ");
+    // qDebug("updateDocHistoryList out ");
 }
 
 void MainWindow::updateMapHistoryList()
 {
-    QUndoStack* stack = m_doc.undoGroup()->activeStack();  // correct
-//    qDebug("updateMapHistoryList in %p count:%d ", stack, stack->count());
+    QUndoStack *stack = m_doc.undoGroup()->activeStack(); // correct
+                                                          //    qDebug("updateMapHistoryList in %p count:%d ", stack, stack->count());
     m_mapHistoryList->clear();
     for (int i = 0; i < stack->count(); ++i)
         m_mapHistoryList->addItem(stack->command(i)->text());
@@ -1338,5 +1337,5 @@ void MainWindow::updateMapHistoryList()
     int idx = stack->index();
     if (idx >= 0 && idx < m_mapHistoryList->count())
         m_mapHistoryList->setCurrentRow(idx);
-  //  qDebug("updateMapHistoryList out ");
+    //  qDebug("updateMapHistoryList out ");
 }

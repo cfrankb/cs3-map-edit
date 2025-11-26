@@ -64,8 +64,6 @@ public:
     void fill(uint8_t ch = 0);
     size_t size() const { return m_tiles.size(); }
     void replaceTile(const uint8_t, const uint8_t);
-    // inline int len() const { return m_len; };
-    // inline int hei() const { return m_hei; };
     inline int width() const { return m_len; };
     inline int height() const { return m_hei; };
     const char *lastError() { return m_lastError.c_str(); }

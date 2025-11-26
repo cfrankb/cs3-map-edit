@@ -654,8 +654,8 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
     CMap *map = &m_game->getMap();
     const int maxRows = getHeight() / TILE_SIZE;
     const int maxCols = getWidth() / TILE_SIZE;
-    const int rows = std::min(maxRows, map->hei());
-    const int cols = std::min(maxCols, map->len());
+    const int rows = std::min(maxRows, map->height());
+    const int cols = std::min(maxCols, map->width());
     const int &mx = context.mx;
     const int &ox = context.ox;
     const int &my = context.my;
@@ -699,8 +699,8 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
     const CMap *map = &m_game->getMap();
     const int maxRows = getHeight() / TILE_SIZE;
     const int maxCols = getWidth() / TILE_SIZE;
-    const int rows = std::min(maxRows, map->hei());
-    const int cols = std::min(maxCols, map->len());
+    const int rows = std::min(maxRows, map->height());
+    const int cols = std::min(maxCols, map->width());
     const int mx = m_cx / 2;
     const int ox = m_cx & 1;
     const int my = m_cy / 2;
@@ -797,13 +797,13 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
 
     const int maxRows = getHeight() / TILE_SIZE;
     const int maxCols = getWidth() / TILE_SIZE;
-    const int rows = std::min(maxRows, map->hei());
-    const int cols = std::min(maxCols, map->len());
+    const int rows = std::min(maxRows, map->height());
+    const int cols = std::min(maxCols, map->width());
 
     const int lmx = std::max(0, game.playerConst().x() - cols / 2);
     const int lmy = std::max(0, game.playerConst().y() - rows / 2);
-    const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
-    const int my = std::min(lmy, map->hei() > rows ? map->hei() - rows : 0);
+    const int mx = std::min(lmx, map->width() > cols ? map->width() - cols : 0);
+    const int my = std::min(lmy, map->height() > rows ? map->height() - rows : 0);
     bitmap.fill(BLACK);
     for (int y = 0; y < rows; ++y)
     {
@@ -990,12 +990,12 @@ void CGameMixin::centerCamera()
     const CGame &game = *m_game;
     const int maxRows = getHeight() / TILE_SIZE;
     const int maxCols = getWidth() / TILE_SIZE;
-    const int rows = std::min(maxRows, map->hei());
-    const int cols = std::min(maxCols, map->len());
+    const int rows = std::min(maxRows, map->height());
+    const int cols = std::min(maxCols, map->width());
     const int lmx = std::max(0, game.playerConst().x() - cols / 2);
     const int lmy = std::max(0, game.playerConst().y() - rows / 2);
-    const int mx = std::min(lmx, map->len() > cols ? map->len() - cols : 0);
-    const int my = std::min(lmy, map->hei() > rows ? map->hei() - rows : 0);
+    const int mx = std::min(lmx, map->width() > cols ? map->width() - cols : 0);
+    const int my = std::min(lmy, map->height() > rows ? map->height() - rows : 0);
     m_cx = mx * 2;
     m_cy = my * 2;
 }
@@ -1172,8 +1172,8 @@ void CGameMixin::moveCamera()
     const CMap &map = CGame::getMap();
     const int maxRows = getHeight() / TILE_SIZE;
     const int maxCols = getWidth() / TILE_SIZE;
-    const int rows = std::min(maxRows, map.hei());
-    const int cols = std::min(maxCols, map.len());
+    const int rows = std::min(maxRows, map.height());
+    const int cols = std::min(maxCols, map.width());
 
     const int mx = m_cx / 2;
     const int my = m_cy / 2;
@@ -1185,12 +1185,12 @@ void CGameMixin::moveCamera()
 
     if (m_cy > 0 && y < vDeadZone)
         --m_cy;
-    else if (m_cy < (map.hei() - rows) * 2 &&
+    else if (m_cy < (map.height() - rows) * 2 &&
              y > rows - vDeadZone)
         ++m_cy;
     else if (m_cx > 0 && x < hDeadZone)
         --m_cx;
-    else if (m_cx < (map.len() - cols) * 2 &&
+    else if (m_cx < (map.width() - cols) * 2 &&
              x > cols - hDeadZone)
         ++m_cx;
 }

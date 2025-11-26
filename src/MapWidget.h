@@ -14,6 +14,7 @@ class QMouseEvent;
 class QKeyEvent;
 class MainWindow;
 class CMapFile;
+class PaintCommand;
 
 class MapWidget : public QWidget
 {
@@ -57,6 +58,27 @@ public:
     void fillSelection(uint8_t tileId = UINT8_MAX); // UINT8_MAX = use current brush
     void preloadAssets();
     void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
+
+    static inline QString toolName(Tool toolID) {
+        switch(toolID) {
+        case Tool::None:
+            return "None";
+        case Tool::Stamp:     // Place single or multi-tile stamp
+            return "Stamp";
+        case Tool::Picker:    // Pick tile under cursor
+            return "Picker";
+        case Tool::Selection: // Rectangular selection (with move/copy later)
+            return "Selection";
+        case Tool::Eraser:
+            return "Erase";
+        case Tool::Dice:
+            return "Dice";
+        case Tool::FloodFill:
+            return "FloodFill";
+        default:
+            return "???";
+        }
+    }
 
 signals:
     void tilePicked(uint8_t tileId);

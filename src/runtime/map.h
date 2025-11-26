@@ -78,8 +78,10 @@ public:
     bool write(FILE *tfile) const;
     bool write(IFile &tfile) const;
     void clear();
-    inline int len() const { return m_len; };
-    inline int hei() const { return m_hei; };
+    // inline int len() const { return m_len; };
+    // inline int hei() const { return m_hei; };
+    inline int width() const { return m_len; };
+    inline int height() const { return m_hei; };
     bool resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast);
     const Pos findFirst(const uint8_t tileId) const;
     size_t count(const uint8_t tileId) const;

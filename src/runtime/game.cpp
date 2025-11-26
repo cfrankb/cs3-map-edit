@@ -556,9 +556,9 @@ bool CGame::spawnMonsters()
 {
     m_monsters.clear();
     m_bosses.clear();
-    for (int y = 0; y < m_map.hei(); ++y)
+    for (int y = 0; y < m_map.height(); ++y)
     {
-        for (int x = 0; x < m_map.len(); ++x)
+        for (int x = 0; x < m_map.width(); ++x)
         {
             uint8_t c = m_map.at(x, y);
             const TileDef &def = getTileDef(c);
@@ -687,7 +687,7 @@ Pos CGame::translate(const Pos &p, const int aim)
         }
         break;
     case AIM_DOWN:
-        if (t.y < m_map.hei() - 1)
+        if (t.y < m_map.height() - 1)
         {
             ++t.y;
         }
@@ -699,7 +699,7 @@ Pos CGame::translate(const Pos &p, const int aim)
         }
         break;
     case AIM_RIGHT:
-        if (t.x < m_map.len() - 1)
+        if (t.x < m_map.width() - 1)
         {
             ++t.x;
         }
@@ -1479,9 +1479,9 @@ MapReport CGame::generateMapReport(CMap &map)
 {
     MapReport report;
     std::unordered_map<uint8_t, int> tiles;
-    for (int y = 0; y < map.hei(); ++y)
+    for (int y = 0; y < map.height(); ++y)
     {
-        for (int x = 0; x < map.len(); ++x)
+        for (int x = 0; x < map.width(); ++x)
         {
             const auto &tile = map.at(x, y);
             tiles[tile] += 1;

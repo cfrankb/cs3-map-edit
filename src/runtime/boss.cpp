@@ -227,8 +227,8 @@ std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
 bool CBoss::canMove(const JoyAim aim) const
 {
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len();
-    const int mapHei = map.hei();
+    const int mapLen = map.width();
+    const int mapHei = map.height();
     const int x = m_x / BOSS_GRANULAR_FACTOR;
     const int y = m_y / BOSS_GRANULAR_FACTOR;
     const int w = m_bossData->hitbox.width / BOSS_GRANULAR_FACTOR;

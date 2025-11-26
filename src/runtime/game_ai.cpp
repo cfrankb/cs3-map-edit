@@ -48,7 +48,7 @@ using namespace GamePrivate;
 
 CActor *CGame::spawnBullet(int x, int y, JoyAim aim, uint8_t tile)
 {
-    if (x < 0 || y < 0 || x >= m_map.len() || y >= m_map.hei())
+    if (x < 0 || y < 0 || x >= m_map.width() || y >= m_map.height())
     {
         LOGW("Cannot spawn at invalid coordinates: %d,%d", x, y);
         return nullptr;
@@ -79,12 +79,12 @@ void CGame::handleBossPath(CBoss &boss)
     Pos playerPos{static_cast<int16_t>(m_player.x() * CBoss::BOSS_GRANULAR_FACTOR),
                   static_cast<int16_t>(m_player.y() * CBoss::BOSS_GRANULAR_FACTOR)};
 
-    if (playerPos.x < 0 || playerPos.x >= m_map.len() * boss.getGranularFactor() ||
-        playerPos.y < 0 || playerPos.y >= m_map.hei() * boss.getGranularFactor())
+    if (playerPos.x < 0 || playerPos.x >= m_map.width() * boss.getGranularFactor() ||
+        playerPos.y < 0 || playerPos.y >= m_map.height() * boss.getGranularFactor())
     {
         LOGE("Invalid player position (%d,%d) for map bounds (%d,%d)",
-             playerPos.x, playerPos.y, m_map.len() * boss.getGranularFactor(),
-             m_map.hei() * boss.getGranularFactor());
+             playerPos.x, playerPos.y, m_map.width() * boss.getGranularFactor(),
+             m_map.height() * boss.getGranularFactor());
         return;
     }
 

@@ -89,8 +89,8 @@ std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
 {
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor;
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor;
+    const int mapHei = map.height() * granularFactor;
     std::vector<JoyAim> directions;
     const Pos startPos = sprite.pos();
 
@@ -199,8 +199,8 @@ std::vector<JoyAim> BFS::findPath(ISprite &sprite, const Pos &goalPos) const
 {
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor;
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor;
+    const int mapHei = map.height() * granularFactor;
     const Pos startPos = sprite.pos();
 
     if (startPos.x < 0 || startPos.x >= mapLen || startPos.y < 0 || startPos.y >= mapHei ||
@@ -281,8 +281,8 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
 {
     int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor; // Half-tile bounds
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor; // Half-tile bounds
+    const int mapHei = map.height() * granularFactor;
     const Pos startPos = sprite.pos(); // Half-tile coordinates
     const Pos goalPos = playerPos;
 
@@ -369,8 +369,8 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
         return {};
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor; // Half-tile bounds
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor; // Half-tile bounds
+    const int mapHei = map.height() * granularFactor;
     std::vector<Pos> smoothedPath = {path[0]};
 
     LineOfSight los;
@@ -429,8 +429,8 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 {
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor; // Half-tile bounds
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor; // Half-tile bounds
+    const int mapHei = map.height() * granularFactor;
     const Pos startPos = sprite.pos(); // Half-tile coordinates
     const Pos goalPos = playerPos;
 
