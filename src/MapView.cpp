@@ -4,10 +4,11 @@
 #include <QScrollBar>
 #include <QApplication>
 
-MapView::MapView(QWidget *parent)
+MapView::MapView(QWidget *parent, CMapFile *doc)
     : QScrollArea(parent)
 {
-    m_mapWidget = new MapWidget(this);
+    m_doc = doc;
+    m_mapWidget = new MapWidget(this, doc);
     //m_mapWidget->preloadAssets();
 
     setWidget(m_mapWidget);

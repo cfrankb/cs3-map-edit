@@ -4,12 +4,14 @@
 #include <QScrollArea>
 #include "MapWidget.h"
 
+class CMapFile;
+
 class MapView : public QScrollArea
 {
     Q_OBJECT
 
 public:
-    explicit MapView(QWidget *parent = nullptr);
+    explicit MapView(QWidget *parent = nullptr, CMapFile *doc=nullptr);
 
     MapWidget *mapWidget() const { return m_mapWidget; }
 
@@ -33,6 +35,7 @@ protected:
 
 private:
     MapWidget *m_mapWidget;
+    CMapFile *m_doc = nullptr;
 
     enum {
         TILE_SIZE = 16,

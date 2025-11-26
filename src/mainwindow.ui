@@ -77,6 +77,7 @@
     <addaction name="separator"/>
     <addaction name="actionView_Zoom_In"/>
     <addaction name="actionView_Zoom_Out"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -84,8 +85,6 @@
     </property>
     <addaction name="actionHelp_About"/>
     <addaction name="actionHelp_About_Qt"/>
-    <addaction name="separator"/>
-    <addaction name="actionHelp_Credits"/>
    </widget>
    <widget class="QMenu" name="menuMap">
     <property name="title">
@@ -117,6 +116,7 @@
     <addaction name="actionTools_Erase"/>
     <addaction name="actionTools_Select"/>
     <addaction name="actionTools_Dice"/>
+    <addaction name="actionTools_Flood_Fill"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -357,7 +357,7 @@
   <action name="actionEdit_Add_Map">
    <property name="icon">
     <iconset resource="mapedit.qrc">
-     <normaloff>:/data/icons/plus.png</normaloff>:/data/icons/plus.png</iconset>
+     <normaloff>:/data/icons/map_4225190.png</normaloff>:/data/icons/map_4225190.png</iconset>
    </property>
    <property name="text">
     <string>Add Map</string>
@@ -561,7 +561,7 @@
    </property>
    <property name="icon">
     <iconset resource="mapedit.qrc">
-     <normaloff>:/data/icons/six-sided-dice.png</normaloff>:/data/icons/six-sided-dice.png</iconset>
+     <normaloff>:/data/icons/misc-dice.png</normaloff>:/data/icons/misc-dice.png</iconset>
    </property>
    <property name="text">
     <string>Random Mode</string>
@@ -571,18 +571,32 @@
    </property>
   </action>
   <action name="actionEdit_Undo">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::EditUndo"/>
+   </property>
    <property name="text">
     <string>Undo</string>
    </property>
   </action>
   <action name="actionEdit_Redo">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::EditRedo"/>
+   </property>
    <property name="text">
     <string>Redo</string>
    </property>
   </action>
-  <action name="actionHelp_Credits">
+  <action name="actionTools_Flood_Fill">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normalon>:/data/icons/drink_13344549.png</normalon>
+    </iconset>
+   </property>
    <property name="text">
-    <string>Credits</string>
+    <string>Flood Fill</string>
    </property>
   </action>
  </widget>

@@ -33,6 +33,7 @@ private slots:
 public slots:
     void refreshList(CMap *map);
     void updateRow(int layerID);
+    void newUndoStack(QUndoStack*stack);
 
 private:
     CMap *m_map;

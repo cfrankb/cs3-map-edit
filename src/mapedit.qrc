@@ -54,7 +54,6 @@
         <file>data/icons/water_drop_1.png</file>
         <file>data/cursors/efface.png</file>
         <file>data/cursors/sketchpntbrush.png</file>
-        <file>data/icons/secretlondon_Manga_Eye_(right).png</file>
         <file>data/icons/blind_795831.png</file>
         <file>data/icons/eye_818577.png</file>
         <file>data/icons/stamp.png</file>
@@ -63,5 +62,8 @@
         <file>data/credits.txt</file>
         <file>data/icons/redo.png</file>
         <file>data/icons/undo.png</file>
+        <file>data/icons/misc-dice.png</file>
+        <file>data/icons/drink_13344549.png</file>
+        <file>data/icons/map_4225190.png</file>
     </qresource>
 </RCC>

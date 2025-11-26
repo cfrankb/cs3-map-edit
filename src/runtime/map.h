@@ -139,6 +139,7 @@ public:
     CLayer *addLayer(const CLayer::LayerType lt, const std::string_view &name, uint16_t baseID);
     CLayer *getLayer(const size_t index);
     std::unique_ptr<CLayer> popLayer();
+    void pushLayer(std::unique_ptr<CLayer> &layer);
 
     enum : int16_t
     {

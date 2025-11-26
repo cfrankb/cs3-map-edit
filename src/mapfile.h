@@ -42,6 +42,9 @@ public:
     bool isWrongExt();
     CMap *removeAt(int i);
     void insertAt(int i,  std::unique_ptr<CMap> &map);
+    void reset();
+    void resetUndoStacks();
+    void sync();
 
     QUndoGroup* undoGroup() {
         return m_undoGroup;
@@ -51,11 +54,20 @@ public:
         return m_docStack;
     }
 
+    QUndoStack* activeStack() {
+        return m_undoGroup->activeStack();
+    }
+
+    void debug();
+
+
 signals:
     void filenameChanged(const QString&);
     void dirtyChanged(bool);
     void currentMapChanged(CMap*);
     void refreshMap();
+    void resizeMap(int, int);   // notify of a map resize
+
 
 protected:
     QUndoGroup* m_undoGroup;

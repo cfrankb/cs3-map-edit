@@ -239,8 +239,8 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
         m_layers.emplace_back(std::move(layer));
     }
 
-    m_len = getMainLayer()->len();
-    m_hei = getMainLayer()->hei();
+    m_len = getMainLayer()->width();
+    m_hei = getMainLayer()->height();
 
     // Read attributes
     m_attrs.clear();
@@ -677,4 +677,9 @@ std::unique_ptr<CLayer> CMap::popLayer()
     std::unique_ptr<CLayer> layer = std::move(m_layers.back());
     m_layers.pop_back(); // cleaner than resize(size-1)
     return layer;
+}
+
+void CMap::pushLayer(std::unique_ptr<CLayer> &layer)
+{
+    m_layers.emplace_back(std::move(layer));
 }

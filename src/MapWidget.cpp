@@ -14,7 +14,6 @@
 #include "runtime/shared/FrameSet.h"
 #include "runtime/shared/Frame.h"
 #include "runtime/shared/qtgui/qfilewrap.h"
-//#include "mainwindow.h"
 #include "runtime/attr.h"
 #include "runtime/color.h"
 #include "runtime/states.h"
@@ -22,6 +21,7 @@
 #include "dlgattr.h"
 #include "dlgstat.h"
 #include "layerdata.h"
+#include "undo/MapCommand.h"
 
 namespace MapWidgetPrivate
 {
@@ -32,9 +32,10 @@ namespace MapWidgetPrivate
 
 using namespace MapWidgetPrivate;
 
-MapWidget::MapWidget(QWidget *parent)
-    : QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
+MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
+    :   QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
 {
+    m_doc = doc;
     m_map =nullptr;
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
@@ -103,6 +104,7 @@ void MapWidget::setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols)
 
 void MapWidget::setCurrentStamp(const Stamp &stamp)
 {
+    LOGI("current stamp: tiles: %lu  baseID: %.4x", stamp.tiles.size(), stamp.baseID);
     m_currentStamp = stamp;
     update();
 }
@@ -297,6 +299,8 @@ void MapWidget::paintEvent(QPaintEvent *)
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Stamp))
         drawShadowTile(painter, m_currentStamp);
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Eraser))
+        drawShadowTile(painter, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
+    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::FloodFill))
         drawShadowTile(painter, Stamp{{0}, 1,1, Stamp::MainTilesetBaseID});
     else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Dice) && (stamp.tiles.size()!=0))
         drawShadowTile(painter, Stamp{{stamp.tiles[0]}, 1,1, stamp.baseID});
@@ -522,10 +526,19 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
 
         const Stamp & stamp = m_currentStamp;
 
-        bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID);
+        const bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID);
         if (canStamp && m_tool == Tool::Stamp)
         {
             commitStampAt(tilePos, m_currentStamp);
+        }
+        else if (canStamp && m_tool == Tool::FloodFill)
+        {
+            if (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
+            {
+                auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
+                m_doc->activeStack()->push(cmd);
+                update();
+            }
         }
         else if (m_tool == Tool::Eraser)
         {
@@ -608,6 +621,15 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
         uint8_t tileID = pickDiceTile(stamp.tiles);
         commitStampAt(tilePos, Stamp{{tileID}, 1,1, stamp.baseID});
     }
+    else if (m_leftPressed && canStamp && m_tool == Tool::FloodFill)
+    {
+        if (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
+        {
+            auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
+            m_doc->activeStack()->push(cmd);
+            update();
+        }
+    }
     else if (m_selecting && m_tool == Tool::Selection)
     {
         QRect newSel(m_selectionStart, tilePos);
@@ -680,6 +702,9 @@ void MapWidget::updateCursor()
         break;
     case Tool::Eraser:
         setCursor(QCursor(QPixmap(":/data/cursors/efface.png"), 10, 27));
+        break;
+    case Tool::FloodFill:
+        setCursor(QCursor(QPixmap(":/data/cursors/paint_bucket.png"), 4, 17));
         break;
     default:
         setCursor(Qt::ArrowCursor);
@@ -973,3 +998,11 @@ void MapWidget::updateLayerVisibility(int layerID, bool visibility)
 
     update();
 }
+
+/*
+  void MainWindow::doFloodFill(int x, int y, uint8_t value)
+{
+    auto cmd = new FloodFillCommand(&m_doc, x, y, value);
+    m_doc.docStack()->push(cmd);
+}
+*/

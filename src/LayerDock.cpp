@@ -67,7 +67,7 @@ private:
     LayerDock *m_dock;
 };
 
-
+/*
 class AddExtraLayersCommand : public QUndoCommand {
 public:
     AddExtraLayersCommand(CMap* map, LayerDock* dock = nullptr)
@@ -100,6 +100,53 @@ private:
     CMap* m_map;
     LayerDock* m_dock; // e.g. your LayerDock
 };
+*/
+
+class AddExtraLayersCommand : public QUndoCommand {
+public:
+    AddExtraLayersCommand(CMap* map, LayerDock* dock = nullptr)
+        : m_map(map), m_dock(dock) {
+        setText(QObject::tr("Add Walls and Floor Layers"));
+    }
+
+    void undo() override {
+        // Pop and save the layers we added
+        if (m_map->layerCount() >= 2) {
+            m_floorLayer = m_map->popLayer(); // returns unique_ptr<CLayer>
+            m_wallsLayer = m_map->popLayer();
+        }
+        refresh();
+    }
+
+    void redo() override {
+        if (m_wallsLayer && m_floorLayer) {
+            // Restore the original layers
+            m_map->pushLayer(m_wallsLayer);
+            m_map->pushLayer(m_floorLayer);
+        } else {
+            // First-time redo: create new layers
+            m_map->addLayer(CLayer::LAYER_WALLS, "walls", Stamp::OtherTilesetBaseID);
+            m_map->addLayer(CLayer::LAYER_FLOOR, "floor", Stamp::OtherTilesetBaseID);
+        }
+        refresh();
+    }
+
+private:
+    void refresh() {
+        if (m_dock) {
+            m_dock->refreshList(m_map);
+            QMetaObject::invokeMethod(m_dock, "layersChanged");
+        }
+    }
+
+    CMap* m_map;
+    LayerDock* m_dock;
+
+    // Saved layers for undo/redo
+    std::unique_ptr<CLayer> m_wallsLayer;
+    std::unique_ptr<CLayer> m_floorLayer;
+};
+
 
 
 LayerDock::LayerDock(CMap *map, QUndoStack* stack, QWidget *parent)
@@ -385,4 +432,9 @@ void LayerDock::updateRow(int layerID)
     }
     CLayer *layer = m_map->getLayer(layerID);
     itemWidget->setLabel(getLayerText(layer));
+}
+
+void LayerDock::newUndoStack(QUndoStack*stack)
+{
+    m_undoStack = stack;
 }

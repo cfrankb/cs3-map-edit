@@ -17,59 +17,106 @@ CMapFile::CMapFile(QObject* parent)
     // Always start with one default map
     auto map = std::make_unique<CMap>(DEFAULT_MAP_SIZE, DEFAULT_MAP_SIZE);
     addMap(map);
+
+    m_docStack->setUndoLimit(100); // keep only the last 100 commands
+    // Implement QUndoCommand::mergeWith() to combine similar operations.
+
+    setCurrentIndex(0);
+
+    debug();
 }
 
-CMapFile::~CMapFile() {
-    for (auto* stack : m_mapStacks) {
-        m_undoGroup->removeStack(stack);
-        delete stack;
-    }
+CMapFile::~CMapFile()
+{
 }
+
+
+void CMapFile::resetUndoStacks()
+{
+    // Ensure docStack is registered once
+    if (!m_undoGroup->stacks().contains(m_docStack)) {
+        m_undoGroup->addStack(m_docStack);
+    }
+
+    // Switch active stack to docStack before removing others
+    m_undoGroup->setActiveStack(m_docStack);
+
+    // Remove all map stacks from the group
+    for (QUndoStack* stack : m_mapStacks) {
+        if (stack != m_docStack) {
+            m_undoGroup->removeStack(stack);
+        }
+    }
+    m_mapStacks.clear();
+
+    // Clear document stack history
+    m_docStack->clear();
+
+    // At this point: group contains only docStack, active = docStack
+}
+
+
+void CMapFile::reset()
+{
+    debug();
+
+    resetUndoStacks();   // clean undo machinery
+
+    // Factory reset (document reset)
+    setFilename("");
+    forget();
+
+    // Add one map by default
+    std::unique_ptr<CMap> map = std::make_unique<CMap>(40, 40);
+    addMap(map);
+
+    setDirty(false);
+    emit dirtyChanged(false);
+
+    // Switch active stack to the new map
+    setCurrentIndex(0);
+
+    debug();
+}
+
+
 
 bool CMapFile::read()
 {
     m_currIndex = 0;
     bool ok = CMapArch::extract(filename().toStdString());
-    if (!ok) return false;
+    if (!ok) {
+        qDebug("failed");
+        return false;
+    }
 
-    setCurrentIndex(0);
+    m_undoGroup->setActiveStack(m_docStack);
 
     // Reset undo machinery
+    for (QUndoStack* stack : m_mapStacks) {
+        if (stack != m_docStack)
+            m_undoGroup->removeStack(stack);
+        // no delete, parent will clean up
+    }
+
     m_mapStacks.clear();
     m_docStack->clear();
-    for (QUndoStack* stack : m_undoGroup->stacks()) {
-        m_undoGroup->removeStack(stack);
-    }
-    m_undoGroup->addStack(m_docStack);
 
-    // Create a stack for each map
+    // Recreate stacks for each map
     for (size_t i = 0; i < size(); ++i) {
-        auto* stack = new QUndoStack(this);
+        auto* stack = new QUndoStack(this); // parent = CMapFile
         m_mapStacks.push_back(stack);
         m_undoGroup->addStack(stack);
     }
 
-    // Set active stack to first map
-    if (!m_mapStacks.empty()) {
-        m_undoGroup->setActiveStack(m_mapStacks[m_currIndex]);
-        //emit currentMapChanged(m_maps[m_currIndex].get());
-    }
-
     setDirty(false);
     emit dirtyChanged(false);
+    setCurrentIndex(0);
+    qDebug("read()out");
     return true;
 }
 
-size_t CMapFile::addMap(std::unique_ptr<CMap>& map)
-{
-    // Reuse insertAt with index = end of collection
-    insertAt(static_cast<int>(m_maps.size()), map);
 
-    emit dirtyChanged(true);
-
-    // Return the index of the newly added map
-    return m_currIndex;
-}
 
 CMap* CMapFile::removeAt(int i)
 {
@@ -82,19 +129,33 @@ CMap* CMapFile::removeAt(int i)
     QUndoStack* stack = m_mapStacks[i];
     m_undoGroup->removeStack(stack);
     m_mapStacks.erase(m_mapStacks.begin() + i);
-    delete stack;
+  //  delete stack;
 
     auto map = CMapArch::removeAt(i).release();
 
     setDirty(true);
     emit dirtyChanged(true);
-    setCurrentIndex(std::min(i, static_cast<int>(m_maps.size() - 1)));
+    //setCurrentIndex(std::min(i, static_cast<int>(m_maps.size() - 1)));
 
     return map;
 }
 
+
+size_t CMapFile::addMap(std::unique_ptr<CMap>& map)
+{
+    qDebug("addMap");
+
+    // Always insert at the end
+    insertAt(static_cast<int>(m_maps.size()), map);
+
+    // Return the index of the newly added map
+    return m_currIndex;
+}
+
 void CMapFile::insertAt(int i, std::unique_ptr<CMap>& map)
 {
+    qDebug("insertMap %d", i);
+
     // Clamp index
     if (i < 0) i = 0;
     if (i > static_cast<int>(m_maps.size())) i = static_cast<int>(m_maps.size());
@@ -102,22 +163,19 @@ void CMapFile::insertAt(int i, std::unique_ptr<CMap>& map)
     // Insert into base collection
     CMapArch::insertAt(i, map);
 
-    // Update current index
-    setCurrentIndex(i);
-
-    // Create a new undo stack for this map
+    // Create and register undo stack for this map
     auto* stack = new QUndoStack(this);
     m_mapStacks.insert(m_mapStacks.begin() + i, stack);
-
-    // Register stack with the undo group
     m_undoGroup->addStack(stack);
 
-    // Switch active stack and emit signal
+    // Update current index and active stack
+    m_currIndex = i;
     m_undoGroup->setActiveStack(stack);
-    //emit currentMapChanged(m_maps[m_currIndex].get());
+    emit currentMapChanged(m_maps[m_currIndex].get());
 
     emit dirtyChanged(true);
 }
+
 
 bool CMapFile::write()
 {
@@ -171,8 +229,15 @@ bool CMapFile::isUntitled()
     return m_filename.isEmpty();
 }
 
+void CMapFile::sync()
+{
+    setCurrentIndex(m_currIndex);
+}
+
+
 void CMapFile::setCurrentIndex(int i)
 {
+    LOGI("*** setCurrentIndex: %d", i);
     if (i >= 0 && static_cast<size_t>(i) < m_maps.size()) {
         m_currIndex = i;
 
@@ -216,4 +281,24 @@ void CMapFile::forget()
 {
     CMapArch::clear();
     m_currIndex = 0;
+}
+
+void CMapFile::debug()
+{
+    qDebug("\n*************************************");
+    qDebug("* maps: %lu", m_maps.size());
+    qDebug("* m_mapStacks: %lu", m_mapStacks.size());
+    qDebug("* m_undoGroup %lld", m_undoGroup->stacks().size());
+    qDebug("* m_docStack %p", m_docStack);
+    qDebug("* m_undoGroup.active() %p", m_undoGroup->activeStack());
+
+    qDebug("* MapStack (trace)");
+    int i = 0;
+    for (QUndoStack* stack : m_mapStacks) {
+        qDebug("* >>> %i %p ", i, stack);
+
+        ++i;
+        // no delete, parent will clean up
+    }
+    qDebug("*************************************\n");
 }

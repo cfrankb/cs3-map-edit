@@ -1,7 +1,9 @@
 #pragma once
 #include <QUndoCommand>
+#include <queue>
 #include "../runtime/map.h"
 #include "../mapfile.h"
+#include "../runtime/layer.h"
 
 class DeleteMapCommand : public QUndoCommand
 {
@@ -129,5 +131,243 @@ private:
         }
         return QObject::tr("Shift");
     }
+};
+
+
+class ClearMapCommand : public QUndoCommand
+{
+public:
+    ClearMapCommand(CMapFile* doc, QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent), m_doc(doc)
+    {
+        setText(QObject::tr("Clear Map"));
+
+        // Capture the current state of the main layer
+        CLayer* layer = m_doc->map()->getMainLayer();
+        m_backup = layer->tiles(); // you need a method to serialize/clone the layer contents
+    }
+
+    void redo() override {
+        m_doc->map()->getMainLayer()->clear();
+        emit m_doc->dirtyChanged(true);
+        m_doc->setDirty(true);
+        emit m_doc->refreshMap();
+        emit m_doc->dirtyChanged(true);
+    }
+
+    void undo() override {
+        CLayer* layer = m_doc->map()->getMainLayer();
+        layer->tilesFrom(m_backup); // restore from backup
+        emit m_doc->dirtyChanged(true);
+        m_doc->setDirty(true);
+        emit m_doc->refreshMap();
+        emit m_doc->dirtyChanged(true);
+    }
+
+private:
+    CMapFile* m_doc;
+    std::vector<uint8_t> m_backup; // or any container representing the saved state
+};
+
+
+class FloodFillCommand : public QUndoCommand
+{
+public:
+    FloodFillCommand(CMapFile* doc, int startX, int startY, uint8_t newValue, QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent), m_doc(doc), m_startX(startX), m_startY(startY), m_newValue(newValue)
+    {
+        setText(QObject::tr("Flood Fill"));
+
+        // Snapshot the layer before fill
+        CLayer* layer = m_doc->map()->getMainLayer();
+        m_backup = layer->tiles();
+    }
+
+    void redo() override {
+        CLayer* layer = m_doc->map()->getMainLayer();
+        floodFill(layer, m_startX, m_startY, m_newValue);
+        m_doc->setDirty(true);
+        emit m_doc->refreshMap();
+        emit m_doc->dirtyChanged(true);
+    }
+
+    void undo() override {
+        CLayer* layer = m_doc->map()->getMainLayer();
+        layer->tilesFrom(m_backup);
+        m_doc->setDirty(true);
+        emit m_doc->refreshMap();
+        emit m_doc->dirtyChanged(true);
+    }
+
+private:
+    CMapFile* m_doc;
+    int m_startX, m_startY;
+    uint8_t m_newValue;
+    std::vector<uint8_t> m_backup;
+
+    void floodFill(CLayer* layer, int x, int y, uint8_t newValue) {
+        // Basic BFS flood fill
+        int width = layer->width();
+        int height = layer->height();
+        auto& tiles = layer->tiles();
+
+        uint8_t oldValue = tiles[y * width + x];
+        if (oldValue == newValue) return;
+
+        std::queue<std::pair<int,int>> q;
+        q.push({x,y});
+
+        while (!q.empty()) {
+            auto [cx, cy] = q.front();
+            q.pop();
+
+            int idx = cy * width + cx;
+            if (tiles[idx] != oldValue) continue;
+
+            tiles[idx] = newValue;
+
+            if (cx > 0) q.push({cx-1, cy});
+            if (cx < width-1) q.push({cx+1, cy});
+            if (cy > 0) q.push({cx, cy-1});
+            if (cy < height-1) q.push({cx, cy+1});
+        }
+    }
+};
+
+
+// Custom command for renaming a map
+class RenameMapCommand : public QUndoCommand
+{
+public:
+    RenameMapCommand(CMapFile* doc, CMap* map, const QString& newTitle, QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent),
+        m_doc(doc),
+        m_map(map),
+        m_newTitle(newTitle.toStdString()),
+        m_oldTitle(map->title())
+    {
+        setText(QObject::tr("Rename Map"));
+    }
+
+    void undo() override {
+        m_map->setTitle(m_oldTitle);
+        m_doc->setDirty(true);
+        emit m_doc->dirtyChanged(true);
+    }
+
+    void redo() override {
+        m_map->setTitle(m_newTitle);
+        m_doc->setDirty(true);
+        emit m_doc->dirtyChanged(true);
+    }
+
+private:
+    CMapFile* m_doc;
+    CMap* m_map;
+    std::string m_newTitle;
+    std::string m_oldTitle;
+};
+
+
+class ResizeMapCommand : public QUndoCommand
+{
+public:
+    ResizeMapCommand(CMapFile *doc,
+                     CMap* map,
+                     int newWidth,
+                     int newHeight,
+                     QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent),
+        m_doc(doc),
+        m_map(map),
+        m_newWidth(newWidth),
+        m_newHeight(newHeight),
+        m_oldWidth(map->len()),
+        m_oldHeight(map->hei())
+    {
+        setText(QObject::tr("Resize Map"));
+
+        // Backup old layer content
+        backupLayers(m_oldLayers);
+    }
+
+    void undo() override {
+        restoreLayers(m_oldLayers, m_oldWidth, m_oldHeight);
+    }
+
+    void redo() override {
+        // Backup new layer content on first redo
+        if (m_newLayers.empty()) {
+            backupLayers(m_newLayers);
+        }
+        restoreLayers(m_newLayers, m_newWidth, m_newHeight);
+    }
+
+private:
+    CMapFile* m_doc;
+    CMap* m_map;
+    int m_newWidth, m_newHeight;
+    int m_oldWidth, m_oldHeight;
+
+    std::vector<std::vector<uint8_t>> m_oldLayers;
+    std::vector<std::vector<uint8_t>> m_newLayers;
+
+    void backupLayers(std::vector<std::vector<uint8_t>>& out) {
+        out.clear();
+        for (const auto& layer : m_map->layers()) {
+            out.push_back(layer->tiles()); // assuming layer.data() returns vector<char>
+        }
+    }
+
+    void restoreLayers(const std::vector<std::vector<uint8_t>>& in, int w, int h) {
+        m_map->resize(w, h, '\0', false);
+        for (size_t i = 0; i < in.size(); ++i) {
+            m_map->getLayer(i)->tilesFrom(in[i]); // assuming setData(vector<char>)
+        }
+        emit m_doc->resizeMap(m_map->len(), m_map->hei());
+    }
+};
+
+struct TileChange {
+    int x, y;
+    uint8_t oldTile;
+    uint8_t newTile;
+};
+
+class PaintStampCommand : public QUndoCommand {
+public:
+    PaintStampCommand(CMapFile *doc, CLayer* layer, const QString& label = QObject::tr("Paint Stamp"))
+        : m_doc(doc),  m_layer(layer) {
+        setText(label);
+    }
+
+    void addChange(int x, int y, uint8_t oldTile, uint8_t newTile) {
+        m_changes.push_back({x, y, oldTile, newTile});
+    }
+
+    void undo() override {
+        for (const auto& c : m_changes) {
+            m_layer->set(c.x, c.y, c.oldTile);
+        }
+        emitModified();
+    }
+
+    void redo() override {
+        for (const auto& c : m_changes) {
+            m_layer->set(c.x, c.y, c.newTile);
+        }
+        emitModified();
+    }
+
+private:
+    void emitModified() {
+        // Notify UI
+        emit m_doc->dirtyChanged(true);
+        emit m_doc->refreshMap();
+    }
+
+    CMapFile *m_doc;
+    CLayer* m_layer;
+    std::vector<TileChange> m_changes;
 };
 

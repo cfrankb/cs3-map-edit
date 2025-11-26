@@ -13,13 +13,14 @@ class QPainter;
 class QMouseEvent;
 class QKeyEvent;
 class MainWindow;
+class CMapFile;
 
 class MapWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit MapWidget(QWidget *parent = nullptr);
+    explicit MapWidget(QWidget *parent = nullptr, CMapFile *doc=nullptr);
     ~MapWidget() override;
 
     // Set the current map (owned externally)
@@ -34,7 +35,8 @@ public:
         Picker,    // Pick tile under cursor
         Selection, // Rectangular selection (with move/copy later)
         Eraser,
-        Dice
+        Dice,
+        FloodFill
     };
 
     void setTool(Tool tool);
@@ -155,4 +157,5 @@ private:
     QCache<uint16_t, QPixmap> m_pixmapCache; // key: tileId + zoom*1000
 
     MainWindow *m_mainWindow = nullptr;
+    CMapFile   *m_doc;
 };

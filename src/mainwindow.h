@@ -24,7 +24,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    QUndoStack* stack() { return m_undoStack; }
+    QUndoStack* activeStack() { return m_doc.undoGroup()->activeStack(); }
 
 signals:
     void resizeMap(int, int);   // notify of a map resize
@@ -34,7 +34,8 @@ signals:
     void propertiesChanged();   // notify that map property was changed
 
 private slots:
-    void updateHistoryList();
+    void updateDocHistoryList();
+    void updateMapHistoryList();
     void loadFile(const QString & filename);
     void setStatus(const QString str);
     void on_actionFile_New_File_triggered();
@@ -45,7 +46,6 @@ private slots:
     void on_actionClear_Map_triggered();
     void on_actionHelp_About_triggered();
     void on_actionHelp_About_Qt_triggered();
-    void on_actionHelp_Credits_triggered();
     void on_actionEdit_Previous_Map_triggered();
     void on_actionEdit_Next_Map_triggered();
     void on_actionEdit_Add_Map_triggered();
@@ -114,10 +114,12 @@ private:
     QAction *m_recentFileActs[MAX_RECENT_FILES];
     QLabel *m_label;
     QLabel *m_label0;
-    QUndoStack* m_undoStack;
 
-    QListWidget* m_historyList;
-    QPushButton* m_undoButton;
-    QPushButton* m_redoButton;
+    QListWidget* m_docHistoryList;
+    QListWidget* m_mapHistoryList;
+    QPushButton* m_docUndoButton;
+    QPushButton* m_docRedoButton;
+    QPushButton* m_mapUndoButton;
+    QPushButton* m_mapRedoButton;
 };
 #endif // MAINWINDOW_H

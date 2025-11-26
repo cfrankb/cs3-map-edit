@@ -64,8 +64,10 @@ public:
     void fill(uint8_t ch = 0);
     size_t size() const { return m_tiles.size(); }
     void replaceTile(const uint8_t, const uint8_t);
-    int len() const { return m_len; };
-    int hei() const { return m_hei; };
+    // inline int len() const { return m_len; };
+    // inline int hei() const { return m_hei; };
+    inline int width() const { return m_len; };
+    inline int height() const { return m_hei; };
     const char *lastError() { return m_lastError.c_str(); }
 
     inline uint8_t &get(const int x, const int y)
@@ -104,10 +106,12 @@ public:
     }
 
     LayerType layerType() { return m_layerType; }
-
     inline uint16_t baseID() { return m_baseID; }
-
     void setBaseID(int baseID) { m_baseID = baseID; };
+
+    std::vector<uint8_t> &tiles() { return m_tiles; };
+    const std::vector<uint8_t> &tilesConst() const { return m_tiles; };
+    void tilesFrom(const std::vector<uint8_t> &tiles) { m_tiles = tiles; };
 
 protected:
     enum : uint16_t
