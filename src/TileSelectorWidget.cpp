@@ -193,7 +193,7 @@ void TileSelectorWidget::paintEvent(QPaintEvent *event)
 
     // --- 3. Draw the Selection Overlay ---
 
-    if (m_selectionStart != m_selectionEnd)
+   // if (m_selectionStart != m_selectionEnd)
     {
         // Determine the max possible tile indices based on image size
         const int maxColIndex = (m_image.width() - 1) / m_tileSize;

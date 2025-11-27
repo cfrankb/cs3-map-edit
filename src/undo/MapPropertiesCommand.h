@@ -1,8 +1,8 @@
 #pragma once
 
 #include <QUndoCommand>
-#include "runtime/map.h"
-#include <runtime/states.h>
+#include "../runtime/map.h"
+#include "../runtime/states.h"
 
 
 class MapPropertiesCommand : public QUndoCommand {

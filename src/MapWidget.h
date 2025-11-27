@@ -4,6 +4,7 @@
 #include <QPixmap>
 #include <QCache>
 #include <QTimer>
+#include <QUndoCommand>
 #include <vector>
 #include "runtime/map.h"
 #include "runtime/shared/Frame.h"
@@ -15,6 +16,18 @@ class QKeyEvent;
 class MainWindow;
 class CMapFile;
 class PaintCommand;
+
+// Tool selection
+enum class ToolType
+{
+    None,
+    Stamp,     // Place single or multi-tile stamp
+    Picker,    // Pick tile under cursor
+    Selection, // Rectangular selection (with move/copy later)
+    Eraser,
+    Dice,
+    FloodFill
+};
 
 class MapWidget : public QWidget
 {
@@ -28,20 +41,8 @@ public:
     void setMap(CMap *map);
     CMap *map() const { return m_map; }
 
-    // Tool selection
-    enum class Tool
-    {
-        None,
-        Stamp,     // Place single or multi-tile stamp
-        Picker,    // Pick tile under cursor
-        Selection, // Rectangular selection (with move/copy later)
-        Eraser,
-        Dice,
-        FloodFill
-    };
-
-    void setTool(Tool tool);
-    Tool currentTool() const { return m_tool; }
+    void setTool(ToolType tool);
+    ToolType currentTool() const { return m_tool; }
 
     // Zoom control
     void setZoom(int factor); // 1 = 100%, 2 = 200%, etc.
@@ -59,26 +60,7 @@ public:
     void preloadAssets();
     void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
 
-    static inline QString toolName(Tool toolID) {
-        switch(toolID) {
-        case Tool::None:
-            return "None";
-        case Tool::Stamp:     // Place single or multi-tile stamp
-            return "Stamp";
-        case Tool::Picker:    // Pick tile under cursor
-            return "Picker";
-        case Tool::Selection: // Rectangular selection (with move/copy later)
-            return "Selection";
-        case Tool::Eraser:
-            return "Erase";
-        case Tool::Dice:
-            return "Dice";
-        case Tool::FloodFill:
-            return "FloodFill";
-        default:
-            return "???";
-        }
-    }
+    static QString toolName(ToolType toolID);
 
 signals:
     void tilePicked(uint8_t tileId);
@@ -110,6 +92,10 @@ protected:
 
 private:
 
+    void startToolCmd(const ToolType tool);
+    void commitToolCmd();
+    static bool isCombinedTool(const ToolType);
+
     // Convert between screen and map coordinates
     QPoint screenToTile(const QPoint &pos) const;
     QRect screenToTileRect(const QRect &rect) const;
@@ -130,7 +116,7 @@ private:
     // Commit current shadow stamp
     void commitStampAt(const QPoint &tilePos, const Stamp &stamp);
     void updateCursor();
-    uint8_t pickDiceTile(const std::vector<uint8_t> & tiles);
+    uint8_t randomTile(const std::vector<uint8_t> & tiles);
 
     // Layers
 
@@ -149,7 +135,7 @@ private:
     }
 
     CMap *m_map = nullptr;
-    Tool m_tool = Tool::None;
+    ToolType m_tool = ToolType::None;
     uint8_t m_currentTile = 0;
     Stamp m_currentStamp{{0}, 1, 1, Stamp::MainTilesetBaseID};
 
@@ -180,4 +166,5 @@ private:
 
     MainWindow *m_mainWindow = nullptr;
     CMapFile   *m_doc;
+    PaintCommand* m_currentCommand = nullptr;
 };

@@ -38,10 +38,11 @@ struct TileDelta
     uint8_t newTile;
 };
 
+
 class PaintCommand : public QUndoCommand
 {
 public:
-    PaintCommand(CMapFile *doc, CLayer *layer, MapWidget::Tool tool)
+    PaintCommand(CMapFile *doc, CLayer *layer, ToolType tool)
         : m_doc(doc), m_layer(layer), m_tool(tool)
     {
         setText(MapWidget::toolName(m_tool));
@@ -61,14 +62,9 @@ public:
             // Already touched → update only the new value
             it->second.newTile = newTile;
         }
-        /*
-        auto& delta = m_changes[key];
-        if (delta.oldTile == 0) delta.oldTile = oldTile; // first time
-        delta.newTile = newTile; // always update
-        */
     }
 
-    MapWidget::Tool tool() { return m_tool; }
+    ToolType tool() { return m_tool; }
 
     void undo() override
     {
@@ -91,6 +87,10 @@ public:
     }
 
     bool isEmpty() const { return m_changes.empty(); }
+    inline const std::unordered_map<uint32_t, TileDelta> &changes() const
+    {
+        return m_changes;
+    };
 
 private:
     void notify()
@@ -105,9 +105,170 @@ private:
 
     CMapFile *m_doc;
     CLayer *m_layer;
-    MapWidget::Tool m_tool;
+    ToolType m_tool;
     std::unordered_map<uint32_t, TileDelta> m_changes;
 };
+
+class FloodFillCommand : public QUndoCommand
+{
+public:
+    FloodFillCommand(CMapFile *doc, int startX, int startY, uint8_t newValue, QUndoCommand *parent = nullptr)
+        : QUndoCommand(parent), m_doc(doc), m_startX(startX), m_startY(startY), m_newValue(newValue)
+    {
+        setText(QObject::tr("Flood Fill"));
+
+        // Snapshot the layer before fill
+        CLayer *layer = m_doc->map()->getMainLayer();
+        m_backup = layer->tiles();
+    }
+
+    void redo() override
+    {
+        CLayer *layer = m_doc->map()->getMainLayer();
+        floodFill(layer, m_startX, m_startY, m_newValue);
+        m_doc->setDirty(true);
+        emit m_doc->refreshMap();
+        emit m_doc->dirtyChanged(true);
+    }
+
+    void undo() override
+    {
+        CLayer *layer = m_doc->map()->getMainLayer();
+        layer->tilesFrom(m_backup);
+        m_doc->setDirty(true);
+        emit m_doc->refreshMap();
+        emit m_doc->dirtyChanged(true);
+    }
+
+private:
+    CMapFile *m_doc;
+    int m_startX, m_startY;
+    uint8_t m_newValue;
+    std::vector<uint8_t> m_backup;
+
+    void floodFill(CLayer *layer, int x, int y, uint8_t newValue)
+    {
+        // Basic BFS flood fill
+        int width = layer->width();
+        int height = layer->height();
+        auto &tiles = layer->tiles();
+
+        uint8_t oldValue = tiles[y * width + x];
+        if (oldValue == newValue)
+            return;
+
+        std::queue<std::pair<int, int>> q;
+        q.push({x, y});
+
+        while (!q.empty())
+        {
+            auto [cx, cy] = q.front();
+            q.pop();
+
+            int idx = cy * width + cx;
+            if (tiles[idx] != oldValue)
+                continue;
+
+            tiles[idx] = newValue;
+
+            if (cx > 0)
+                q.push({cx - 1, cy});
+            if (cx < width - 1)
+                q.push({cx + 1, cy});
+            if (cy > 0)
+                q.push({cx, cy - 1});
+            if (cy < height - 1)
+                q.push({cx, cy + 1});
+        }
+    }
+};
+
+
+class SetTileAttrCommand : public QUndoCommand
+{
+public:
+    SetTileAttrCommand(CMapFile* doc, int x, int y,
+                       uint8_t oldAttr, uint8_t newAttr,
+                       QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent),
+        m_doc(doc), m_x(x), m_y(y),
+        m_oldAttr(oldAttr), m_newAttr(newAttr)
+    {
+        setText(QObject::tr("Set Tile Attribute"));
+    }
+
+    void undo() override {
+        m_doc->map()->setAttr(m_x, m_y, m_oldAttr);
+        notify();
+    }
+
+    void redo() override {
+        m_doc->map()->setAttr(m_x, m_y, m_newAttr);
+        notify();
+    }
+
+private:
+    void notify() {
+        if (m_doc) {
+            m_doc->setDirty(true);
+            emit m_doc->refreshMap();
+            emit m_doc->dirtyChanged(true);
+        }
+    }
+
+    CMapFile* m_doc;
+    int m_x, m_y;
+    uint8_t m_oldAttr, m_newAttr;
+};
+
+
+class SetPosCommand : public QUndoCommand
+{
+public:
+    enum PosType { Start, Exit };
+
+    SetPosCommand(CMapFile* doc, PosType type,
+                  uint32_t oldPos, uint32_t newPos,
+                  QUndoCommand* parent = nullptr)
+        : QUndoCommand(parent),
+        m_doc(doc), m_type(type),
+        m_oldPos(oldPos), m_newPos(newPos)
+    {
+        setText(m_type == Start
+                    ? QObject::tr("Set Start Position")
+                    : QObject::tr("Set Exit Position"));
+    }
+
+    void undo() override {
+        m_doc->map()->states().setU(posKey(), m_oldPos);
+        notify();
+    }
+
+    void redo() override {
+        m_doc->map()->states().setU(posKey(), m_newPos);
+        notify();
+    }
+
+private:
+    int posKey() const {
+        return (m_type == Start) ? POS_ORIGIN : POS_EXIT;
+    }
+
+    void notify() {
+        if (m_doc) {
+            m_doc->setDirty(true);
+            emit m_doc->refreshMap();
+            emit m_doc->dirtyChanged(true);
+        }
+    }
+
+    CMapFile* m_doc;
+    PosType m_type;
+    uint32_t m_oldPos;
+    uint32_t m_newPos;
+};
+
+
 
 MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
     : QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
@@ -149,8 +310,13 @@ void MapWidget::setMap(CMap *map)
 }
 
 // Call it whenever tool changes
-void MapWidget::setTool(Tool tool)
+void MapWidget::setTool(ToolType tool)
 {
+    if (m_currentCommand && m_currentCommand->tool() != tool)
+    {
+        commitToolCmd();
+    }
+
     qDebug("setTool %u", static_cast<uint8_t>(tool));
     if (m_tool != tool)
     {
@@ -167,7 +333,7 @@ void MapWidget::setCurrentTile(uint8_t tileId)
     qDebug("current tile: 0x%.2x", tileId);
     m_currentTile = tileId;
     m_currentStamp = Stamp{{tileId}, 1, 1, Stamp::MainTilesetBaseID};
-    setTool(Tool::Stamp);
+    setTool(ToolType::Stamp);
     update();
 }
 
@@ -370,15 +536,15 @@ void MapWidget::paintEvent(QPaintEvent *)
         drawGrid(painter);
 
     const Stamp &stamp = m_currentStamp;
-    if (m_tool == Tool::Selection && m_selection.isValid())
+    if (m_tool == ToolType::Selection && m_selection.isValid())
         drawSelectionRect(painter);
-    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Stamp))
+    else if (m_shadowTilePos.x() >= 0 && (m_tool == ToolType::Stamp))
         drawShadowTile(painter, m_currentStamp);
-    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Eraser))
+    else if (m_shadowTilePos.x() >= 0 && (m_tool == ToolType::Eraser))
         drawShadowTile(painter, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
-    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::FloodFill))
+    else if (m_shadowTilePos.x() >= 0 && (m_tool == ToolType::FloodFill))
         drawShadowTile(painter, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
-    else if (m_shadowTilePos.x() >= 0 && (m_tool == Tool::Dice) && (stamp.tiles.size() != 0))
+    else if (m_shadowTilePos.x() >= 0 && (m_tool == ToolType::Dice) && (stamp.tiles.size() != 0))
         drawShadowTile(painter, Stamp{{stamp.tiles[0]}, 1, 1, stamp.baseID});
 }
 
@@ -578,8 +744,10 @@ void MapWidget::commitStampAt(const QPoint &tilePos, const Stamp &stamp)
                 break;
 
             uint8_t newTile = stamp.tiles[idx];
-            if (layer->at(tx, ty) != newTile)
+            uint8_t oldTile = layer->at(tx, ty);
+            if (oldTile != newTile)
             {
+                m_currentCommand->recordChange(tx, ty, oldTile, newTile);
                 layer->set(tx, ty, newTile);
                 changed = true;
             }
@@ -602,41 +770,47 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
 
     if (event->button() == Qt::LeftButton)
     {
+        if (tilePos.x() >= m_map->width() || tilePos.y() >= m_map->height())
+            return;
+
         m_leftPressed = true;
-
         const Stamp &stamp = m_currentStamp;
-
-        const bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID);
-        if (canStamp && m_tool == Tool::Stamp)
+        const bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID) && stamp.tiles.size() != 0;
+        if (canStamp)
         {
-            commitStampAt(tilePos, m_currentStamp);
-        }
-        else if (canStamp && m_tool == Tool::FloodFill)
-        {
-            if (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
+            if (m_tool == ToolType::Stamp)
+            {
+                startToolCmd(m_tool);
+                commitStampAt(tilePos, m_currentStamp);
+            }
+            else if (m_tool == ToolType::FloodFill &&
+                     (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0]))
             {
                 auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
                 m_doc->activeStack()->push(cmd);
                 update();
             }
+            else if (m_tool == ToolType::Dice)
+            {
+                startToolCmd(m_tool);
+                uint8_t tileID = randomTile(stamp.tiles);
+                commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
+            }
         }
-        else if (m_tool == Tool::Eraser)
+
+        if (m_tool == ToolType::Eraser)
         {
+            startToolCmd(m_tool);
             commitStampAt(tilePos, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
         }
-        else if (canStamp && m_tool == Tool::Dice && stamp.tiles.size() != 0)
-        {
-            uint8_t tileID = pickDiceTile(stamp.tiles);
-            commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
-        }
-        else if (m_tool == Tool::Picker)
+        else if (m_tool == ToolType::Picker)
         {
             if (m_map->isValid(tilePos.x(), tilePos.y()))
             {
                 emit tilePicked(m_map->at(tilePos.x(), tilePos.y()));
             }
         }
-        else if (m_tool == Tool::Selection)
+        else if (m_tool == ToolType::Selection)
         {
             m_selectionStart = tilePos;
             m_selection = QRect(tilePos, QSize(1, 1));
@@ -647,7 +821,6 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
-
 void MapWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (!m_map)
@@ -656,50 +829,59 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
     QPoint tilePos = screenToTile(event->pos());
     m_shadowTilePos = tilePos;
     const Stamp &stamp = m_currentStamp;
-    bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID);
-    if (canStamp && m_leftPressed && m_tool == Tool::Stamp)
+    bool canStamp = validateBaseIDForCurrentLayer(m_currentStamp.baseID) && stamp.tiles.size() != 0;
+
+    if (m_leftPressed)
     {
-        commitStampAt(tilePos, m_currentStamp);
-    }
-    else if (m_leftPressed && m_tool == Tool::Eraser)
-    {
-        commitStampAt(tilePos, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
-    }
-    else if (m_leftPressed && canStamp && m_tool == Tool::Dice && stamp.tiles.size() != 0)
-    {
-        uint8_t tileID = pickDiceTile(stamp.tiles);
-        commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
-    }
-    else if (m_leftPressed && canStamp && m_tool == Tool::FloodFill)
-    {
-        if (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
+        if (canStamp)
         {
-            auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
-            m_doc->activeStack()->push(cmd);
-            update();
+            if (m_tool == ToolType::Stamp)
+            {
+                commitStampAt(tilePos, m_currentStamp);
+            }
+            else if (m_tool == ToolType::Dice)
+            {
+                uint8_t tileID = randomTile(stamp.tiles);
+                commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
+            }
+            else if (m_tool == ToolType::FloodFill && m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
+            {
+                if (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
+                {
+                    auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
+                    m_doc->activeStack()->push(cmd);
+                    update();
+                }
+            }
+        }
+
+        if (m_leftPressed && m_tool == ToolType::Eraser)
+        {
+            commitStampAt(tilePos, Stamp{{0}, 1, 1, Stamp::MainTilesetBaseID});
+        }
+        else if (m_selecting && m_tool == ToolType::Selection)
+        {
+            QRect newSel(m_selectionStart, tilePos);
+            newSel = newSel.normalized();
+            if (newSel != m_selection)
+            {
+                m_selection = newSel;
+                emit selectionChanged(m_selection);
+                update();
+            }
         }
     }
-    else if (m_selecting && m_tool == Tool::Selection)
-    {
-        QRect newSel(m_selectionStart, tilePos);
-        newSel = newSel.normalized();
-        if (newSel != m_selection)
-        {
-            m_selection = newSel;
-            emit selectionChanged(m_selection);
-            update();
-        }
-    }
-    else
-    {
-        update(); // for shadow tile
-    }
+
+    update(); // for shadow tile
 }
 
 void MapWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
+        // commit composite tool (if any)
+        commitToolCmd();
+
         m_leftPressed = false;
         if (m_selecting)
         {
@@ -711,6 +893,7 @@ void MapWidget::mouseReleaseEvent(QMouseEvent *event)
 void MapWidget::leaveEvent(QEvent *)
 {
     m_shadowTilePos = {-1, -1};
+    commitToolCmd();
     update();
 }
 
@@ -737,22 +920,22 @@ void MapWidget::updateCursor()
 {
     switch (m_tool)
     {
-    case Tool::Stamp:
+    case ToolType::Stamp:
         setCursor(QCursor(QPixmap(":/data/cursors/sketchpntbrush.png"), 9, 31));
         break;
-    case Tool::Dice:
+    case ToolType::Dice:
         setCursor(QCursor(QPixmap(":/data/icons/1439410433.png"), 14, 32));
         break;
-    case Tool::Picker:
+    case ToolType::Picker:
         setCursor(QCursor(QPixmap(":/data/cursors/eyedropper.png"), 2, 14));
         break;
-    case Tool::Selection:
+    case ToolType::Selection:
         setCursor(Qt::CrossCursor);
         break;
-    case Tool::Eraser:
+    case ToolType::Eraser:
         setCursor(QCursor(QPixmap(":/data/cursors/efface.png"), 10, 27));
         break;
-    case Tool::FloodFill:
+    case ToolType::FloodFill:
         setCursor(QCursor(QPixmap(":/data/cursors/paint_bucket.png"), 4, 17));
         break;
     default:
@@ -777,9 +960,17 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
         {
             const uint8_t newAttr = dlg.attr();
             if (originalAttr != newAttr) {
+                // Push undo command instead of direct mutation
+                m_doc->undoGroup()->activeStack()->push(
+                    new SetTileAttrCommand(m_doc, x, y, originalAttr, newAttr));
+            }
+            /*
+            const uint8_t newAttr = dlg.attr();
+            if (originalAttr != newAttr) {
                 m_map->setAttr(x, y, newAttr);
                 emit mapModified();
             }
+            */
         }
         update(); });
     menu->addAction(actionSetAttr);
@@ -822,7 +1013,15 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
     QAction *actionSetStartPos = new QAction(tr("set start pos"), this);
     connect(actionSetStartPos, &QAction::triggered, this, [this, point]()
             {
-           m_map->states().setU(POS_ORIGIN, CMap::toKey(point.x(), point.y()));
+            const uint32_t oldPos = m_map->states().getU(POS_ORIGIN);
+            const uint32_t newPos = CMap::toKey(point.x(), point.y());
+
+            if (oldPos != newPos) {
+                m_doc->undoGroup()->activeStack()->push(
+                    new SetPosCommand(m_doc, SetPosCommand::Start, oldPos, newPos));
+            }
+
+         //  m_map->states().setU(POS_ORIGIN, CMap::toKey(point.x(), point.y()));
            emit mapModified();
            update(); });
     actionSetStartPos->setStatusTip(tr("Set the start position for this map"));
@@ -831,7 +1030,15 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
     QAction *actionSetExitPos = new QAction(tr("set exit pos"), this);
     connect(actionSetExitPos, &QAction::triggered, this, [this, point]()
             {
-        m_map->states().setU(POS_EXIT, CMap::toKey(point.x(), point.y()));
+       // m_map->states().setU(POS_EXIT, CMap::toKey(point.x(), point.y()));
+        const uint32_t oldPos = m_map->states().getU(POS_EXIT);
+        const uint32_t newPos = CMap::toKey(point.x(), point.y());
+
+        if (oldPos != newPos) {
+            m_doc->undoGroup()->activeStack()->push(
+                new SetPosCommand(m_doc, SetPosCommand::Exit, oldPos, newPos));
+        }
+
         emit mapModified();
         update(); });
     actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
@@ -907,9 +1114,9 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
     connect(clearSel, &QAction::triggered, this, &MapWidget::clearSelection);
 
     // Disable paste if clipboard is empty (optional polish)
-    connect(qApp->clipboard(), &QClipboard::dataChanged, this, [this, paste]()
-            { paste->setEnabled(qApp->clipboard()->mimeData()->hasImage() ||
-                                qApp->clipboard()->mimeData()->hasFormat("application/x-lgck-tiledata")); });
+    // connect(qApp->clipboard(), &QClipboard::dataChanged, this, [this, paste]()
+    //       { paste->setEnabled(qApp->clipboard()->mimeData()->hasImage() ||
+    //                         qApp->clipboard()->mimeData()->hasFormat("application/x-lgck-tiledata")); });
 }
 
 void MapWidget::contextMenuEvent(QContextMenuEvent *event)
@@ -1049,9 +1256,8 @@ void MapWidget::updateLayerVisibility(int layerID, bool visibility)
     update();
 }
 
-uint8_t MapWidget::pickDiceTile(const std::vector<uint8_t> &tiles)
+uint8_t MapWidget::randomTile(const std::vector<uint8_t> &tiles)
 {
-    // const auto &tiles = m_currentStamp.tiles;
     //  Create random generator
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -1080,6 +1286,59 @@ uint8_t MapWidget::pickDiceTile(const std::vector<uint8_t> &tiles)
         }
     }
     // Fallback (shouldn't happen if weights > 0)
-    // return items.back();
     return tiles.front();
+}
+
+QString MapWidget::toolName(ToolType toolID)
+{
+    switch (toolID)
+    {
+    case ToolType::None:
+        return "None";
+    case ToolType::Stamp: // Place single or multi-tile stamp
+        return "Paint Stamp";
+    case ToolType::Picker: // Pick tile under cursor
+        return "Picker";
+    case ToolType::Selection: // Rectangular selection (with move/copy later)
+        return "Selection";
+    case ToolType::Eraser:
+        return "Erase Tiles";
+    case ToolType::Dice:
+        return "Random Tool";
+    case ToolType::FloodFill:
+        return "FloodFill";
+    default:
+        return "???";
+    }
+}
+
+bool MapWidget::isCombinedTool(const ToolType type)
+{
+    return type == ToolType::Stamp || type == ToolType::Dice || type == ToolType::Eraser;
+}
+
+void MapWidget::startToolCmd(const ToolType tool)
+{
+    CLayer *layer = m_map->getLayer(m_activeLayer);
+    if (isCombinedTool(tool) && layer)
+    {
+        m_currentCommand = new PaintCommand(m_doc, layer, tool);
+    }
+}
+
+void MapWidget::commitToolCmd()
+{
+    if (m_currentCommand)
+    {
+        LOGI("commit tool: %d [%s] [size: %lu]", static_cast<int>(m_tool), toolName(m_tool).toStdString().c_str(), m_currentCommand->changes().size());
+        if (!m_currentCommand->isEmpty())
+        {
+            m_doc->undoGroup()->activeStack()->push(m_currentCommand);
+        }
+        else
+        {
+            delete m_currentCommand;
+        }
+        m_currentCommand = nullptr;
+    }
 }

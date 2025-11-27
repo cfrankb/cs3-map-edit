@@ -89,7 +89,11 @@ private:
     void initFileMenu();
     void initTilebox();
     void initMapShortcuts();
-    void initToolBar();
+
+    void initToolBars();
+    void initToolBarDocument();
+    void initToolBarTools();
+
     void initSelectorWidget();
     void initLayerBox();
     void initHistoryWidget();

@@ -135,9 +135,8 @@ HEADERS += \
     LayerRowWidget.h \
     layerdata.h \
     undo/MapPropertiesCommand.h \
-    undo/MapCommand.h
-   # undo/LayerChangeBaseIDCommand.h \
-  #  undo/LayerRenameCommand.h
+    undo/MapCommand.h \
+    undo/DocumentCommand.h
 
 
 FORMS += \

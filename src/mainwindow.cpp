@@ -33,6 +33,7 @@
 #include "runtime/shared/qtgui/qfilewrap.h"
 #include "undo/MapPropertiesCommand.h"
 #include "undo/MapCommand.h"
+#include "undo/DocumentCommand.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -44,16 +45,12 @@ MainWindow::MainWindow(QWidget *parent)
     QAction *redoAction = m_doc.undoGroup()->createRedoAction(this, tr("&Redo"));
 
     // Assign shortcuts
-    undoAction->setShortcut(QKeySequence::Undo);
-    redoAction->setShortcut(QKeySequence::Redo);
-
-    // Redirect the UI actions to trigger the group actions
     connect(ui->actionEdit_Undo, &QAction::triggered, undoAction, &QAction::trigger);
     connect(ui->actionEdit_Redo, &QAction::triggered, redoAction, &QAction::trigger);
 
     // Replace the UI actions with these
-    //  ui->actionEdit_Undo->setShortcut(QKeySequence::Undo);
-    // ui->actionEdit_Redo->setShortcut(QKeySequence::Redo);
+     ui->actionEdit_Undo->setShortcut(QKeySequence::Undo);
+     ui->actionEdit_Redo->setShortcut(QKeySequence::Redo);
 
     // Keep your custom logging slot connected too
     connect(ui->actionEdit_Undo, &QAction::triggered, this, []
@@ -69,11 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_mapView->centerOnMap();
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
-    // connect(this, SIGNAL(mapChanged(CMap *)), this, SLOT(updateStatus()));
     connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
-    // connect(this, &MainWindow::refreshMap, this, [this](){
-    //     m_mapView->mapWidget()->update();
-    // });
     connect(&m_doc, &CMapFile::refreshMap, this, [this]()
             { m_mapView->mapWidget()->update(); });
 
@@ -84,7 +77,7 @@ MainWindow::MainWindow(QWidget *parent)
     initLayerBox();
     initFileMenu();
     initMapShortcuts();
-    initToolBar();
+    initToolBars();
     updateMenus();
     setWindowIcon(QIcon(":/data/icons/CS3MapEdit-icon.png"));
     m_label = new QLabel("", ui->statusbar);
@@ -152,29 +145,29 @@ void MainWindow::initMapShortcuts()
 
 void MainWindow::initTilebox()
 {
-    auto tileBoxDoc = new QDockWidget();
+    auto tileBoxDock = new QDockWidget();
     // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    tileBoxDoc->setWindowTitle(tr("Main Tileset"));
-    auto tilebox = new CTileBox(tileBoxDoc);
-    tilebox->show();
-    tileBoxDoc->setWidget(tilebox);
-    addDockWidget(Qt::LeftDockWidgetArea, tileBoxDoc);
-    tileBoxDoc->setAllowedAreas(Qt::LeftDockWidgetArea);
+    tileBoxDock->setWindowTitle(tr("Main Tileset"));
+    auto tileboxWidget = new CTileBox(tileBoxDock);
+    tileboxWidget->show();
+    tileBoxDock->setWidget(tileboxWidget);
+    addDockWidget(Qt::LeftDockWidgetArea, tileBoxDock);
+    tileBoxDock->setAllowedAreas(Qt::LeftDockWidgetArea);
     connect(this, SIGNAL(newTile(int)),
-            tilebox, SLOT(setTile(int)));
+            tileboxWidget, SLOT(setTile(int)));
 
     // Stamp tool + tileID
-    connect(tilebox, &CTileBox::tileChanged, this, [this](int tileID)
+    connect(tileboxWidget, &CTileBox::tileChanged, this, [this](int tileID)
             {
-        m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
+        m_mapView->mapWidget()->setTool(ToolType::Stamp);
         m_mapView->mapWidget()->setCurrentTile(tileID);//
         ui->actionTools_Paint->setChecked(true); });
 
-    m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
+    m_mapView->mapWidget()->setTool(ToolType::Stamp);
     m_mapView->mapWidget()->setCurrentTile(0);
 
     // Create a menu action bound to the dock
-    QAction *toggleTileBoxAction = tileBoxDoc->toggleViewAction();
+    QAction *toggleTileBoxAction = tileBoxDock->toggleViewAction();
     toggleTileBoxAction->setText(tr("Main Tileset")); // optional override
     toggleTileBoxAction->setStatusTip(tr("Show or hide main tileset"));
 
@@ -225,6 +218,9 @@ void MainWindow::initSelectorWidget()
     dock->setAllowedAreas(Qt::RightDockWidgetArea);
 
     connect(selectorWidget, &TileSelectorWidget::stampSelected, m_mapView->mapWidget(), &MapWidget::setCurrentStamp);
+    connect(selectorWidget, &TileSelectorWidget::tilesSelected, this, [](const QList<TileInfo>& list ){
+        LOGI("selection:  %lld tiles", list.size());
+    });
 
     // Create a menu action bound to the dock
     QAction *toggleTileBoxAction = dock->toggleViewAction();
@@ -578,7 +574,14 @@ void MainWindow::openRecentFile()
     updateMenus();
 }
 
-void MainWindow::initToolBar()
+void MainWindow::initToolBars()
+{
+    initToolBarDocument();
+    initToolBarTools();
+}
+
+
+void MainWindow::initToolBarDocument()
 {
     ui->toolBar->setIconSize(QSize(16, 16));
     ui->toolBar->addAction(ui->actionFile_New_File);
@@ -595,13 +598,6 @@ void MainWindow::initToolBar()
     ui->toolBar->addAction(ui->actionEdit_Add_Map);
     // ui->toolBar->addAction(ui->actionClear_Map);
     ui->toolBar->addAction(ui->actionEdit_Delete_Map);
-    ui->toolBar->addSeparator();
-    ui->toolBar->addAction(ui->actionTools_Paint);
-    ui->toolBar->addAction(ui->actionTools_Erase);
-    ui->toolBar->addAction(ui->actionTools_Picker);
-    ui->toolBar->addAction(ui->actionTools_Select);
-    ui->toolBar->addAction(ui->actionTools_Dice);
-    ui->toolBar->addAction(ui->actionTools_Flood_Fill);
     ui->toolBar->addSeparator();
     m_cbSkill = new QComboBox(this);
     m_cbSkill->addItem("Easy Mode");
@@ -620,66 +616,13 @@ void MainWindow::initToolBar()
     connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i)
             { m_mapView->setZoom(i + 1); });
 
-    m_toolGroup = new QActionGroup(this);
-    m_toolGroup->addAction(ui->actionTools_Paint);
-    m_toolGroup->addAction(ui->actionTools_Erase);
-    m_toolGroup->addAction(ui->actionTools_Picker);
-    m_toolGroup->addAction(ui->actionTools_Select);
-    m_toolGroup->addAction(ui->actionTools_Dice);
-    m_toolGroup->addAction(ui->actionTools_Flood_Fill);
-    m_toolGroup->setExclusive(true);
-    ui->actionTools_Paint->setChecked(true);
-
     QAction *actionToolBar = ui->toolBar->toggleViewAction();
-    actionToolBar->setText(tr("ToolBar"));
-    actionToolBar->setStatusTip(tr("Show or hide toolbar"));
+    actionToolBar->setText(tr("ToolBar Document"));
+    actionToolBar->setStatusTip(tr("Show or hide Document toolBar"));
     ui->menuView->addAction(actionToolBar);
 
     connect(ui->actionView_Zoom_In, &QAction::triggered, m_mapView, &MapView::zoomIn);
     connect(ui->actionView_Zoom_Out, &QAction::triggered, m_mapView, &MapView::zoomOut);
-
-    // ──────────────────────────────────────────────────────────────
-    //  TOOLBAR → MapWidget TOOL WIRING (add this once)
-    // ──────────────────────────────────────────────────────────────
-
-    // enable stamp by default
-    m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp);
-
-    // Paint = Stamp tool
-    connect(ui->actionTools_Paint, &QAction::triggered, this, [this]()
-            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp); });
-
-    // Erase = Stamp tool + tile 0 (or your transparent tile ID)
-    connect(ui->actionTools_Erase, &QAction::triggered, this, [this]()
-            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Eraser); });
-
-    // Tile Picker tool
-    connect(ui->actionTools_Picker, &QAction::triggered, this, [this]()
-            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Picker); });
-
-    // area selection tool
-    connect(ui->actionTools_Select, &QAction::triggered, this, [this]()
-            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Selection); });
-
-    // area selection tool
-    connect(ui->actionTools_Dice, &QAction::triggered, this, [this]()
-            { m_mapView->mapWidget()->setTool(MapWidget::Tool::Dice); });
-
-    // FloodFill tool
-    connect(ui->actionTools_Flood_Fill, &QAction::triggered, this, [this]()
-            { m_mapView->mapWidget()->setTool(MapWidget::Tool::FloodFill); });
-
-    // ──────────────────────────────────────────────────────────────
-    //  BONUS: When user picks a tile from tileset → auto-switch to Paint
-    // ──────────────────────────────────────────────────────────────
-    connect(m_mapView->mapWidget(), &MapWidget::tilePicked, this, [this](uint8_t tileId)
-            {
-                // Update current brush
-                m_mapView->mapWidget()->setCurrentTile(tileId);
-
-                // Auto-activate Paint tool (this is the UX of Tiled, Godot, Aseprite, etc.)
-                ui->actionTools_Paint->trigger(); // this will fire the connection above
-            });
 
     // ──────────────────────────────────────────────────────────────
     //  FULL TWO-WAY WIRING: MainWindow ↔ MapWidget
@@ -696,7 +639,7 @@ void MainWindow::initToolBar()
 
         // Auto-switch to Paint tool (this is the correct, expected UX)
         ui->actionTools_Paint->setChecked(true);
-        m_mapView->mapWidget()->setTool(MapWidget::Tool::Stamp); });
+        m_mapView->mapWidget()->setTool(ToolType::Stamp); });
 
     // 3. When map is resized or replaced → tell MapView + update size
     connect(this, &MainWindow::resizeMap, this, [this](int w, int h)
@@ -728,6 +671,85 @@ void MainWindow::initToolBar()
     connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]()
             { setDirty(true); });
 }
+
+
+void MainWindow::initToolBarTools()
+{
+    // Create the toolbar
+    QToolBar *toolBar = addToolBar(tr("Map Tools"));
+    toolBar->setMovable(true);
+    toolBar->setFloatable(true);
+
+    toolBar->addAction(ui->actionTools_Paint);
+    toolBar->addAction(ui->actionTools_Erase);
+    toolBar->addAction(ui->actionTools_Picker);
+    toolBar->addAction(ui->actionTools_Select);
+    toolBar->addAction(ui->actionTools_Dice);
+    toolBar->addAction(ui->actionTools_Flood_Fill);
+    toolBar->addSeparator();
+
+    m_toolGroup = new QActionGroup(this);
+    m_toolGroup->addAction(ui->actionTools_Paint);
+    m_toolGroup->addAction(ui->actionTools_Erase);
+    m_toolGroup->addAction(ui->actionTools_Picker);
+    m_toolGroup->addAction(ui->actionTools_Select);
+    m_toolGroup->addAction(ui->actionTools_Dice);
+    m_toolGroup->addAction(ui->actionTools_Flood_Fill);
+    m_toolGroup->setExclusive(true);
+    ui->actionTools_Paint->setChecked(true);
+
+    // ──────────────────────────────────────────────────────────────
+    //  TOOLBAR → MapWidget TOOL WIRING (add this once)
+    // ──────────────────────────────────────────────────────────────
+
+    // enable stamp by default
+    m_mapView->mapWidget()->setTool(ToolType::Stamp);
+
+    // Paint = Stamp tool
+    connect(ui->actionTools_Paint, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(ToolType::Stamp); });
+
+    // Erase = Stamp tool + tile 0 (or your transparent tile ID)
+    connect(ui->actionTools_Erase, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(ToolType::Eraser); });
+
+    // Tile Picker tool
+    connect(ui->actionTools_Picker, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(ToolType::Picker); });
+
+    // area selection tool
+    connect(ui->actionTools_Select, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(ToolType::Selection); });
+
+    // area selection tool
+    connect(ui->actionTools_Dice, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(ToolType::Dice); });
+
+    // FloodFill tool
+    connect(ui->actionTools_Flood_Fill, &QAction::triggered, this, [this]()
+            { m_mapView->mapWidget()->setTool(ToolType::FloodFill); });
+
+    // ──────────────────────────────────────────────────────────────
+    //  BONUS: When user picks a tile from tileset → auto-switch to Paint
+    // ──────────────────────────────────────────────────────────────
+    connect(m_mapView->mapWidget(), &MapWidget::tilePicked, this, [this](uint8_t tileId)
+            {
+                // Update current brush
+                m_mapView->mapWidget()->setCurrentTile(tileId);
+
+                // Auto-activate Paint tool (this is the UX of Tiled, Godot, Aseprite, etc.)
+                ui->actionTools_Paint->trigger(); // this will fire the connection above
+            });
+
+    this->addToolBar(toolBar);
+
+    // Add the action to both menu and toolbar
+    QAction *actionToolBar = toolBar->toggleViewAction();
+    actionToolBar->setText(tr("ToolBar Tools"));
+    actionToolBar->setStatusTip(tr("Show or hide Tools ToolBar"));
+    ui->menuView->addAction(actionToolBar);
+}
+
 
 void MainWindow::on_actionClear_Map_triggered()
 {
@@ -1298,7 +1320,6 @@ void MainWindow::initHistoryWidget()
 
 void MainWindow::updateDocHistoryList()
 {
-    // qDebug("updateDocHistoryList in ");
     m_docHistoryList->clear();
     auto stack = m_doc.docStack();
     if (!stack)
@@ -1316,13 +1337,12 @@ void MainWindow::updateDocHistoryList()
     // Enable/disable buttons based on stack state
     m_docUndoButton->setEnabled(stack->canUndo());
     m_docRedoButton->setEnabled(stack->canRedo());
-    // qDebug("updateDocHistoryList out ");
 }
 
 void MainWindow::updateMapHistoryList()
 {
-    QUndoStack *stack = m_doc.undoGroup()->activeStack(); // correct
-                                                          //    qDebug("updateMapHistoryList in %p count:%d ", stack, stack->count());
+    QUndoStack *stack = m_doc.undoGroup()->activeStack();
+
     m_mapHistoryList->clear();
     for (int i = 0; i < stack->count(); ++i)
         m_mapHistoryList->addItem(stack->command(i)->text());
@@ -1337,5 +1357,4 @@ void MainWindow::updateMapHistoryList()
     int idx = stack->index();
     if (idx >= 0 && idx < m_mapHistoryList->count())
         m_mapHistoryList->setCurrentRow(idx);
-    //  qDebug("updateMapHistoryList out ");
 }
