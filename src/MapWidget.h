@@ -55,19 +55,15 @@ public:
     // Selection
     QRect currentSelection() const { return m_selection; }
     void clearSelection();
-
     void fillSelection(uint8_t tileId = UINT8_MAX); // UINT8_MAX = use current brush
     void preloadAssets();
     void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
-
     static QString toolName(ToolType toolID);
 
 signals:
     void tilePicked(uint8_t tileId);
     void selectionChanged(const QRect &rect); // in tile coordinates
     void mapModified();                       // emitted after commit
-
-    // signals:
     void copyRequested(const QRect &tileRect);
     void pasteRequested(const QPoint &atTilePos);
     void tilePropertiesRequested(int tileX, int tileY);
@@ -91,7 +87,6 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
-
     void startToolCmd(const ToolType tool);
     void commitToolCmd();
     static bool isCombinedTool(const ToolType);
@@ -107,6 +102,7 @@ private:
     void drawShadowTile(QPainter &painter, const Stamp &stamp);
     void drawSelectionRect(QPainter &painter);
     void createContextMenu(QMenu *menu, const QPoint &point);
+    void createSelectionMenu(QMenu *menu, const QPoint &point);
     QColor attr2color(const uint8_t attr);
     QColor rgbaToQColor(const uint32_t rgba);
 
@@ -119,19 +115,20 @@ private:
     uint8_t randomTile(const std::vector<uint8_t> & tiles);
 
     // Layers
-
     enum {
         MAIN_LAYER_ID = 0,
+        MAX_FRAME_SETS = 5,
     };
     int m_activeLayer = MAIN_LAYER_ID;
     QList<bool> m_layerVisibilityList;
-    inline bool validateBaseIDForCurrentLayer(uint16_t baseID) {
-        if (m_activeLayer == MAIN_LAYER_ID && baseID == Stamp::MainTilesetBaseID)
-            return true;
-        else if (m_activeLayer != MAIN_LAYER_ID && baseID == Stamp::OtherTilesetBaseID)
-            return true;
-        else
+    inline bool validateBaseIDForCurrentLayer(const uint16_t & baseID) {
+        CLayer *layer = getActiveLayer();
+        if (!layer)
             return false;
+        return layer->baseID() == baseID;
+    }
+    inline CLayer * getActiveLayer() {
+        return m_map->getLayer(m_activeLayer);
     }
 
     CMap *m_map = nullptr;
@@ -160,8 +157,12 @@ private:
     int m_hy = 0;
 
     // Tile rendering cache
-    std::vector<CFrame *> m_tileFrames;      // owned externally
-    std::vector<CFrame *> m_tileOthers;      // owned externally
+    struct FrameSetLookup {
+        uint16_t baseID;
+        std::vector<CFrame *> frames;
+    };
+    FrameSetLookup m_frameSetLookup[MAX_FRAME_SETS];
+    size_t m_frameSetCount = 0;
     QCache<uint16_t, QPixmap> m_pixmapCache; // key: tileId + zoom*1000
 
     MainWindow *m_mainWindow = nullptr;

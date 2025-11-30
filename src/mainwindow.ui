@@ -291,7 +291,7 @@
      <normaloff>:/data/icons/icons8-erase-40.png</normaloff>:/data/icons/icons8-erase-40.png</iconset>
    </property>
    <property name="text">
-    <string>Erase</string>
+    <string>Eraser</string>
    </property>
    <property name="statusTip">
     <string>Erase Tile on the map.</string>
@@ -597,6 +597,9 @@
    </property>
    <property name="text">
     <string>Flood Fill</string>
+   </property>
+   <property name="statusTip">
+    <string>Flood fill an open area with a tile</string>
    </property>
   </action>
  </widget>

@@ -2,6 +2,7 @@
 #include "ui_dlgattr.h"
 #include <QPushButton>
 #include <QRegularExpression>
+#include <QRegularExpressionValidator>
 
 CDlgAttr::CDlgAttr(QWidget *parent) :
     QDialog(parent),
@@ -11,6 +12,19 @@ CDlgAttr::CDlgAttr(QWidget *parent) :
     ui->line_AttrEdit->setFocus();
     setMinimumSize(size());
     setMaximumSize(size());
+    // Limit to 2 characters
+    ui->line_AttrEdit->setMaxLength(2);
+
+    // set a fixed width so the box looks sized for 2 chars
+    ui->line_AttrEdit->setFixedWidth(40);
+
+    // align text left
+    ui->line_AttrEdit->setAlignment(Qt::AlignLeft);
+
+    // add line validator
+    ui->line_AttrEdit->setValidator(
+        new QRegularExpressionValidator(QRegularExpression("[\\da-fA-F]{0,2}"),
+                                        ui->line_AttrEdit));
 }
 
 CDlgAttr::~CDlgAttr()

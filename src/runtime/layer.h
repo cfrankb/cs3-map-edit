@@ -104,7 +104,7 @@ public:
     }
 
     LayerType layerType() { return m_layerType; }
-    inline uint16_t baseID() { return m_baseID; }
+    inline uint16_t baseID() const { return m_baseID; }
     void setBaseID(int baseID) { m_baseID = baseID; };
 
     std::vector<uint8_t> &tiles() { return m_tiles; };

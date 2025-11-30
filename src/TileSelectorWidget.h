@@ -19,7 +19,7 @@ class TileSelectorWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit TileSelectorWidget(QWidget *parent = nullptr);
+    explicit TileSelectorWidget(QWidget *parent = nullptr, uint16_t baseID=Stamp::OtherTilesetBaseID);
 
     // Setters for image and configuration
     void setImage(const QPixmap &image);
@@ -44,6 +44,7 @@ signals:
     void stampSelected(const Stamp &stamp);
 
 private:
+    uint16_t m_baseID = 0;
     QPixmap m_image;
     int m_tileSize = 16;
     int m_zoomLevel = 1;

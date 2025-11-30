@@ -1,6 +1,8 @@
 #include "dlgresize.h"
 #include "ui_dlgresize.h"
 #include <QPushButton>
+#include <QRegularExpression>
+#include <QRegularExpressionValidator>
 
 CDlgResize::CDlgResize(QWidget *parent) :
     QDialog(parent),
@@ -9,6 +11,16 @@ CDlgResize::CDlgResize(QWidget *parent) :
     ui->setupUi(this);
     setMinimumSize(size());
     setMaximumSize(size());
+
+    ui->eWidth->setMaxLength(3);
+    ui->eHeight->setMaxLength(3);
+
+    ui->eWidth->setValidator(
+        new QRegularExpressionValidator(QRegularExpression("[\\d]{0,3}"),
+                                        ui->eWidth));
+    ui->eHeight->setValidator(
+        new QRegularExpressionValidator(QRegularExpression("[\\d]{0,3}"),
+                                        ui->eHeight));
 }
 
 CDlgResize::~CDlgResize()
@@ -20,14 +32,17 @@ int CDlgResize::width()
 {
     return ui->eWidth->text().toInt(nullptr, 10);
 }
+
 int CDlgResize::height()
 {
     return ui->eHeight->text().toInt(nullptr, 10);
 }
+
 void CDlgResize::width(const int w)
 {
     ui->eWidth->setText(QString("%1").arg(w));
 }
+
 void CDlgResize::height(const int h)
 {
     ui->eHeight->setText(QString("%1").arg(h));

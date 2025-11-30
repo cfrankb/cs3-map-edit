@@ -112,20 +112,19 @@ private:
 class FloodFillCommand : public QUndoCommand
 {
 public:
-    FloodFillCommand(CMapFile *doc, int startX, int startY, uint8_t newValue, QUndoCommand *parent = nullptr)
+    FloodFillCommand(CMapFile *doc, CLayer *layer, int startX, int startY, uint8_t newValue, QUndoCommand *parent = nullptr)
         : QUndoCommand(parent), m_doc(doc), m_startX(startX), m_startY(startY), m_newValue(newValue)
     {
         setText(QObject::tr("Flood Fill"));
+        m_layer = layer;
 
         // Snapshot the layer before fill
-        CLayer *layer = m_doc->map()->getMainLayer();
         m_backup = layer->tiles();
     }
 
     void redo() override
     {
-        CLayer *layer = m_doc->map()->getMainLayer();
-        floodFill(layer, m_startX, m_startY, m_newValue);
+        floodFill(m_layer, m_startX, m_startY, m_newValue);
         m_doc->setDirty(true);
         emit m_doc->refreshMap();
         emit m_doc->dirtyChanged(true);
@@ -133,14 +132,14 @@ public:
 
     void undo() override
     {
-        CLayer *layer = m_doc->map()->getMainLayer();
-        layer->tilesFrom(m_backup);
+        m_layer->tilesFrom(m_backup);
         m_doc->setDirty(true);
         emit m_doc->refreshMap();
         emit m_doc->dirtyChanged(true);
     }
 
 private:
+    CLayer *m_layer;
     CMapFile *m_doc;
     int m_startX, m_startY;
     uint8_t m_newValue;
@@ -377,6 +376,10 @@ void MapWidget::setGridVisible(bool visible)
 
 void MapWidget::preloadAssets()
 {
+    auto addTileSet = [this](uint16_t baseID, const std::vector<CFrame *> &frames) {
+        m_frameSetLookup[m_frameSetCount++] = {baseID, std::move(frames)};
+    };
+
     QFileWrap file;
 
     //////////////////////////////////////////////////
@@ -399,7 +402,7 @@ void MapWidget::preloadAssets()
             LOGE("failed to extract frames");
         }
         file.close();
-        m_tileFrames = frameSet->frames();
+        addTileSet(Stamp::MainTilesetBaseID, frameSet->frames());
         frameSet->removeAll();
     }
 
@@ -426,10 +429,12 @@ void MapWidget::preloadAssets()
         CFrame *frame = (*frameSet.get())[0];
         CFrameSet *splitSet = frame->split(TILE_SIZE, TILE_SIZE);
         LOGI("tiles in others: %lu", splitSet->getSize());
-        m_tileOthers = splitSet->frames();
+        addTileSet(Stamp::OtherTilesetBaseID, splitSet->frames());
         splitSet->removeAll();
         delete splitSet;
     }
+
+    LOGI("m_frameSetCount: %lu", m_frameSetCount);
 
     // Force resize in case zoom > 1 and map already exists
     if (map())
@@ -480,27 +485,25 @@ QPoint MapWidget::tileToScreen(const QPoint &tile) const
 
 QPixmap MapWidget::getCachedPixmap(uint8_t tileID, uint16_t baseID)
 {
-    if (tileID >= m_tileFrames.size() || !m_tileFrames[tileID])
+    auto getFrameSet = [this] (const uint16_t &baseID) -> std::vector<CFrame *>*
+    {
+        for (size_t i = 0; i < m_frameSetCount; ++i) {
+            if (baseID == m_frameSetLookup[i].baseID)
+                return &m_frameSetLookup[i].frames;
+        }
+        return nullptr;
+    };
+
+    const std::vector<CFrame *>* frames = getFrameSet(baseID);
+    if (!frames || tileID >= frames->size())
         return QPixmap();
 
-    uint cacheKey = tileID + baseID + m_zoom * ZOOM_CACHE_SPACE;
+    const uint32_t cacheKey = tileID + baseID + m_zoom * ZOOM_CACHE_SPACE;
     QPixmap *cached = m_pixmapCache.object(cacheKey);
     if (cached)
         return *cached;
 
-    CFrame *frame = nullptr;
-    if (baseID == Stamp::MainTilesetBaseID)
-    {
-        frame = m_tileFrames[tileID];
-    }
-    else if (baseID == Stamp::OtherTilesetBaseID)
-    {
-        frame = m_tileOthers[tileID];
-    }
-    else
-    {
-        LOGE("unknown baseID: %d", baseID);
-    }
+    CFrame *frame = (*frames)[tileID];
     if (frame == nullptr)
         return QPixmap();
     // if (frame->isEmpty())
@@ -524,7 +527,7 @@ void MapWidget::paintEvent(QPaintEvent *)
         QPainter p(this);
         p.fillRect(rect(), QColor(50, 50, 60));
         p.setPen(Qt::white);
-        p.drawText(rect(), Qt::AlignCenter, "No map loaded");
+        p.drawText(rect(), Qt::AlignCenter, tr("No map loaded"));
         return;
     }
 
@@ -595,23 +598,17 @@ void MapWidget::drawMap(QPainter &painter)
             if (x < 0)
                 continue;
 
-            // draw secondary layers
-            for (size_t i = m_map->layerCount() - 1; i > 0; --i)
-            {
+            // draw layers
+            size_t i = m_map->layerCount();
+            do {
+                --i;
                 if (!m_layerVisibilityList[i])
                     continue;
-                const uint8_t tileID = m_map->getLayer(i)->at(x, y);
+                const CLayer *layer = m_map->getLayer(i);
+                const uint8_t tileID = layer->at(x, y);
                 if (tileID)
-                    drawTile(tileID, Stamp::OtherTilesetBaseID, x, y);
-            }
-
-            // draw primary layer (main)
-            if (m_layerVisibilityList[0])
-            {
-                const uint8_t tileID = m_map->at(x, y);
-                if (tileID)
-                    drawTile(tileID, Stamp::MainTilesetBaseID, x, y);
-            }
+                    drawTile(tileID, layer->baseID(), x, y);
+            } while ( i != 0);
 
             const QRect tileRect(x * tileSize, y * tileSize, tileSize, tileSize);
             uint8_t attr = m_map->getAttr(x, y);
@@ -722,7 +719,7 @@ void MapWidget::commitStampAt(const QPoint &tilePos, const Stamp &stamp)
     if (!m_map || stamp.tiles.empty())
         return;
 
-    CLayer *layer = m_map->getLayer(m_activeLayer);
+    CLayer* layer = getActiveLayer();
     if (!layer)
     {
         LOGE("returned invalid layer");
@@ -786,7 +783,8 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
             else if (m_tool == ToolType::FloodFill &&
                      (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0]))
             {
-                auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
+                CLayer* layer = getActiveLayer();
+                auto cmd = new FloodFillCommand(m_doc, layer, tilePos.x(), tilePos.y(), stamp.tiles[0]);
                 m_doc->activeStack()->push(cmd);
                 update();
             }
@@ -848,7 +846,8 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
             {
                 if (m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
                 {
-                    auto cmd = new FloodFillCommand(m_doc, tilePos.x(), tilePos.y(), stamp.tiles[0]);
+                    CLayer* layer = getActiveLayer();
+                    auto cmd = new FloodFillCommand(m_doc, layer, tilePos.x(), tilePos.y(), stamp.tiles[0]);
                     m_doc->activeStack()->push(cmd);
                     update();
                 }
@@ -964,13 +963,6 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
                 m_doc->undoGroup()->activeStack()->push(
                     new SetTileAttrCommand(m_doc, x, y, originalAttr, newAttr));
             }
-            /*
-            const uint8_t newAttr = dlg.attr();
-            if (originalAttr != newAttr) {
-                m_map->setAttr(x, y, newAttr);
-                emit mapModified();
-            }
-            */
         }
         update(); });
     menu->addAction(actionSetAttr);
@@ -1020,8 +1012,6 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
                 m_doc->undoGroup()->activeStack()->push(
                     new SetPosCommand(m_doc, SetPosCommand::Start, oldPos, newPos));
             }
-
-         //  m_map->states().setU(POS_ORIGIN, CMap::toKey(point.x(), point.y()));
            emit mapModified();
            update(); });
     actionSetStartPos->setStatusTip(tr("Set the start position for this map"));
@@ -1030,21 +1020,21 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
     QAction *actionSetExitPos = new QAction(tr("set exit pos"), this);
     connect(actionSetExitPos, &QAction::triggered, this, [this, point]()
             {
-       // m_map->states().setU(POS_EXIT, CMap::toKey(point.x(), point.y()));
         const uint32_t oldPos = m_map->states().getU(POS_EXIT);
         const uint32_t newPos = CMap::toKey(point.x(), point.y());
-
         if (oldPos != newPos) {
             m_doc->undoGroup()->activeStack()->push(
                 new SetPosCommand(m_doc, SetPosCommand::Exit, oldPos, newPos));
         }
-
         emit mapModified();
         update(); });
     actionSetExitPos->setStatusTip(tr("Set the exit position for this map."));
     menu->addAction(actionSetExitPos);
-    menu->addSeparator();
+}
 
+void MapWidget::createSelectionMenu(QMenu *menu, const QPoint &point)
+{
+    menu->addSeparator();
     QMenu *selectMenu = menu->addMenu(tr("selection"));
 
     bool isSelectionValid = currentSelection().isValid(); // !m_selection.isEmpty();
@@ -1112,7 +1102,6 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
         } });
 
     connect(clearSel, &QAction::triggered, this, &MapWidget::clearSelection);
-
     // Disable paste if clipboard is empty (optional polish)
     // connect(qApp->clipboard(), &QClipboard::dataChanged, this, [this, paste]()
     //       { paste->setEnabled(qApp->clipboard()->mimeData()->hasImage() ||
@@ -1136,7 +1125,8 @@ void MapWidget::contextMenuEvent(QContextMenuEvent *event)
 
 void MapWidget::fillSelection(uint8_t tileId /* = UINT8_MAX */)
 {
-    if (!m_map)
+    CLayer *layer = getActiveLayer();
+    if (!m_map || !layer)
         return;
 
     // If no explicit tileId given → use the current brush
@@ -1153,24 +1143,22 @@ void MapWidget::fillSelection(uint8_t tileId /* = UINT8_MAX */)
     if (!area.isValid())
     {
         // nothing selected → fill entire map
-        area = QRect(0, 0, m_map->width(), m_map->height());
+        area = QRect(0, 0, layer->width(), layer->height());
     }
 
     bool changed = false;
-
     // Fastest possible loop — no function calls inside
     for (int y = area.top(); y <= area.bottom(); ++y)
     {
         for (int x = area.left(); x <= area.right(); ++x)
         {
-            if (m_map->at(x, y) != tileId)
+            if (layer->at(x, y) != tileId)
             {
-                m_map->set(x, y, tileId);
+                layer->set(x, y, tileId);
                 changed = true;
             }
         }
     }
-
     if (changed)
     {
         update(area.adjusted(-1, -1, 1, 1).intersected(rect())); // repaint only the affected region + 1px border
@@ -1234,6 +1222,7 @@ QColor MapWidget::attr2color(const uint8_t attr)
 
 void MapWidget::changeActiveLayer(int layerID)
 {
+    LOGI("changeActiveLayer %d", layerID);
     m_activeLayer = layerID;
 }
 
@@ -1319,7 +1308,7 @@ bool MapWidget::isCombinedTool(const ToolType type)
 
 void MapWidget::startToolCmd(const ToolType tool)
 {
-    CLayer *layer = m_map->getLayer(m_activeLayer);
+    CLayer *layer = getActiveLayer();
     if (isCombinedTool(tool) && layer)
     {
         m_currentCommand = new PaintCommand(m_doc, layer, tool);

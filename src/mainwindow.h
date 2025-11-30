@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include "mapfile.h"
-#include "qactiongroup.h"
 
 class CMapScroll;
 class QComboBox;
@@ -93,6 +92,7 @@ private:
     void initToolBars();
     void initToolBarDocument();
     void initToolBarTools();
+    void initUndoRedo();
 
     void initSelectorWidget();
     void initLayerBox();

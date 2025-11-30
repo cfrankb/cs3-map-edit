@@ -5,8 +5,8 @@
 #include <QDebug>
 
 // --- Constructor ---
-TileSelectorWidget::TileSelectorWidget(QWidget *parent)
-    : QWidget(parent)
+TileSelectorWidget::TileSelectorWidget(QWidget *parent, uint16_t baseID)
+    : QWidget(parent), m_baseID(baseID)
 {
     // Set a solid background color (e.g., white)
     setAttribute(Qt::WA_OpaquePaintEvent);
@@ -242,7 +242,7 @@ Stamp TileSelectorWidget::getSelectedStamp() const
     if (m_image.isNull() || m_tileSize == 0)
         return stamp;
 
-    stamp.baseID = Stamp::OtherTilesetBaseID;
+    stamp.baseID =  m_baseID;// Stamp::OtherTilesetBaseID;
 
     // Determine the max possible tile indices based on image size
     int maxColIndex = (m_image.width() - 1) / m_tileSize;

@@ -3,19 +3,16 @@
 #include "ui_mainwindow.h"
 #include <QDockWidget>
 #include <QShortcut>
-#include <QKeySequence>
 #include <QMessageBox>
-#include <QCloseEvent>
 #include <QFileDialog>
 #include <QSettings>
-#include <QScrollBar>
 #include <QInputDialog>
 #include <QLabel>
 #include <QScrollArea>
-#include <QDialog>
 #include <QTextEdit>
 #include <QVBoxLayout>
 #include <QUndoStack>
+#include <QActionGroup>
 #include "dlgresize.h"
 #include "dlgselect.h"
 #include "dlgtest.h"
@@ -40,24 +37,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Create undo/redo actions from the group
-    QAction *undoAction = m_doc.undoGroup()->createUndoAction(this, tr("&Undo"));
-    QAction *redoAction = m_doc.undoGroup()->createRedoAction(this, tr("&Redo"));
-
-    // Assign shortcuts
-    connect(ui->actionEdit_Undo, &QAction::triggered, undoAction, &QAction::trigger);
-    connect(ui->actionEdit_Redo, &QAction::triggered, redoAction, &QAction::trigger);
-
-    // Replace the UI actions with these
-     ui->actionEdit_Undo->setShortcut(QKeySequence::Undo);
-     ui->actionEdit_Redo->setShortcut(QKeySequence::Redo);
-
-    // Keep your custom logging slot connected too
-    connect(ui->actionEdit_Undo, &QAction::triggered, this, []
-            { qDebug("undo triggered (custom log)"); });
-    connect(ui->actionEdit_Redo, &QAction::triggered, this, []
-            { qDebug("redo triggered (custom log)"); });
-
     // hook MapView
     m_mapView = new MapView(this, &m_doc);
     m_mapView->mapWidget()->setMainWindow(this);
@@ -71,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
             { m_mapView->mapWidget()->update(); });
 
     setDirty(false);
+    initUndoRedo();
     initTilebox();
     initHistoryWidget();
     initSelectorWidget();
@@ -102,6 +82,27 @@ MainWindow::MainWindow(QWidget *parent)
         updateStatus();
         updateMapHistoryList(); });
     connect(&m_doc, &CMapFile::dirtyChanged, this, &MainWindow::setDirty);
+}
+
+void MainWindow::initUndoRedo()
+{
+    // Create undo/redo actions from the group
+    QAction *undoAction = m_doc.undoGroup()->createUndoAction(this, tr("&Undo"));
+    QAction *redoAction = m_doc.undoGroup()->createRedoAction(this, tr("&Redo"));
+
+    // Assign shortcuts
+    connect(ui->actionEdit_Undo, &QAction::triggered, undoAction, &QAction::trigger);
+    connect(ui->actionEdit_Redo, &QAction::triggered, redoAction, &QAction::trigger);
+
+    // Replace the UI actions with these
+    ui->actionEdit_Undo->setShortcut(QKeySequence::Undo);
+    ui->actionEdit_Redo->setShortcut(QKeySequence::Redo);
+
+    // Keep your custom logging slot connected too
+    connect(ui->actionEdit_Undo, &QAction::triggered, this, []
+            { qDebug("undo triggered (custom log)"); });
+    connect(ui->actionEdit_Redo, &QAction::triggered, this, []
+            { qDebug("redo triggered (custom log)"); });
 }
 
 void MainWindow::updateStatus()
@@ -182,7 +183,7 @@ void MainWindow::initSelectorWidget()
     // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
     dock->setWindowTitle(tr("Toolbox"));
 
-    TileSelectorWidget *selectorWidget = new TileSelectorWidget(dock);
+    TileSelectorWidget *selectorWidget = new TileSelectorWidget(dock, Stamp::OtherTilesetBaseID);
     // Load the image
     QPixmap image(":/data/cs3layers.png");
     selectorWidget->setImage(image);
@@ -198,18 +199,18 @@ void MainWindow::initSelectorWidget()
     QScrollArea *scrollArea = new QScrollArea();
 
     // Set policies: Always allow scrolling if the content exceeds the viewport.
-    scrollArea->setWidgetResizable(false); // CRITICAL: Set to false. We want the scroll area
+    // CRITICAL: Set to false. We want the scroll area
     // to use the TileSelectorWidget's sizeHint/minimumSize.
+    scrollArea->setWidgetResizable(false);
 
-    // 3. Set the TileSelectorWidget as the scroll area's widget
+    // Set the TileSelectorWidget as the scroll area's widget
     scrollArea->setWidget(selectorWidget);
 
+    // Add the QScrollArea (not the TileSelectorWidget) to the QTabWidget
     QTabWidget *tabWidget = new QTabWidget(dock);
-
-    // 4. Add the QScrollArea (not the TileSelectorWidget) to the QTabWidget
     tabWidget->addTab(scrollArea, "Tile Selector");
 
-    // Optional: Set scrollbar policies for visual consistency
+    // Set scrollbar policies for visual consistency
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
@@ -616,6 +617,7 @@ void MainWindow::initToolBarDocument()
     connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i)
             { m_mapView->setZoom(i + 1); });
 
+    // add toolbar to view menu
     QAction *actionToolBar = ui->toolBar->toggleViewAction();
     actionToolBar->setText(tr("ToolBar Document"));
     actionToolBar->setStatusTip(tr("Show or hide Document toolBar"));
@@ -679,6 +681,7 @@ void MainWindow::initToolBarTools()
     QToolBar *toolBar = addToolBar(tr("Map Tools"));
     toolBar->setMovable(true);
     toolBar->setFloatable(true);
+    toolBar->setIconSize(QSize(16, 16));
 
     toolBar->addAction(ui->actionTools_Paint);
     toolBar->addAction(ui->actionTools_Erase);
