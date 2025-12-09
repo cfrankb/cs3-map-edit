@@ -111,7 +111,7 @@ std::unique_ptr<CMap> CMapArch::removeAt(int i)
  * @param map
  */
 
-void CMapArch::insertAt(int i, std::unique_ptr<CMap> &map)
+void CMapArch::insertAt(int i, std::unique_ptr<CMap> map)
 {
     if (i < 0 || i > static_cast<int>(m_maps.size()))
         return;

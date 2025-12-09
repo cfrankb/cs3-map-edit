@@ -557,11 +557,6 @@ void CFrameSet::clear()
     m_tags.clear();
 }
 
-size_t CFrameSet::getSize()
-{
-    return m_frames.size();
-}
-
 int CFrameSet::operator++()
 {
     this->add(new CFrame);

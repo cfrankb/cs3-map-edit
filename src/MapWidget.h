@@ -67,6 +67,7 @@ signals:
     void copyRequested(const QRect &tileRect);
     void pasteRequested(const QPoint &atTilePos);
     void tilePropertiesRequested(int tileX, int tileY);
+    void statusChanged(const QString &);
 
 public slots:
     // Current tile(s) to paint with (for Stamp tool)

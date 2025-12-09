@@ -40,7 +40,6 @@ SOURCES += \
     runtime/tilesdebug.cpp \
     runtime/states.cpp \
     runtime/statedata.cpp \
-    runtime/chars.cpp \
     runtime/recorder.cpp \
     runtime/gamestats.cpp \
     runtime/colormap.cpp \

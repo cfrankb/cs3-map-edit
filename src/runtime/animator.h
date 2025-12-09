@@ -35,7 +35,16 @@ public:
     CAnimator();
     ~CAnimator();
     void animate();
-    uint16_t at(uint8_t tileID) const;
+    inline uint16_t at(uint8_t tileID) const
+    {
+        return m_tileMainLayer[tileID];
+    }
+    inline uint16_t getLayerTile(uint8_t tileID) const
+    {
+        const uint8_t &c = m_tileLayer[tileID];
+        return c ? c : tileID;
+    }
+
     uint16_t offset() const;
     bool isSpecialCase(uint8_t tileID) const;
     animzInfo_t getSpecialInfo(const int tileID) const;
@@ -55,7 +64,8 @@ private:
         MAX_TILES = 256,
     };
     /// Maps tile IDs to current animation frame.
-    std::array<uint8_t, MAX_TILES> m_tileReplacement;
+    uint8_t m_tileMainLayer[MAX_TILES];
+    uint8_t m_tileLayer[MAX_TILES];
     /// Global animation tick counter.
     std::vector<int32_t> m_seqIndex;
     uint16_t m_offset = 0;

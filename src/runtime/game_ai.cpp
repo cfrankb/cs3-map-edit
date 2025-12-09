@@ -146,7 +146,10 @@ bool CGame::handleBossBullet(CBoss &boss)
         boss.setState(CBoss::BossState::Attack);
         playSound(boss.data()->attack_sound);
         if (boss.data()->bullet_algo != BossData::Path::NONE)
+        {
+            LOGI("bullet path: %d", boss.data()->bullet_algo);
             bullet->startPath(m_player.pos(), boss.data()->bullet_algo, boss.data()->bullet_ttl);
+        }
 
         return true;
     }
@@ -712,7 +715,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             shadowActorMove(actor, aim);
     }
 
-    if (!isMoving || !actor.getTTL() == 0)
+    if (!isMoving || (actor.getTTL() == 0 && actor.algo() != BossData::Path::NONE))
     {
         playSound(bullet.sound);
         // remove actor/ set to be deleted

@@ -20,15 +20,6 @@
 #include "layer.h"
 #include "logger.h"
 
-namespace LayerPrivate
-{
-
-    constexpr uint16_t MAX_TITLE = 255;
-    constexpr int16_t NOT_FOUND = -1; // 0xffff
-};
-
-using namespace LayerPrivate;
-
 bool CLayer::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
 {
     in_len = std::min(in_len, static_cast<uint16_t>(MAX_SIZE));
@@ -45,7 +36,7 @@ bool CLayer::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
         {
             for (int x = 0; x < std::min(m_len, in_len); ++x)
             {
-                map[x + y * in_len] = m_tiles[x + y * m_len];
+                map[x + y * in_len] = at(x, y);
             }
         }
         m_tiles = std::move(map);

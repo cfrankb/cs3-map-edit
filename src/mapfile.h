@@ -25,7 +25,7 @@ public:
     void setDirty(bool b);
     bool isDirty();
     bool isUntitled();
-    size_t addMap(std::unique_ptr<CMap>& map);
+    size_t addMap(std::unique_ptr<CMap> map);
     size_t add(std::unique_ptr<CMap> &map) = delete;
     bool read(IFile &file) = delete;
     bool read(const std::string_view &filename) = delete;
@@ -40,8 +40,8 @@ public:
     bool isMulti();
     void forget();
     bool isWrongExt();
-    CMap *removeAt(int i);
-    void insertAt(int i,  std::unique_ptr<CMap> &map);
+    std::unique_ptr<CMap> removeAt(int i);
+    void insertAt(int i,  std::unique_ptr<CMap> map);
     void reset();
     void resetUndoStacks();
     void sync();

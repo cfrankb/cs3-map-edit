@@ -45,9 +45,11 @@ MainWindow::MainWindow(QWidget *parent)
     m_mapView->centerOnMap();
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
+    connect(&m_doc, &CMapFile::currentMapChanged, m_mapView, &MapView::setMap);
     connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
     connect(&m_doc, &CMapFile::refreshMap, this, [this]()
             { m_mapView->mapWidget()->update(); });
+    connect(m_mapView->mapWidget(), &MapWidget::statusChanged, this, &MainWindow::setStatus);
 
     setDirty(false);
     initUndoRedo();
@@ -67,7 +69,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusbar->addWidget(m_label, 64);
     updateStatus();
 
-    // debug
     connect(this, &MainWindow::mapChanged, this, [this](CMap *map)
             {
                 LOGI("mapChanged %p", map);
@@ -264,6 +265,7 @@ void MainWindow::initLayerBox()
     connect(this, &MainWindow::propertiesChanged, this, [this]()
             { setDirty(true); });
     connect(this, &MainWindow::mapChanged, dock, &LayerDock::refreshList);
+    connect(&m_doc, &CMapFile::currentMapChanged, dock, &LayerDock::refreshList);
 
     // Create a menu action bound to the dock
     QAction *toggleTileBoxAction = dock->toggleViewAction();
@@ -466,8 +468,6 @@ void MainWindow::on_actionFile_New_File_triggered()
         setDirty(false);
         emit mapChanged(m_doc.map());
         updateMenus();
-        //   updateDocHistoryList();
-        // updateMapHistoryList();
     }
 }
 
@@ -497,22 +497,13 @@ void MainWindow::on_actionEdit_ResizeMap_triggered()
     dlg.height(map.height());
     if (dlg.exec() == QDialog::Accepted)
     {
-        QMessageBox::StandardButton reply = QMessageBox::Yes;
-        if (dlg.width() < map.width() || dlg.height() < map.height())
-        {
-            reply = QMessageBox::warning(
-                this, m_appName, tr("Resizing map may lead to data lost. Continue?"),
-                QMessageBox::Yes | QMessageBox::No);
-        }
-        if (reply == QMessageBox::Yes)
-        {
-            // Push undo command instead of direct resize
-            m_doc.undoGroup()->activeStack()->push(
-                new ResizeMapCommand(&m_doc, &map, dlg.width(), dlg.height()));
-            // map.resize(dlg.width(), dlg.height(), '\0', false);
-            setDirty(true);
-            // emit resizeMap(m_doc.map()->len(), m_doc.map()->hei());
-        }
+        if (dlg.width() == map.width() && dlg.height() == map.height())
+            return;
+
+        // Push undo command instead of direct resize
+        m_doc.undoGroup()->activeStack()->push(
+            new ResizeMapCommand(&m_doc, &map, dlg.width(), dlg.height()));
+        setDirty(true);
     }
 }
 
@@ -597,7 +588,6 @@ void MainWindow::initToolBarDocument()
     ui->toolBar->addAction(ui->actionEdit_Last_Map);
     ui->toolBar->addSeparator();
     ui->toolBar->addAction(ui->actionEdit_Add_Map);
-    // ui->toolBar->addAction(ui->actionClear_Map);
     ui->toolBar->addAction(ui->actionEdit_Delete_Map);
     ui->toolBar->addSeparator();
     m_cbSkill = new QComboBox(this);
@@ -815,17 +805,11 @@ void MainWindow::on_actionEdit_Add_Map_triggered()
         return;
     text = text.trimmed().mid(0, 254);
 
-    // std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
     auto map = std::make_unique<CMap>(64, 64);
     map->setTitle(text.toStdString());
     auto cmd = new InsertMapCommand(&m_doc, m_doc.size(), std::move(map));
     m_doc.docStack()->push(cmd);
-
-    //    m_doc.addMap(map);
     m_doc.setCurrentIndex(m_doc.size() - 1);
-    setDirty(true);
-    emit mapChanged(m_doc.map());
-    updateMenus();
 }
 
 void MainWindow::on_actionEdit_Delete_Map_triggered()
@@ -833,23 +817,13 @@ void MainWindow::on_actionEdit_Delete_Map_triggered()
     size_t index = m_doc.currentIndex();
     if (m_doc.size() > 1)
     {
-        QString msg = tr("Deleting the map cannot be reversed. Continue?");
+        QString msg = tr("Deleting this map?");
         QMessageBox::StandardButton reply = QMessageBox::warning(this, m_appName, msg, QMessageBox::Yes | QMessageBox::No);
         if (reply == QMessageBox::Yes)
         {
             // int index = m_mapFile->currentIndex();
             auto cmd = new DeleteMapCommand(&m_doc, index);
             m_doc.docStack()->push(cmd);
-
-            // CMap *delMap = m_doc.removeAt(index);
-            // delete delMap;
-            if (index >= m_doc.size())
-            {
-                m_doc.setCurrentIndex(index - 1);
-            }
-            setDirty(true);
-            emit mapChanged(m_doc.map());
-            updateMenus();
         }
     }
 }
@@ -867,16 +841,8 @@ void MainWindow::on_actionEdit_Insert_Map_triggered()
     size_t index = m_doc.currentIndex();
     std::unique_ptr<CMap> map = std::make_unique<CMap>(64, 64);
     map->setTitle(text.toStdString());
-
-    // int index = m_mapFile->currentIndex(); // insert before current
-    // auto map = std::make_unique<CMap>(64,64);
     auto cmd = new InsertMapCommand(&m_doc, index, std::move(map));
     m_doc.docStack()->push(cmd);
-    // m_doc.insertAt(index, map); // Only ONE move operation
-    //  m_doc.
-    setDirty(true);
-    emit mapChanged(m_doc.map());
-    updateMenus();
 }
 
 void MainWindow::on_actionEdit_Move_Map_triggered()
@@ -888,17 +854,8 @@ void MainWindow::on_actionEdit_Move_Map_triggered()
     if (dlg.exec() == QDialog::Accepted && dlg.index() != currIndex)
     {
         int i = dlg.index();
-        // int from = m_mapFile->currentIndex();
-        // int to   = /* determine from UI drag/drop */;
         auto cmd = new MoveMapCommand(&m_doc, currIndex, i);
         m_doc.docStack()->push(cmd);
-
-        // auto map =  std::unique_ptr<CMap>(m_doc.removeAt(currIndex));
-        // m_doc.insertAt(i, map);
-        m_doc.setCurrentIndex(i);
-        setDirty(true);
-        emit mapChanged(m_doc.map());
-        updateMenus();
     }
 }
 
@@ -912,8 +869,6 @@ void MainWindow::on_actionEdit_Goto_Map_triggered()
     {
         int i = dlg.index();
         m_doc.setCurrentIndex(i);
-        emit mapChanged(m_doc.map());
-        updateMenus();
     }
 }
 
@@ -981,8 +936,7 @@ void MainWindow::on_actionFile_Import_Maps_triggered()
         {
             while (arch.size())
             {
-                auto map = arch.removeAt(0);
-                m_doc.addMap(map);
+                m_doc.addMap(arch.removeAt(0));
             }
             m_doc.setCurrentIndex(m_doc.size() - 1);
             setDirty(true);
@@ -1040,10 +994,8 @@ void MainWindow::on_actionEdit_Rename_Map_triggered()
     text = text.trimmed().mid(0, 254);
     if (ok && strcmp(text.toLatin1(), m_doc.map()->title()) != 0)
     {
-        // m_doc.map()->setTitle(text.toStdString());
         //  Push command onto the active undo stack
         m_doc.undoGroup()->activeStack()->push(new RenameMapCommand(&m_doc, m_doc.map(), text));
-        setDirty(true);
     }
 }
 
@@ -1317,7 +1269,7 @@ void MainWindow::initHistoryWidget()
     toggleHistoryAction->setStatusTip(tr("Show or hide history for undo/redo"));
 
     // Add the action to your View menu
-    QMenu *viewMenu = ui->menuView; //  menuBar()->addMenu(tr("&View"));
+    QMenu *viewMenu = ui->menuView;
     viewMenu->addAction(toggleHistoryAction);
 }
 

@@ -26,11 +26,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <mutex>
 #include "colormap.h"
 #include "game.h"
 #include "gameui.h"
 #include "rect.h"
 #include "color.h"
+#include "colormasks.h"
 #include "shared/FileWrap.h"
 
 class CActor;
@@ -63,6 +65,23 @@ protected slots:
     virtual void load() = 0;
     void setQuiet(bool state);
 
+    enum
+    {
+        MAX_NAME_LENGTH = 16
+    };
+
+    struct hiscore_t
+    {
+        int32_t score;
+        int32_t level;
+        char name[MAX_NAME_LENGTH];
+    };
+
+    hiscore_t &getHiScoreAtIndex(int i) { return m_hiscores[i]; }
+    int scoreRank() { return m_scoreRank; }
+    bool recordScore() { return m_recordScore; }
+    std::vector<std::string> &helptext() { return m_helptext; }
+
 protected:
     enum : uint32_t
     {
@@ -85,7 +104,6 @@ protected:
         MAX_SCORES = 18,
         KEY_REPETE_DELAY = 5,
         KEY_NO_REPETE = 1,
-        MAX_NAME_LENGTH = 16,
         SAVENAME_PTR_OFFSET = 8,
         CARET_SPEED = 8,
         INTERLINES = 2,
@@ -113,15 +131,6 @@ protected:
         MIN_WIDTH_FULL = 320,
         SUGAR_CUBES = 5,
         SCREEN_SHAKES = 4,
-    };
-
-    enum ColorMask : uint8_t
-    {
-        COLOR_NOCHANGE,
-        COLOR_FADE,
-        COLOR_INVERTED,
-        COLOR_GRAYSCALE,
-        COLOR_ALL_WHITE,
     };
 
     enum KeyCode : uint8_t
@@ -225,13 +234,6 @@ protected:
         uint8_t sugarCubes[SUGAR_CUBES];
     };
 
-    struct hiscore_t
-    {
-        int32_t score;
-        int32_t level;
-        char name[MAX_NAME_LENGTH];
-    };
-
     struct message_t
     {
         int scaleX;
@@ -246,11 +248,10 @@ protected:
     uint8_t m_vjoyState[JOY_AIMS];
     uint8_t m_buttonState[Button_Count];
     uint32_t m_ticks = 0;
-    std::unique_ptr<CAnimator> m_animator;
+    CAnimator *m_animator;
     std::unique_ptr<CFrameSet> m_tiles;
     std::unique_ptr<CFrameSet> m_animz;
     std::unique_ptr<CFrameSet> m_users;
-    // std::unique_ptr<CFrameSet> m_bosses;
     std::unique_ptr<CFrameSet> m_sheet0;
     std::unique_ptr<CFrameSet> m_sheet1;
     std::unique_ptr<CFrameSet> m_uisheet;
@@ -273,7 +274,7 @@ protected:
     int m_musicMuted = false; // Note: this has to be an int
     Prompt m_prompt = PROMPT_NONE;
     int m_optionCooldown = 0;
-    bool m_gameMenuActive = false;
+    // bool m_gameMenuActive = false;
     int m_gameMenuCooldown = 0;
     int m_cx;
     int m_cy;
@@ -289,6 +290,7 @@ protected:
     CGameUI m_ui;
     CFileWrap m_recorderFile;
     bool m_quiet = false;
+    std::mutex m_mutex;
 
     void drawPreScreen(CFrame &bitmap);
     void drawScreen(CFrame &bitmap);
@@ -345,7 +347,8 @@ protected:
     void drawUI(CFrame &bitmap, CGameUI &ui);
     int whichButton(CGameUI &ui, int x, int y);
 
-    constexpr inline uint32_t fazFilter(const int bitShift) const
+    constexpr inline uint32_t
+    fazFilter(const int bitShift) const
     {
         return (0xff >> bitShift) << 16 |
                (0xff >> bitShift) << 8 |
@@ -377,7 +380,7 @@ protected:
     virtual void toggleFullscreen() = 0;
     virtual void manageTitleScreen() = 0;
     virtual void toggleGameMenu() = 0;
-    virtual void manageGameMenu() = 0;
+    virtual bool manageGameMenu() = 0;
     virtual void manageOptionScreen() = 0;
     virtual void manageUserMenu() = 0;
     virtual void manageLevelSummary() = 0;

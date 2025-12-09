@@ -15,13 +15,12 @@ CMapFile::CMapFile(QObject* parent)
     m_undoGroup->addStack(m_docStack);
 
     // Always start with one default map
-    auto map = std::make_unique<CMap>(DEFAULT_MAP_SIZE, DEFAULT_MAP_SIZE);
-    addMap(map);
+    addMap(std::make_unique<CMap>(DEFAULT_MAP_SIZE, DEFAULT_MAP_SIZE));
 
     m_docStack->setUndoLimit(100); // keep only the last 100 commands
     // Implement QUndoCommand::mergeWith() to combine similar operations.
-
     setCurrentIndex(0);
+    connect(this, &CMapFile::dirtyChanged, this, &CMapFile::setDirty);
 
     debug();
 }
@@ -67,8 +66,7 @@ void CMapFile::reset()
     forget();
 
     // Add one map by default
-    std::unique_ptr<CMap> map = std::make_unique<CMap>(40, 40);
-    addMap(map);
+    addMap(std::make_unique<CMap>(40, 40));
 
     setDirty(false);
     emit dirtyChanged(false);
@@ -116,9 +114,7 @@ bool CMapFile::read()
     return true;
 }
 
-
-
-CMap* CMapFile::removeAt(int i)
+std::unique_ptr<CMap> CMapFile::removeAt(int i)
 {
     if (m_maps.size() <= 1)
         return nullptr; // enforce invariant
@@ -127,32 +123,30 @@ CMap* CMapFile::removeAt(int i)
         return nullptr;
 
     QUndoStack* stack = m_mapStacks[i];
+    m_undoGroup->setActiveStack(m_docStack);
     m_undoGroup->removeStack(stack);
     m_mapStacks.erase(m_mapStacks.begin() + i);
-  //  delete stack;
-
-    auto map = CMapArch::removeAt(i).release();
 
     setDirty(true);
     emit dirtyChanged(true);
-    //setCurrentIndex(std::min(i, static_cast<int>(m_maps.size() - 1)));
 
-    return map;
+    //  delete stack;
+    return CMapArch::removeAt(i);
 }
 
 
-size_t CMapFile::addMap(std::unique_ptr<CMap>& map)
+size_t CMapFile::addMap(std::unique_ptr<CMap> map)
 {
     qDebug("addMap");
 
     // Always insert at the end
-    insertAt(static_cast<int>(m_maps.size()), map);
+    insertAt(static_cast<int>(m_maps.size()), std::move(map));
 
     // Return the index of the newly added map
     return m_currIndex;
 }
 
-void CMapFile::insertAt(int i, std::unique_ptr<CMap>& map)
+void CMapFile::insertAt(int i, std::unique_ptr<CMap> map)
 {
     qDebug("insertMap %d", i);
 
@@ -161,7 +155,7 @@ void CMapFile::insertAt(int i, std::unique_ptr<CMap>& map)
     if (i > static_cast<int>(m_maps.size())) i = static_cast<int>(m_maps.size());
 
     // Insert into base collection
-    CMapArch::insertAt(i, map);
+    CMapArch::insertAt(i,std::move(map));
 
     // Create and register undo stack for this map
     auto* stack = new QUndoStack(this);

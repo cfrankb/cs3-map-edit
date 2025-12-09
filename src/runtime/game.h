@@ -32,6 +32,8 @@ class ISound;
 class CBoss;
 class Random;
 class IFile;
+class CAnimator;
+
 struct TileDef;
 enum Event;
 enum Sfx : uint16_t;
@@ -49,6 +51,13 @@ struct bulletData_t
     uint8_t sound;
     Sfx sfxID;
     uint16_t sfxTimeOut;
+};
+
+struct scan_t
+{
+    bool isWater;
+    bool isSolid;
+    bool isDeadly;
 };
 
 class CGame
@@ -182,6 +191,8 @@ public:
     static bool isPushable(const uint8_t typeID);
 
     bool shadowActorMove(CActor &actor, const JoyAim aim);
+    scan_t scanPos(const Pos &pos) const;
+    CAnimator *getAnimator() { return m_animator.get(); }
 
     enum
     {
@@ -211,6 +222,8 @@ private:
     std::vector<Pos> m_usedItems;
     std::unordered_map<uint16_t, int> m_monsterGrid;
     MapReport m_report;
+    std::unique_ptr<CAnimator> m_animator;
+
     int m_defaultLives;
     bool m_quiet = false;
     void resetKeys();
@@ -250,4 +263,7 @@ private:
 
     inline static CMap m_map;
     friend class CGameMixin;
+    friend class CRuntime;
+    friend class Engine;
+    friend class EngineHW;
 };

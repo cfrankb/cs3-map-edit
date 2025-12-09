@@ -121,14 +121,14 @@ public:
     void undo() override
     {
         m_map->setTitle(m_oldTitle);
-        m_doc->setDirty(true);
+      //  m_doc->setDirty(true);
         emit m_doc->dirtyChanged(true);
     }
 
     void redo() override
     {
         m_map->setTitle(m_newTitle);
-        m_doc->setDirty(true);
+      //  m_doc->setDirty(true);
         emit m_doc->dirtyChanged(true);
     }
 
@@ -163,17 +163,30 @@ public:
 
     void undo() override
     {
-        restoreLayers(m_oldLayers, m_oldWidth, m_oldHeight);
+        // restore old size and old data
+        m_map->resize(m_oldWidth, m_oldHeight, '\0', false);
+        for (size_t i = 0; i < m_oldLayers.size(); ++i)
+            m_map->getLayer(i)->tilesFrom(m_oldLayers[i]);
+        emit m_doc->resizeMap(m_oldWidth, m_oldHeight);
     }
 
     void redo() override
     {
-        // Backup new layer content on first redo
-        if (m_newLayers.empty())
-        {
+        if (m_newLayers.empty()) {
+            // we are being executed the first time: take snapshot AFTER resize
+            // 1) start from old state (already current), resize to new size
+            m_map->resize(m_newWidth, m_newHeight, '\0', false);
+            // 2) fill/adjust layers as your normal resize code would do
+            //    (e.g. clear new cells, crop old ones, etc.)
+            // 3) then snapshot that as "new" state:
             backupLayers(m_newLayers);
+        } else {
+            // subsequent redo: just restore new snapshot and size
+            m_map->resize(m_newWidth, m_newHeight, '\0', false);
+            for (size_t i = 0; i < m_newLayers.size(); ++i)
+                m_map->getLayer(i)->tilesFrom(m_newLayers[i]);
         }
-        restoreLayers(m_newLayers, m_newWidth, m_newHeight);
+        emit m_doc->resizeMap(m_newWidth, m_newHeight);
     }
 
 private:
@@ -192,15 +205,5 @@ private:
         {
             out.push_back(layer->tiles()); // assuming layer.data() returns vector<char>
         }
-    }
-
-    void restoreLayers(const std::vector<std::vector<uint8_t>> &in, int w, int h)
-    {
-        m_map->resize(w, h, '\0', false);
-        for (size_t i = 0; i < in.size(); ++i)
-        {
-            m_map->getLayer(i)->tilesFrom(in[i]); // assuming setData(vector<char>)
-        }
-        emit m_doc->resizeMap(m_map->width(), m_map->height());
     }
 };

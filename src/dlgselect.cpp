@@ -10,19 +10,22 @@
 #include "runtime/states.h"
 #include "runtime/statedata.h"
 #include "runtime/dirs.h"
+#include "runtime/shared/PngMagic.h"
 
 CDlgSelect::CDlgSelect(QWidget *parent) : QDialog(parent),
                                           ui(new Ui::CDlgSelect)
 {
     ui->setupUi(this);
-    m_frameSet = preloadTiles();
+    m_frameSetMain = preloadMainTiles();
+    m_frameSetLayers = preloadLayerTiles();
     m_mapFile = nullptr;
 }
 
 CDlgSelect::~CDlgSelect()
 {
     delete ui;
-    delete m_frameSet;
+    delete m_frameSetMain;
+    delete m_frameSetLayers;
 }
 
 void CDlgSelect::updatePreview(CMap *map)
@@ -42,23 +45,29 @@ void CDlgSelect::updatePreview(CMap *map)
     const int mx = std::min(lmx, map->width() > cols ? map->width() - cols : 0);
     const int my = std::min(lmy, map->height() > rows ? map->height() - rows : 0);
 
-    const int tileSize = 16;
+    const int tileSize = TILE_SIZE;
     const int lineSize = maxCols * tileSize;
-    CFrameSet &fs = *m_frameSet;
     CFrame bitmap(maxCols * tileSize, maxRows * tileSize);
     bitmap.fill(BLACK);
     uint32_t *rgba = bitmap.getRGB().data();
-    for (int row = 0; row < rows; ++row)
-    {
-        for (int col = 0; col < cols; ++col)
+
+    int layerCount  = (int) map->layerCount();
+    for (int layerID = layerCount -1; layerID >= 0 ; --layerID) {
+        CLayer *layer = map->getLayer(layerID);
+        for (int row = 0; row < rows; ++row)
         {
-            uint8_t tile = map->at(col + mx, row + my);
-            CFrame *frame = fs[tile];
-            for (int y = 0; y < tileSize; ++y)
+            for (int col = 0; col < cols; ++col)
             {
-                for (int x = 0; x < tileSize; ++x)
+                uint8_t tile = layer->at(col + mx, row + my);
+                if (!tile) continue;
+                CFrame *frame =  layerID == 0 ? (*m_frameSetMain)[tile] : (*m_frameSetLayers)[tile];
+                for (int y = 0; y < tileSize; ++y)
                 {
-                    rgba[x + col * tileSize + y * lineSize + row * tileSize * lineSize] = frame->at(x, y) | ALPHA;
+                    for (int x = 0; x < tileSize; ++x)
+                    {
+                        if (frame->at(x, y) & ALPHA)
+                            rgba[x + col * tileSize + y * lineSize + row * tileSize * lineSize] = frame->at(x, y) | ALPHA;
+                    }
                 }
             }
         }
@@ -69,7 +78,7 @@ void CDlgSelect::updatePreview(CMap *map)
     ui->sPreview->setPixmap(pixmap);
 }
 
-CFrameSet *CDlgSelect::preloadTiles()
+CFrameSet *CDlgSelect::preloadMainTiles()
 {
     CFrameSet *fs = new CFrameSet();
     QFileWrap file;
@@ -82,7 +91,33 @@ CFrameSet *CDlgSelect::preloadTiles()
         }
         file.close();
     }
-    return fs;
+
+     return fs;
+}
+
+CFrameSet *CDlgSelect::preloadLayerTiles()
+{
+    QFileWrap file;
+    const std::string cs3tiles0Filename = ":/data/cs3layers.png";
+    LOGI("extracting texture from %s", cs3tiles0Filename.c_str());
+    if (!file.open(cs3tiles0Filename, "rb"))
+    {
+        LOGE("can't open %s", cs3tiles0Filename.c_str());
+        return nullptr;
+    }
+
+    CFrameSet set;
+    if (!parsePNG(set, file, 0, true))
+    {
+        LOGE("fail to parse %s", cs3tiles0Filename.data());
+        return nullptr;
+    }
+    file.close();
+
+    if (set.getSize() == 0)
+        return nullptr;
+
+    return set[0]->split(TILE_SIZE, TILE_SIZE);
 }
 
 void CDlgSelect::init(const QString s, CMapFile *mf)

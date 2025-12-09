@@ -19,6 +19,7 @@
 #include "tilesdata.h"
 #include "animzdata.h"
 #include "gamesfx.h"
+#include "layerdata.h"
 #include <cstring>
 #include <vector>
 #include <set>
@@ -70,7 +71,19 @@ const std::set<uint8_t> g_specialCases = {
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
-    std::fill(m_tileReplacement.begin(), m_tileReplacement.end(), NO_ANIMZ);
+    memset(m_tileMainLayer, NO_ANIMZ, sizeof(m_tileMainLayer));
+    memset(m_tileLayer, '\0', sizeof(m_tileLayer));
+
+    uint8_t i = 0;
+    for (auto &data : g_layerdata)
+    {
+        // if animated (save current index)
+        if (data.nextTile)
+            m_tileLayer[i] = i;
+        ++i;
+    }
+
+    //    std::fill(m_tileMainLayer.begin(), m_tileReplacement.end(), NO_ANIMZ);
     for (const auto &seq : g_animzSeq)
     {
         m_seqLookUp[seq.srcTile] = animzInfo_t{
@@ -91,16 +104,20 @@ void CAnimator::animate()
     for (const auto &seq : g_animzSeq)
     {
         int32_t &index = m_seqIndex[i];
-        m_tileReplacement[seq.srcTile] = seq.startSeq + index;
+        m_tileMainLayer[seq.srcTile] = seq.startSeq + index;
         index = index < seq.count - 1 ? index + 1 : 0;
         ++i;
     }
     ++m_offset;
-}
 
-uint16_t CAnimator::at(uint8_t tileID) const
-{
-    return m_tileReplacement[tileID];
+    for (auto &tileID : m_tileLayer)
+    {
+        if (!tileID)
+            continue;
+        const auto &data = g_layerdata[tileID];
+        if (data.nextTile && data.animeSpeed && m_offset % data.animeSpeed == 0)
+            tileID = data.nextTile;
+    }
 }
 
 uint16_t CAnimator::offset() const

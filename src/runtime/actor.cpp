@@ -160,6 +160,13 @@ bool CActor::canMove(const JoyAim aim) const
         return false;
     }
 
+    const CGame *game = CGame::getGame();
+    scan_t result = game->scanPos(newPos);
+    if (result.isSolid)
+        return false;
+    else if ((result.isWater || result.isDeadly) && m_type != TYPE_PLAYER)
+        return false;
+
     const uint8_t c = map.at(newPos.x, newPos.y);
     const TileDef &def = getTileDef(c);
     if (def.type == TYPE_BACKGROUND)

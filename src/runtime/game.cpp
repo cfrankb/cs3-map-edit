@@ -20,7 +20,6 @@
 #include <stdarg.h>
 #include <string>
 #include <vector>
-#include <set>
 #include <algorithm>
 #include <memory>
 #include <array>
@@ -47,6 +46,8 @@
 #include "gamesfx.h"
 #include "boss.h"
 #include "tilesdefs.h"
+#include "layerdata.h"
+#include "animator.h"
 
 namespace GamePrivate
 {
@@ -73,6 +74,7 @@ namespace GamePrivate
         MAX_SHIELDS = 2,
         MAX_FACTOR = 4,
         BARREL_TTL = 20,
+        AUTOKILL = -1024,
     };
 }
 
@@ -93,6 +95,7 @@ CGame::CGame()
     m_defaultLives = DEFAULT_LIVES;
     m_nextLife = SCORE_LIFE;
     m_lives = defaultLives();
+    m_animator = std::make_unique<CAnimator>();
 }
 
 /**
@@ -199,6 +202,7 @@ void CGame::consume()
 {
     const uint8_t pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
+    const auto &result = scanPos(m_player.pos());
 
     if (def.type == TYPE_PICKUP)
     {
@@ -224,7 +228,7 @@ void CGame::consume()
         addHealth(def.health);
         playTileSound(pu);
     }
-    else if (def.type == TYPE_SWAMP && m_gameStats->get(S_BOAT) == 0)
+    else if (result.isWater && m_gameStats->get(S_BOAT) == 0)
     {
         addHealth(def.health);
     }
@@ -236,6 +240,11 @@ void CGame::consume()
     else if (def.type == TYPE_FIRE)
     {
         addHealth(def.health);
+    }
+
+    if (result.isDeadly)
+    {
+        addHealth(AUTOKILL);
     }
 
     if (isFruit(pu))
@@ -387,7 +396,7 @@ bool CGame::loadLevel(const GameMode mode)
     }
     if (!m_quiet)
         LOGI("Player at: %d %d", pos.x, pos.y);
-    m_player = std::move(CActor(pos, TYPE_PLAYER, AIM_DOWN));
+    m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
     m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : m_map.count(TILES_DIAMOND);
     resetKeys();
     m_health = DEFAULT_HEALTH;
@@ -565,9 +574,9 @@ bool CGame::spawnMonsters()
             if (isMonsterType(def.type))
             {
                 if (isPushable(def.type))
-                    m_monsters.emplace_back(std::move(CActor(x, y, def.type, JoyAim::AIM_NONE)));
+                    m_monsters.emplace_back(CActor(x, y, def.type, JoyAim::AIM_NONE));
                 else
-                    m_monsters.emplace_back(std::move(CActor(x, y, def.type)));
+                    m_monsters.emplace_back(CActor(x, y, def.type));
             }
         }
     }
@@ -579,7 +588,7 @@ bool CGame::spawnMonsters()
         {
             const Pos &pos = CMap::toPos(key);
             const JoyAim aim = attr < ATTR_CRUSHERH_MIN ? AIM_UP : AIM_LEFT;
-            m_monsters.emplace_back(std::move(CActor(pos, attr, aim)));
+            m_monsters.emplace_back(CActor(pos, attr, aim));
             removed.emplace_back(pos);
         }
         else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX))
@@ -645,7 +654,12 @@ uint8_t CGame::managePlayer(const uint8_t *joystate)
 {
     auto const pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
-    if (pu == TILES_SWAMP && m_gameStats->get(S_BOAT) == 0)
+    const auto &result = scanPos(m_player.pos());
+    if (result.isDeadly)
+    {
+        addHealth(AUTOKILL);
+    }
+    else if (result.isWater && m_gameStats->get(S_BOAT) == 0)
     {
         // apply health damage
         addHealth(def.health);
@@ -1771,4 +1785,37 @@ void CGame::updateMonsterGrid(const CActor &actor, const int monsterIndex)
     const Pos pos = actor.pos();
     if (monsterIndex != INVALID && m_map.isValid(pos.x, pos.y))
         m_monsterGrid[CMap::toKey(pos.x, pos.y)] = monsterIndex;
+}
+
+scan_t CGame::scanPos(const Pos &pos) const
+{
+    scan_t result{};
+    const CMap &map = getMap();
+    const int layerCount = (int)map.layerCount();
+    for (int i = layerCount - 1; i >= 0; --i)
+    {
+        const CLayer *layer = map.getLayer(i);
+        if (!layer)
+            continue;
+
+        const uint8_t tileID = layer->at(pos.x, pos.y);
+        if (layer->baseID() == 0)
+        {
+            const TileDef &def = getTileDef(tileID);
+            if (def.type == TileType::TYPE_SWAMP)
+                result.isWater = true;
+        }
+        else
+        {
+            const auto curr = m_animator->getLayerTile(tileID);
+            const layerdata_t &data = getLayerTileDef(curr);
+            if (data.tileType == LayerTileType::Deadly)
+                result.isDeadly = true;
+            else if (data.tileType == LayerTileType::Solid)
+                result.isSolid = true;
+            else if (data.tileType == LayerTileType::Water)
+                result.isWater = true;
+        }
+    }
+    return result;
 }

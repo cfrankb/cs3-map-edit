@@ -346,11 +346,7 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
             }
         }
         if (!moved)
-        {
-            //     LOGE("Cannot move from (%d,%d) toward (%d,%d) on line %d",
-            //        x, y, goalPos.x, goalPos.y, __LINE__);
             return {};
-        }
     }
 
     return directions;
@@ -498,14 +494,6 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 ////////////////////////////////////////////////
 CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPath &astar)
 {
-    /*
-    if (!sprite.isBoss())
-        LOGI("sprite: %p[%d,%d] aim:%d p[%d,%d] ptr=%lu timeout=%lu cache:%lu ttl:%d",
-             &sprite, sprite.x(), sprite.y(), sprite.getAim(),
-             playerPos.x, playerPos.y,
-             m_pathIndex, m_pathTimeout, m_cachedDirections.size(), sprite.getTTL());
-             */
-
     // Check if path is invalid or timed out
     if (m_pathIndex >= m_cachedDirections.size() || m_pathTimeout <= 0)
     {

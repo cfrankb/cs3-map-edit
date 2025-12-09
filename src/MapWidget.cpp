@@ -511,7 +511,8 @@ QPixmap MapWidget::getCachedPixmap(uint8_t tileID, uint16_t baseID)
 
     const QImage img(reinterpret_cast<uint8_t *>(frame->getRGB().data()),
                      frame->width(), frame->height(),
-                     QImage::Format_RGBA8888_Premultiplied); // or RGBX8888
+//                     QImage::Format_RGBA8888_Premultiplied); // or RGBX8888
+                     QImage::Format_RGBA8888); // or RGBX8888
 
     const QPixmap pixmap = QPixmap::fromImage(img).scaled(
         TILE_SIZE * m_zoom, TILE_SIZE * m_zoom, Qt::IgnoreAspectRatio, Qt::FastTransformation);
@@ -872,6 +873,9 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
     }
 
     update(); // for shadow tile
+
+    QString str = QString("x: %1 y: %2").arg(tilePos.x()).arg(tilePos.y());
+    emit statusChanged(str);
 }
 
 void MapWidget::mouseReleaseEvent(QMouseEvent *event)

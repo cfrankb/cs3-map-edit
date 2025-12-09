@@ -467,20 +467,6 @@ void CMap::fill(uint8_t ch)
     m_attrs.clear();
 }
 
-uint8_t CMap::getAttr(const uint8_t x, const uint8_t y) const
-{
-    const uint16_t key = toKey(x, y);
-    const auto &it = m_attrs.find(key);
-    if (it != m_attrs.end())
-    {
-        return it->second;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
 void CMap::setAttr(const uint8_t x, const uint8_t y, const uint8_t a)
 {
     const uint16_t key = toKey(x, y);
@@ -635,7 +621,7 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     m_hei = in_hei;
 
     for (const auto &layer : m_layers)
-        if (!layer->resize(in_hei, in_hei, t, fast))
+        if (!layer->resize(in_len, in_hei, t, fast))
             return false;
 
     attrMap_t newAttrs;
@@ -658,14 +644,6 @@ void CMap::replaceTile(const uint8_t src, const uint8_t repl)
 CLayer *CMap::addLayer(const CLayer::LayerType lt, const std::string_view &name, uint16_t baseID)
 {
     return m_layers.emplace_back(new CLayer(m_len, m_hei, lt, baseID, name.data())).get();
-}
-
-CLayer *CMap::getLayer(const size_t index)
-{
-    if (index < m_layers.size())
-        return m_layers[index].get();
-    else
-        return nullptr;
 }
 
 std::unique_ptr<CLayer> CMap::popLayer()

@@ -43,7 +43,8 @@ public:
         DEFAULT_OBL5_FORMAT = OBL5_SOLID,
     };
 
-    size_t getSize();
+    inline size_t getSize() const { return m_frames.size(); };
+    inline size_t size() const { return m_frames.size(); }
     int operator++();
     int operator--();
     CFrame *operator[](int) const;

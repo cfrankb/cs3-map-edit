@@ -133,7 +133,7 @@ const std::string_view getFilteringName(uint8_t i)
         return "unknown";
 }
 
-bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
+bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
 {
     CCRC crc;
     auto fileSize = file.getSize();
@@ -355,7 +355,7 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos)
                 return false;
             }
 
-            if (obl5t_count > 0)
+            if (obl5t_count > 0 && !skipOblt)
             {
                 // using obLT chunkdata
                 if (obl5t_version == OBLT_VERSION0)

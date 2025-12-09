@@ -91,6 +91,7 @@ public:
             --m_ttl;
         return m_ttl;
     }
+    uint8_t algo() const { return m_algo; }
 
 private:
     uint8_t m_x;

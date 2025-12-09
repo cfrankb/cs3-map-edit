@@ -32,7 +32,7 @@ class CFrame
 {
 public:
     CFrame(int width = 0, int height = 0);
-    CFrame(const CFrame &src);
+    CFrame(const CFrame &src) = default;
     CFrame(CFrame &&src) noexcept;
     ~CFrame() = default;
 
