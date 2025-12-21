@@ -42,6 +42,7 @@
 #include "boss.h"
 #include "gamesfx.h"
 #include "tilesdefs.h"
+#include "layerdata.h"
 
 // Check windows
 #ifdef _WIN64
@@ -315,10 +316,10 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
  * @param colorMap
  */
 
-void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const bool alpha, const ColorMask colorMask, std::unordered_map<uint32_t, uint32_t> *colorMap)
+void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, const CFrame &tile, const bool alpha, const ColorMask colorMask, std::unordered_map<uint32_t, uint32_t> *colorMap)
 {
     const int width = bitmap.width();
-    const uint32_t *tileData = tile.getRGB().data();
+    const uint32_t *tileData = tile.getPixelsConst().data();
     uint32_t *dest = bitmap.getRGB().data() + x + y * width;
     if (alpha || colorMask || colorMap)
     {
@@ -812,23 +813,55 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
     const int mx = std::min(lmx, map->width() > cols ? map->width() - cols : 0);
     const int my = std::min(lmy, map->height() > rows ? map->height() - rows : 0);
     bitmap.fill(BLACK);
-    for (int y = 0; y < rows; ++y)
+
+    struct overlay_t
     {
-        for (int x = 0; x < cols; ++x)
+        const CFrame *tile;
+        const int x;
+        const int y;
+    };
+
+    const int layerCount = (int)map->layerCount();
+    std::vector<overlay_t> overlays;
+    for (int i = layerCount - 1; i >= 0; --i)
+    {
+        const CLayer *layer = map->getLayer(i);
+        if (!layer)
+            continue;
+        for (int y = 0; y < rows; ++y)
         {
-            uint8_t tileID = map->at(x + mx, y + my);
-            ColorMask inverted = COLOR_NOCHANGE;
-            std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
-            CFrame *tile = tile2Frame(tileID, inverted, colorMap);
-            if (tile)
+            for (int x = 0; x < cols; ++x)
             {
-                if (colorMap != nullptr || inverted)
+                const uint8_t tileID = layer->at(x + mx, y + my);
+                ColorMask inverted = COLOR_NOCHANGE;
+                std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
+                CFrame *tile = nullptr;
+                if (layer->baseID() == 0)
                 {
-                    drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false, inverted, colorMap);
+                    tile = tile2Frame(tileID, inverted, colorMap);
                 }
-                else
+                else if (tileID)
                 {
-                    drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, false);
+                    const uint8_t refID = m_animator->getLayerTile(tileID);
+                    tile = (*m_layerTiles)[refID];
+                    const layerdata_t &data = getLayerTileDef(refID);
+                    if (data.tileType == LayerTileType::Foreground)
+                    {
+                        const int px = x * TILE_SIZE;
+                        const int py = y * TILE_SIZE;
+                        overlays.emplace_back(overlay_t{tile, px, py});
+                    }
+                }
+                if (tile)
+                {
+                    if (colorMap != nullptr || inverted)
+                    {
+                        drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true, inverted, colorMap);
+                    }
+                    else
+                    {
+                        drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true);
+                    }
                 }
             }
         }
@@ -844,6 +877,9 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         CFrame *tile = calcSpecialFrame(sprite);
         drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true);
     }
+
+    for (const auto &overlay : overlays)
+        drawTile(bitmap, overlay.x, overlay.y, *overlay.tile, true);
 
     // draw Bosses
     drawBossses(bitmap,

@@ -67,40 +67,6 @@ private:
     LayerDock *m_dock;
 };
 
-/*
-class AddExtraLayersCommand : public QUndoCommand {
-public:
-    AddExtraLayersCommand(CMap* map, LayerDock* dock = nullptr)
-        : m_map(map), m_dock(dock) {
-        setText(QObject::tr("Add Walls and Floor Layers"));
-    }
-
-    void undo() override {
-        // Remove the layers we added
-        m_map->popLayer();
-        m_map->popLayer();
-        refresh();
-    }
-
-    void redo() override {
-        // Add the layers back
-        m_map->addLayer(CLayer::LAYER_WALLS, "walls", Stamp::OtherTilesetBaseID);
-        m_map->addLayer(CLayer::LAYER_FLOOR, "floor", Stamp::OtherTilesetBaseID);
-        refresh();
-    }
-
-private:
-    void refresh() {
-        m_dock->refreshList(m_map);
-        if (m_dock) {
-            QMetaObject::invokeMethod(m_dock, "layersChanged");
-        }
-    }
-
-    CMap* m_map;
-    LayerDock* m_dock; // e.g. your LayerDock
-};
-*/
 
 class AddExtraLayersCommand : public QUndoCommand {
 public:
@@ -333,7 +299,7 @@ QString LayerDock::getLayerText(CLayer * layer)
         typeStr = "???";
         break;
     }
-    return QString("%1 (%2) [baseID: 0x%3").arg(layer->getName()).arg(typeStr).arg(layer->baseID(), 4, 16, QChar('0'));
+    return QString("%1 (%2) [baseID: 0x%3]").arg(layer->getName()).arg(typeStr).arg(layer->baseID(), 4, 16, QChar('0'));
 }
 
 void LayerDock::renameLayer(int layerID)

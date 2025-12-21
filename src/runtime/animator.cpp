@@ -83,7 +83,6 @@ CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
         ++i;
     }
 
-    //    std::fill(m_tileMainLayer.begin(), m_tileReplacement.end(), NO_ANIMZ);
     for (const auto &seq : g_animzSeq)
     {
         m_seqLookUp[seq.srcTile] = animzInfo_t{

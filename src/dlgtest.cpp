@@ -180,7 +180,7 @@ void CDlgTest::preloadAssets()
         {":/data/annie.obl", &m_users},
         {":/data/sheet0.obl", &m_sheet0},
         {":/data/sheet1.obl", &m_sheet1},
-        {":/data/uisheet.png", &m_uisheet}
+        {":/data/uisheet.png", &m_uisheet},
     };
 
     size_t count = sizeof(assets) / sizeof(assets[0]);
@@ -209,6 +209,21 @@ void CDlgTest::preloadAssets()
         qDebug("loaded font: %d bytes", size);
     } else {
         qDebug("failed to open %s", fontName);
+    }
+
+    const char layerTilesFilename[] = ":/data/cs3layers.png";
+    qDebug("reading: %s",layerTilesFilename );
+    CFrameSet tmp;
+    if (file.open(layerTilesFilename, "rb")) {
+        if (!tmp.extract(file)) {
+            qDebug("failed to read: %s", layerTilesFilename);
+        } else {
+            CFrameSet * newFrames = tmp[0]->split(TILE_SIZE,TILE_SIZE);
+            m_layerTiles = std::unique_ptr<CFrameSet>(newFrames);
+            qDebug("count: %lu", m_layerTiles->size());
+        }
+    } else {
+        qDebug("failed to open: %s", layerTilesFilename);
     }
 
     loadColorMaps();

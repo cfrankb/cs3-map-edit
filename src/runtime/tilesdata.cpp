@@ -119,7 +119,7 @@ constexpr const TileDef tileDefs[] = {
     {0x6000, TYPE_PICKUP, 99, 20, 0, 0, false, "triforce.obl"},             // 5d TILES_TRIFORCE
     {0x2000, TYPE_PICKUP, 67, 10, 0, 0, false, "orb.obl"},                  // 5e TILES_ORB
     {0x2000, TYPE_PICKUP, 66, 0, 0, 0, false, "tntstick.obl"},              // 5f TILES_TNTSTICK
-    {0x00, TYPE_MONSTER, 0, -20, 4, 3, false, "alpha.obl"},                 // 60 TILES_ALPHA
+    {0x00, TYPE_MONSTER, 0, -20, 4, 3, false, "skeletondn.png"},            // 60 TILES_SKELETON
     {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "blueghos.obl"},               // 61 TILES_BLUEGHOS
     {0x00, TYPE_MONSTER, 0, -4, 4, 7, false, "deico.obl"},                  // 62 TILES_DEICO
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "forcef94.obl"},                  // 63 TILES_FORCEF94

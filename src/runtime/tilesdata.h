@@ -119,7 +119,7 @@ enum Tiles
     TILES_TRIFORCE            = 0x5d,
     TILES_ORB                 = 0x5e,
     TILES_TNTSTICK            = 0x5f,
-    TILES_ALPHA               = 0x60,
+    TILES_SKELETON            = 0x60,
     TILES_BLUEGHOS            = 0x61,
     TILES_DEICO               = 0x62,
     TILES_FORCEF94            = 0x63,

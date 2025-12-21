@@ -59,6 +59,7 @@ public:
     }
 
     inline std::vector<uint32_t> &getRGB() { return m_rgb; }
+    inline const std::vector<uint32_t> &getPixelsConst() const { return m_rgb; }
     void setRGB(std::vector<uint32_t> &rgb) { m_rgb = std::move(rgb); }
     bool hasTransparency() const;
     bool isEmpty() const;

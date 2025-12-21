@@ -123,7 +123,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_TRIFORCE),
     _S(TILES_ORB),
     _S(TILES_TNTSTICK),
-    _S(TILES_ALPHA),
+    _S(TILES_SKELETON),
     _S(TILES_BLUEGHOS),
     _S(TILES_DEICO),
     _S(TILES_FORCEF94),
