@@ -17,10 +17,15 @@
 */
 #pragma once
 
+#include "tilesdata.h"
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include <array>
+
+extern const uint8_t g_specialCases[];
+
+class IFile;
 
 struct animzInfo_t
 {
@@ -46,8 +51,17 @@ public:
     }
 
     uint16_t offset() const;
-    bool isSpecialCase(uint8_t tileID) const;
+    constexpr bool isSpecialCase(uint8_t tileID) const
+    {
+        for (const auto &val : m_specialCases)
+            if (val == tileID)
+                return true;
+        return false;
+    }
     animzInfo_t getSpecialInfo(const int tileID) const;
+
+    bool read(IFile &sfile);
+    bool write(IFile &sfile) const;
 
     struct animzSeq_t
     {
@@ -58,6 +72,14 @@ public:
     };
 
 private:
+    static inline constexpr const uint8_t m_specialCases[] = {
+        TILES_INSECT1,
+        TILES_MUSH_IDLE,
+        TILES_DRAGO,
+        TILES_ETURTLE,
+        TILES_WHTEWORM,
+    };
+
     enum : uint32_t
     {
         NO_ANIMZ = 255,

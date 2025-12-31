@@ -51,7 +51,7 @@
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0008;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0009;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
@@ -203,7 +203,7 @@ void CGame::consume()
     const uint8_t pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
     const auto &result = scanPos(m_player.pos());
-
+    const bool isWater = result.isWater || def.type == TYPE_SWAMP;
     if (def.type == TYPE_PICKUP)
     {
         addPoints(def.score);
@@ -228,8 +228,9 @@ void CGame::consume()
         addHealth(def.health);
         playTileSound(pu);
     }
-    else if (result.isWater && m_gameStats->get(S_BOAT) == 0)
+    else if (isWater && m_gameStats->get(S_BOAT) == 0)
     {
+        // apply swamp damage if no boat
         addHealth(def.health);
     }
     else if (def.type == TYPE_CHUTE)
@@ -366,7 +367,9 @@ bool CGame::loadLevel(const GameMode mode)
         LOGW("hints not loaded -- not available???");
 
     m_introHint = m_hints.size() ? rand() % m_hints.size() : 0;
-    m_events.clear();
+
+    // clear event list
+    clearEvents();
 
     // Use origin pos if available
     CStates &states = m_map.states();
@@ -431,7 +434,7 @@ void CGame::nextLevel()
  */
 void CGame::restartLevel()
 {
-    m_events.clear();
+    clearEvents();
     resetStats();
     resetStatsUponDeath();
 }
@@ -655,11 +658,12 @@ uint8_t CGame::managePlayer(const uint8_t *joystate)
     auto const pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
     const auto &result = scanPos(m_player.pos());
+    const bool isWater = result.isWater || def.type == TYPE_SWAMP;
     if (result.isDeadly)
     {
         addHealth(AUTOKILL);
     }
-    else if (result.isWater && m_gameStats->get(S_BOAT) == 0)
+    else if (isWater && m_gameStats->get(S_BOAT) == 0)
     {
         // apply health damage
         addHealth(def.health);
@@ -910,6 +914,7 @@ void CGame::checkClosure()
  */
 void CGame::setMode(const GameMode mode)
 {
+    LOGI("set game mode: %d", mode);
     m_mode = mode;
 }
 
@@ -1204,7 +1209,11 @@ bool CGame::read(IFile &sfile)
     }
 
     // clear events
-    m_events.clear();
+    clearEvents();
+
+    // read animation state
+    if (!m_animator->read(sfile))
+        return false;
 
     return true;
 }
@@ -1295,6 +1304,10 @@ bool CGame::write(IFile &tfile)
     _W(&sfxCount, sizeof(sfxCount));
     for (const auto &sfx : m_sfx)
         _W(&sfx, sizeof(sfx));
+
+    // save animation state
+    if (!m_animator->write(tfile))
+        return false;
 
     return true;
 }
@@ -1818,4 +1831,9 @@ scan_t CGame::scanPos(const Pos &pos) const
         }
     }
     return result;
+}
+
+void CGame::clearEvents()
+{
+    m_events.clear();
 }

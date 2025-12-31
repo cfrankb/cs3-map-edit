@@ -41,7 +41,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_mapView = new MapView(this, &m_doc);
     m_mapView->mapWidget()->setMainWindow(this);
     m_mapView->setMap(m_doc.map());
-    m_mapView->setZoom(2); // start at 200%
     m_mapView->centerOnMap();
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
@@ -572,6 +571,14 @@ void MainWindow::initToolBars()
     initToolBarTools();
 }
 
+void MainWindow::updateZoom()
+{
+    constexpr const int MIN_ZOOM = 1;
+    constexpr const int MAX_ZOOM = 4;
+    int zoom = m_mapView->zoom();
+    ui->actionView_Zoom_In->setEnabled(zoom != MAX_ZOOM);
+    ui->actionView_Zoom_Out->setEnabled(zoom != MIN_ZOOM);
+}
 
 void MainWindow::initToolBarDocument()
 {
@@ -591,9 +598,9 @@ void MainWindow::initToolBarDocument()
     ui->toolBar->addAction(ui->actionEdit_Delete_Map);
     ui->toolBar->addSeparator();
     m_cbSkill = new QComboBox(this);
-    m_cbSkill->addItem("Easy Mode");
-    m_cbSkill->addItem("Normal Mode");
-    m_cbSkill->addItem("Hard Mode");
+    m_cbSkill->addItem(tr("Easy Mode"));
+    m_cbSkill->addItem(tr("Normal Mode"));
+    m_cbSkill->addItem(tr("Hard Mode"));
     m_cbSkill->setCurrentIndex(1);
     ui->toolBar->addWidget(m_cbSkill);
     ui->toolBar->addSeparator();
@@ -602,10 +609,12 @@ void MainWindow::initToolBarDocument()
     cbZoom->addItem("200%", 2);
     cbZoom->addItem("300%", 3);
     cbZoom->addItem("400%", 4);
-    cbZoom->setCurrentIndex(1);
     ui->toolBar->addWidget(cbZoom);
-    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i)
-            { m_mapView->setZoom(i + 1); });
+    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i) {
+        m_mapView->setZoom(i + 1);
+        updateZoom();
+    });
+    cbZoom->setCurrentIndex(1);
 
     // add toolbar to view menu
     QAction *actionToolBar = ui->toolBar->toggleViewAction();
@@ -613,8 +622,19 @@ void MainWindow::initToolBarDocument()
     actionToolBar->setStatusTip(tr("Show or hide Document toolBar"));
     ui->menuView->addAction(actionToolBar);
 
-    connect(ui->actionView_Zoom_In, &QAction::triggered, m_mapView, &MapView::zoomIn);
-    connect(ui->actionView_Zoom_Out, &QAction::triggered, m_mapView, &MapView::zoomOut);
+    connect(ui->actionView_Zoom_In, &QAction::triggered, this, [this, cbZoom]() {
+        m_mapView->zoomIn();
+        int zoom = m_mapView->zoom();
+        cbZoom->setCurrentIndex(zoom - 1);
+        updateZoom();
+    });
+
+    connect(ui->actionView_Zoom_Out, &QAction::triggered, this, [this, cbZoom]() {
+        m_mapView->zoomOut();
+        int zoom = m_mapView->zoom();
+        cbZoom->setCurrentIndex(zoom - 1);
+        updateZoom();
+    });
 
     // ──────────────────────────────────────────────────────────────
     //  FULL TWO-WAY WIRING: MainWindow ↔ MapWidget
@@ -652,7 +672,7 @@ void MainWindow::initToolBarDocument()
     connect(m_mapView->mapWidget(), &MapWidget::selectionChanged, this, [this](const QRect &rect)
             {
         if (rect.isValid()) {
-            statusBar()->showMessage(QString("Selection: %1×%2  at (%3,%4)")
+            statusBar()->showMessage(QString(tr("Selection: %1×%2  at (%3,%4)"))
                                          .arg(rect.width()).arg(rect.height())
                                          .arg(rect.x()).arg(rect.y()));
         } else {
@@ -1108,7 +1128,7 @@ void MainWindow::on_actionExport_Screenshots_triggered()
 
     if (!folder.isEmpty())
     {
-        QMessageBox::information(this, "Export", "Exporting to:\n" + folder);
+        QMessageBox::information(this, tr("Export"), tr("Exporting to:") + folder);
         for (size_t i = 0; i < m_doc.size(); ++i)
         {
             CMap *map = m_doc.at(i);
@@ -1139,7 +1159,7 @@ void MainWindow::updateWindowTitle()
     }
     else
     {
-        title += " — Untitled";
+        title += tr(" — Untitled");
     }
 
     // On macOS, Qt automatically shows asterisk in title bar.

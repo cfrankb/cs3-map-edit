@@ -24,11 +24,12 @@
 #include <vector>
 #include <set>
 #include <array>
+#include "shared/IFile.h"
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
 constexpr const size_t SEQ_COUNT = 30;
 
-const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
+constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NO_SPECIAL_ID},
     {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN, ANIMZ_INSECT1},
     {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN, NO_SPECIAL_ID},
@@ -60,14 +61,6 @@ const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {SFX_EXPLOSION0, ANIMZ_EXPLOSION0, ANIMZ_EXPLOSION0_LEN, ANIMZ_EXPLOSION0}, // placeholder for mob death
     {SFX_FLAME, ANIMZ_FLAME, ANIMZ_FLAME_LEN, ANIMZ_FLAME},                     // barrel flame
 }};
-
-const std::set<uint8_t> g_specialCases = {
-    TILES_INSECT1,
-    TILES_MUSH_IDLE,
-    TILES_DRAGO,
-    TILES_ETURTLE,
-    TILES_WHTEWORM,
-};
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
@@ -124,11 +117,6 @@ uint16_t CAnimator::offset() const
     return m_offset;
 }
 
-bool CAnimator::isSpecialCase(uint8_t tileID) const
-{
-    return g_specialCases.find(tileID) != g_specialCases.end();
-}
-
 animzInfo_t CAnimator::getSpecialInfo(const int tileID) const
 {
     const auto &it = m_seqLookUp.find(tileID);
@@ -141,4 +129,30 @@ animzInfo_t CAnimator::getSpecialInfo(const int tileID) const
         };
     }
     return animzInfo_t{};
+}
+
+bool CAnimator::read(IFile &sfile)
+{
+    if (sfile.read(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
+    {
+        return false;
+    }
+    if (sfile.read(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
+    {
+        return false;
+    }
+    return false;
+}
+
+bool CAnimator::write(IFile &sfile) const
+{
+    if (sfile.write(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
+    {
+        return false;
+    }
+    if (sfile.write(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
+    {
+        return false;
+    }
+    return false;
 }

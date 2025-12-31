@@ -100,6 +100,7 @@ private:
     void updateWindowTitle();
     void setDirty(bool dirty);
     int currentTool();
+    void updateZoom();
 
     enum {
         MAX_RECENT_FILES = 12,

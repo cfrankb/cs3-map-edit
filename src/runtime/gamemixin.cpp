@@ -1041,6 +1041,7 @@ void CGameMixin::centerCamera()
     const int my = std::min(lmy, map->height() > rows ? map->height() - rows : 0);
     m_cx = mx * 2;
     m_cy = my * 2;
+    LOGI("centerCamera cx=%d cy=%d", m_cx, m_cy);
 }
 
 void CGameMixin::drawLevelIntro(CFrame &bitmap)
@@ -1097,9 +1098,9 @@ void CGameMixin::drawLevelIntro(CFrame &bitmap)
 
 void CGameMixin::mainLoop()
 {
+    CGame &game = *m_game;
     handleFunctionKeys();
     ++m_ticks;
-    CGame &game = *m_game;
     if (game.mode() != CGame::MODE_CLICKSTART &&
         game.mode() != CGame::MODE_TITLE &&
         m_countdown > 0)
@@ -1418,6 +1419,8 @@ void CGameMixin::manageGamePlay()
 
 void CGameMixin::nextLevel()
 {
+    m_currentEvent = EVENT_NONE;
+    m_game->clearEvents();
     stopRecorder();
     m_healthRef = 0;
     m_game->nextLevel();
@@ -1428,6 +1431,8 @@ void CGameMixin::nextLevel()
 
 void CGameMixin::restartLevel()
 {
+    m_currentEvent = EVENT_NONE;
+    m_game->clearEvents();
     m_game->restartLevel();
     beginLevelIntro(CGame::MODE_RESTART);
     changeMoodMusic(CGame::MODE_RESTART);
@@ -1435,6 +1440,8 @@ void CGameMixin::restartLevel()
 
 void CGameMixin::restartGame()
 {
+    m_currentEvent = EVENT_NONE;
+    m_game->clearEvents();
     m_paused = false;
     m_game->restartGame();
     sanityTest();
@@ -2526,6 +2533,7 @@ void CGameMixin::drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues)
  */
 void CGameMixin::beginLevelIntro(CGame::GameMode mode)
 {
+    LOGI("beginLevelIntro: %d", mode);
     m_mutex.lock();
     startCountdown(COUNTDOWN_INTRO);
     m_game->loadLevel(mode);

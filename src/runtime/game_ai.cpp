@@ -147,7 +147,7 @@ bool CGame::handleBossBullet(CBoss &boss)
         playSound(boss.data()->attack_sound);
         if (boss.data()->bullet_algo != BossData::Path::NONE)
         {
-            LOGI("bullet path: %d", boss.data()->bullet_algo);
+            LOGI("bullet path algo: %d", boss.data()->bullet_algo);
             bullet->startPath(m_player.pos(), boss.data()->bullet_algo, boss.data()->bullet_ttl);
         }
 

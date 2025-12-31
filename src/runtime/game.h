@@ -154,6 +154,7 @@ public:
     void decTimers();
     void parseHints(const char *data);
     int getEvent();
+    void clearEvents();
     void purgeSfx();
     static CGame *getGame();
     static void destroy();
