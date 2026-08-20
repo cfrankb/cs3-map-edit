@@ -1,6 +1,6 @@
 /*
     cs3-runtime-sdl
-    Copyright (C) 2025 Francois Blanchette
+    Copyright (C) 2026 Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_ORB),
     _S(TILES_TNTSTICK),
     _S(TILES_SKELETON),
-    _S(TILES_BLUEGHOS),
+    _S(TILES_BABYDRAGON),
     _S(TILES_DEICO),
     _S(TILES_FORCEF94),
     _S(TILES_FORCEFIH),
@@ -184,6 +184,8 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_BARREL2EX),
     _S(TILES_BARREL2),
     _S(TILES_FLAME),
+    _S(TILES_EGG_WHOLE),
+    _S(TILES_EGG_CRACKED),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_aiNames = {

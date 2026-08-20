@@ -549,10 +549,16 @@
    <property name="text">
     <string>Zoom In</string>
    </property>
+   <property name="statusTip">
+    <string>Zoom in on the map</string>
+   </property>
   </action>
   <action name="actionView_Zoom_Out">
    <property name="text">
     <string>Zoom Out</string>
+   </property>
+   <property name="statusTip">
+    <string>Zoom out on the map</string>
    </property>
   </action>
   <action name="actionTools_Dice">

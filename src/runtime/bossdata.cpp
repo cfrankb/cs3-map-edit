@@ -62,7 +62,7 @@ namespace BossData
     constexpr int BEHOLDER_HURT_LEN = 4;
     constexpr int BEHOLDER_MOVING_BASE = 68;
     constexpr int BEHOLDER_MOVING_LEN = 8;
-};
+}
 
 using namespace BossData;
 

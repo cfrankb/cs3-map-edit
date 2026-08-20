@@ -1213,7 +1213,10 @@ bool CGame::read(IFile &sfile)
 
     // read animation state
     if (!m_animator->read(sfile))
+    {
+        LOGE("Failed to read animator state");
         return false;
+    }
 
     return true;
 }

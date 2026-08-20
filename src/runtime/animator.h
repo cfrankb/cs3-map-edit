@@ -78,6 +78,8 @@ private:
         TILES_DRAGO,
         TILES_ETURTLE,
         TILES_WHTEWORM,
+        TILES_SKELETON,
+        TILES_BABYDRAGON,
     };
 
     enum : uint32_t

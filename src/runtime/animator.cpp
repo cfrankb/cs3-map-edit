@@ -25,9 +25,10 @@
 #include <set>
 #include <array>
 #include "shared/IFile.h"
+#include "logger.h"
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
-constexpr const size_t SEQ_COUNT = 30;
+constexpr const size_t SEQ_COUNT = 32;
 
 constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NO_SPECIAL_ID},
@@ -60,6 +61,8 @@ constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {SFX_EXPLOSION7, ANIMZ_EXPLOSION7, ANIMZ_EXPLOSION7_LEN, ANIMZ_EXPLOSION7}, // thunderbolt destruction (yellow)
     {SFX_EXPLOSION0, ANIMZ_EXPLOSION0, ANIMZ_EXPLOSION0_LEN, ANIMZ_EXPLOSION0}, // placeholder for mob death
     {SFX_FLAME, ANIMZ_FLAME, ANIMZ_FLAME_LEN, ANIMZ_FLAME},                     // barrel flame
+    {TILES_SKELETON, ANIMZ_SKELETON, ANIMZ_SKELETON_LEN, ANIMZ_SKELETON},
+    {TILES_BABYDRAGON, ANIMZ_BABYDRAGON, ANIMZ_BABYDRAGON_LEN, ANIMZ_BABYDRAGON},
 }};
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
@@ -135,24 +138,28 @@ bool CAnimator::read(IFile &sfile)
 {
     if (sfile.read(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
     {
+        LOGE("failed to read tileMainLayer");
         return false;
     }
     if (sfile.read(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
     {
+        LOGE("failed to read tileLayer");
         return false;
     }
-    return false;
+    return true;
 }
 
 bool CAnimator::write(IFile &sfile) const
 {
     if (sfile.write(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
     {
+        LOGE("failed to write tileMainLayer");
         return false;
     }
     if (sfile.write(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
     {
+        LOGE("failed to write tileMainLayer");
         return false;
     }
-    return false;
+    return true;
 }

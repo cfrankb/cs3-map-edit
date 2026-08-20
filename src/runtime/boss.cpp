@@ -36,7 +36,7 @@ namespace BossPrivate
     constexpr int MAX_HP = 4096;
     constexpr int MAX_SPEED = 10;
     constexpr int MAX_FRAME = 16;
-};
+}
 
 using namespace BossPrivate;
 
@@ -439,7 +439,7 @@ void CBoss::setState(const BossState state)
     const boss_seq_t *seq = getCurrentSeq();
     if (seq != nullptr && seq->lenght == 0)
         m_state = Hidden;
-};
+}
 
 int CBoss::maxHp() const
 {

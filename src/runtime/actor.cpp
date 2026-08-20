@@ -39,7 +39,7 @@ namespace ActorData
 
     constexpr uint8_t PATH_NOT_DEFINED = 0;
     constexpr uint8_t PATH_DEFINED = 1;
-};
+}
 
 using namespace ActorData;
 

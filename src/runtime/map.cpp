@@ -39,7 +39,7 @@ namespace MapPrivate
     constexpr uint16_t VERSION = CMap::VERSION2;
     constexpr uint16_t MAX_SIZE = 256;
     constexpr uint16_t MAX_TITLE = 255;
-};
+}
 
 using namespace MapPrivate;
 
@@ -54,7 +54,7 @@ CMap::CMap(uint16_t len, uint16_t hei, uint8_t t) : m_len(len),
 {
     addMainLayer();
     resize(len, hei, t, true);
-};
+}
 
 CMap::CMap(const CMap &map) : m_len(map.m_len),
                               m_hei(map.m_hei),
@@ -71,9 +71,10 @@ CMap::CMap(const CMap &map) : m_len(map.m_len),
         addMainLayer();
 }
 
-CMap::~CMap() {
+CMap::~CMap()
+{
     // clear();
-};
+}
 
 void CMap::addMainLayer()
 {

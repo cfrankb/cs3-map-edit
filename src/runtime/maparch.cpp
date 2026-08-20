@@ -33,7 +33,7 @@ namespace MapArchPrivate
         OFFSET_INDEX = 8,
         MAX_MAPS = 1000,
     };
-};
+}
 
 using namespace MapArchPrivate;
 

@@ -1,6 +1,6 @@
 /*
     cs3-runtime-sdl
-    Copyright (C) 2025 Francois Blanchette
+    Copyright (C) 2026 Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -120,7 +120,7 @@ enum Tiles
     TILES_ORB                 = 0x5e,
     TILES_TNTSTICK            = 0x5f,
     TILES_SKELETON            = 0x60,
-    TILES_BLUEGHOS            = 0x61,
+    TILES_BABYDRAGON          = 0x61,
     TILES_DEICO               = 0x62,
     TILES_FORCEF94            = 0x63,
     TILES_FORCEFIH            = 0x64,
@@ -180,5 +180,7 @@ enum Tiles
     TILES_BARREL2EX           = 0x9a,
     TILES_BARREL2             = 0x9b,
     TILES_FLAME               = 0x9c,
-    TILES_TOTAL_COUNT         = 0x9d,
+    TILES_EGG_WHOLE           = 0x9d,
+    TILES_EGG_CRACKED         = 0x9e,
+    TILES_TOTAL_COUNT         = 0x9f,
 };

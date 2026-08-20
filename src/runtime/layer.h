@@ -132,7 +132,7 @@ protected:
             LOGE("fail to write layer type");
             return false;
         }
-        std::vector<u_int8_t> compr;
+        std::vector<uint8_t> compr;
         const int err = compressData(m_tiles, compr);
         if (err != Z_OK)
         {

@@ -1849,6 +1849,7 @@ void CGameMixin::clearJoyStates()
 
 bool CGameMixin::read(IFile &sfile, std::string &name)
 {
+    LOGI("Reading savegame");
     auto readfile = [&sfile](auto ptr, auto size)
     {
         return sfile.read(ptr, size) == 1;
@@ -1857,6 +1858,9 @@ bool CGameMixin::read(IFile &sfile, std::string &name)
     {
         return false;
     }
+
+    LOGI("game reading completed");
+
     clearButtonStates();
     clearJoyStates();
     clearKeyStates();

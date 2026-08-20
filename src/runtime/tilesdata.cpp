@@ -1,6 +1,6 @@
 /*
     cs3-runtime-sdl
-    Copyright (C) 2025 Francois Blanchette
+    Copyright (C) 2026 Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -120,7 +120,7 @@ constexpr const TileDef tileDefs[] = {
     {0x2000, TYPE_PICKUP, 67, 10, 0, 0, false, "orb.obl"},                  // 5e TILES_ORB
     {0x2000, TYPE_PICKUP, 66, 0, 0, 0, false, "tntstick.obl"},              // 5f TILES_TNTSTICK
     {0x00, TYPE_MONSTER, 0, -20, 4, 3, false, "skeletondn.png"},            // 60 TILES_SKELETON
-    {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "blueghos.obl"},               // 61 TILES_BLUEGHOS
+    {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "babydragon_front.png"},       // 61 TILES_BABYDRAGON
     {0x00, TYPE_MONSTER, 0, -4, 4, 7, false, "deico.obl"},                  // 62 TILES_DEICO
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "forcef94.obl"},                  // 63 TILES_FORCEF94
     {0x8000, TYPE_WALLS, 0, 0, 0, 0, false, "forcefih.obl"},                // 64 TILES_FORCEFIH
@@ -179,7 +179,9 @@ constexpr const TileDef tileDefs[] = {
     {0x2000, TYPE_PICKUP, 125, 0, 0, 0, false, "boat.png"},                 // 99 TILES_BOAT
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "barrel2ex.png"},                 // 9a TILES_BARREL2EX
     {0x00, TYPE_BARREL, 0, -20, 0, 0, false, "barrel2.png"},                // 9b TILES_BARREL2
-    {0x00, TYPE_FIRE, 0, -1, 0, 0, false, "flame16x16.zip"}                 // 9c TILES_FLAME
+    {0x00, TYPE_FIRE, 0, -1, 0, 0, false, "flame16x16.zip"},                // 9c TILES_FLAME
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "egg_whole.png"},                 // 9d TILES_EGG_WHOLE
+    {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "egg_cracked.png"}           // 9e TILES_EGG_CRACKED
 };
 
 const uint8_t chMap[] = {
@@ -191,11 +193,11 @@ const uint8_t chMap[] = {
     0x00, 0x00, 0x44, 0x46, 0x0b, 0x00, 0x0a, 0x63,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x0c, 0x00, 0x00, 0x00, 0x2c, 0x05, 0x2d, 0x43,
-    0x4f, 0x60, 0x32, 0x34, 0x62, 0x00, 0x50, 0x35,
+    0x4f, 0x61, 0x32, 0x34, 0x62, 0x00, 0x50, 0x35,
     0x51, 0x00, 0x3f, 0x11, 0x00, 0x68, 0x00, 0x5e,
     0x02, 0x0f, 0x57, 0x48, 0x5d, 0x12, 0x00, 0x0e,
     0x0d, 0x59, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x64,
-    0x00, 0x30, 0x31, 0x33, 0x00, 0x00, 0x00, 0x4c,
+    0x00, 0x30, 0x31, 0x33, 0x60, 0x00, 0x00, 0x4c,
     0x52, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
     0x24, 0x71, 0x58, 0x01, 0x37, 0x00, 0x6d, 0x40,
     0x00, 0x5a, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
