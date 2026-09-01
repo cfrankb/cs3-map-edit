@@ -83,6 +83,10 @@ endif()
 # Link Qt libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 
+# The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
+# compile to no-ops, avoiding pulling SDL functionality into the editor.
+target_compile_definitions(${PROJECT_NAME} PRIVATE SDL_NOT_WANTED=1)
+
 # SDL2 is used by the tileset texture code.
 #find_package(SDL2 REQUIRED COMPONENTS)
 #target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2)
