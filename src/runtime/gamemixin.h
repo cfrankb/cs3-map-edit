@@ -388,6 +388,7 @@ protected:
     virtual void initLevelSummary() = 0;
     virtual void changeMoodMusic(CGame::GameMode mode) = 0;
     virtual void manageSkillMenu() = 0;
+    virtual void manageSplash() = 0;
 
 private:
     void stopRecorder();

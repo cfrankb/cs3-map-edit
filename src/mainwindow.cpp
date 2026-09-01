@@ -31,6 +31,7 @@
 #include "undo/MapPropertiesCommand.h"
 #include "undo/MapCommand.h"
 #include "undo/DocumentCommand.h"
+#include "dlgspell.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -785,6 +786,12 @@ int MainWindow::currentTool()
 void MainWindow::on_actionHelp_About_triggered()
 {
     DlgAbout dlg(this);
+    dlg.exec();
+}
+
+void MainWindow::on_actionSpell_SpellSettings_triggered()
+{
+    DlgSpell dlg(this);
     dlg.exec();
 }
 

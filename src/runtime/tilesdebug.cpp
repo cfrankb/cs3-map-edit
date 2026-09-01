@@ -185,6 +185,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_BARREL2),
     _S(TILES_FLAME),
     _S(TILES_EGG_WHOLE),
+    _S(TILES_EGG_HATCHED),
     _S(TILES_EGG_CRACKED),
 };
 
@@ -237,6 +238,7 @@ static const std::unordered_map<uint16_t, std::string> g_typesNames = {
     _S(TYPE_LIGHTNING_BOLT),
     _S(TYPE_FIRE),
     _S(TYPE_BARREL),
+    _S(TYPE_EGG),
 };
 
 std::string get_tileNames(const uint16_t i)

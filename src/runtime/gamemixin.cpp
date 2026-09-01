@@ -1207,6 +1207,9 @@ void CGameMixin::mainLoop()
         return;
     case CGame::MODE_NEW_INPUTNAME:
         return;
+    case CGame::MODE_SPLASH:
+        manageSplash();
+        return;
     case CGame::MODE_TEST:
         return;
     }

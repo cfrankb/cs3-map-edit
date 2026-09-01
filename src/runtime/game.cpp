@@ -668,15 +668,14 @@ uint8_t CGame::managePlayer(const uint8_t *joystate)
         // apply health damage
         addHealth(def.health);
     }
-    else if (pu == TILES_FLAME)
+    else if (pu == TILES_FLAME || def.type == TYPE_FIRE)
     {
         // apply health damage
         addHealth(def.health);
     }
     const JoyAim aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
-    for (uint8_t i = 0; i < TOTAL_AIMS; ++i)
+    for (const JoyAim &aim : aims)
     {
-        const JoyAim aim = aims[i];
         if (joystate[aim] && move(aim))
         {
             return aim;

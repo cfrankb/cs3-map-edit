@@ -48,6 +48,7 @@ private:
     void manageTitleScreen() override {}
     void toggleGameMenu() override {}
     bool manageGameMenu() override {return false;}
+    void manageSplash() override {}
     void manageOptionScreen() override {}
     void load() override {}
     void save() override {}

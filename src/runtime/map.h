@@ -138,6 +138,11 @@ public:
         return m_layers;
     }
 
+    inline const std::vector<std::unique_ptr<CLayer>> &layersConst() const
+    {
+        return m_layers;
+    }
+
     inline CLayer *getMainLayer() const
     {
         return m_layers[0].get();

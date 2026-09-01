@@ -81,5 +81,6 @@ enum TileType:uint8_t
     TYPE_LIGHTNING_BOLT       = 0x10,
     TYPE_FIRE                 = 0x11,
     TYPE_BARREL               = 0x12,
+    TYPE_EGG                  = 0x13,
 };
 

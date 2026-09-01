@@ -67,6 +67,7 @@
     <addaction name="actionEdit_Map_States"/>
     <addaction name="actionEdit_Edit_Messages"/>
     <addaction name="actionEdit_Map_Properties"/>
+    <addaction name="actionSpell_SpellSettings"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -606,6 +607,14 @@
    </property>
    <property name="statusTip">
     <string>Flood fill an open area with a tile</string>
+   </property>
+  </action>
+  <action name="actionSpell_SpellSettings">
+   <property name="text">
+    <string>Dictionary Settings...</string>
+   </property>
+   <property name="statusTip">
+    <string>Configure the Hunspell dictionary files used for spell checking</string>
    </property>
   </action>
  </widget>

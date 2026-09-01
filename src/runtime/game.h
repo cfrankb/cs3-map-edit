@@ -82,6 +82,7 @@ public:
         MODE_NEW_INPUTNAME,
         MODE_CHUTE,
         MODE_TEST,
+        MODE_SPLASH,
     };
 
     enum : uint32_t

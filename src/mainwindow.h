@@ -45,6 +45,7 @@ private slots:
     void on_actionClear_Map_triggered();
     void on_actionHelp_About_triggered();
     void on_actionHelp_About_Qt_triggered();
+    void on_actionSpell_SpellSettings_triggered();
     void on_actionEdit_Previous_Map_triggered();
     void on_actionEdit_Next_Map_triggered();
     void on_actionEdit_Add_Map_triggered();
