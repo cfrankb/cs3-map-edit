@@ -20,7 +20,7 @@ env:
   SOURCE_DIR: ${{ github.workspace }}
   QT_VERSION: 6.7.1
   ARTIFACT: CS3MapEdit_Win64
-  ARCH: win64_msvc2019_64
+  ARCH: win64_mingw
   HOST: windows
 
 jobs:
@@ -38,15 +38,15 @@ jobs:
         run: |
           git fetch --all --tags -f
 
-      - name: Set up Python
-        uses: actions/setup-python@v5 # Action to set up Python
-        with:
-          python-version: "3.9" # Specify the desired Python version (e.g., '3.9', '3.10', '3.x')
-          architecture: "x64" # Specify the architecture (optional, defaults to host OS architecture)
+      #- name: Set up Python
+      #  uses: actions/setup-python@v5 # Action to set up Python
+      #  with:
+      #    python-version: "3.9" # Specify the desired Python version (e.g., '3.9', '3.10', '3.x')
+      #    architecture: "x64" # Specify the architecture (optional, defaults to host OS architecture)
 
-      - name: Run Python script
-        run: |
-          python bin/patch.py
+      #- name: Run Python script
+      #  run: |
+      #    python bin/patch.py
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -57,6 +57,14 @@ jobs:
           arch: ${{ env.ARCH }}
           dir: ${{ runner.temp }}
           setup-python: false
+
+      - name: Clean stale build directory
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          if [ -d build ]; then
+            echo "Removing stale build/ to avoid cached config"
+            rmdir build
+          fi
 
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
@@ -71,12 +79,12 @@ jobs:
       - name: Deploy Qt runtime
         working-directory: ${{ env.SOURCE_DIR }}/build
         run: |
-          windeployqt --pdb --release --no-compiler-runtime --no-translations mapedit.exe --qmldir=${{ env.SOURCE_DIR }}/src
+          windeployqt --pdb --release --no-compiler-runtime --no-translations cs3-map-edit.exe --qmldir=${{ env.SOURCE_DIR }}/src
 
       - name: Compress to zip file
-        working-directory: ${{ env.SOURCE_DIR }}/build
+        working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          7z a ${{ env.SOURCE_DIR }}/${{ env.ARTIFACT }}.zip build
+          7z a CS3MapEdit_Win64.zip build
 
       - name: Release
         uses: softprops/action-gh-release@v1

@@ -8,12 +8,12 @@ set(CMAKE_AUTOMOC ON)   # MOC
 set(CMAKE_AUTORCC ON)   # QRC
 
 # Find Qt 6 packages
-# Qt 6.7+ moved the undo/redo framework (QUndoCommand, QUndoStack) into the
+# Qt 6.8 moved the undo/redo framework (QUndoCommand, QUndoStack) into the
 # separate Qt6WidgetsExtras library, so it must be requested explicitly.
-# For Qt < 6.7 (e.g. 6.1), WidgetsExtras does not exist, so only request it
-# for Qt >= 6.7.
+# Qt 6.7 and earlier keep those classes in the base Qt6Widgets module, so
+# WidgetsExtras does not exist before 6.8.
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
-if(Qt6_VERSION VERSION_EQUAL 6.7)
+if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8 AND Qt6_VERSION VERSION_LESS 6.11)
     find_package(Qt6 REQUIRED COMPONENTS WidgetsExtras)
 endif()
 
@@ -89,22 +89,16 @@ endif()
 
 # Link Qt libraries
 # Core must be explicit for MinGW builds.
-# WidgetsExtras provides the undo/redo framework (QUndoCommand) in Qt 6.7+;
-# for Qt < 6.7 (e.g. 6.1) it does not exist, so link it only for Qt >= 6.7.
+# WidgetsExtras provides the undo/redo framework (QUndoCommand) for Qt >= 6.8;
+# it is only required for Qt >= 6.8 and < 6.11 (folded back into Qt6Widgets later).
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core)
-if(Qt6_VERSION VERSION_EQUAL 6.7)
+if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8 AND Qt6_VERSION VERSION_LESS 6.11)
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WidgetsExtras)
 endif()
 
 # The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
 # compile to no-ops, avoiding pulling SDL functionality into the editor.
 target_compile_definitions(${PROJECT_NAME} PRIVATE SDL_NOT_WANTED=1)
-
-# SDL2 is used by the tileset texture code.
-#find_package(SDL2 REQUIRED COMPONENTS)
-#target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2)
-
-#find_library(XMP_LIBRARY xmp)
 
 # zlib is used directly by the PNG decompression code (FrameSet.cpp, PngMagic.cpp).
 # Link it so the symbols (uncompress, zError) resolve.
