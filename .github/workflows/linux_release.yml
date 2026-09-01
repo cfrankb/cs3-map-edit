@@ -4,14 +4,11 @@ on:
   push:
     branches:
       - "master"
-      #- "continuous-integration"
-      #- "cross-platform"
     tags:
       - "v*"
   pull_request:
     branches:
       - "master"
-      #- "continuous-integration"
 
 defaults:
   run:
@@ -37,9 +34,8 @@ jobs:
         run: |
           echo "SOURCEDIR: ${{ env.SOURCE_DIR }}/"
           echo "RUNNERDIR: ${{ runner.temp }}"
-          #cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png /home/runner/work/cs3-map-edit/CS3MapEdit-icon.png
           cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png ${{ runner.temp }}
-          #ls -l /home/runner/work/cs3-map-edit/
+          #ls -l /home/runner/work/cs3-map-edit/CS3MapEdit-icon.png
 
       - name: Run Python script
         run: |
@@ -55,14 +51,15 @@ jobs:
           dir: ${{ runner.temp }}
           setup-python: false
 
-      - name: Create build directory
-        run: mkdir ${{ env.SOURCE_DIR }}/build
+      - name: Configure build with CMake
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        working-directory: ${{ env.SOURCE_DIR }}/build
+        working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          qmake -r ${{ env.SOURCE_DIR }}/src/mapedit.pro
-          make
+          cmake --build build
 
       - name: AppImage
         working-directory: ${{ env.SOURCE_DIR }}/build
@@ -74,7 +71,7 @@ jobs:
           chmod +x deploy.AppImage
           ls -l ${{ env.SOURCE_DIR }}
           cp ${{ env.SOURCE_DIR }}/linux/* .
-          ls -l ${{ runner.temp }}
+          ls -l
           cp ${{ env.SOURCE_DIR }}/linux/* ${{ runner.temp }}
           ./deploy.AppImage CS3MapEdit.desktop -appimage -no-translations -qmldir=${{ env.SOURCE_DIR }} -extra-plugins=renderers
           ls -l
