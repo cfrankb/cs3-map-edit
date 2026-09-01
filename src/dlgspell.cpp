@@ -90,7 +90,6 @@ void DlgSpell::setupUI()
     connect(buttonBox, &QDialogButtonBox::accepted, this, &DlgSpell::onAccept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
-    mainLayout->addStretch();
     setLayout(mainLayout);
 }
 

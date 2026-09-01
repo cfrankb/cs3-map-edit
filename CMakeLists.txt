@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)   # MOC
 set(CMAKE_AUTORCC ON)   # QRC
 
 # Find Qt 6 packages
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
 
 #file(GLOB HEADERS src/*.h)
 file(GLOB RESOURCES src/*.qrc)
@@ -80,8 +80,8 @@ if(NOT TARGET hunspell AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/hunspell
     add_subdirectory(external/hunspell hunspell)
 endif()
 
-# Link Qt libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
+# Link Qt libraries (Core must be explicit for MinGW builds)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core)
 
 # The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
 # compile to no-ops, avoiding pulling SDL functionality into the editor.
