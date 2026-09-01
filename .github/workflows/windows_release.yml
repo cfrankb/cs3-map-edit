@@ -18,7 +18,6 @@ defaults:
 env:
   BUILD_TYPE: Release
   SOURCE_DIR: ${{ github.workspace }}
-  #QT_VERSION: 6.5.3
   QT_VERSION: 6.7.1
   ARTIFACT: CS3MapEdit_Win64
   ARCH: win64_msvc2019_64
@@ -57,13 +56,12 @@ jobs:
           target: desktop
           arch: ${{ env.ARCH }}
           dir: ${{ runner.temp }}
-          #modules: qtcharts qt3d
           setup-python: false
 
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
 
       - name: Build
         working-directory: ${{ env.SOURCE_DIR }}

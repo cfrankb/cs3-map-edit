@@ -1,3 +1,6 @@
 [submodule "external/hunspell"]
 	path = external/hunspell
 	url = https://github.com/hunspell/hunspell.git
+[submodule "external/zlib"]
+	path = external/zlib
+	url = https://github.com/madler/zlib.git

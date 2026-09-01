@@ -54,7 +54,7 @@ jobs:
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
 
       - name: Build
         working-directory: ${{ env.SOURCE_DIR }}
