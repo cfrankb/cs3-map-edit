@@ -79,26 +79,69 @@ jobs:
       - name: Copy zlib DLL to executable root
         working-directory: ${{ env.SOURCE_DIR }}/build
         run: |
-          if [ -f zlib/zlib.dll ]; then
-            cp zlib/zlib.dll .
+          if [ -f zlib/libz.dll ]; then
+            cp zlib/libz.dll .
           fi
+
+      - name: Find MinGW installation
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          # Locate the MinGW toolchain that produced the executable, then search
+          # only that toolchain tree for its C++ runtime DLLs.
+          # mingw-w64 names the compiler binaries gcc.exe / g++.exe (and often the
+          # triple-prefixed x86_64-w64-mingw32-gcc.exe), not plain `gcc`, so we
+          # search PATH for any of those rather than assuming a `gcc` binary.
+          CC=""
+          for cand in gcc g++ cc x86_64-w64-mingw32-gcc x86_64-w64-mingw32-g++ i686-w64-mingw32-gcc; do
+            found=$(which "$cand" 2>/dev/null)
+            if [ -n "$found" ]; then
+              CC="$found"
+              break
+            fi
+          done
+          if [ -z "$CC" ]; then
+            echo "No MinGW compiler found on PATH" >&2
+            exit 1
+          fi
+          # $CC looks like C:/mingw64/bin/gcc.exe, so its parent's parent is the MinGW root.
+          CC_DIR=$(dirname "$CC")
+          MINGW_ROOT=$(dirname "$CC_DIR")
+          echo "MINGW_ROOT=$MINGW_ROOT"
+          find "$MINGW_ROOT" -type f \( -name 'libgcc_s_seh-1.dll' -o -name 'libwinpthread-1.dll' -o -name 'libstdc++-6.dll' \) > $RUNNER_TEMP/minw_dlls.txt
+          cat $RUNNER_TEMP/minw_dlls.txt
+
+      - name: Copy MinGW runtime DLLs to executable root
+        working-directory: ${{ env.SOURCE_DIR }}/build
+        run: |
+          # MinGW C++ runtime libraries required by the executable.
+          # windeployqt copies Qt DLLs but not these, so copy them manually.
+          # Each DLL is searched for within the MinGW toolchain tree and copied
+          # from the first match into the build (executable) root.
+          for d in libgcc_s_seh-1.dll libwinpthread-1.dll libstdc++-6.dll; do
+            match=$(grep -F "$d" $RUNNER_TEMP/minw_dlls.txt | head -n 1)
+            if [ -n "$match" ]; then
+              cp "$match" .
+              echo "Copied $d"
+            else
+              echo "WARNING: $d not found" >&2
+            fi
+          done
 
       - name: Compress to zip file
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          # 7z '*' does not cross directory boundaries, so patterns need the
-          # build/ prefix. Exclude both the directory entry and its contents.
-          # '**' is used for recursive matching (nested .cmake files).
+          # Exclude all CMake/Ninja build artifacts. '**' matches nested dirs.
           7z a CS3MapEdit_Win64.zip build \
-            -x!'build/CMakeFiles' \
-            -x!'build/CMakeFiles/*' \
-            -x!'build/cs3-map-edit_autogen' \
-            -x!'build/cs3-map-edit_autogen/*' \
+            -x!'**/CMakeFiles' \
+            -x!'**/*_autogen' \
+            -x!'**/.qt' \
+            -x!'**/.ninja_deps' \
+            -x!'**/.ninja_log' \
             -x!'build/build.ninja' \
             -x!'build/cmake_install.cmake' \
-            -x!'**/*.cmake' \
-            -x!'build/zlib' \
-            -x!'build/zlib/*'
+            -x!'build/CMakeCache.txt' \
+            -x!'build/Desktop_Qt_6_11_1-Release' \
+            -x!'build/zlib'
 
       - name: Release
         uses: softprops/action-gh-release@v1
