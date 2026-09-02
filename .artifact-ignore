@@ -1,0 +1,14 @@
+# Glob patterns excluded from the uploaded build artifact.
+# Consumed by actions/upload-artifact's `ignore` parameter.
+# Each pattern is matched against the uploaded tree, so `**/` is used to
+# match entries at any depth.
+**/CMakeFiles/**
+**/*_autogen/**
+**/.qt/**
+**/.ninja_deps/**
+**/.ninja_log/**
+**/build.ninja
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Desktop_*-Release/**
+**/zlib/**

@@ -71,11 +71,6 @@ jobs:
         run: |
           windeployqt --pdb --release --no-compiler-runtime --no-translations cs3-map-edit.exe --qmldir=${{ env.SOURCE_DIR }}/src
 
-      #- name: Compress to zip file
-      #  working-directory: ${{ env.SOURCE_DIR }}
-      #  run: |
-      #    7z a CS3MapEdit_Win64.zip build
-
       - name: Copy zlib DLL to executable root
         working-directory: ${{ env.SOURCE_DIR }}/build
         run: |
@@ -127,33 +122,18 @@ jobs:
             fi
           done
 
-      - name: Compress to zip file
-        working-directory: ${{ env.SOURCE_DIR }}
-        run: |
-          # Exclude all CMake/Ninja build artifacts. '**' matches nested dirs.
-          7z a CS3MapEdit_Win64.zip build \
-            -x!'**/CMakeFiles' \
-            -x!'**/*_autogen' \
-            -x!'**/.qt' \
-            -x!'**/.ninja_deps' \
-            -x!'**/.ninja_log' \
-            -x!'build/build.ninja' \
-            -x!'build/cmake_install.cmake' \
-            -x!'build/CMakeCache.txt' \
-            -x!'build/Desktop_Qt_6_11_1-Release' \
-            -x!'build/zlib'
-
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             LICENSE
-            *.zip
+            build/**
 
       - name: Save build artifact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.ARTIFACT }}
-          path: ${{ env.SOURCE_DIR }}/${{ env.ARTIFACT }}.zip
+          path: ${{ env.SOURCE_DIR }}/build
+          ignore: ${{ env.SOURCE_DIR }}/.artifact-ignore
           retention-days: 7
