@@ -216,7 +216,6 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
         m_layers.reserve(layerCount);
         for (size_t i = 0; i < layerCount; ++i)
         {
-            // LOGI("layer %lu", i);
             std::unique_ptr<CLayer> layer = std::make_unique<CLayer>(m_len, m_hei);
             if (!layer->readCommon(readfile, ver))
             {

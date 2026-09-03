@@ -730,7 +730,6 @@ bool CFrameSet::importIMA(IFile &file, const long org)
         m_lastError = "this is not a valid .ima file";
         return false;
     }
-    // LOGI("datasize: %d ima len:%d hei:%d", dataSize, imaHead.len, imaHead.hei);
     std::vector<char> pIMA(dataSize);
     if (file.read(pIMA.data(), dataSize) != IFILE_OK)
     {

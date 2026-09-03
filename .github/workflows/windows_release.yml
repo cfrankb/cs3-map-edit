@@ -33,7 +33,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: (2) Get all tags for correct version determination
+      - name: Get all tags for correct version determination
         working-directory: ${{ github.workspace }}
         run: |
           git fetch --all --tags -f
@@ -122,18 +122,42 @@ jobs:
             fi
           done
 
+      - name: Stage clean distribution folder
+        working-directory: ${{ env.SOURCE_DIR }}/build
+        run: |
+          # build/ contains CMake/Ninja cruft (CMakeFiles, .ninja_*, _autogen,
+          # Desktop_*). windeployqt spreads Qt plugin DLLs across subfolders
+          # (platforms/, imageformats/, styles/, ...), so copy them all recursively
+          # into a fresh dist/ folder, preserving their relative paths.
+          rm -rf dist
+          mkdir dist
+          cp cs3-map-edit.exe dist/
+          # -parents preserves the subfolder structure (platforms/, imageformats/, ...)
+          find . -type f -name '*.dll' -not -path './dist/*' -exec cp --parents {} dist/ \;
+          # Remove the CMake/Ninja build cruft we don't want in the artifact.
+          for d in CMakeFiles Desktop_*-Release zlib; do
+            if [ -e "$d" ]; then rm -rf "dist/$d"; fi
+          done
+          for d in *_autogen .qt .ninja_deps .ninja_log; do
+            if [ -e "dist/$d" ]; then rm -rf "dist/$d"; fi
+          done
+          if [ -f build.ninja ]; then rm -f "dist/build.ninja"; fi
+          if compgen -G 'dist/*.cmake' >/dev/null 2>&1; then rm -f dist/*.cmake; fi
+          if [ -f dist/cmake_install.cmake ]; then rm -f dist/cmake_install.cmake; fi
+          if [ -f dist/CMakeCache.txt ]; then rm -f dist/CMakeCache.txt; fi
+          find dist -type f | sort
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             LICENSE
-            build/**
+            dist/**
 
       - name: Save build artifact
         uses: actions/upload-artifact@v5
         with:
           name: ${{ env.ARTIFACT }}
-          path: ${{ env.SOURCE_DIR }}/build
-          ignore: ${{ env.SOURCE_DIR }}/.artifact-ignore
+          path: ${{ env.SOURCE_DIR }}/build/dist
           retention-days: 7

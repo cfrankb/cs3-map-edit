@@ -110,8 +110,8 @@ public:
     ~CGame();
     bool loadLevel(const GameMode mode);
     bool move(const JoyAim dir);
-    void manageMonsters(const int ticks);
-    void manageBosses(const int ticks);
+    void manageMonsters(const uint32_t ticks);
+    void manageBosses(const uint32_t ticks);
     uint8_t managePlayer(const uint8_t *joystate);
     static Pos translate(const Pos &p, const int aim);
     void consume();
@@ -247,12 +247,14 @@ private:
 
     // regular monsters (mob)
     void handleMonster(CActor &actor, const TileDef &def);
+    void handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ticks);
     void handleDrone(CActor &actor, const TileDef &def);
     void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters);
     void handleCrusher(CActor &actor, const bool speeds[]);
     void handleIceCube(CActor &actor);
     void handleBullet(CActor &actor, const TileDef &def, const int i, const bulletData_t &bullet, std::set<int, std::greater<int>> &deletedMonsters);
     void handleBarrel(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+    void handleEgg(CActor &actor, const TileDef &def);
     bool pushChain(const int x, const int y, const JoyAim aim);
     bool fuseBarrel(const Pos &pos);
     void blastRadius(const Pos &pos, const size_t radius, const int damage, std::set<int, std::greater<int>> &deletedMonsters);

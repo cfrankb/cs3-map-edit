@@ -43,6 +43,7 @@
 #include "gamesfx.h"
 #include "tilesdefs.h"
 #include "layerdata.h"
+#include "animzdata.h"
 
 // Check windows
 #ifdef _WIN64
@@ -678,11 +679,14 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
             const Pos pos = monster.pos();
             const uint8_t attr = map->getAttr(pos.x, pos.y);
             sprites.emplace_back(
-                sprite_t{.x = monster.x(),
-                         .y = monster.y(),
-                         .tileID = tileID,
-                         .aim = monster.getAim(),
-                         .attr = attr});
+                sprite_t{
+                    .x = monster.x(),
+                    .y = monster.y(),
+                    .tileID = tileID,
+                    .aim = monster.getAim(),
+                    .attr = attr,
+                    .frame = monster.frame(),
+                });
         }
     }
 
@@ -697,6 +701,7 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
                 .tileID = sfx.sfxID,
                 .aim = AIM_NONE,
                 .attr = 0,
+                .frame = 0,
             });
         }
     }
@@ -2385,12 +2390,15 @@ CFrame *CGameMixin::calcSpecialFrame(const sprite_t &sprite)
         }
     }
     CFrameSet &animz = *m_animz;
-    const animzInfo_t info = m_animator->getSpecialInfo(sprite.tileID);
-    if (sprite.tileID == SFX_FLAME)
+    if (sprite.tileID == TILES_EGG_WHOLE)
     {
-        // LOGI("info.base=%u", info.base);
+        return animz[ANIMZ_EGG_HATCH + sprite.frame];
     }
-    return animz[saim * info.frames + info.base + info.offset];
+    else
+    {
+        const animzInfo_t info = m_animator->getSpecialInfo(sprite.tileID);
+        return animz[saim * info.frames + info.base + info.offset];
+    }
 }
 
 /**

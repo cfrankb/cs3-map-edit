@@ -51,7 +51,7 @@
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0009;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000a;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
@@ -541,7 +541,7 @@ void CGame::setMapArch(CMapArch *arch)
 
 bool CGame::isMonsterType(const uint8_t typeID) const
 {
-    std::array<uint8_t, 8> monsterTypes = {
+    std::array<uint8_t, 9> monsterTypes = {
         TYPE_MONSTER,
         TYPE_VAMPLANT,
         TYPE_DRONE,
@@ -550,6 +550,7 @@ bool CGame::isMonsterType(const uint8_t typeID) const
         TYPE_FIREBALL,
         TYPE_LIGHTNING_BOLT,
         TYPE_BARREL,
+        TYPE_EGG,
     };
 
     for (size_t i = 0; i < monsterTypes.size(); ++i)

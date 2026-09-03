@@ -120,7 +120,7 @@ constexpr const TileDef tileDefs[] = {
     {0x2000, TYPE_PICKUP, 67, 10, 0, 0, false, "orb.obl"},                  // 5e TILES_ORB
     {0x2000, TYPE_PICKUP, 66, 0, 0, 0, false, "tntstick.obl"},              // 5f TILES_TNTSTICK
     {0x00, TYPE_MONSTER, 0, -20, 4, 3, false, "skeletondn.png"},            // 60 TILES_SKELETON
-    {0x00, TYPE_MONSTER, 0, -9, 4, 3, false, "bbdragondn.png"},             // 61 TILES_BABYDRAGON
+    {0x00, TYPE_MONSTERV3, 0, -9, 4, 3, false, "bbdragondn.png"},           // 61 TILES_BABYDRAGON
     {0x00, TYPE_MONSTER, 0, -4, 4, 7, false, "deico.obl"},                  // 62 TILES_DEICO
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "forcef94.obl"},                  // 63 TILES_FORCEF94
     {0x8000, TYPE_WALLS, 0, 0, 0, 0, false, "forcefih.obl"},                // 64 TILES_FORCEFIH
@@ -180,9 +180,10 @@ constexpr const TileDef tileDefs[] = {
     {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "barrel2ex.png"},                 // 9a TILES_BARREL2EX
     {0x00, TYPE_BARREL, 0, -20, 0, 0, false, "barrel2.png"},                // 9b TILES_BARREL2
     {0x00, TYPE_FIRE, 0, -1, 0, 0, false, "flame16x16.zip"},                // 9c TILES_FLAME
-    {0x00, TYPE_EGG, 0, 0, 0, 0, false, "egg_whole.png"},                   // 9d TILES_EGG_WHOLE
-    {0x8000, TYPE_WALLS, 0, 0, 0, 0, false, "egg_cracked.png"},             // 9e TILES_EGG_HATCHED
-    {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "egg_cracked.png"}           // 9f TILES_EGG_CRACKED
+    {0x00, TYPE_EGG, 0, 0, 4, 0, false, "egg_whole"},                       // 9d TILES_EGG_WHOLE
+    {0x00, TYPE_WALLS, 0, 0, 0, 0, false, "egg_rotten"},                    // 9e TILES_EGG_ROTTEN
+    {0x00, TYPE_BACKGROUND, 0, 0, 0, 0, false, "egg_cracked"},              // 9f TILES_EGG_CRACKED
+    {0x00, TYPE_FIREBALL, 0, -10, 4, 0, false, "fireball_sm.png"}           // a0 TILES_FIREBALL_SM
 };
 
 const uint8_t chMap[] = {

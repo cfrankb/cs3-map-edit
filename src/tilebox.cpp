@@ -144,6 +144,7 @@ int CTileBox::getTabId(int typeId)
         break;
     case TYPE_DRONE:
     case TYPE_MONSTER:
+    case TYPE_MONSTERV3:
     case TYPE_VAMPLANT:
     case TYPE_FIREBALL:
     case TYPE_LIGHTNING_BOLT:
@@ -160,6 +161,7 @@ int CTileBox::getTabId(int typeId)
     case TYPE_CHUTE:
     case TYPE_FIRE:
     case TYPE_BARREL:
+    case TYPE_EGG:
         j = TAB_SPECIAL;
     };
     return j;

@@ -217,6 +217,7 @@ protected:
         uint16_t tileID;
         uint8_t aim;
         uint8_t attr;
+        uint8_t frame;
     };
 
     struct visualCues_t

@@ -181,7 +181,8 @@ enum Tiles
     TILES_BARREL2             = 0x9b,
     TILES_FLAME               = 0x9c,
     TILES_EGG_WHOLE           = 0x9d,
-    TILES_EGG_HATCHED         = 0x9e,
+    TILES_EGG_ROTTEN          = 0x9e,
     TILES_EGG_CRACKED         = 0x9f,
-    TILES_TOTAL_COUNT         = 0xa0,
+    TILES_FIREBALL_SM         = 0xa0,
+    TILES_TOTAL_COUNT         = 0xa1,
 };

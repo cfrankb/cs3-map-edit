@@ -80,6 +80,7 @@ private:
         TILES_WHTEWORM,
         TILES_SKELETON,
         TILES_BABYDRAGON,
+        TILES_EGG_WHOLE,
     };
 
     enum : uint32_t

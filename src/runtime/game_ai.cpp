@@ -31,6 +31,7 @@
 #include "gamestats.h"
 #include "tilesdefs.h"
 #include "gamesfx.h"
+#include "animzdata.h"
 
 namespace GamePrivate
 {
@@ -225,7 +226,7 @@ void CGame::handleBossHitboxContact(CBoss &boss)
                      });
 }
 
-void CGame::manageBosses(const int ticks)
+void CGame::manageBosses(const uint32_t ticks)
 {
     auto &rng = getRandom();
     rng.setTick(ticks);
@@ -319,7 +320,7 @@ void CGame::manageBosses(const int ticks)
  * @param ticks clock ticks since start
  */
 
-void CGame::manageMonsters(const int ticks)
+void CGame::manageMonsters(const uint32_t ticks)
 {
     std::vector<CActor> newMonsters;
     std::set<int, std::greater<int>> deletedMonsters;
@@ -347,8 +348,7 @@ void CGame::manageMonsters(const int ticks)
             const uint8_t distance = (attr & 0xf) + 1;
             if (actor.distance(m_player) <= distance)
                 m_map.setAttr(pos.x, pos.y, 0);
-            else
-                continue;
+            continue;
         }
 
         const TileDef &def = getTileDef(tileID);
@@ -358,6 +358,10 @@ void CGame::manageMonsters(const int ticks)
         if (actor.type() == TYPE_MONSTER)
         {
             handleMonster(actor, def);
+        }
+        if (actor.type() == TYPE_MONSTERV3)
+        {
+            handleMonsterV3(actor, def, ticks);
         }
         else if (actor.type() == TYPE_DRONE)
         {
@@ -390,6 +394,10 @@ void CGame::manageMonsters(const int ticks)
         else if (actor.type() == TYPE_BARREL)
         {
             handleBarrel(actor, def, i, deletedMonsters);
+        }
+        else if (actor.type() == TYPE_EGG)
+        {
+            handleEgg(actor, def);
         }
         else
         {
@@ -428,6 +436,73 @@ void CGame::handleMonster(CActor &actor, const TileDef &def)
             return;
         }
     }
+    bool reverse = def.ai & AI_REVERSE;
+    JoyAim aim = actor.findNextDir(reverse);
+    if (aim != AIM_NONE)
+    {
+        shadowActorMove(actor, aim);
+        if (!(def.ai & AI_ROUND))
+        {
+            return;
+        }
+    }
+    for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
+    {
+        if (actor.getAim() != g_dirs[i] &&
+            actor.isPlayerThere(g_dirs[i]))
+        {
+            // apply health damages
+            addHealth(def.health);
+            if (def.ai & AI_FOCUS)
+            {
+                actor.setAim(g_dirs[i]);
+            }
+            break;
+        }
+    }
+}
+
+void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ticks)
+{
+    static constexpr JoyAim g_dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
+    if (actor.isPlayerThere(actor.getAim()))
+    {
+        // apply health damages
+        addHealth(def.health);
+        if (def.ai & AI_STICKY)
+        {
+            return;
+        }
+    }
+
+    int distance = actor.distance(m_player);
+    if (distance < 7)
+    {
+        if (actor.isFollowingPath())
+        {
+            const CPath::Result result = actor.followPath(m_player.pos());
+            if (result != CPath::Result::Blocked)
+            {
+
+                JoyAim aim = actor.getAim();
+                actor.setAim(aim);
+                if (ticks % 16 != 0)
+                    return;
+                if (actor.canMove(aim))
+                {
+                    Pos t = translate(actor.pos(), aim);
+                    spawnBullet(t.x, t.y, aim, TILES_FIREBALL_SM);
+                }
+            }
+        }
+        else
+        {
+            actor.startPath(m_player.pos(), BossData::ASTAR, -1);
+        }
+        return;
+    }
+    actor.clearPath();
+
     bool reverse = def.ai & AI_REVERSE;
     JoyAim aim = actor.findNextDir(reverse);
     if (aim != AIM_NONE)
@@ -673,6 +748,27 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
     }
 }
 
+void CGame::handleEgg(CActor &actor, const TileDef &def)
+{
+    (void)def;
+    uint8_t frame = actor.frame();
+    ++frame;
+    if (frame < ANIMZ_EGG_HATCH_LEN)
+    {
+        actor.setFrame(frame);
+    }
+    else
+    {
+        const uint8_t tileID = TILES_BABYDRAGON;
+        const TileDef &td = getTileDef(tileID);
+        actor.setFrame(0);
+        actor.setType(td.type);
+        actor.setPU(TILES_EGG_CRACKED);
+        actor.setAim(AIM_UP);
+        m_map.set(actor.x(), actor.y(), tileID);
+    }
+}
+
 void CGame::handleBarrel(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters)
 {
     if (actor.decTTL() == 0)
@@ -706,7 +802,6 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         aim = actor.getAim();
         // if (actor.canMove(aim) && actor.getTTL() != 0)
         //     return;
-        // LOGI("sprite: %p not moving result:[%d]; aim=[%d] isPlayerThere=[%d] [%p]", &actor, result, actor.getAim(), actor.isPlayerThere(aim), actor.path());
     }
     else
     {

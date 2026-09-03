@@ -81,6 +81,7 @@ public:
     CPath::Result followPath(const Pos &playerPos);
     bool startPath(const Pos &playerPos, const uint8_t algo, const int timeout);
     bool isFollowingPath();
+    void clearPath() { m_path = nullptr; }
     bool isBoss() const override { return false; }
     const CPath *path() const { return m_path.get(); };
     int getTTL() const override { return m_ttl; };
@@ -92,15 +93,21 @@ public:
         return m_ttl;
     }
     uint8_t algo() const { return m_algo; }
+    uint8_t frame() const { return m_frame; }
+    void setFrame(const uint8_t frame) { m_frame = frame; }
 
 private:
     uint8_t m_x;
     uint8_t m_y;
     uint8_t m_type;
-    uint8_t m_algo;
+    union
+    {
+        uint8_t m_frame;
+        uint8_t m_algo;
+    };
     JoyAim m_aim;
     uint8_t m_pu;
-    int m_ttl;
+    int32_t m_ttl;
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);
     template <typename WriteFunc>

@@ -503,8 +503,8 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
             m_pathTimeout = PATH_TIMEOUT_MAX;
         if (m_cachedDirections.empty())
         {
-            if (!sprite.isBoss())
-                LOGI("sprite: %p -- path empty", &sprite);
+            // if (!sprite.isBoss())
+            //     LOGI("sprite: %p -- path empty", &sprite);
             return Result::NoValidPath; // No valid path
         }
     }
@@ -528,8 +528,8 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
     }
 
     // Move failed, invalidate cache and recompute next turn
-    if (!sprite.isBoss())
-        LOGI("sprite: %p -- cannot move", &sprite);
+    // if (!sprite.isBoss())
+    //    LOGI("sprite: %p -- cannot move", &sprite);
     m_cachedDirections.clear();
     m_pathIndex = 0;
     m_pathTimeout = 0;
