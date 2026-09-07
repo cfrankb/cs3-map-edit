@@ -20,7 +20,7 @@ env:
   SOURCE_DIR: ${{ github.workspace }}
   QT_VERSION: 6.7.1
   ARTIFACT: CS3MapEdit_Win64_MSVC
-  ARCH: msvc2022
+  ARCH: msvc2022_64
   HOST: windows
 
 jobs:
