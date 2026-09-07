@@ -278,10 +278,12 @@ MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
     setFocusPolicy(Qt::StrongFocus);
     setMinimumSize(320, 240);
 
+#ifndef __MINGW32__
     QFont f("Courier New");            // or "Consolas", "DejaVu Sans Mono", etc.
     f.setStyleHint(QFont::TypeWriter); // forces monospaced
     f.setBold(true);
-    setFont(f); // This sets the widget’s base font
+    setFont(f); // This sets the widget's base font
+#endif
     preloadAssets();
 
     m_flashTimer.setInterval(250);
@@ -381,6 +383,8 @@ void MapWidget::preloadAssets()
     };
 
     QFileWrap file;
+
+    LOGI("preloadAssets start");
 
     //////////////////////////////////////////////////
     // tileset for mainLayer
