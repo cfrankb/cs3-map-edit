@@ -10,11 +10,11 @@ set(CMAKE_AUTORCC ON)   # QRC
 # Emit debug info (symbols) so crashes can be backtraced.
 # Always enabled; the cost is larger binaries, which is worth it for
 # being able to attach a debugger / produce a usable call stack.
-if(NOT CMAKE_CXX_FLAGS)
-    set(CMAKE_CXX_FLAGS "-g")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-endif()
+#if(NOT CMAKE_CXX_FLAGS)
+#    set(CMAKE_CXX_FLAGS "-g")
+#else()
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+#endif()
 
 
 

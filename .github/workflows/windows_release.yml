@@ -56,10 +56,20 @@ jobs:
             rmdir build
           fi
 
+      #- name: Configure build with CMake
+      #  working-directory: ${{ env.SOURCE_DIR }}
+      #  run: |
+      #    cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
+
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
+          # Force CMake to use the MinGW compiler bundled inside the downloaded Qt directory
+          cmake -G Ninja -B build \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCS3_BUILD_ZLIB_FROM_SOURCE=ON \
+            -DCMAKE_C_COMPILER="${{ runner.temp }}/Qt/${{env.QT_VERSION }}/mingw_64/bin/gcc.exe" \
+            -DCMAKE_CXX_COMPILER="${{ runner.temp }}/Qt/${{env.QT_VERSION }}/mingw_64/bin/g++.exe"
 
       - name: Build
         working-directory: ${{ env.SOURCE_DIR }}
