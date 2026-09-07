@@ -4,23 +4,25 @@ Game specification reference for map editing, covering level mechanics and tile 
 
 ## Game Mechanics Overview
 
-Any consumable (attributes `01-1F` and `40-4F`) will, when assigned an attribute, make matching tiles with the same attribute disappear.
+Any consumable , when assigned an attribute (attributes `01-1F` and `40-4F` -- see table below), will make matching tiles with the same attribute disappear.
 
 | Tile | Behavior |
 |------|----------|
-| diamonds | must be collected to complete the level |
+| diamonds | must be collected to complete the level. health bonus |
+| Flowers & mecklaces| health bonus
 | chute | drops to the next level (same X, Y coordinates) |
 | ice cubes | can be pushed onto monster |
 | exploding barrels | can damage nearby enemies and player |
 | water / swamp | causes health damage to player |
 | boat | grants immunity to water (one-time consumable) |
-| boulder | can be moved |
+| boulder | can be pushed |
 | dragon egg | spawns dragon |
 | keys and doors | allow/block player (deny access) |
 | monsters | regular mobs are variations of basic AI |
+| bosses | special pathfinding algorithm
 | vines | damages player, can swallow other monsters and spread through water |
 | blue mushroom | extra life (one-time consumable) |
-| green mushroom | TBD |
+| green mushroom | rage??? TBD |
 | red mushroom | invincibility / god mode (one-time consumable) |
 | yellow mushroom | sugar rush (one-time consumable) |
 | fruits | give player sugar rush |

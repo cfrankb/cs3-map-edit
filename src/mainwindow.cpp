@@ -38,48 +38,29 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    LOGI("[ctor] setupUi done");
-
     // hook MapView
-    LOGI("[ctor] new MapView");
     m_mapView = new MapView(this, &m_doc);
-    LOGI("[ctor] setMainWindow");
     m_mapView->mapWidget()->setMainWindow(this);
-    LOGI("[ctor] setMap");
     m_mapView->setMap(m_doc.map());
-    LOGI("[ctor] centerOnMap");
     m_mapView->centerOnMap();
-    LOGI("[ctor] setCentralWidget");
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
     connect(&m_doc, &CMapFile::currentMapChanged, m_mapView, &MapView::setMap);
-    LOGI("[ctor] pre-connect: actionView_Grid=%p mapWidget=%p", ui->actionView_Grid, m_mapView->mapWidget());
     connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
     connect(&m_doc, &CMapFile::refreshMap, this, [this]()
             { m_mapView->mapWidget()->update(); });
     connect(m_mapView->mapWidget(), &MapWidget::statusChanged, this, &MainWindow::setStatus);
 
-    LOGI("[ctor] setDirty");
     setDirty(false);
-    LOGI("[ctor] initUndoRedo");
     initUndoRedo();
-    LOGI("[ctor] initTilebox");
     initTilebox();
-    LOGI("[ctor] initHistoryWidget");
     initHistoryWidget();
-    LOGI("[ctor] initSelectorWidget");
     initSelectorWidget();
-    LOGI("[ctor] initLayerBox");
     initLayerBox();
-    LOGI("[ctor] initFileMenu");
     initFileMenu();
-    LOGI("[ctor] initMapShortcuts");
     initMapShortcuts();
-    LOGI("[ctor] initToolBars");
     initToolBars();
-    LOGI("[ctor] updateMenus");
     updateMenus();
-    LOGI("[ctor] setWindowIcon");
     setWindowIcon(QIcon(":/data/icons/CS3MapEdit-icon.png"));
     m_label = new QLabel("", ui->statusbar);
     m_label->setAlignment(Qt::AlignRight);
@@ -243,9 +224,8 @@ void MainWindow::initSelectorWidget()
     dock->setAllowedAreas(Qt::RightDockWidgetArea);
 
     connect(selectorWidget, &TileSelectorWidget::stampSelected, m_mapView->mapWidget(), &MapWidget::setCurrentStamp);
-    connect(selectorWidget, &TileSelectorWidget::tilesSelected, this, [](const QList<TileInfo>& list ){
-        LOGI("selection:  %lld tiles", list.size());
-    });
+    connect(selectorWidget, &TileSelectorWidget::tilesSelected, this, [](const QList<TileInfo> &list)
+            { LOGI("selection:  %lld tiles", list.size()); });
 
     // Create a menu action bound to the dock
     QAction *toggleTileBoxAction = dock->toggleViewAction();
@@ -634,10 +614,10 @@ void MainWindow::initToolBarDocument()
     cbZoom->addItem("300%", 3);
     cbZoom->addItem("400%", 4);
     ui->toolBar->addWidget(cbZoom);
-    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i) {
+    connect(cbZoom, &QComboBox::currentIndexChanged, this, [this](int i)
+            {
         m_mapView->setZoom(i + 1);
-        updateZoom();
-    });
+        updateZoom(); });
     cbZoom->setCurrentIndex(1);
 
     // add toolbar to view menu
@@ -646,19 +626,19 @@ void MainWindow::initToolBarDocument()
     actionToolBar->setStatusTip(tr("Show or hide Document toolBar"));
     ui->menuView->addAction(actionToolBar);
 
-    connect(ui->actionView_Zoom_In, &QAction::triggered, this, [this, cbZoom]() {
+    connect(ui->actionView_Zoom_In, &QAction::triggered, this, [this, cbZoom]()
+            {
         m_mapView->zoomIn();
         int zoom = m_mapView->zoom();
         cbZoom->setCurrentIndex(zoom - 1);
-        updateZoom();
-    });
+        updateZoom(); });
 
-    connect(ui->actionView_Zoom_Out, &QAction::triggered, this, [this, cbZoom]() {
+    connect(ui->actionView_Zoom_Out, &QAction::triggered, this, [this, cbZoom]()
+            {
         m_mapView->zoomOut();
         int zoom = m_mapView->zoom();
         cbZoom->setCurrentIndex(zoom - 1);
-        updateZoom();
-    });
+        updateZoom(); });
 
     // ──────────────────────────────────────────────────────────────
     //  FULL TWO-WAY WIRING: MainWindow ↔ MapWidget
@@ -707,7 +687,6 @@ void MainWindow::initToolBarDocument()
     connect(m_mapView->mapWidget(), &MapWidget::mapModified, this, [this]()
             { setDirty(true); });
 }
-
 
 void MainWindow::initToolBarTools()
 {
@@ -786,7 +765,6 @@ void MainWindow::initToolBarTools()
     actionToolBar->setStatusTip(tr("Show or hide Tools ToolBar"));
     ui->menuView->addAction(actionToolBar);
 }
-
 
 void MainWindow::on_actionClear_Map_triggered()
 {
