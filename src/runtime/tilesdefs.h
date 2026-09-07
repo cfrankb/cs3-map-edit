@@ -32,6 +32,10 @@ struct TileDef
     uint16_t ai;
     bool hidden;
     const char * basename;
+    uint16_t bullet;
+    uint8_t rate;
+    uint8_t path;
+    uint8_t range;
 };
 
 extern const TileDef tileDefs[];

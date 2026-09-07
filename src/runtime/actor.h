@@ -95,6 +95,7 @@ public:
     uint8_t algo() const { return m_algo; }
     uint8_t frame() const { return m_frame; }
     void setFrame(const uint8_t frame) { m_frame = frame; }
+    void setAlgo(const uint8_t algo) { m_algo = algo; }
 
 private:
     uint8_t m_x;

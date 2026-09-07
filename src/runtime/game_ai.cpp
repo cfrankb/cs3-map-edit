@@ -359,7 +359,7 @@ void CGame::manageMonsters(const uint32_t ticks)
         {
             handleMonster(actor, def);
         }
-        if (actor.type() == TYPE_MONSTERV3)
+        else if (actor.type() == TYPE_MONSTERV3)
         {
             handleMonsterV3(actor, def, ticks);
         }
@@ -475,33 +475,36 @@ void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ti
         }
     }
 
-    int distance = actor.distance(m_player);
-    if (distance < 7)
+    if (actor.type() == TYPE_MONSTERV3)
     {
-        if (actor.isFollowingPath())
+        int distance = actor.distance(m_player);
+        if (distance < def.range)
         {
-            const CPath::Result result = actor.followPath(m_player.pos());
-            if (result != CPath::Result::Blocked)
+            if (actor.isFollowingPath())
             {
-
-                JoyAim aim = actor.getAim();
-                actor.setAim(aim);
-                if (ticks % 16 != 0)
-                    return;
-                if (actor.canMove(aim))
+                const CPath::Result result = actor.followPath(m_player.pos());
+                if (result != CPath::Result::Blocked)
                 {
-                    Pos t = translate(actor.pos(), aim);
-                    spawnBullet(t.x, t.y, aim, TILES_FIREBALL_SM);
+                    JoyAim aim = actor.getAim();
+                    actor.setAim(aim);
+                    // if (ticks % 16 != 0)
+                    if (!def.rate && ticks % def.rate != 0)
+                        return;
+                    if (actor.canMove(aim))
+                    {
+                        Pos t = translate(actor.pos(), aim);
+                        spawnBullet(t.x, t.y, aim, def.bullet); // TILES_FIREBALL_SM);
+                    }
                 }
             }
+            else
+            {
+                actor.startPath(m_player.pos(), BossData::ASTAR, -1);
+            }
+            return;
         }
-        else
-        {
-            actor.startPath(m_player.pos(), BossData::ASTAR, -1);
-        }
-        return;
+        actor.clearPath();
     }
-    actor.clearPath();
 
     bool reverse = def.ai & AI_REVERSE;
     JoyAim aim = actor.findNextDir(reverse);
@@ -759,12 +762,12 @@ void CGame::handleEgg(CActor &actor, const TileDef &def)
     }
     else
     {
-        const uint8_t tileID = TILES_BABYDRAGON;
+        const uint8_t tileID = def.bullet; // TILES_BABYDRAGON;
         const TileDef &td = getTileDef(tileID);
-        actor.setFrame(0);
         actor.setType(td.type);
         actor.setPU(TILES_EGG_CRACKED);
         actor.setAim(AIM_UP);
+        actor.setAlgo(td.path);
         m_map.set(actor.x(), actor.y(), tileID);
     }
 }

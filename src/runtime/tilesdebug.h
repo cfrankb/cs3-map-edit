@@ -29,6 +29,8 @@ std::string get_aiNames(const uint16_t i);
 const std::unordered_map<uint16_t, std::string> & get_aiNamesMap();
 std::string get_speedsNames(const uint16_t i);
 const std::unordered_map<uint16_t, std::string> & get_speedsNamesMap();
+std::string get_pathNames(const uint16_t i);
+const std::unordered_map<uint16_t, std::string> & get_pathNamesMap();
 std::string get_flagsNames(const uint16_t i);
 const std::unordered_map<uint16_t, std::string> & get_flagsNamesMap();
 std::string get_typesNames(const uint16_t i);

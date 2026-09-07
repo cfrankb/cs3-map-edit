@@ -208,6 +208,13 @@ static const std::unordered_map<uint16_t, std::string> g_speedsNames = {
     _S(SPEED_VERYSLOW),
 };
 
+static const std::unordered_map<uint16_t, std::string> g_pathNames = {
+    _S(PATH_NONE),
+    _S(PATH_ASTAR),
+    _S(PATH_BFS),
+    _S(PATH_LOS),
+};
+
 static const std::unordered_map<uint16_t, std::string> g_flagsNames = {
     _S(FLAG_GODMODE),
     _S(FLAG_EXTRA_LIFE),
@@ -283,6 +290,20 @@ std::string get_speedsNames(const uint16_t i)
 const std::unordered_map<uint16_t, std::string> & get_speedsNamesMap()
 {
    return g_speedsNames;
+}
+
+std::string get_pathNames(const uint16_t i)
+{
+    const auto &it = g_pathNames.find(i);
+    if (it != g_pathNames.end())
+        return it->second;
+    else
+        return "";
+}
+
+const std::unordered_map<uint16_t, std::string> & get_pathNamesMap()
+{
+   return g_pathNames;
 }
 
 std::string get_flagsNames(const uint16_t i)

@@ -83,6 +83,10 @@ MainWindow::MainWindow(QWidget *parent)
         updateStatus();
         updateMapHistoryList(); });
     connect(&m_doc, &CMapFile::dirtyChanged, this, &MainWindow::setDirty);
+
+#if !defined(USE_HUNSPELL)
+    ui->actionSpell_SpellSettings->setEnabled(false);
+#endif
 }
 
 void MainWindow::initUndoRedo()

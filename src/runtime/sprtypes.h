@@ -49,6 +49,16 @@ enum TileFlag:uint16_t
 
 
 // @enum
+enum TilePath:uint8_t
+{
+    PATH_NONE                 = 0x00,
+    PATH_ASTAR                = 0x01,
+    PATH_BFS                  = 0x02,
+    PATH_LOS                  = 0x03,
+};
+
+
+// @enum
 enum TileSpeed:uint16_t
 {
     SPEED_VERYFAST            = 0x02,
