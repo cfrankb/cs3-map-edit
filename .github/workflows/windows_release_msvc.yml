@@ -1,0 +1,125 @@
+name: Windows Release (MSVC)
+
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - "master"
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  BUILD_TYPE: Release
+  SOURCE_DIR: ${{ github.workspace }}
+  QT_VERSION: 6.7.1
+  ARTIFACT: CS3MapEdit_Win64_MSVC
+  ARCH: msvc2022
+  HOST: windows
+
+jobs:
+  build:
+    runs-on: windows-2022 # Use the Windows Server 2022 runner (ships the MSVC toolchain)
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get all tags for correct version determination
+        working-directory: ${{ github.workspace }}
+        run: |
+          git fetch --all --tags -f
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: ${{ env.HOST }}
+          target: desktop
+          arch: ${{ env.ARCH }} # MSVC build of Qt (no MinGW / no MSYS)
+          dir: ${{ runner.temp }}
+          setup-python: false
+
+      - name: Clean stale build directory
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          if [ -d build ]; then
+            echo "Removing stale build/ to avoid cached config"
+            rmdir build
+          fi
+
+      - name: Configure build with CMake
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          # MSVC is the default compiler on the windows-2022 runner. We intentionally
+          # DO NOT pass -DCMAKE_C_COMPILER / -DCMAKE_CXX_COMPILER so the build keeps
+          # using the Windows SDK / MSVC toolchain shipped with the runner. No MinGW,
+          # no MSYS, only native Windows libraries.
+          cmake -G Ninja -B build \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
+
+      - name: Build
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          cmake --build build
+
+      - name: Deploy Qt runtime
+        working-directory: ${{ env.SOURCE_DIR }}/build
+        run: |
+          windeployqt --pdb --release --no-compiler-runtime --no-translations cs3-map-edit.exe --qmldir=${{ env.SOURCE_DIR }}/src
+
+      - name: Copy zlib DLL to executable root
+        working-directory: ${{ env.SOURCE_DIR }}/build
+        run: |
+          if [ -f zlib/libz.dll ]; then
+            cp zlib/libz.dll .
+          fi
+
+      - name: Stage clean distribution folder
+        working-directory: ${{ env.SOURCE_DIR }}/build
+        run: |
+          # build/ contains CMake/Ninja cruft (CMakeFiles, .ninja_*, _autogen,
+          # Desktop_*). windeployqt spreads Qt plugin DLLs across subfolders
+          # (platforms/, imageformats/, styles/, ...), so copy them all recursively
+          # into a fresh dist/ folder, preserving their relative paths.
+          rm -rf dist
+          mkdir dist
+          cp cs3-map-edit.exe dist/
+          # -parents preserves the subfolder structure (platforms/, imageformats/, ...)
+          find . -type f -name '*.dll' -not -path './dist/*' -exec cp --parents {} dist/ \;
+          # Remove the CMake/Ninja build cruft we don't want in the artifact.
+          for d in CMakeFiles Desktop_*-Release zlib; do
+            if [ -e "$d" ]; then rm -rf "dist/$d"; fi
+          done
+          for d in *_autogen .qt .ninja_deps .ninja_log; do
+            if [ -e "dist/$d" ]; then rm -rf "dist/$d"; fi
+          done
+          if [ -f build.ninja ]; then rm -f "dist/build.ninja"; fi
+          if compgen -G 'dist/*.cmake' >/dev/null 2>&1; then rm -f dist/*.cmake; fi
+          if [ -f dist/cmake_install.cmake ]; then rm -f dist/cmake_install.cmake; fi
+          if [ -f dist/CMakeCache.txt ]; then rm -f dist/CMakeCache.txt; fi
+          find dist -type f | sort
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            LICENSE
+            dist/**
+
+      - name: Save build artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ env.ARTIFACT }}
+          path: ${{ env.SOURCE_DIR }}/build/dist
+          retention-days: 7
