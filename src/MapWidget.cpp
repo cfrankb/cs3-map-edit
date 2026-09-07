@@ -10,6 +10,9 @@
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QGuiApplication>
+#include <QFont>
+#include <QFontInfo>
+#include <QFontDatabase>
 #include <random>
 #include "runtime/shared/FrameSet.h"
 #include "runtime/shared/Frame.h"
@@ -272,11 +275,24 @@ private:
 MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
     : QWidget(parent), m_pixmapCache(PIXMAP_CACHE_SIZE)
 {
+    LOGI("[MapWidget ctor] start");
     m_doc = doc;
     m_map = nullptr;
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
     setMinimumSize(320, 240);
+    LOGI("[MapWidget ctor] past font check");
+
+    // Diagnostic: is the requested font resolvable on this platform?
+    // (Run unconditionally so it executes on MingW builds too.)
+    if (!isValidFont("Courier New", QFont::TypeWriter))
+    {
+        LOGW("'Courier New' font is NOT valid on this platform");
+    }
+    else
+    {
+        LOGI("'Courier New' font is valid on this platform");
+    }
 
 #ifndef __MINGW32__
     QFont f("Courier New");            // or "Consolas", "DejaVu Sans Mono", etc.
@@ -284,6 +300,7 @@ MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
     f.setBold(true);
     setFont(f); // This sets the widget's base font
 #endif
+    LOGI("[MapWidget ctor] calling preloadAssets");
     preloadAssets();
 
     m_flashTimer.setInterval(250);
@@ -1284,6 +1301,27 @@ uint8_t MapWidget::randomTile(const std::vector<uint8_t> &tiles)
     }
     // Fallback (shouldn't happen if weights > 0)
     return tiles.front();
+}
+
+bool MapWidget::isValidFont(const QString &family, QFont::StyleHint hint)
+{
+    // A requested font is "valid" only if Qt could actually resolve it to a
+    // font of the requested family on the current platform. Under Wine a
+    // missing "Courier New" silently falls back to another font; on native
+    // Windows 10 a bad/invalid font can crash the widget before it paints.
+    QFont probe(family);
+    probe.setStyleHint(hint);
+
+    const QFontInfo info(probe);
+    const bool familyResolved = (info.family() == family);
+
+    // hasFamily reports whether the family is actually installed/available.
+    const bool available = QFontDatabase::hasFamily(family);
+
+    LOGI("font check: requested='%s' resolvedFamily='%s' familyAvailable=%d",
+         family.toStdString().c_str(), info.family().toStdString().c_str(), available);
+
+    return familyResolved && available;
 }
 
 QString MapWidget::toolName(ToolType toolID)

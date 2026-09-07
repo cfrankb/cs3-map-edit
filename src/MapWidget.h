@@ -60,6 +60,9 @@ public:
     void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
     static QString toolName(ToolType toolID);
 
+    // Font diagnostics: returns true if the font resolved correctly on this platform
+    static bool isValidFont(const QString &family, QFont::StyleHint hint);
+
 signals:
     void tilePicked(uint8_t tileId);
     void selectionChanged(const QRect &rect); // in tile coordinates

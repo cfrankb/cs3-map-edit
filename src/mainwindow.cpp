@@ -36,13 +36,18 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+    LOGI("[ctor] setupUi done");
 
     // hook MapView
+    LOGI("[ctor] new MapView");
     m_mapView = new MapView(this, &m_doc);
+    LOGI("[ctor] setMainWindow");
     m_mapView->mapWidget()->setMainWindow(this);
+    LOGI("[ctor] setMap");
     m_mapView->setMap(m_doc.map());
+    LOGI("[ctor] centerOnMap");
     m_mapView->centerOnMap();
+    LOGI("[ctor] setCentralWidget");
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
     connect(&m_doc, &CMapFile::currentMapChanged, m_mapView, &MapView::setMap);
@@ -51,16 +56,27 @@ MainWindow::MainWindow(QWidget *parent)
             { m_mapView->mapWidget()->update(); });
     connect(m_mapView->mapWidget(), &MapWidget::statusChanged, this, &MainWindow::setStatus);
 
+    LOGI("[ctor] setDirty");
     setDirty(false);
+    LOGI("[ctor] initUndoRedo");
     initUndoRedo();
+    LOGI("[ctor] initTilebox");
     initTilebox();
+    LOGI("[ctor] initHistoryWidget");
     initHistoryWidget();
+    LOGI("[ctor] initSelectorWidget");
     initSelectorWidget();
+    LOGI("[ctor] initLayerBox");
     initLayerBox();
+    LOGI("[ctor] initFileMenu");
     initFileMenu();
+    LOGI("[ctor] initMapShortcuts");
     initMapShortcuts();
+    LOGI("[ctor] initToolBars");
     initToolBars();
+    LOGI("[ctor] updateMenus");
     updateMenus();
+    LOGI("[ctor] setWindowIcon");
     setWindowIcon(QIcon(":/data/icons/CS3MapEdit-icon.png"));
     m_label = new QLabel("", ui->statusbar);
     m_label->setAlignment(Qt::AlignRight);
