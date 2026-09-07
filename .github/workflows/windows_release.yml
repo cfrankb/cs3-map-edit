@@ -64,34 +64,23 @@ jobs:
       - name: Locate MinGW compiler bundled with Qt
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          # install-qt-action does not always place the bundled mingw compiler at
-          # the plain ${runner.temp}/Qt/${QT_VERSION}/mingw_64/bin, so search the
-          # whole Qt install tree for the real location instead of assuming it.
+          # The bundled MinGW toolchain MUST be used: mixing a Qt-bundled compiler
+          # with a different MinGW (e.g. the system C:/mingw64) produces mismatched
+          # binaries that fail to link/run. So we only accept a compiler found
+          # inside the Qt install tree, never fall back to a system toolchain.
           QT_ROOT="${{ runner.temp }}/Qt"
           echo "Searching for compilers under: $QT_ROOT"
           GCC=$(find "$QT_ROOT" -type f -name 'gcc.exe' 2>/dev/null | head -n 1)
           GXX=$(find "$QT_ROOT" -type f -name 'g++.exe' 2>/dev/null | head -n 1)
           if [ -z "$GCC" ] || [ -z "$GXX" ]; then
-            # Fall back to a MinGW toolchain available on PATH (the later
-            # "Find MinGW installation" step relies on the same discovery).
-            echo "Bundled compiler not found; falling back to PATH toolchain" >&2
-            for cand in gcc g++ cc x86_64-w64-mingw32-gcc x86_64-w64-mingw32-g++; do
-              found=$(which "$cand" 2>/dev/null)
-              if [ -n "$found" ]; then
-                GCC="$found"
-                GXX="${found/gcc/g++}"
-                break
-              fi
-            done
-          fi
-          if [ -z "$GCC" ] || [ -z "$GXX" ]; then
-            echo "ERROR: could not locate any gcc.exe/g++.exe" >&2
-            find "$QT_ROOT" -name '*.exe' 2>/dev/null | head -n 50 >&2
+            echo "ERROR: could not locate gcc.exe/g++.exe inside the Qt install at $QT_ROOT" >&2
+            echo "Contents of $QT_ROOT:" >&2
+            ls -R "$QT_ROOT" 2>/dev/null | head -n 80 >&2
             exit 1
           fi
           echo "GCC=$GCC" >> $GITHUB_ENV
           echo "GXX=$GXX" >> $GITHUB_ENV
-          echo "Using compiler at $GCC and $GXX"
+          echo "Using Qt-bundled compiler at $GCC and $GXX" >&2
 
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
@@ -120,28 +109,35 @@ jobs:
             cp zlib/libz.dll .
           fi
 
-      - name: Find MinGW installation
+      - name: Verify the compiler is the Qt-bundled MinGW (not a system toolchain)
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          # Locate the MinGW toolchain that produced the executable, then search
-          # only that toolchain tree for its C++ runtime DLLs.
-          # mingw-w64 names the compiler binaries gcc.exe / g++.exe (and often the
-          # triple-prefixed x86_64-w64-mingw32-gcc.exe), not plain `gcc`, so we
-          # search PATH for any of those rather than assuming a `gcc` binary.
-          CC=""
-          for cand in gcc g++ cc x86_64-w64-mingw32-gcc x86_64-w64-mingw32-g++ i686-w64-mingw32-gcc; do
-            found=$(which "$cand" 2>/dev/null)
-            if [ -n "$found" ]; then
-              CC="$found"
-              break
-            fi
-          done
-          if [ -z "$CC" ]; then
-            echo "No MinGW compiler found on PATH" >&2
+          # The GCC/GXX env vars were set by the "Locate MinGW compiler bundled with Qt"
+          # step from inside the Qt install tree. We must NOT re-derive them from PATH
+          # here: PATH on windows-2022 also contains a system MinGW (e.g. C:/mingw64).
+          # Using a system compiler would mismatch the Qt-bundled qmake/qmake and produce
+          # binaries that fail to link/run. So we only accept the compiler already found
+          # inside the Qt install, and verify it really lives under the Qt root.
+          QT_ROOT="${{ runner.temp }}/Qt"
+          if [ -z "$GCC" ] || [ -z "$GXX" ]; then
+            echo "ERROR: GCC/GXX not set; cannot verify Qt-bundled compiler" >&2
             exit 1
           fi
-          # $CC looks like C:/mingw64/bin/gcc.exe, so its parent's parent is the MinGW root.
-          CC_DIR=$(dirname "$CC")
+          case "$GCC" in
+            "$QT_ROOT"/*) : ;;  # GCC path is inside the Qt install
+            *) echo "ERROR: $GCC is not under $QT_ROOT; refusing to use it" >&2; exit 1 ;;
+          esac
+          echo "Confirmed GCC=$GCC and GXX=$GXX are inside the Qt install at $QT_ROOT"
+
+      - name: Find MinGW installation (Qt-bundled toolchain)
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          # Derive the MinGW toolchain root from the Qt-bundled compiler path we already
+          # validated above. $GCC looks like C:/.../Qt/6.7.1/windows/sdk/mingw64/bin/gcc.exe,
+          # so its parent's parent is the mingw64 toolchain directory. We never fall back
+          # to a PATH/system MinGW, guaranteeing the runtime DLLs below come from the Qt
+          # install that was just downloaded.
+          CC_DIR=$(dirname "$GCC")
           MINGW_ROOT=$(dirname "$CC_DIR")
           echo "MINGW_ROOT=$MINGW_ROOT"
           find "$MINGW_ROOT" -type f \( -name 'libgcc_s_seh-1.dll' -o -name 'libwinpthread-1.dll' -o -name 'libstdc++-6.dll' \) > $RUNNER_TEMP/minw_dlls.txt
