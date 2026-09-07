@@ -7,6 +7,8 @@ set(CMAKE_AUTOUIC ON)   # UI
 set(CMAKE_AUTOMOC ON)   # MOC
 set(CMAKE_AUTORCC ON)   # QRC
 
+
+
 # Find Qt 6 packages
 # Qt 6.8 moved the undo/redo framework (QUndoCommand, QUndoStack) into the
 # separate Qt6WidgetsExtras library, so it must be requested explicitly.
@@ -99,6 +101,8 @@ endif()
 # The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
 # compile to no-ops, avoiding pulling SDL functionality into the editor.
 target_compile_definitions(${PROJECT_NAME} PRIVATE SDL_NOT_WANTED=1)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_QFILE=1)
+
 
 # zlib is used directly by the PNG decompression code (FrameSet.cpp, PngMagic.cpp).
 # Link it so the symbols (uncompress, zError) resolve.
