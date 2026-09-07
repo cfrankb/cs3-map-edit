@@ -64,21 +64,34 @@ jobs:
       - name: Locate MinGW compiler bundled with Qt
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          # install-qt-action may place the bundled mingw compiler at a path that
-          # differs from the plain ${runner.temp}/Qt/${QT_VERSION}/mingw_64/bin by a
-          # sub-directory, so discover the real location instead of assuming it.
-          QT_PREFIX="${{ runner.temp }}/Qt/${{ env.QT_VERSION }}"
-          echo "Searching for compilers under: $QT_PREFIX"
-          GCC=$(find "$QT_PREFIX" -type f -name 'gcc.exe' | head -n 1)
-          GXX=$(find "$QT_PREFIX" -type f -name 'g++.exe' | head -n 1)
+          # install-qt-action does not always place the bundled mingw compiler at
+          # the plain ${runner.temp}/Qt/${QT_VERSION}/mingw_64/bin, so search the
+          # whole Qt install tree for the real location instead of assuming it.
+          QT_ROOT="${{ runner.temp }}/Qt"
+          echo "Searching for compilers under: $QT_ROOT"
+          GCC=$(find "$QT_ROOT" -type f -name 'gcc.exe' 2>/dev/null | head -n 1)
+          GXX=$(find "$QT_ROOT" -type f -name 'g++.exe' 2>/dev/null | head -n 1)
           if [ -z "$GCC" ] || [ -z "$GXX" ]; then
-            echo "ERROR: could not find gcc.exe/g++.exe under $QT_PREFIX" >&2
-            find "$QT_PREFIX" -name '*.exe' | head -n 50 >&2
+            # Fall back to a MinGW toolchain available on PATH (the later
+            # "Find MinGW installation" step relies on the same discovery).
+            echo "Bundled compiler not found; falling back to PATH toolchain" >&2
+            for cand in gcc g++ cc x86_64-w64-mingw32-gcc x86_64-w64-mingw32-g++; do
+              found=$(which "$cand" 2>/dev/null)
+              if [ -n "$found" ]; then
+                GCC="$found"
+                GXX="${found/gcc/g++}"
+                break
+              fi
+            done
+          fi
+          if [ -z "$GCC" ] || [ -z "$GXX" ]; then
+            echo "ERROR: could not locate any gcc.exe/g++.exe" >&2
+            find "$QT_ROOT" -name '*.exe' 2>/dev/null | head -n 50 >&2
             exit 1
           fi
           echo "GCC=$GCC" >> $GITHUB_ENV
           echo "GXX=$GXX" >> $GITHUB_ENV
-          echo "Found compiler at $GCC and $GXX"
+          echo "Using compiler at $GCC and $GXX"
 
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
