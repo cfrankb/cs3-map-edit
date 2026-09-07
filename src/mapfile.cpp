@@ -15,7 +15,7 @@ CMapFile::CMapFile(QObject* parent)
     m_undoGroup->addStack(m_docStack);
 
     // Always start with one default map
-    addMap(std::make_unique<CMap>(DEFAULT_MAP_SIZE, DEFAULT_MAP_SIZE));
+    insertAt(0,std::make_unique<CMap>(DEFAULT_MAP_SIZE, DEFAULT_MAP_SIZE));
 
     m_docStack->setUndoLimit(100); // keep only the last 100 commands
     // Implement QUndoCommand::mergeWith() to combine similar operations.
@@ -154,8 +154,11 @@ void CMapFile::insertAt(int i, std::unique_ptr<CMap> map)
     if (i < 0) i = 0;
     if (i > static_cast<int>(m_maps.size())) i = static_cast<int>(m_maps.size());
 
+
+    qDebug("inserting in CMapArch %d",i);
     // Insert into base collection
     CMapArch::insertAt(i,std::move(map));
+
 
     // Create and register undo stack for this map
     auto* stack = new QUndoStack(this);
@@ -163,11 +166,14 @@ void CMapFile::insertAt(int i, std::unique_ptr<CMap> map)
     m_undoGroup->addStack(stack);
 
     // Update current index and active stack
+    qDebug(">>setCurrIndex: %d",i);
     m_currIndex = i;
     m_undoGroup->setActiveStack(stack);
     emit currentMapChanged(m_maps[m_currIndex].get());
+    qDebug("currentMapChanged(m_maps[m_currIndex].get())");
 
     emit dirtyChanged(true);
+    qDebug("dirtyChanged(true)");
 }
 
 
