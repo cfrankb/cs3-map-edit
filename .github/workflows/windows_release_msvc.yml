@@ -18,14 +18,14 @@ defaults:
 env:
   BUILD_TYPE: Release
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 6.7.1
+  QT_VERSION: 6.10.3
   ARTIFACT: CS3MapEdit_Win64_MSVC
-  ARCH: msvc2022_64
+  ARCH: win64_msvc2022_64
   HOST: windows
 
 jobs:
   build:
-    runs-on: windows-2022 # Use the Windows Server 2022 runner (ships the MSVC toolchain)
+    runs-on: windows-2022
 
     steps:
       - name: checkout repo
@@ -34,9 +34,7 @@ jobs:
           submodules: recursive
 
       - name: Get all tags for correct version determination
-        working-directory: ${{ github.workspace }}
-        run: |
-          git fetch --all --tags -f
+        run: git fetch --all --tags -f
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -44,69 +42,57 @@ jobs:
           version: ${{ env.QT_VERSION }}
           host: ${{ env.HOST }}
           target: desktop
-          arch: ${{ env.ARCH }} # MSVC build of Qt (no MinGW / no MSYS)
+          arch: ${{ env.ARCH }}
           dir: ${{ runner.temp }}
           setup-python: false
 
       - name: Clean stale build directory
-        working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          if [ -d build ]; then
+          if [ -d "build" ]; then
             echo "Removing stale build/ to avoid cached config"
-            rmdir build
+            rm -rf build
           fi
 
       - name: Configure build with CMake
-        working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          # MSVC is the default compiler on the windows-2022 runner. We intentionally
-          # DO NOT pass -DCMAKE_C_COMPILER / -DCMAKE_CXX_COMPILER so the build keeps
-          # using the Windows SDK / MSVC toolchain shipped with the runner. No MinGW,
-          # no MSYS, only native Windows libraries.
-          cmake -G Ninja -B build \
+          # The Visual Studio generator is multi-configuration by default. 
+          # CMAKE_CONFIGURATION_TYPES=Release restricts it, but output binaries 
+          # will still land inside build/Release/.
+          cmake -G "Visual Studio 17 2022" -A x64 -B build \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_CONFIGURATION_TYPES=Release \
             -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
 
       - name: Build
-        working-directory: ${{ env.SOURCE_DIR }}
-        run: |
-          cmake --build build
+        run: cmake --build build --config Release
 
       - name: Deploy Qt runtime
-        working-directory: ${{ env.SOURCE_DIR }}/build
+        working-directory: ${{ env.SOURCE_DIR }}/build/Release
         run: |
-          windeployqt --pdb --release --no-compiler-runtime --no-translations cs3-map-edit.exe --qmldir=${{ env.SOURCE_DIR }}/src
+          # Use absolute/corrected paths so windeployqt works seamlessly
+          windeployqt --pdb --release --no-compiler-runtime --no-translations cs3-map-edit.exe --qmldir="${{ env.SOURCE_DIR }}/src"
 
       - name: Copy zlib DLL to executable root
         working-directory: ${{ env.SOURCE_DIR }}/build
-        run: |
-          if [ -f zlib/libz.dll ]; then
-            cp zlib/libz.dll .
-          fi
+        run: cp zlib/Release/libz.dll Release/
 
       - name: Stage clean distribution folder
         working-directory: ${{ env.SOURCE_DIR }}/build
         run: |
-          # build/ contains CMake/Ninja cruft (CMakeFiles, .ninja_*, _autogen,
-          # Desktop_*). windeployqt spreads Qt plugin DLLs across subfolders
-          # (platforms/, imageformats/, styles/, ...), so copy them all recursively
-          # into a fresh dist/ folder, preserving their relative paths.
           rm -rf dist
           mkdir dist
-          cp cs3-map-edit.exe dist/
-          # -parents preserves the subfolder structure (platforms/, imageformats/, ...)
-          find . -type f -name '*.dll' -not -path './dist/*' -exec cp --parents {} dist/ \;
-          # Remove the CMake/Ninja build cruft we don't want in the artifact.
-          for d in CMakeFiles Desktop_*-Release zlib; do
-            if [ -e "$d" ]; then rm -rf "dist/$d"; fi
-          done
-          for d in *_autogen .qt .ninja_deps .ninja_log; do
-            if [ -e "dist/$d" ]; then rm -rf "dist/$d"; fi
-          done
-          if [ -f build.ninja ]; then rm -f "dist/build.ninja"; fi
-          if compgen -G 'dist/*.cmake' >/dev/null 2>&1; then rm -f dist/*.cmake; fi
-          if [ -f dist/cmake_install.cmake ]; then rm -f dist/cmake_install.cmake; fi
-          if [ -f dist/CMakeCache.txt ]; then rm -f dist/CMakeCache.txt; fi
+
+          # Copy the compiled executable and its sibling DLLs from Release/
+          cp Release/cs3-map-edit.exe dist/
+
+          # Safely copy generated subfolders (platforms, imageformats, etc.) 
+          # while filtering out the Visual Studio/CMake intermediate build folders
+          find Release/ -maxdepth 1 -mindepth 1 -type d ! -name "CMakeFiles" ! -name "zlib" -exec cp -r {} dist/ \;
+
+          # Copy all DLL files located at the root of the Release directory
+          find Release/ -maxdepth 1 -type f -name "*.dll" -exec cp {} dist/ \;
+
+          # Display structured output for confirmation
           find dist -type f | sort
 
       - name: Release
@@ -115,7 +101,7 @@ jobs:
         with:
           files: |
             LICENSE
-            dist/**
+            build/dist/**
 
       - name: Save build artifact
         uses: actions/upload-artifact@v5

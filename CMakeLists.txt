@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 set(PROJECT_NAME "cs3-map-edit")
 project(${PROJECT_NAME} LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
+# C++20 is required: src/runtime/tilesdata.cpp uses designated initializers
+# (a C++20 feature) for its tile tables. GCC/Clang accept them under C++17 as an
+# extension, but MSVC strictly requires /std:c++20, so the standard must be 20.
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOUIC ON)   # UI
 set(CMAKE_AUTOMOC ON)   # MOC
@@ -19,14 +22,11 @@ set(CMAKE_AUTORCC ON)   # QRC
 
 
 # Find Qt 6 packages
-# Qt 6.8 moved the undo/redo framework (QUndoCommand, QUndoStack) into the
-# separate Qt6WidgetsExtras library, so it must be requested explicitly.
-# Qt 6.7 and earlier keep those classes in the base Qt6Widgets module, so
-# WidgetsExtras does not exist before 6.8.
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
-if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8 AND Qt6_VERSION VERSION_LESS 6.11)
-    find_package(Qt6 REQUIRED COMPONENTS WidgetsExtras)
-endif()
+# The undo/redo framework (QUndoCommand, QUndoStack) lives in the QtGui module
+# across all tested Qt 6 releases (verified on 6.8.3, 6.9.3 and 6.10.3 - there is
+# no separate Qt6WidgetsExtras library in any of them), so request Gui explicitly
+# alongside Widgets and Core.
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui)
 
 #file(GLOB HEADERS src/*.h)
 file(GLOB RESOURCES src/*.qrc)
@@ -100,12 +100,9 @@ endif()
 
 # Link Qt libraries
 # Core must be explicit for MinGW builds.
-# WidgetsExtras provides the undo/redo framework (QUndoCommand) for Qt >= 6.8;
-# it is only required for Qt >= 6.8 and < 6.11 (folded back into Qt6Widgets later).
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core)
-if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8 AND Qt6_VERSION VERSION_LESS 6.11)
-    target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WidgetsExtras)
-endif()
+# Gui provides the undo/redo framework (QUndoCommand, QUndoStack) for all Qt 6
+# versions, and the editor uses it directly - link it explicitly.
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui)
 
 # The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
 # compile to no-ops, avoiding pulling SDL functionality into the editor.

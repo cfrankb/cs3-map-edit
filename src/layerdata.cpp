@@ -3,7 +3,8 @@
 
 #include "layerdata.h"
 
-layerdata_t g_layerdata[] = {
+// const-qualified to match src/runtime/layerdata.h (see comment in layerdata.h).
+const layerdata_t g_layerdata[] = {
     {0,1,0,1,nullptr},
     {0,1,0,1,nullptr},
     {0,1,0,30,nullptr},
