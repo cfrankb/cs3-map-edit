@@ -61,6 +61,25 @@ jobs:
       #  run: |
       #    cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
 
+      - name: Locate MinGW compiler bundled with Qt
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          # install-qt-action may place the bundled mingw compiler at a path that
+          # differs from the plain ${runner.temp}/Qt/${QT_VERSION}/mingw_64/bin by a
+          # sub-directory, so discover the real location instead of assuming it.
+          QT_PREFIX="${{ runner.temp }}/Qt/${{ env.QT_VERSION }}"
+          echo "Searching for compilers under: $QT_PREFIX"
+          GCC=$(find "$QT_PREFIX" -type f -name 'gcc.exe' | head -n 1)
+          GXX=$(find "$QT_PREFIX" -type f -name 'g++.exe' | head -n 1)
+          if [ -z "$GCC" ] || [ -z "$GXX" ]; then
+            echo "ERROR: could not find gcc.exe/g++.exe under $QT_PREFIX" >&2
+            find "$QT_PREFIX" -name '*.exe' | head -n 50 >&2
+            exit 1
+          fi
+          echo "GCC=$GCC" >> $GITHUB_ENV
+          echo "GXX=$GXX" >> $GITHUB_ENV
+          echo "Found compiler at $GCC and $GXX"
+
       - name: Configure build with CMake
         working-directory: ${{ env.SOURCE_DIR }}
         run: |
@@ -68,8 +87,8 @@ jobs:
           cmake -G Ninja -B build \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DCS3_BUILD_ZLIB_FROM_SOURCE=ON \
-            -DCMAKE_C_COMPILER="${{ runner.temp }}/Qt/${{env.QT_VERSION }}/mingw_64/bin/gcc.exe" \
-            -DCMAKE_CXX_COMPILER="${{ runner.temp }}/Qt/${{env.QT_VERSION }}/mingw_64/bin/g++.exe"
+            -DCMAKE_C_COMPILER="${{ env.GCC }}" \
+            -DCMAKE_CXX_COMPILER="${{ env.GXX }}"
 
       - name: Build
         working-directory: ${{ env.SOURCE_DIR }}
