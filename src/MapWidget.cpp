@@ -285,6 +285,7 @@ MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
 
     // Diagnostic: is the requested font resolvable on this platform?
     // (Run unconditionally so it executes on MingW builds too.)
+    /*
     if (!isValidFont("Courier New", QFont::TypeWriter))
     {
         LOGW("'Courier New' font is NOT valid on this platform");
@@ -292,7 +293,7 @@ MapWidget::MapWidget(QWidget *parent, CMapFile *doc)
     else
     {
         LOGI("'Courier New' font is valid on this platform");
-    }
+    }*/
 
 #ifndef __MINGW32__
     QFont f("Courier New");            // or "Consolas", "DejaVu Sans Mono", etc.

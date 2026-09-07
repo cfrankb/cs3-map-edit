@@ -36,6 +36,8 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
+    ui->setupUi(this);
+
     LOGI("[ctor] setupUi done");
 
     // hook MapView
@@ -51,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(m_mapView);
     connect(this, &MainWindow::mapChanged, m_mapView, &MapView::setMap);
     connect(&m_doc, &CMapFile::currentMapChanged, m_mapView, &MapView::setMap);
+    LOGI("[ctor] pre-connect: actionView_Grid=%p mapWidget=%p", ui->actionView_Grid, m_mapView->mapWidget());
     connect(ui->actionView_Grid, &QAction::toggled, m_mapView->mapWidget(), &MapWidget::setGridVisible);
     connect(&m_doc, &CMapFile::refreshMap, this, [this]()
             { m_mapView->mapWidget()->update(); });
