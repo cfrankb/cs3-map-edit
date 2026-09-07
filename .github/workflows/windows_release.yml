@@ -68,18 +68,28 @@ jobs:
           # with a different MinGW (e.g. the system C:/mingw64) produces mismatched
           # binaries that fail to link/run. So we only accept a compiler found
           # inside the Qt install tree, never fall back to a system toolchain.
-          # runner.temp is a Windows path like D:\a_\temp. Bash turns the \\ into a
-          # literal backslash but the \\_ collapses to just \", mangling the path
-          # (D:a_temp/Qt), so find traverses nothing. Normalize backslashes to forward
-          # slashes so the recursive find can actually reach the Qt install.
-          QT_ROOT=$(echo "${{ runner.temp }}/Qt" | tr '\' '/')
+          #
+          # QT_ROOT_DIR is set by jurpel/install-qt-action@v4 to the exact compiler
+          # directory (e.g. D:\a_\temp\Qt\6.7.1\mingw_64). We prefer it over
+          # $RUNNER_TEMP/Qt because the action's layout is what actually contains the
+          # compiler; hardcoding the Qt/ subfolder is fragile across versions.
+          #
+          # runner.temp / QT_ROOT_DIR arrive as Windows backslash paths. Bash turns the
+          # \\ into a literal backslash but the \\_ collapses to just \", mangling the
+          # path (D:a_temp/Qt), so find traverses nothing. Normalize backslashes to
+          # forward slashes so the recursive find can actually reach the install.
+          QT_ROOT=$(echo "$QT_ROOT_DIR" | tr '\' '/')
           echo "Searching for compilers under: $QT_ROOT"
-          GCC=$(find "$QT_ROOT" -type f -name 'gcc.exe' 2>/dev/null | head -n 1)
-          GXX=$(find "$QT_ROOT" -type f -name 'g++.exe' 2>/dev/null | head -n 1)
+          # Search by compiler pattern, not just gcc.exe/g++.exe: the bundled mingw
+          # may expose the compiler as gcc.exe/g++.exe or as the triple-prefixed
+          # x86_64-w64-mingw32-gcc.exe / x86_64-w64-mingw32-g++.exe.
+          GCC=$(find "$QT_ROOT" -type f \( -name 'gcc.exe' -o -name 'x86_64-w64-mingw32-gcc.exe' -o -name 'gcc' \) 2>/dev/null | head -n 1)
+          GXX=$(find "$QT_ROOT" -type f \( -name 'g++.exe' -o -name 'x86_64-w64-mingw32-g++.exe' -o -name 'g++' \) 2>/dev/null | head -n 1)
           if [ -z "$GCC" ] || [ -z "$GXX" ]; then
-            echo "ERROR: could not locate gcc.exe/g++.exe inside the Qt install at $QT_ROOT" >&2
-            echo "Contents of $QT_ROOT:" >&2
-            ls -R "$QT_ROOT" 2>/dev/null | head -n 80 >&2
+            echo "ERROR: could not locate a MinGW compiler (gcc/g++) inside the Qt install at $QT_ROOT" >&2
+            echo "All executables present under the Qt install:" >&2
+            find "$QT_ROOT" -type f \( -name '*.exe' -o -name 'gcc*' -o -name 'g++*' \) 2>/dev/null | sort >&2
+            echo "(if the list above is empty, this Qt build did not bundle a compiler; use a different arch or add one)" >&2
             exit 1
           fi
           echo "GCC=$GCC" >> $GITHUB_ENV
@@ -122,7 +132,10 @@ jobs:
           # Using a system compiler would mismatch the Qt-bundled qmake/qmake and produce
           # binaries that fail to link/run. So we only accept the compiler already found
           # inside the Qt install, and verify it really lives under the Qt root.
-          QT_ROOT=$(echo "${{ runner.temp }}/Qt" | tr '\' '/')
+          # QT_ROOT_DIR is the compiler dir (e.g. .../Qt/6.7.1/mingw_64); its parent is
+          # the Qt version root (e.g. .../Qt/6.7.1). We normalize backslashes the same way
+          # as the Locate step so the two agree.
+          QT_ROOT=$(dirname "$(echo "$QT_ROOT_DIR" | tr '\' '/')")
           if [ -z "$GCC" ] || [ -z "$GXX" ]; then
             echo "ERROR: GCC/GXX not set; cannot verify Qt-bundled compiler" >&2
             exit 1
