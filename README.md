@@ -6,6 +6,10 @@ This is the official Map Editor for Creepspread III.
 
 ![alt text](images/Screenshot_2025-08-11_00-03-51.png)
 
+### Map Editor Documentation
+
+[Map Edit Reference](map-edit.md)
+
 ### Preview map in the editor.
 
 ![alt text](images/Screenshot_2025-08-11_00-05-50.png)
