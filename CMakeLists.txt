@@ -26,7 +26,9 @@ set(CMAKE_AUTORCC ON)   # QRC
 # across all tested Qt 6 releases (verified on 6.8.3, 6.9.3 and 6.10.3 - there is
 # no separate Qt6WidgetsExtras library in any of them), so request Gui explicitly
 # alongside Widgets and Core.
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui)
+# Network provides QLocalServer/QLocalSocket, used in main.cpp to enforce a
+# single running instance of the editor.
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui Network)
 
 #file(GLOB HEADERS src/*.h)
 file(GLOB RESOURCES src/*.qrc)
@@ -102,7 +104,7 @@ endif()
 # Core must be explicit for MinGW builds.
 # Gui provides the undo/redo framework (QUndoCommand, QUndoStack) for all Qt 6
 # versions, and the editor uses it directly - link it explicitly.
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network)
 
 # The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
 # compile to no-ops, avoiding pulling SDL functionality into the editor.
