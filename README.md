@@ -2,6 +2,7 @@
 
 This is the official Map Editor for Creepspread III.
 
+
 ## Map Editor for CS3
 
 ![alt text](images/Screenshot_2025-08-11_00-03-51.png)
@@ -9,6 +10,11 @@ This is the official Map Editor for Creepspread III.
 ### Map Editor Documentation
 
 [Map Edit Reference](map-edit.md)
+
+## Game Lore
+
+The world behind the maps: [lore.md](lore.md)
+
 
 ### Preview map in the editor.
 

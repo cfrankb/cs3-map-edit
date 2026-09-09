@@ -9,6 +9,8 @@
 #include <QMessageBox>
 #include <QUndoStack>
 #include <QUndoCommand>
+#include <QMainWindow>
+#include <QStatusBar>
 #include <cstdint>
 #include "runtime/map.h"
 #include "LayerRowWidget.h"
@@ -377,10 +379,40 @@ void LayerDock::onContextMenu(const QPoint &pos)
     int layerID = item->data(Qt::UserRole).toInt();
     QMenu menu(this);
     QAction *renameAct = menu.addAction("Rename Layer");
+    renameAct->setStatusTip("Rename the selected layer");
     QAction *changeBaseIDAct = menu.addAction("Change BaseID");
+    changeBaseIDAct->setStatusTip("Modify the baseID for this layer (wire the TileSet)");
+
     QAction *deleteAct = nullptr;
     if (layerID != 0)
+    {
         deleteAct = menu.addAction("Delete Layer");
+        deleteAct->setStatusTip("Permanently remove this layer");
+    }
+
+    // Inside your LayerDock method:
+    // If LayerDock is a child/dock widget of QMainWindow, you can find it like this:
+    QMainWindow *mainWindow = qobject_cast<QMainWindow *>(this->window());
+
+    if (!mainWindow)
+    {
+        qWarning() << "LayerDock could not locate the QMainWindow instance!";
+    }
+
+    if (mainWindow && mainWindow->statusBar())
+    {
+        // 1. Tell the status bar to show the status tip whenever a menu item is hovered
+        connect(&menu, &QMenu::hovered, this, [mainWindow](QAction *action)
+                {
+            if (action && !action->statusTip().isEmpty()) {
+                mainWindow->statusBar()->showMessage(action->statusTip());
+            } else {
+                mainWindow->statusBar()->clearMessage();
+            } });
+
+        // 2. Clear the message immediately when the context menu closes completely
+        connect(&menu, &QMenu::aboutToHide, mainWindow->statusBar(), &QStatusBar::clearMessage);
+    }
 
     QAction *chosen = menu.exec(m_listWidget->viewport()->mapToGlobal(pos));
     if (!chosen)

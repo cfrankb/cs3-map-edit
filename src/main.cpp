@@ -4,7 +4,6 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QMessageBox>
-#include <cstdio>
 #include <QSurfaceFormat>
 
 namespace
@@ -54,7 +53,6 @@ int main(int argc, char *argv[])
     QLocalServer server;
     if (!ensureSingleInstance(server))
     {
-        fprintf(stderr, "SECOND_INSTANCE_DETECTED\n");
         QMessageBox::warning(nullptr, QObject::tr("cs3-map-edit"),
                              QObject::tr("The map editor is already running.\n"
                                          "A second instance cannot be started."));
