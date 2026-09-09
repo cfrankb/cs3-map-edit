@@ -28,8 +28,6 @@
 #include "shared/IFile.h"
 #include "zlib.h"
 
-class CMap;
-
 class CLayer
 {
 

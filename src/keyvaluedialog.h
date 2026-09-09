@@ -29,7 +29,6 @@ private slots:
     void onCellChanged(int row, int column);
     void handleComboBoxIndexChanged(int row, int index);
 
-
 private:
     void setupUi();
     QComboBox *createKeyComboBox() const;
