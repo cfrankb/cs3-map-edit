@@ -487,8 +487,7 @@ void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ti
                 {
                     JoyAim aim = actor.getAim();
                     actor.setAim(aim);
-                    // if (ticks % 16 != 0)
-                    if (!def.rate && ticks % def.rate != 0)
+                    if (!def.bullet || (def.rate && ticks % def.rate != 0))
                         return;
                     if (actor.canMove(aim))
                     {
@@ -499,7 +498,7 @@ void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ti
             }
             else
             {
-                actor.startPath(m_player.pos(), BossData::ASTAR, -1);
+                actor.startPath(m_player.pos(), def.path, -1); // BossData::ASTAR, -1);
             }
             return;
         }

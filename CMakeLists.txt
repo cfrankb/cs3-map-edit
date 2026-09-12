@@ -46,7 +46,6 @@ file(GLOB CPP_SOURCES
 #   - layerdata.cpp: map editor defines its own g_layerdata in src/layerdata.cpp
 #   - tileset_tex.cpp: runtime uses SDL3; the map editor uses GDI
 list(REMOVE_ITEM CPP_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/layerdata.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/tileset_tex.cpp"
 )
 
@@ -162,6 +161,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/shared
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
 )
 
 # Finalize Qt setup

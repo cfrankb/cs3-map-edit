@@ -65,5 +65,6 @@
         <file>data/icons/misc-dice.png</file>
         <file>data/icons/drink_13344549.png</file>
         <file>data/icons/map_4225190.png</file>
+        <file>data/layer01.json</file>
     </qresource>
 </RCC>

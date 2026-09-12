@@ -281,16 +281,25 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
             uint16_t size = 0;
             if (readfile(&size, 1) != IFILE_OK)
             {
-                LOGE("failed to read map title size");
+                m_lastError = "failed to read map title size";
+                LOGE("%s", m_lastError.c_str());
                 return false;
             }
-            if (size != 0)
+
+            if (size >= MAX_TITLE)
+            {
+                m_lastError = "title too long";
+                LOGE("%s", m_lastError.c_str());
+                return false;
+            }
+            else if (size != 0)
             {
                 char tmp[MAX_TITLE + 1];
                 tmp[size] = 0;
                 if (readfile(tmp, size) != IFILE_OK)
                 {
-                    LOGE("failed to read map title");
+                    m_lastError = "failed to read map title";
+                    LOGE("%s", m_lastError.c_str());
                     return false;
                 }
                 m_title = tmp;
@@ -309,7 +318,6 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
             seek(ptr);
         }
     }
-
     return true;
 }
 

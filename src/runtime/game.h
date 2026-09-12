@@ -193,7 +193,8 @@ public:
     static bool isPushable(const uint8_t typeID);
 
     bool shadowActorMove(CActor &actor, const JoyAim aim);
-    scan_t scanPos(const Pos &pos) const;
+    scan_t scanPos(const Pos &pos, const uint8_t aim) const;
+    bool isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const;
     CAnimator *getAnimator() { return m_animator.get(); }
 
     enum

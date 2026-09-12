@@ -161,10 +161,12 @@ bool CActor::canMove(const JoyAim aim) const
     }
 
     const CGame *game = CGame::getGame();
-    scan_t result = game->scanPos(newPos);
+    scan_t result = game->scanPos(newPos, aim);
     if (result.isSolid)
         return false;
     else if ((result.isWater || result.isDeadly) && m_type != TYPE_PLAYER)
+        return false;
+    if (game->isGranularSolidFromPos(pos, aim))
         return false;
 
     const uint8_t c = map.at(newPos.x, newPos.y);

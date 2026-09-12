@@ -14,6 +14,8 @@
 #include "runtime/shared/qtgui/qfilewrap.h"
 #include "runtime/skills.h"
 #include "runtime/logger.h"
+#include "runtime/layerdata.h"
+#include "runtime/animator.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),
@@ -115,6 +117,7 @@ void CDlgTest::paintEvent(QPaintEvent *)
     case CGame::MODE_SKLLSELECT:
     case CGame::MODE_NEW_INPUTNAME:
     case CGame::MODE_TEST:
+    case CGame::MODE_SPLASH:
         break;
     }
 
@@ -167,12 +170,10 @@ void CDlgTest::preloadAssets()
 {
     QFileWrap file;
 
-
     typedef struct {
         const char *filename;
         std::unique_ptr<CFrameSet> *frameset;
     } asset_t;
-
 
     asset_t assets[] = {
         {":/data/tiles.obl", &m_tiles},
@@ -227,6 +228,12 @@ void CDlgTest::preloadAssets()
     }
 
     loadColorMaps();
+
+    if (!loadTileLayer(":/data/layer01.json", g_layerdata))
+    {
+        LOGE("failed to load tile data");
+    }
+    m_animator->reloadTileData();
 }
 
 void CDlgTest::loadColorMaps()

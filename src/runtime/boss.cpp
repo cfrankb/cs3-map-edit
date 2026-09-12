@@ -62,7 +62,7 @@ bool CBoss::isSolid(const Pos &pos) const
 bool CBoss::isGhostBlocked(const Pos &pos) const
 {
     CGame *game = CGame::getGame();
-    scan_t result = game->scanPos(pos);
+    scan_t result = game->scanPos(pos, JoyAim::AIM_NONE);
     CMap &map = CGame::getMap();
     const auto c = map.at(pos.x, pos.y);
     const TileDef &def = getTileDef(c);

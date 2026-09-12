@@ -71,6 +71,8 @@ public:
         uint8_t specialID; ///< Base ID for special animations (0 if none).
     };
 
+    void reloadTileData();
+
 private:
     static inline constexpr const uint8_t m_specialCases[] = {
         TILES_INSECT1,

@@ -202,7 +202,7 @@ void CGame::consume()
 {
     const uint8_t pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
-    const auto &result = scanPos(m_player.pos());
+    const auto &result = scanPos(m_player.pos(), JoyAim::AIM_NONE);
     const bool isWater = result.isWater || def.type == TYPE_SWAMP;
     if (def.type == TYPE_PICKUP)
     {
@@ -658,7 +658,7 @@ uint8_t CGame::managePlayer(const uint8_t *joystate)
 {
     auto const pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
-    const auto &result = scanPos(m_player.pos());
+    const auto &result = scanPos(m_player.pos(), JoyAim::AIM_NONE);
     const bool isWater = result.isWater || def.type == TYPE_SWAMP;
     if (result.isDeadly)
     {
@@ -1803,9 +1803,13 @@ void CGame::updateMonsterGrid(const CActor &actor, const int monsterIndex)
         m_monsterGrid[CMap::toKey(pos.x, pos.y)] = monsterIndex;
 }
 
-scan_t CGame::scanPos(const Pos &pos) const
+scan_t CGame::scanPos(const Pos &pos, const uint8_t aim) const
 {
-    scan_t result{};
+    auto testGranular = [](const uint8_t &gr, const uint8_t &g1, const uint8_t &g2)
+    {
+        return (gr & g1) && (gr & g2);
+    };
+    scan_t result{false, false, false};
     const CMap &map = getMap();
     const int layerCount = (int)map.layerCount();
     for (int i = layerCount - 1; i >= 0; --i)
@@ -1825,15 +1829,63 @@ scan_t CGame::scanPos(const Pos &pos) const
         {
             const auto curr = m_animator->getLayerTile(tileID);
             const layerdata_t &data = getLayerTileDef(curr);
+            const uint8_t &gr = data.granular;
             if (data.tileType == LayerTileType::Deadly)
                 result.isDeadly = true;
             else if (data.tileType == LayerTileType::Solid)
                 result.isSolid = true;
             else if (data.tileType == LayerTileType::Water)
                 result.isWater = true;
+            else if (gr)
+            {
+                if (aim == JoyAim::AIM_UP && testGranular(gr, GranualarDL, GranualarDR))
+                    result.isSolid = true;
+                else if (aim == JoyAim::AIM_DOWN && testGranular(gr, GranualarUL, GranualarUR))
+                    result.isSolid = true;
+                else if (aim == JoyAim::AIM_LEFT && testGranular(gr, GranualarUR, GranualarDR))
+                    result.isSolid = true;
+                else if (aim == JoyAim::AIM_RIGHT && testGranular(gr, GranualarUL, GranualarDL))
+                    result.isSolid = true;
+            }
         }
     }
     return result;
+}
+
+bool CGame::isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const
+{
+    auto testGranular = [](const uint8_t &gr, const uint8_t &g1, const uint8_t &g2)
+    {
+        bool result = (gr & g1) && (gr & g2);
+        // LOGI("gr:%.2x g1: %.2x g2: %.2x => %d", gr, g1, g2, result);
+        return result;
+    };
+
+    const CMap &map = getMap();
+    const int layerCount = (int)map.layerCount();
+    for (int i = layerCount - 1; i >= 0; --i)
+    {
+        const CLayer *layer = map.getLayer(i);
+        if (!layer || layer->baseID() == 0)
+            continue;
+
+        const uint8_t tileID = layer->at(pos.x, pos.y);
+        const auto curr = m_animator->getLayerTile(tileID);
+        const layerdata_t &data = getLayerTileDef(curr);
+        const uint8_t &granular = data.granular;
+        if (granular)
+        {
+            if (aim == JoyAim::AIM_UP && testGranular(granular, GranualarUL, GranualarUR))
+                return true;
+            else if (aim == JoyAim::AIM_DOWN && testGranular(granular, GranualarDL, GranualarDR))
+                return true;
+            else if (aim == JoyAim::AIM_LEFT && testGranular(granular, GranualarUL, GranualarDL))
+                return true;
+            else if (aim == JoyAim::AIM_RIGHT && testGranular(granular, GranualarUR, GranualarDR))
+                return true;
+        }
+    }
+    return false;
 }
 
 void CGame::clearEvents()
