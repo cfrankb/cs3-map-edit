@@ -182,15 +182,11 @@ void MainWindow::initTilebox()
     viewMenu->addAction(toggleTileBoxAction);
 }
 
-void MainWindow::initSelectorWidget()
+QScrollArea *MainWindow::addTileSetTab(QTabWidget *tabWidget, const QString &path, uint16_t tilesetID)
 {
-    auto dock = new QDockWidget();
-    // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    dock->setWindowTitle(tr("Toolbox"));
-
-    TileSelectorWidget *selectorWidget = new TileSelectorWidget(dock, Stamp::OtherTilesetBaseID);
+    TileSelectorWidget *selectorWidget = new TileSelectorWidget(qobject_cast<QWidget*>( tabWidget->parent()), tilesetID);//  Stamp::OtherTilesetBaseID);
     // Load the image
-    QPixmap image(":/data/cs3layers.png");
+    QPixmap image(path);//":/data/cs3layers.png");
     selectorWidget->setImage(image);
 
     // Configure Tiling
@@ -211,21 +207,33 @@ void MainWindow::initSelectorWidget()
     // Set the TileSelectorWidget as the scroll area's widget
     scrollArea->setWidget(selectorWidget);
 
-    // Add the QScrollArea (not the TileSelectorWidget) to the QTabWidget
-    QTabWidget *tabWidget = new QTabWidget(dock);
-    tabWidget->addTab(scrollArea, "Tile Selector");
-
     // Set scrollbar policies for visual consistency
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-    dock->setWidget(tabWidget);
-    addDockWidget(Qt::RightDockWidgetArea, dock);
-    dock->setAllowedAreas(Qt::RightDockWidgetArea);
-
     connect(selectorWidget, &TileSelectorWidget::stampSelected, m_mapView->mapWidget(), &MapWidget::setCurrentStamp);
     connect(selectorWidget, &TileSelectorWidget::tilesSelected, this, [](const QList<TileInfo> &list)
             { LOGI("selection:  %lld tiles", list.size()); });
+
+    const QString hex = QString("0x%1").arg(tilesetID, 4, 16, '0');
+    tabWidget->addTab(scrollArea, hex);
+
+    return scrollArea;
+}
+
+void MainWindow::initSelectorWidget()
+{
+    auto dock = new QDockWidget();
+    // dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+    dock->setWindowTitle(tr("Toolbox"));
+
+    // Add the QScrollArea (not the TileSelectorWidget) to the QTabWidget
+    QTabWidget *tabWidget = new QTabWidget(dock);
+
+    addTileSetTab(tabWidget, ":/data/cs3layers.png", Stamp::OtherTilesetBaseID);
+    dock->setWidget(tabWidget);
+    addDockWidget(Qt::RightDockWidgetArea, dock);
+    dock->setAllowedAreas(Qt::RightDockWidgetArea);
 
     // Create a menu action bound to the dock
     QAction *toggleTileBoxAction = dock->toggleViewAction();

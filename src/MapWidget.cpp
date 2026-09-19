@@ -394,6 +394,44 @@ void MapWidget::setGridVisible(bool visible)
     }
 }
 
+bool MapWidget::fetchTileSet(const QString & path, const uint16_t baseID)
+{
+    auto addTileSet = [this](uint16_t baseID, const std::vector<CFrame *> &frames) {
+        m_frameSetLookup[m_frameSetCount++] = {baseID, std::move(frames)};
+    };
+    std::unique_ptr<CFrameSet> frameSet = std::make_unique<CFrameSet>();
+    QFileWrap file;
+    //const char filenameLayers[] = ":/data/cs3layers.png";
+    if (file.open(path, "rb"))
+    {
+        LOGI("reading %s", path.toStdString().c_str());
+        if (frameSet->extract(file))
+        {
+            LOGI("extracted: %lu", (frameSet)->getSize());
+        }
+        else
+        {
+            LOGE("failed to extract frames");
+            return false;
+        }
+        file.close();
+        // single image. split into individual tiles
+        CFrame *frame = (*frameSet.get())[0];
+        CFrameSet *splitSet = frame->split(TILE_SIZE, TILE_SIZE);
+        LOGI("tiles in others: %lu", splitSet->getSize());
+        addTileSet(Stamp::OtherTilesetBaseID, splitSet->frames());
+        splitSet->removeAll();
+        delete splitSet;
+        return true;
+    }
+    else
+    {
+        LOGE("can't open %s", path.toStdString().c_str());
+        return false;
+    }
+}
+
+
 void MapWidget::preloadAssets()
 {
     auto addTileSet = [this](uint16_t baseID, const std::vector<CFrame *> &frames) {
@@ -430,30 +468,8 @@ void MapWidget::preloadAssets()
 
     /////////////////////////////////////////
     // tileset for other layers
-    const char filenameLayers[] = ":/data/cs3layers.png";
-    if (!file.open(filenameLayers, "rb"))
-    {
-        LOGE("can't open %s", filenameLayers);
-    }
-    else
-    {
-        LOGI("reading %s", filenameLayers);
-        if (frameSet->extract(file))
-        {
-            LOGI("extracted: %lu", (frameSet)->getSize());
-        }
-        else
-        {
-            LOGE("failed to extract frames");
-        }
-        file.close();
-        // single image. split into individual tiles
-        CFrame *frame = (*frameSet.get())[0];
-        CFrameSet *splitSet = frame->split(TILE_SIZE, TILE_SIZE);
-        LOGI("tiles in others: %lu", splitSet->getSize());
-        addTileSet(Stamp::OtherTilesetBaseID, splitSet->frames());
-        splitSet->removeAll();
-        delete splitSet;
+    if (!fetchTileSet(":/data/cs3layers.png", Stamp::OtherTilesetBaseID)) {
+
     }
 
     LOGI("m_frameSetCount: %lu", m_frameSetCount);

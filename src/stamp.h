@@ -11,7 +11,7 @@ struct Stamp
 
     enum : uint16_t
     {
-        MainTilesetBaseID = 0,    // tileset
-        OtherTilesetBaseID = 256, // other tileset
+        MainTilesetBaseID = 0x0,    // tileset
+        OtherTilesetBaseID = 0x100, // other tileset
     };
 };

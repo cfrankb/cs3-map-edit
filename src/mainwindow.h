@@ -11,6 +11,8 @@ class MapView;
 class QUndoStack;
 class QListWidget;
 class QPushButton;
+class QScrollArea;
+class QTabWidget;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -102,6 +104,7 @@ private:
     void setDirty(bool dirty);
     int currentTool();
     void updateZoom();
+    QScrollArea *addTileSetTab(QTabWidget *tabWidget, const QString &path, uint16_t tilesetID);
 
     enum {
         MAX_RECENT_FILES = 12,

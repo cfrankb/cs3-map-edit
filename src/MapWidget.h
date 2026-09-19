@@ -91,6 +91,8 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
+
+    bool fetchTileSet(const QString & path, const uint16_t baseID);
     void startToolCmd(const ToolType tool);
     void commitToolCmd();
     static bool isCombinedTool(const ToolType);
