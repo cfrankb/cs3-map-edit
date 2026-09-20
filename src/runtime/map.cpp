@@ -36,7 +36,7 @@ namespace MapPrivate
     constexpr char SIG[]{'M', 'A', 'P', 'Z'};
     constexpr char XTR_SIG[]{"XTR"};
 
-    constexpr uint16_t VERSION = CMap::VERSION2;
+    constexpr uint16_t VERSION = CMap::VERSION3;
     constexpr uint16_t MAX_SIZE = 256;
     constexpr uint16_t MAX_TITLE = 255;
 }
@@ -49,8 +49,8 @@ typedef struct
     char ver;
 } extrahdr_t;
 
-CMap::CMap(uint16_t len, uint16_t hei, uint8_t t) : m_len(len),
-                                                    m_hei(hei), m_states(std::make_unique<CStates>())
+CMap::CMap(uint16_t len, uint16_t hei, uint16_t t) : m_len(len),
+                                                     m_hei(hei), m_states(std::make_unique<CStates>())
 {
     addMainLayer();
     resize(len, hei, t, true);
@@ -438,7 +438,7 @@ bool CMap::writeCommon(WriteFunc writefile) const
     return true;
 }
 
-const Pos CMap::findFirst(const uint8_t tileId) const
+const Pos CMap::findFirst(const uint16_t tileId) const
 {
     for (int y = 0; y < m_hei; ++y)
     {
@@ -453,7 +453,7 @@ const Pos CMap::findFirst(const uint8_t tileId) const
     return Pos{NOT_FOUND, NOT_FOUND};
 }
 
-size_t CMap::count(const uint8_t tileId) const
+size_t CMap::count(const uint16_t tileId) const
 {
     size_t count = 0;
     for (uint16_t y = 0; y < m_hei; ++y)
@@ -469,7 +469,7 @@ size_t CMap::count(const uint8_t tileId) const
     return count;
 }
 
-void CMap::fill(uint8_t ch)
+void CMap::fill(uint16_t ch)
 {
     getMainLayer()->fill(ch);
     m_attrs.clear();
@@ -620,7 +620,7 @@ CStates &CMap::states()
     return *m_states;
 }
 
-bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
+bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint16_t t, bool fast)
 {
     in_len = std::min(in_len, MAX_SIZE);
     in_hei = std::min(in_hei, MAX_SIZE);
@@ -644,7 +644,7 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     return true;
 }
 
-void CMap::replaceTile(const uint8_t src, const uint8_t repl)
+void CMap::replaceTile(const uint16_t src, const uint16_t repl)
 {
     getMainLayer()->replaceTile(src, repl);
 }

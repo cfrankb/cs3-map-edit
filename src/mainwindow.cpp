@@ -32,6 +32,7 @@
 #include "undo/MapCommand.h"
 #include "undo/DocumentCommand.h"
 #include "dlgspell.h"
+#include "runtime/layerdata.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -184,7 +185,8 @@ void MainWindow::initTilebox()
 
 QScrollArea *MainWindow::addTileSetTab(QTabWidget *tabWidget, const QString &path, uint16_t tilesetID)
 {
-    TileSelectorWidget *selectorWidget = new TileSelectorWidget(qobject_cast<QWidget*>( tabWidget->parent()), tilesetID);//  Stamp::OtherTilesetBaseID);
+    uint16_t offsetID =  tabWidget->count() * 256;
+    TileSelectorWidget *selectorWidget = new TileSelectorWidget(qobject_cast<QWidget*>( tabWidget->parent()),  offsetID, tilesetID);//  Stamp::OtherTilesetBaseID);
     // Load the image
     QPixmap image(path);//":/data/cs3layers.png");
     selectorWidget->setImage(image);
@@ -215,8 +217,9 @@ QScrollArea *MainWindow::addTileSetTab(QTabWidget *tabWidget, const QString &pat
     connect(selectorWidget, &TileSelectorWidget::tilesSelected, this, [](const QList<TileInfo> &list)
             { LOGI("selection:  %lld tiles", list.size()); });
 
-    const QString hex = QString("0x%1").arg(tilesetID, 4, 16, '0');
-    tabWidget->addTab(scrollArea, hex);
+    //const QString hex = QString("0x%1").arg(tilesetID, 4, 16, '0');
+    //tabWidget->addTab(scrollArea, hex);
+    tabWidget->addTab(scrollArea, QString("page %1").arg(tabWidget->count() + 1));
 
     return scrollArea;
 }
@@ -230,7 +233,11 @@ void MainWindow::initSelectorWidget()
     // Add the QScrollArea (not the TileSelectorWidget) to the QTabWidget
     QTabWidget *tabWidget = new QTabWidget(dock);
 
-    addTileSetTab(tabWidget, ":/data/cs3layers.png", Stamp::OtherTilesetBaseID);
+    for (int i=0; i < LAYER_COUNT; ++i) {
+        QString path = QString(":/data/layer%1.png").arg(i);
+        // ":/data/cs3layers.png"
+        addTileSetTab(tabWidget, path, Stamp::OtherTilesetBaseID);
+    }
     dock->setWidget(tabWidget);
     addDockWidget(Qt::RightDockWidgetArea, dock);
     dock->setAllowedAreas(Qt::RightDockWidgetArea);
@@ -389,6 +396,7 @@ void MainWindow::loadFile(const QString &fileName)
 bool MainWindow::save()
 {
     QString oldFileName = m_doc.filename();
+    qDebug("isUntitled: %d, isWrongExt: %d",m_doc.isUntitled(), m_doc.isWrongExt());
     if (m_doc.isUntitled() || m_doc.isWrongExt())
     {
         if (!saveAs())

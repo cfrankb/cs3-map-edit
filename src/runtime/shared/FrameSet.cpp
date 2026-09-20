@@ -1386,7 +1386,12 @@ void CFrameSet::setCurrFrame(int curr)
     m_currFrame = curr;
 }
 
-const std::vector<CFrame *> &CFrameSet::frames()
+std::vector<CFrame *> &CFrameSet::frames()
+{
+    return m_frames;
+}
+
+const std::vector<CFrame *> &CFrameSet::framesConst()
 {
     return m_frames;
 }

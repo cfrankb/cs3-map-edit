@@ -77,7 +77,8 @@ public:
     void reserve(int n);
     int currFrame();
     void setCurrFrame(int curr);
-    const std::vector<CFrame *> &frames();
+    std::vector<CFrame *> &frames();
+    const std::vector<CFrame *> &framesConst();
     void resize(int size);
 
 private:

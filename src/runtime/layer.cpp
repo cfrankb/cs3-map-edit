@@ -31,7 +31,7 @@ bool CLayer::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     }
     else
     {
-        std::vector<uint8_t> map(in_len * in_hei);
+        std::vector<uint16_t> map(in_len * in_hei);
         for (int y = 0; y < std::min(m_hei, in_hei); ++y)
         {
             for (int x = 0; x < std::min(m_len, in_len); ++x)
@@ -98,14 +98,14 @@ bool CLayer::shift(Direction aim)
     return true;
 }
 
-void CLayer::fill(uint8_t ch)
+void CLayer::fill(uint16_t ch)
 {
     if (m_len * m_hei > 0)
         for (int i = 0; i < m_len * m_hei; ++i)
             m_tiles[i] = ch;
 }
 
-void CLayer::replaceTile(const uint8_t src, const uint8_t repl)
+void CLayer::replaceTile(const uint16_t src, const uint16_t repl)
 {
     for (auto &tileID : m_tiles)
     {

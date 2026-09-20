@@ -312,7 +312,7 @@ protected:
     inline void drawTile(CFrame &bitmap, const int x, const int y, const CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     void drawTileFaz(CFrame &bitmap, const int x, const int y, CFrame &tile, int fazBitShift = 0, const ColorMask colorMask = COLOR_NOCHANGE);
-    inline CFrame *tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
+    inline CFrame *tile2Frame(const uint16_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap, const bool isPlayerHurt);
     void drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues);
     void drawScroll(CFrame &bitmap);

@@ -15,7 +15,7 @@ using jdoc = nlohmann::json;
 
 layerdata_t g_layerdata[TOTAL_TILE_COUNT];
 
-bool loadTileLayer(const std::string &filename, layerdata_t *layers)
+bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseIdx)
 {
 #if defined(USE_QFILE)
     QFileWrap file;
@@ -37,18 +37,19 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers)
         return false;
     }
     file.read(t, size);
+    file.close();
     t[size] = '\0';
     json = t;
     delete[] t;
 
-    for (int i = 0; i < TOTAL_TILE_COUNT; i++)
+    for (int i = 0; i < LAYER_TILE_COUNT; ++i)
     {
-        layers[i].granular = 0;
-        layers[i].nextTile = (uint8_t)-1;
-        layers[i].animeSpeed = 1;
-        layers[i].tileType = LayerTileType::Background;
-        layers[i].weight = 1;
-        layers[i].tag = "";
+        layers[baseIdx + i].granular = 0;
+        layers[baseIdx + i].nextTile = 0;
+        layers[baseIdx + i].animeSpeed = 1;
+        layers[baseIdx + i].tileType = LayerTileType::Background;
+        layers[baseIdx + i].weight = 1;
+        layers[baseIdx + i].tag = "";
     }
 
     jdoc j;
@@ -75,10 +76,14 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers)
         if (index < 0 || index >= TOTAL_TILE_COUNT)
             continue;
 
-        layerdata_t &L = layers[index];
-        L.nextTile = (uint8_t)tile.value("next", 0);
-        if (L.nextTile == 0xff)
+        layerdata_t &L = layers[index + baseIdx];
+        L.nextTile =  (uint16_t)tile.value("next", 0);
+        if (L.nextTile == DUMMY_NEXT_TILE)
+        {
             L.nextTile = 0;
+        } else {
+            L.nextTile += baseIdx;
+        }
         L.animeSpeed = (uint8_t)tile.value("speed", 1);
         L.tileType = static_cast<LayerTileType>(tile.value("type", 0));
         L.weight = (uint8_t)tile.value("w", 1);

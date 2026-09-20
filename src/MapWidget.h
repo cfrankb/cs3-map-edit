@@ -55,7 +55,7 @@ public:
     // Selection
     QRect currentSelection() const { return m_selection; }
     void clearSelection();
-    void fillSelection(uint8_t tileId = UINT8_MAX); // UINT8_MAX = use current brush
+    void fillSelection(uint16_t tileId = UINT8_MAX); // UINT8_MAX = use current brush
     void preloadAssets();
     void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
     static QString toolName(ToolType toolID);
@@ -64,7 +64,7 @@ public:
     static bool isValidFont(const QString &family, QFont::StyleHint hint);
 
 signals:
-    void tilePicked(uint8_t tileId);
+    void tilePicked(uint16_t tileId);
     void selectionChanged(const QRect &rect); // in tile coordinates
     void mapModified();                       // emitted after commit
     void copyRequested(const QRect &tileRect);
@@ -74,8 +74,8 @@ signals:
 
 public slots:
     // Current tile(s) to paint with (for Stamp tool)
-    void setCurrentTile(uint8_t tileId);
-    void setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols); // for multi-tile stamps
+    void setCurrentTile(uint16_t tileId);
+    void setCurrentTiles(const std::vector<uint16_t> &tileIds, int cols); // for multi-tile stamps
     void setCurrentStamp(const Stamp &stamp);
     void changeActiveLayer(int layerID);
     void updateLayerVisibility(int layerID, bool visibility);
@@ -92,7 +92,7 @@ protected:
 
 private:
 
-    bool fetchTileSet(const QString & path, const uint16_t baseID);
+    bool fetchTileSet(const QString & path, CFrameSet &frameSetLayers);
     void startToolCmd(const ToolType tool);
     void commitToolCmd();
     static bool isCombinedTool(const ToolType);
@@ -113,12 +113,12 @@ private:
     QColor rgbaToQColor(const uint32_t rgba);
 
     // Tile pixmap cache: tileId → QPixmap (scaled)
-    QPixmap getCachedPixmap(uint8_t tileId, uint16_t baseId);
+    QPixmap getCachedPixmap(uint16_t tileId, uint16_t baseId);
 
     // Commit current shadow stamp
     void commitStampAt(const QPoint &tilePos, const Stamp &stamp);
     void updateCursor();
-    uint8_t randomTile(const std::vector<uint8_t> & tiles);
+    uint16_t randomTile(const std::vector<uint16_t> &tiles);
 
     // Layers
     enum {
@@ -139,7 +139,7 @@ private:
 
     CMap *m_map = nullptr;
     ToolType m_tool = ToolType::None;
-    uint8_t m_currentTile = 0;
+    uint16_t m_currentTile = 0;
     Stamp m_currentStamp{{0}, 1, 1, Stamp::MainTilesetBaseID};
 
     int m_zoom = 2; // 2x by default (32x32 visible tiles)

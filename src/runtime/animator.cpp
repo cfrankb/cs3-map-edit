@@ -83,8 +83,7 @@ void CAnimator::reloadTileData()
 {
     memset(m_tileMainLayer, NO_ANIMZ, sizeof(m_tileMainLayer));
     memset(m_tileLayer, '\0', sizeof(m_tileLayer));
-
-    for (int i = 0; i < 256; ++i)
+    for (size_t i = 0; i < (size_t)MAX_LAYER_TILES; ++i)
     {
         const auto &data = g_layerdata[i];
         // if animated (save current index)
@@ -113,6 +112,11 @@ void CAnimator::animate()
     {
         if (!tileID)
             continue;
+        if (tileID >= MAX_LAYER_TILES)
+        {
+            LOGW("out of bound layer tile: %u", tileID);
+            break;
+        }
         const auto &data = g_layerdata[tileID];
         if (data.nextTile && data.animeSpeed && m_offset % data.animeSpeed == 0)
             tileID = data.nextTile;

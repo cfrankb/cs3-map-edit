@@ -212,26 +212,39 @@ void CDlgTest::preloadAssets()
         qDebug("failed to open %s", fontName);
     }
 
-    const char layerTilesFilename[] = ":/data/cs3layers.png";
-    qDebug("reading: %s",layerTilesFilename );
-    CFrameSet tmp;
-    if (file.open(layerTilesFilename, "rb")) {
-        if (!tmp.extract(file)) {
-            qDebug("failed to read: %s", layerTilesFilename);
-        } else {
-            CFrameSet * newFrames = tmp[0]->split(TILE_SIZE,TILE_SIZE);
-            m_layerTiles = std::unique_ptr<CFrameSet>(newFrames);
-            qDebug("count: %lu", m_layerTiles->size());
-        }
-    } else {
-        qDebug("failed to open: %s", layerTilesFilename);
-    }
-
     loadColorMaps();
 
-    if (!loadTileLayer(":/data/layer01.json", g_layerdata))
-    {
-        LOGE("failed to load tile data");
+    m_layerTiles = std::unique_ptr<CFrameSet>(new CFrameSet);
+    qDebug("m_layerTiles: %p",m_layerTiles.get());
+    for (int i=0; i < LAYER_COUNT; ++i) {
+        QString path = QString(":/data/layer%1.json").arg(i);
+        qDebug("reading : %s", path.toStdString().c_str());
+        if (!loadTileLayer(path.toStdString(), g_layerdata, LAYER_TILE_COUNT *i))
+        {
+            LOGE("failed to load tile data");
+        }
+        //const char layerTilesFilename[] = ":/data/cs3layers.png";
+        path = QString(":/data/layer%1.png").arg(i);
+        qDebug("reading: %s", path.toStdString().c_str() );
+        CFrameSet tmp;
+        if (file.open(path, "rb")) {
+            if (!tmp.extract(file)) {
+                qDebug("failed to read: %s", path.toStdString().c_str());
+            } else {
+                CFrameSet * newFrames = tmp[0]->split(TILE_SIZE,TILE_SIZE);
+                m_layerTiles->frames().insert(
+                    m_layerTiles->frames().end(),
+                    std::make_move_iterator(newFrames->frames().begin()),
+                    std::make_move_iterator(newFrames->frames().end())
+                    );
+                qDebug("count: %lu", m_layerTiles->size());
+                newFrames->removeAll();
+                delete newFrames;
+            }
+            file.close();
+        } else {
+            qDebug("failed to open: %s", path.toStdString().c_str());
+        }
     }
     m_animator->reloadTileData();
 }

@@ -5,7 +5,7 @@
 #include <QDebug>
 
 // --- Constructor ---
-TileSelectorWidget::TileSelectorWidget(QWidget *parent, uint16_t baseID)
+TileSelectorWidget::TileSelectorWidget(QWidget *parent, uint16_t offsetID, uint16_t baseID)
     : QWidget(parent), m_baseID(baseID)
 {
     // Set a solid background color (e.g., white)
@@ -14,6 +14,7 @@ TileSelectorWidget::TileSelectorWidget(QWidget *parent, uint16_t baseID)
     setAutoFillBackground(true);
     // Enable mouse tracking so mouseMoveEvent fires even without a button pressed
     setMouseTracking(true);
+    m_offsetID = offsetID;
 
     setMaximumHeight(512);
     setMaximumSize(512,512);
@@ -264,11 +265,12 @@ Stamp TileSelectorWidget::getSelectedStamp() const
     // The top-left most tile selected (which sets the relative 0,0)
     QPoint topLeftTile(minCol, minRow);
 
+    qDebug("offset:%x", m_offsetID);
     for (int r = minRow; r <= maxRow; ++r)
     {
         for (int c = minCol; c <= maxCol; ++c)
         {
-            stamp.tiles.emplace_back(static_cast<uint8_t>(getTileId(r, c)));
+            stamp.tiles.emplace_back(static_cast<uint16_t>(getTileId(r, c) + m_offsetID));
         }
     }
 

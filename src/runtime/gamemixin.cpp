@@ -574,7 +574,7 @@ void CGameMixin::drawTimeout(CFrame &bitmap)
     }
 }
 
-CFrame *CGameMixin::tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap)
+CFrame *CGameMixin::tile2Frame(const uint16_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap)
 {
     const CGame &game = *m_game;
     CFrame *tile;
@@ -595,7 +595,7 @@ CFrame *CGameMixin::tile2Frame(const uint8_t tileID, ColorMask &colorMask, std::
         }
         else if (!game.goalCount() && game.isClosure())
         {
-            tile = annie[static_cast<uint8_t>(AIM_DOWN) * PLAYER_FRAMES + m_playerFrameOffset + userBaseFrame];
+            tile = annie[static_cast<uint16_t>(AIM_DOWN) * PLAYER_FRAMES + m_playerFrameOffset + userBaseFrame];
         }
         else if (aim == AIM_DOWN && game.m_gameStats->get(S_IDLE_TIME) > IDLE_ACTIVATION)
         {
@@ -672,7 +672,7 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
     const std::vector<CActor> &monsters = game.getMonsters();
     for (const auto &monster : monsters)
     {
-        const uint8_t &tileID = map->at(monster.x(), monster.y());
+        const uint16_t &tileID = map->at(monster.x(), monster.y());
         if (monster.isWithin(mx, my, mx + cols + ox, my + rows + oy) &&
             m_animator->isSpecialCase(tileID))
         {
@@ -732,7 +732,7 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
         {
             bool firstX = ox && x == 0;
             bool lastX = ox && x == cols;
-            uint8_t tileID = map->at(x + mx, y + my);
+            uint16_t tileID = map->at(x + mx, y + my);
             ColorMask colorMask = COLOR_NOCHANGE;
             std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
             CFrame *tile = tile2Frame(tileID, colorMask, colorMap);
@@ -837,7 +837,7 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         {
             for (int x = 0; x < cols; ++x)
             {
-                const uint8_t tileID = layer->at(x + mx, y + my);
+                const uint16_t tileID = layer->at(x + mx, y + my);
                 ColorMask inverted = COLOR_NOCHANGE;
                 std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr;
                 CFrame *tile = nullptr;
@@ -847,7 +847,7 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
                 }
                 else if (tileID)
                 {
-                    const uint8_t refID = m_animator->getLayerTile(tileID);
+                    const uint16_t refID = m_animator->getLayerTile(tileID);
                     tile = (*m_layerTiles)[refID];
                     const layerdata_t &data = getLayerTileDef(refID);
                     if (data.tileType == LayerTileType::Foreground)

@@ -4,7 +4,7 @@
 
 struct Stamp
 {
-    std::vector<uint8_t> tiles = {}; // for multi-tile stamps
+    std::vector<uint16_t> tiles = {}; // for multi-tile stamps
     int cols = 0;
     int rows = 0;
     uint16_t baseID = MainTilesetBaseID;

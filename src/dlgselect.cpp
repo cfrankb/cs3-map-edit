@@ -11,6 +11,7 @@
 #include "runtime/statedata.h"
 #include "runtime/dirs.h"
 #include "runtime/shared/PngMagic.h"
+#include "runtime/layerdata.h"
 
 CDlgSelect::CDlgSelect(QWidget *parent) : QDialog(parent),
                                           ui(new Ui::CDlgSelect)
@@ -98,26 +99,33 @@ CFrameSet *CDlgSelect::preloadMainTiles()
 CFrameSet *CDlgSelect::preloadLayerTiles()
 {
     QFileWrap file;
-    const std::string cs3tiles0Filename = ":/data/cs3layers.png";
-    LOGI("extracting texture from %s", cs3tiles0Filename.c_str());
-    if (!file.open(cs3tiles0Filename, "rb"))
-    {
-        LOGE("can't open %s", cs3tiles0Filename.c_str());
+    CFrameSet *frameSet = new CFrameSet;
+    if (!frameSet)
         return nullptr;
+    for (int i=0; i < LAYER_COUNT; ++i) {
+        QString path = QString(":/data/layer%1.png").arg(i);
+        qDebug("reading: %s", path.toStdString().c_str() );
+        CFrameSet tmp;
+        if (file.open(path, "rb")) {
+            if (!tmp.extract(file)) {
+                qDebug("failed to read: %s", path.toStdString().c_str());
+            } else {
+                CFrameSet * newFrames = tmp[0]->split(TILE_SIZE,TILE_SIZE);
+                frameSet->frames().insert(
+                    frameSet->frames().end(),
+                    std::make_move_iterator(newFrames->frames().begin()),
+                    std::make_move_iterator(newFrames->frames().end())
+                    );
+                qDebug("count: %lu", frameSet->size());
+                newFrames->removeAll();
+                delete newFrames;
+            }
+            file.close();
+        } else {
+            qDebug("failed to open: %s", path.toStdString().c_str());
+        }
     }
-
-    CFrameSet set;
-    if (!parsePNG(set, file, 0, true))
-    {
-        LOGE("fail to parse %s", cs3tiles0Filename.data());
-        return nullptr;
-    }
-    file.close();
-
-    if (set.getSize() == 0)
-        return nullptr;
-
-    return set[0]->split(TILE_SIZE, TILE_SIZE);
+    return frameSet;
 }
 
 void CDlgSelect::init(const QString s, CMapFile *mf)

@@ -37,8 +37,8 @@ using namespace MapWidgetPrivate;
 
 struct TileDelta
 {
-    uint8_t oldTile;
-    uint8_t newTile;
+    uint16_t oldTile;
+    uint16_t newTile;
 };
 
 
@@ -51,7 +51,7 @@ public:
         setText(MapWidget::toolName(m_tool));
     }
 
-    void recordChange(int x, int y, uint8_t oldTile, uint8_t newTile)
+    void recordChange(int x, int y, uint16_t oldTile, uint16_t newTile)
     {
         auto key = CMap::toKey(x, y);
         auto it = m_changes.find(key);
@@ -115,7 +115,7 @@ private:
 class FloodFillCommand : public QUndoCommand
 {
 public:
-    FloodFillCommand(CMapFile *doc, CLayer *layer, int startX, int startY, uint8_t newValue, QUndoCommand *parent = nullptr)
+    FloodFillCommand(CMapFile *doc, CLayer *layer, int startX, int startY, uint16_t newValue, QUndoCommand *parent = nullptr)
         : QUndoCommand(parent), m_doc(doc), m_startX(startX), m_startY(startY), m_newValue(newValue)
     {
         setText(QObject::tr("Flood Fill"));
@@ -145,17 +145,17 @@ private:
     CLayer *m_layer;
     CMapFile *m_doc;
     int m_startX, m_startY;
-    uint8_t m_newValue;
-    std::vector<uint8_t> m_backup;
+    uint16_t m_newValue;
+    std::vector<uint16_t> m_backup;
 
-    void floodFill(CLayer *layer, int x, int y, uint8_t newValue)
+    void floodFill(CLayer *layer, int x, int y, uint16_t newValue)
     {
         // Basic BFS flood fill
         int width = layer->width();
         int height = layer->height();
         auto &tiles = layer->tiles();
 
-        uint8_t oldValue = tiles[y * width + x];
+        uint16_t oldValue = tiles[y * width + x];
         if (oldValue == newValue)
             return;
 
@@ -190,7 +190,7 @@ class SetTileAttrCommand : public QUndoCommand
 {
 public:
     SetTileAttrCommand(CMapFile* doc, int x, int y,
-                       uint8_t oldAttr, uint8_t newAttr,
+                       uint16_t oldAttr, uint16_t newAttr,
                        QUndoCommand* parent = nullptr)
         : QUndoCommand(parent),
         m_doc(doc), m_x(x), m_y(y),
@@ -220,7 +220,7 @@ private:
 
     CMapFile* m_doc;
     int m_x, m_y;
-    uint8_t m_oldAttr, m_newAttr;
+    uint16_t m_oldAttr, m_newAttr;
 };
 
 
@@ -336,7 +336,7 @@ void MapWidget::setTool(ToolType tool)
         commitToolCmd();
     }
 
-    qDebug("setTool %u", static_cast<uint8_t>(tool));
+    qDebug("setTool %u", static_cast<uint16_t>(tool));
     if (m_tool != tool)
     {
         m_tool = tool;
@@ -347,7 +347,7 @@ void MapWidget::setTool(ToolType tool)
     }
 }
 
-void MapWidget::setCurrentTile(uint8_t tileId)
+void MapWidget::setCurrentTile(uint16_t tileId)
 {
     qDebug("current tile: 0x%.2x", tileId);
     m_currentTile = tileId;
@@ -356,7 +356,7 @@ void MapWidget::setCurrentTile(uint8_t tileId)
     update();
 }
 
-void MapWidget::setCurrentTiles(const std::vector<uint8_t> &tileIds, int cols)
+void MapWidget::setCurrentTiles(const std::vector<uint16_t> &tileIds, int cols)
 {
     const int rows = (tileIds.size() + cols - 1) / cols;
     m_currentStamp = Stamp{tileIds, cols, rows, Stamp::MainTilesetBaseID};
@@ -394,11 +394,8 @@ void MapWidget::setGridVisible(bool visible)
     }
 }
 
-bool MapWidget::fetchTileSet(const QString & path, const uint16_t baseID)
+bool MapWidget::fetchTileSet(const QString & path, CFrameSet &frameSetLayers)
 {
-    auto addTileSet = [this](uint16_t baseID, const std::vector<CFrame *> &frames) {
-        m_frameSetLookup[m_frameSetCount++] = {baseID, std::move(frames)};
-    };
     std::unique_ptr<CFrameSet> frameSet = std::make_unique<CFrameSet>();
     QFileWrap file;
     //const char filenameLayers[] = ":/data/cs3layers.png";
@@ -419,7 +416,13 @@ bool MapWidget::fetchTileSet(const QString & path, const uint16_t baseID)
         CFrame *frame = (*frameSet.get())[0];
         CFrameSet *splitSet = frame->split(TILE_SIZE, TILE_SIZE);
         LOGI("tiles in others: %lu", splitSet->getSize());
-        addTileSet(Stamp::OtherTilesetBaseID, splitSet->frames());
+        //addTileSet(Stamp::OtherTilesetBaseID, splitSet->frames());
+        //frameSetLayers += *splitSet;
+        frameSetLayers.frames().insert(
+            frameSetLayers.frames().end(),
+            std::make_move_iterator(splitSet->frames().begin()),
+            std::make_move_iterator(splitSet->frames().end())
+            );
         splitSet->removeAll();
         delete splitSet;
         return true;
@@ -439,7 +442,6 @@ void MapWidget::preloadAssets()
     };
 
     QFileWrap file;
-
     LOGI("preloadAssets start");
 
     //////////////////////////////////////////////////
@@ -468,12 +470,21 @@ void MapWidget::preloadAssets()
 
     /////////////////////////////////////////
     // tileset for other layers
-    if (!fetchTileSet(":/data/cs3layers.png", Stamp::OtherTilesetBaseID)) {
 
+    CFrameSet fs;
+    for (int i=0; i < LAYER_COUNT; ++i) {
+        QString path = QString(":/data/layer%1.png").arg(i);
+        // Stamp::OtherTilesetBaseID
+        // ":/data/layer0.png"
+        if (!fetchTileSet(path, fs)) {
+            LOGE("failed to load texture:%s", path.toStdString().c_str());
+        }
     }
+    LOGI("layer tiles: %lu", fs.getSize());
+    addTileSet(Stamp::OtherTilesetBaseID, fs.frames());
+    fs.removeAll();
 
-    LOGI("m_frameSetCount: %lu", m_frameSetCount);
-
+    LOGI("m_frameSetCount: %lu", m_frameSetCount);\
     // Force resize in case zoom > 1 and map already exists
     if (map())
     {
@@ -521,7 +532,7 @@ QPoint MapWidget::tileToScreen(const QPoint &tile) const
     return {tile.x() * s, tile.y() * s};
 }
 
-QPixmap MapWidget::getCachedPixmap(uint8_t tileID, uint16_t baseID)
+QPixmap MapWidget::getCachedPixmap(uint16_t tileID, uint16_t baseID)
 {
     auto getFrameSet = [this] (const uint16_t &baseID) -> std::vector<CFrame *>*
     {
@@ -608,7 +619,7 @@ void MapWidget::drawMap(QPainter &painter)
         painter.drawRect(tileRect);
     };
 
-    auto drawTile = [this, tileSize, &painter](const uint8_t tileID, const auto baseID, const int x, const int y)
+    auto drawTile = [this, tileSize, &painter](const uint16_t tileID, const auto baseID, const int x, const int y)
     {
         QPixmap pm = getCachedPixmap(tileID, baseID);
         if (!pm.isNull())
@@ -644,7 +655,7 @@ void MapWidget::drawMap(QPainter &painter)
                 if (!m_layerVisibilityList[i])
                     continue;
                 const CLayer *layer = m_map->getLayer(i);
-                const uint8_t tileID = layer->at(x, y);
+                const uint16_t tileID = layer->at(x, y);
                 if (tileID)
                     drawTile(tileID, layer->baseID(), x, y);
             } while ( i != 0);
@@ -729,7 +740,7 @@ void MapWidget::drawShadowTile(QPainter &painter, const Stamp &stamp)
             if (idx >= stamp.tiles.size())
                 break;
 
-            uint8_t tileId = stamp.tiles[idx];
+            uint16_t tileId = stamp.tiles[idx];
             QPixmap pm = getCachedPixmap(tileId, stamp.baseID); // Stamp::MainTilesetBaseID
             if (!pm.isNull())
             {
@@ -779,8 +790,8 @@ void MapWidget::commitStampAt(const QPoint &tilePos, const Stamp &stamp)
             if (idx >= stamp.tiles.size())
                 break;
 
-            uint8_t newTile = stamp.tiles[idx];
-            uint8_t oldTile = layer->at(tx, ty);
+            uint16_t newTile = stamp.tiles[idx];
+            uint16_t oldTile = layer->at(tx, ty);
             if (oldTile != newTile)
             {
                 m_currentCommand->recordChange(tx, ty, oldTile, newTile);
@@ -830,7 +841,7 @@ void MapWidget::mousePressEvent(QMouseEvent *event)
             else if (m_tool == ToolType::Dice)
             {
                 startToolCmd(m_tool);
-                uint8_t tileID = randomTile(stamp.tiles);
+                uint16_t tileID = randomTile(stamp.tiles);
                 commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
             }
         }
@@ -878,7 +889,7 @@ void MapWidget::mouseMoveEvent(QMouseEvent *event)
             }
             else if (m_tool == ToolType::Dice)
             {
-                uint8_t tileID = randomTile(stamp.tiles);
+                uint16_t tileID = randomTile(stamp.tiles);
                 commitStampAt(tilePos, Stamp{{tileID}, 1, 1, stamp.baseID});
             }
             else if (m_tool == ToolType::FloodFill && m_doc && m_doc->map() && m_doc->map()->at(tilePos.x(), tilePos.y()) != stamp.tiles[0])
@@ -1165,7 +1176,7 @@ void MapWidget::contextMenuEvent(QContextMenuEvent *event)
     menu.exec(event->globalPos());
 }
 
-void MapWidget::fillSelection(uint8_t tileId /* = UINT8_MAX */)
+void MapWidget::fillSelection(uint16_t tileId /* = UINT8_MAX */)
 {
     CLayer *layer = getActiveLayer();
     if (!m_map || !layer)
@@ -1287,7 +1298,7 @@ void MapWidget::updateLayerVisibility(int layerID, bool visibility)
     update();
 }
 
-uint8_t MapWidget::randomTile(const std::vector<uint8_t> &tiles)
+uint16_t MapWidget::randomTile(const std::vector<uint16_t> &tiles)
 {
     //  Create random generator
     static std::random_device rd;

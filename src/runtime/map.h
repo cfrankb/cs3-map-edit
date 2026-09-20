@@ -68,7 +68,7 @@ class CLayer;
 class CMap
 {
 public:
-    CMap(uint16_t len = 0, uint16_t hei = 0, uint8_t t = 0);
+    CMap(uint16_t len = 0, uint16_t hei = 0, uint16_t t = 0);
     CMap(const CMap &map);
     ~CMap();
     bool read(const char *fname);
@@ -80,10 +80,10 @@ public:
     void clear();
     inline int width() const { return m_len; };
     inline int height() const { return m_hei; };
-    bool resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast);
-    const Pos findFirst(const uint8_t tileId) const;
-    size_t count(const uint8_t tileId) const;
-    void fill(uint8_t ch = 0);
+    bool resize(uint16_t in_len, uint16_t in_hei, uint16_t t, bool fast);
+    const Pos findFirst(const uint16_t tileId) const;
+    size_t count(const uint16_t tileId) const;
+    void fill(uint16_t ch = 0);
     inline uint8_t getAttr(const uint8_t x, const uint8_t y) const
     {
         const uint16_t key = toKey(x, y);
@@ -104,7 +104,7 @@ public:
     bool fromMemory(uint8_t *mem);
     const char *title();
     void setTitle(const std::string_view &title);
-    void replaceTile(const uint8_t, const uint8_t);
+    void replaceTile(const uint16_t, const uint16_t);
     const attrMap_t &attrs() { return m_attrs; }
     CStates &states();
     inline const CStates &statesConst() const { return *m_states; };
@@ -118,17 +118,17 @@ public:
 
     bool shift(const Direction aim);
     void debug();
-    inline uint8_t &get(const int x, const int y)
+    inline uint16_t &get(const int x, const int y)
     {
         return getMainLayer()->get(x, y);
     }
 
-    inline uint8_t at(const int x, const int y) const
+    inline uint16_t at(const int x, const int y) const
     {
         return getMainLayer()->at(x, y);
     }
 
-    inline void set(const int x, const int y, const uint8_t t)
+    inline void set(const int x, const int y, const uint16_t t)
     {
         get(x, y) = t;
     }
@@ -174,6 +174,7 @@ public:
         VERSION0 = 0,
         VERSION1 = 1,
         VERSION2 = 2,
+        VERSION3 = 3,
     };
 
 private:

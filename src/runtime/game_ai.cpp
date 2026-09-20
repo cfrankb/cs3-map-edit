@@ -56,7 +56,7 @@ CActor *CGame::spawnBullet(int x, int y, JoyAim aim, uint8_t tile)
     }
 
     const TileDef &def = getTileDef(tile);
-    const uint8_t pu = m_map.at(x, y);
+    const uint16_t pu = m_map.at(x, y);
     CActor actor(x, y, def.type, aim);
     actor.setPU(pu);
     const TileDef &defPU = getTileDef(pu);
@@ -341,7 +341,7 @@ void CGame::manageMonsters(const uint32_t ticks)
             continue;
         CActor &actor = m_monsters[i];
         const Pos pos = actor.pos();
-        const uint8_t tileID = m_map.at(pos.x, pos.y);
+        const uint16_t tileID = m_map.at(pos.x, pos.y);
         const uint8_t attr = m_map.getAttr(pos.x, pos.y);
         if (RANGE(attr, ATTR_IDLE_MIN, ATTR_IDLE_MAX))
         {
@@ -565,7 +565,7 @@ void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor
     for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
     {
         const Pos p = CGame::translate(Pos{actor.x(), actor.y()}, g_dirs[i]);
-        const uint8_t ct = m_map.at(p.x, p.y);
+        const uint16_t ct = m_map.at(p.x, p.y);
         const TileDef &defT = getTileDef(ct);
         if (defT.type == TYPE_PLAYER)
         {
@@ -761,7 +761,7 @@ void CGame::handleEgg(CActor &actor, const TileDef &def)
     }
     else
     {
-        const uint8_t tileID = def.bullet; // TILES_BABYDRAGON;
+        const uint16_t tileID = def.bullet; // TILES_BABYDRAGON;
         const TileDef &td = getTileDef(tileID);
         actor.setType(td.type);
         actor.setPU(TILES_EGG_CRACKED);
@@ -827,7 +827,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         if (CGame::translate(Pos{actor.x(), actor.y()}, aim) == actor.pos())
             // coordonate outside map bounds
             return;
-        const uint8_t tileID = actor.tileAt(aim);
+        const uint16_t tileID = actor.tileAt(aim);
         const TileDef &defX = getTileDef(tileID);
         if (defX.type == TYPE_ICECUBE)
         {

@@ -44,9 +44,9 @@ public:
     {
         return m_tileMainLayer[tileID];
     }
-    inline uint16_t getLayerTile(uint8_t tileID) const
+    inline uint16_t getLayerTile(const uint16_t tileID) const
     {
-        const uint8_t &c = m_tileLayer[tileID];
+        const uint16_t &c = m_tileLayer[tileID];
         return c ? c : tileID;
     }
 
@@ -89,10 +89,11 @@ private:
     {
         NO_ANIMZ = 255,
         MAX_TILES = 256,
+        MAX_LAYER_TILES = 1024,
     };
     /// Maps tile IDs to current animation frame.
     uint8_t m_tileMainLayer[MAX_TILES];
-    uint8_t m_tileLayer[MAX_TILES];
+    uint16_t m_tileLayer[MAX_LAYER_TILES];
     /// Global animation tick counter.
     std::vector<int32_t> m_seqIndex;
     uint16_t m_offset = 0;

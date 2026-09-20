@@ -28,4 +28,5 @@ bool concat(const std::list<std::string> files, std::string out, std::string &ms
 int upperClean(int c);
 int compressData(unsigned char *in_data, unsigned long in_size, unsigned char **out_data, unsigned long &out_size);
 int compressData(const std::vector<uint8_t> &in_data, std::vector<uint8_t> &out_data);
+int compressData(const std::vector<uint16_t> &in_data, std::vector<uint8_t> &out_data);
 std::vector<uint8_t> readFile(const char *fname);

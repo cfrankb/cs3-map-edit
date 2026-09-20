@@ -101,7 +101,7 @@ public:
 
 private:
     CMapFile *m_doc;
-    std::vector<uint8_t> m_backup; // or any container representing the saved state
+    std::vector<uint16_t> m_backup; // or any container representing the saved state
 };
 
 // Custom command for renaming a map
@@ -195,10 +195,10 @@ private:
     int m_newWidth, m_newHeight;
     int m_oldWidth, m_oldHeight;
 
-    std::vector<std::vector<uint8_t>> m_oldLayers;
-    std::vector<std::vector<uint8_t>> m_newLayers;
+    std::vector<std::vector<uint16_t>> m_oldLayers;
+    std::vector<std::vector<uint16_t>> m_newLayers;
 
-    void backupLayers(std::vector<std::vector<uint8_t>> &out)
+    void backupLayers(std::vector<std::vector<uint16_t>> &out)
     {
         out.clear();
         for (const auto &layer : m_map->layers())

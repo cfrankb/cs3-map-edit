@@ -167,6 +167,21 @@ int compressData(const std::vector<uint8_t> &in_data, std::vector<uint8_t> &out_
     return result;
 }
 
+int compressData(const std::vector<uint16_t> &in_data, std::vector<uint8_t> &out_data)
+{
+    auto out_size = ::compressBound(in_data.size() * sizeof(uint16_t));
+    out_data.resize(out_size);
+    int result = ::compress2(
+        out_data.data(),
+        &out_size,
+        (uint8_t *)in_data.data(),
+        in_data.size() * sizeof(uint16_t),
+        Z_DEFAULT_COMPRESSION);
+    if (out_size != out_data.size())
+        out_data.resize(out_size);
+    return result;
+}
+
 std::vector<uint8_t> readFile(const char *fname)
 {
     FILEWRAP file;

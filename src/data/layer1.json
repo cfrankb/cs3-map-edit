@@ -1,0 +1,2312 @@
+{
+    "height": 256,
+    "imagePath": "/home/cfrankb/toolkit/gcc/cs3-data-private/pixels/layer1.png",
+    "tileSize": 16,
+    "tiles": [
+        {
+            "granular": 0,
+            "index": 0,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 1,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 2,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 3,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 4,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 5,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 6,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 7,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 8,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 9,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 10,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 11,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 12,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 13,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 14,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 15,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 16,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 17,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 18,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 19,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 20,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 21,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 22,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 23,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 24,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 25,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 26,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 27,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 28,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 29,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 30,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 31,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 32,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 33,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 34,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 35,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 36,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 37,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 38,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 39,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 40,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 41,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 42,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 43,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 44,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 45,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 46,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 47,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 48,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 49,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 50,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 51,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 52,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 53,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 54,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 55,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 56,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 57,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 58,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 59,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 60,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 61,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 62,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 63,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 64,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 65,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 66,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 67,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 68,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 69,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 70,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 71,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 72,
+            "next": 74,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 73,
+            "next": 75,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 74,
+            "next": 76,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 75,
+            "next": 77,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 76,
+            "next": 78,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 77,
+            "next": 79,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 78,
+            "next": 72,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 79,
+            "next": 73,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 80,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 81,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 82,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 83,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 84,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 85,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 86,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 87,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 88,
+            "next": 90,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 89,
+            "next": 91,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 90,
+            "next": 92,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 91,
+            "next": 93,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 92,
+            "next": 94,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 93,
+            "next": 95,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 94,
+            "next": 88,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 95,
+            "next": 89,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 96,
+            "next": 97,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 97,
+            "next": 98,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 98,
+            "next": 99,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 99,
+            "next": 100,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 100,
+            "next": 96,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 101,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 102,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 103,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 104,
+            "next": 106,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 105,
+            "next": 107,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 106,
+            "next": 108,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 107,
+            "next": 109,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 108,
+            "next": 110,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 109,
+            "next": 111,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 110,
+            "next": 104,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 111,
+            "next": 105,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 112,
+            "next": 113,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 113,
+            "next": 114,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 114,
+            "next": 115,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 115,
+            "next": 116,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 116,
+            "next": 113,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 117,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 118,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 119,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 120,
+            "next": -1,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 121,
+            "next": 122,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 122,
+            "next": 123,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 123,
+            "next": 120,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 124,
+            "next": 125,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 125,
+            "next": 125,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 126,
+            "next": 127,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 127,
+            "next": 124,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 128,
+            "next": 129,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 129,
+            "next": 130,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 130,
+            "next": 131,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 131,
+            "next": 132,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 132,
+            "next": 133,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 133,
+            "next": 134,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 134,
+            "next": 135,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 135,
+            "next": 128,
+            "speed": 1,
+            "tag": "wfire-yel",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 136,
+            "next": 137,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 137,
+            "next": 138,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 138,
+            "next": 139,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 139,
+            "next": 136,
+            "speed": 1,
+            "tag": "sm_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 140,
+            "next": 141,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 141,
+            "next": 142,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 142,
+            "next": 143,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 143,
+            "next": 140,
+            "speed": 1,
+            "tag": "mid_waterfall",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 144,
+            "next": 145,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 145,
+            "next": 146,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 146,
+            "next": 147,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 147,
+            "next": 148,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 148,
+            "next": 149,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 149,
+            "next": 150,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 150,
+            "next": 151,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 151,
+            "next": 144,
+            "speed": 1,
+            "tag": "wfire-red",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 152,
+            "next": 153,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 153,
+            "next": 154,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 154,
+            "next": 155,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 155,
+            "next": 156,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 156,
+            "next": 157,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 157,
+            "next": 158,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 158,
+            "next": 159,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 159,
+            "next": 152,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 160,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 161,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 162,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 163,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 164,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 165,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 166,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 167,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 168,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 169,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 170,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 171,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 172,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 173,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 174,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 175,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 176,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 177,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 178,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 179,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 180,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 181,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 182,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 183,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 184,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 185,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 186,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 187,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 188,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 189,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 190,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 191,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 192,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 193,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 194,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 195,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 196,
+            "next": 197,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 197,
+            "next": 198,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 198,
+            "next": 199,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 199,
+            "next": 200,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 200,
+            "next": 201,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 201,
+            "next": 202,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 202,
+            "next": 203,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 203,
+            "next": 196,
+            "speed": 1,
+            "tag": "flame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 204,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 205,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 206,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 207,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 208,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 209,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 210,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 211,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 212,
+            "next": 213,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 213,
+            "next": 214,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 214,
+            "next": 215,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 215,
+            "next": 216,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 216,
+            "next": 217,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 217,
+            "next": 218,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 218,
+            "next": 219,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 219,
+            "next": 212,
+            "speed": 1,
+            "tag": "blueflame",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 3,
+            "index": 220,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 221,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 222,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 223,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 224,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 225,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 226,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 227,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 228,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 229,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 230,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 231,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 232,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 233,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 234,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 235,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 236,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 237,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 238,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 239,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 240,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 241,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 242,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 243,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 244,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 245,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 246,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 247,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 248,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 249,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 250,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 251,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 0,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 252,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 253,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 254,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        },
+        {
+            "granular": 0,
+            "index": 255,
+            "next": -1,
+            "speed": 1,
+            "tag": "",
+            "type": 2,
+            "w": 1
+        }
+    ],
+    "width": 256
+}

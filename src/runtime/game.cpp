@@ -51,7 +51,7 @@
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000a;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000b;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
@@ -1818,7 +1818,7 @@ scan_t CGame::scanPos(const Pos &pos, const uint8_t aim) const
         if (!layer)
             continue;
 
-        const uint8_t tileID = layer->at(pos.x, pos.y);
+        const uint16_t tileID = layer->at(pos.x, pos.y);
         if (layer->baseID() == 0)
         {
             const TileDef &def = getTileDef(tileID);
@@ -1869,7 +1869,7 @@ bool CGame::isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const
         if (!layer || layer->baseID() == 0)
             continue;
 
-        const uint8_t tileID = layer->at(pos.x, pos.y);
+        const uint16_t tileID = layer->at(pos.x, pos.y);
         const auto curr = m_animator->getLayerTile(tileID);
         const layerdata_t &data = getLayerTileDef(curr);
         const uint8_t &granular = data.granular;

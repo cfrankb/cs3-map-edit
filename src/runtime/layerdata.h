@@ -22,7 +22,7 @@
 
 struct layerdata_t
 {
-    uint8_t nextTile;
+    uint16_t nextTile;
     uint8_t animeSpeed;
     uint8_t tileType;
     uint8_t weight;
@@ -46,11 +46,14 @@ enum LayerTileType
 
 enum
 {
-    TOTAL_TILE_COUNT = 256
+    LAYER_TILE_COUNT = 256,
+    TOTAL_TILE_COUNT = 1024,
+    DUMMY_NEXT_TILE = 0xffff,
+    LAYER_COUNT = 3
 };
 extern layerdata_t g_layerdata[TOTAL_TILE_COUNT];
 
-bool loadTileLayer(const std::string &filename, layerdata_t *layers);
+bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseInx);
 
 inline const layerdata_t &getLayerTileDef(int i)
 {
