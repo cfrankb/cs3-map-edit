@@ -2,6 +2,6 @@
 Type=Application
 Name=CS3MapEdit
 Comment=CS3MapEdit
-Exec=mapedit
+Exec=cs3-map-edit
 Icon=CS3MapEdit-icon
 Categories=Office;

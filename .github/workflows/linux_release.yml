@@ -34,12 +34,11 @@ jobs:
         run: |
           echo "SOURCEDIR: ${{ env.SOURCE_DIR }}/"
           echo "RUNNERDIR: ${{ runner.temp }}"
-          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png ${{ runner.temp }}
-          #ls -l /home/runner/work/cs3-map-edit/CS3MapEdit-icon.png
-
-      - name: Run Python script
-        run: |
-          python3 bin/patch.py
+          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png ${{ env.SOURCE_DIR }}
+          echo "--- After copying icon to SOURCE_DIR root ---"
+          ls -l ${{ env.SOURCE_DIR }}
+          echo "--- Icon files present in repo ---"
+          ls -l ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png ${{ env.SOURCE_DIR }}/src/data/icons/CS3MapEdit-icon.png 2>&1
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -47,7 +46,7 @@ jobs:
           version: ${{ env.QT_VERSION }}
           host: linux
           target: desktop
-          arch: gcc_64
+          arch: linux_gcc_64
           dir: ${{ runner.temp }}
           setup-python: false
 
@@ -69,10 +68,14 @@ jobs:
           sudo apt install libfuse2
           wget -O deploy.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod +x deploy.AppImage
+          echo "--- SOURCE_DIR root (where icon should be) ---"
           ls -l ${{ env.SOURCE_DIR }}
-          cp ${{ env.SOURCE_DIR }}/linux/* .
+          echo "--- Contents of build/ (appdir root for linuxdeployqt) ---"
           ls -l
-          cp ${{ env.SOURCE_DIR }}/linux/* ${{ runner.temp }}
+          echo "--- Desktop file location ---"
+          ls -l CS3MapEdit.desktop
+          echo "--- Icon files visible from build/ ---"
+          find . -maxdepth 3 -iname 'CS3MapEdit-icon*' 2>&1
           ./deploy.AppImage CS3MapEdit.desktop -appimage -no-translations -qmldir=${{ env.SOURCE_DIR }} -extra-plugins=renderers
           ls -l
           mkdir ${{ env.SOURCE_DIR }}/build/release

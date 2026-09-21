@@ -51,7 +51,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="a">
     <attribute name="title">
@@ -118,17 +118,17 @@
     <widget class="QLabel" name="label_3">
      <property name="geometry">
       <rect>
-       <x>440</x>
+       <x>300</x>
        <y>10</y>
-       <width>111</width>
-       <height>121</height>
+       <width>301</width>
+       <height>271</height>
       </rect>
      </property>
      <property name="text">
       <string/>
      </property>
      <property name="pixmap">
-      <pixmap resource="mapedit.qrc">:/data/icons/CS3MapEdit-icon.png</pixmap>
+      <pixmap resource="mapedit.qrc">:/data/icons/image_9352b5ea-256.png</pixmap>
      </property>
     </widget>
    </widget>

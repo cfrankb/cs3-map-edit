@@ -70,5 +70,6 @@
         <file>data/layer0.png</file>
         <file>data/layer1.png</file>
         <file>data/layer2.png</file>
+        <file>data/icons/image_9352b5ea-256.png</file>
     </qresource>
 </RCC>
