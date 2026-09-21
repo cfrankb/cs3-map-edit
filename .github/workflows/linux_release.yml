@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "master"
+      - "develop"
     tags:
       - "v*"
   pull_request:
@@ -16,8 +17,7 @@ defaults:
 
 env:
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 6.5.3
-  #QT_VERSION: 6.8.3
+  QT_VERSION: 6.10.3
   ARTIFACT: "CS3MapEdit-x86_64.AppImage"
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -88,7 +88,7 @@ jobs:
             LICENSE
 
       - name: Linux artefact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ env.SOURCE_DIR }}/build/release
