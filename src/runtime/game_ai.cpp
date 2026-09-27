@@ -718,16 +718,18 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
                              actor.type() == TYPE_DRONE ||
                              actor.type() == TYPE_VAMPLANT ||
                              actor.type() == TYPE_MONSTERV3 ||
-                             //    actor.type() == TYPE_ICECUBE ||
                              actor.type() == TYPE_EGG)
                     {
+                        LOGI("actor: %d type %x in blast zone", id, actor.type());
                         // kill mob monsters
+                        m_map.set(x,y, actor.getPU());
                         deletedMonsters.emplace(id);
                         m_sfx.emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION0, SFX_EXPLOSION0_TIMEOUT});
                     }
                     else if (actor.type() == TYPE_ICECUBE)
                     {
                         // melt icecubes
+                        m_map.set(x,y, actor.getPU());
                         deletedMonsters.emplace(id);
                         m_sfx.emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
                     }

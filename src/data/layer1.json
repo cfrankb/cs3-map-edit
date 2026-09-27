@@ -429,14 +429,12 @@
         {
             "index": 172,
             "manual": true,
-            "next": -1,
             "speed": 3,
             "tag": "wall_down"
         },
         {
             "index": 173,
             "manual": true,
-            "next": -1,
             "speed": 3,
             "tag": "wall_down"
         },
@@ -529,14 +527,12 @@
         {
             "index": 188,
             "manual": true,
-            "next": -1,
             "tag": "wall_up",
             "type": 2
         },
         {
             "index": 189,
             "manual": true,
-            "next": -1,
             "tag": "wall_up",
             "type": 2
         },
@@ -670,23 +666,55 @@
         },
         {
             "index": 227,
+            "manual": true,
+            "next": 228,
+            "tag": "gatedown",
             "type": 2
         },
         {
             "index": 228,
+            "manual": true,
+            "next": 229,
+            "tag": "gatedown",
             "type": 2
         },
         {
             "index": 229,
+            "manual": true,
+            "next": 230,
+            "tag": "gatedown",
             "type": 2
         },
         {
             "index": 230,
+            "manual": true,
+            "next": 231,
+            "tag": "gatedown",
             "type": 2
         },
         {
             "index": 231,
+            "manual": true,
+            "next": 232,
+            "tag": "gatedown",
             "type": 2
+        },
+        {
+            "index": 232,
+            "manual": true,
+            "next": 233,
+            "tag": "gatedown"
+        },
+        {
+            "index": 233,
+            "manual": true,
+            "next": 234,
+            "tag": "gatedown"
+        },
+        {
+            "index": 234,
+            "manual": true,
+            "tag": "gatedown"
         },
         {
             "index": 236,
@@ -713,23 +741,55 @@
             "type": 2
         },
         {
+            "index": 243,
+            "manual": true,
+            "next": 244,
+            "tag": "gateup"
+        },
+        {
+            "index": 244,
+            "manual": true,
+            "next": 245,
+            "tag": "gateup"
+        },
+        {
+            "index": 245,
+            "manual": true,
+            "next": 246,
+            "tag": "gateup"
+        },
+        {
             "index": 246,
+            "manual": true,
+            "next": 247,
+            "tag": "gateup",
             "type": 2
         },
         {
             "index": 247,
+            "manual": true,
+            "next": 248,
+            "tag": "gateup",
             "type": 2
         },
         {
             "index": 248,
+            "manual": true,
+            "next": 249,
+            "tag": "gateup",
             "type": 2
         },
         {
             "index": 249,
+            "manual": true,
+            "next": 250,
+            "tag": "gateup",
             "type": 2
         },
         {
             "index": 250,
+            "manual": true,
+            "tag": "gateup",
             "type": 2
         },
         {
