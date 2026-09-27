@@ -61,7 +61,7 @@ public:
     animzInfo_t getSpecialInfo(const int tileID) const;
 
     bool read(IFile &sfile);
-    bool write(IFile &sfile) const;
+    bool write(IFile &tfile) const;
 
     struct animzSeq_t
     {

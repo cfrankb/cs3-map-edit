@@ -1252,6 +1252,14 @@ QColor MapWidget::attr2color(const uint8_t attr)
         {
             return SEAGREEN;
         }
+        else if (RANGE(attr, ATTR_RESPAWN_MIN, ATTR_RESPAWN_MAX))
+        {
+            return LAVENDER;
+        }
+        else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
+        {
+            return LIME;
+        }
         else if (attr > PASSAGE_ATTR_MAX)
         {
             return OLIVE; // undefined behavior

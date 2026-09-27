@@ -48,6 +48,9 @@ const std::list<KeyOption> g_keyOptions = {
     DEF(USERDEF2),
     DEF(USERDEF3),
     DEF(USERDEF4),
+    DEF(ALIAS),
+    DEF(UUID),
+    DEF(NOTES),
     DEF(PRIVATE),
 };
 

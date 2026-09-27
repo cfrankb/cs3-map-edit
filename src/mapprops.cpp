@@ -18,6 +18,7 @@
 #include "mapprops.h"
 #include "mainwindow.h"
 #include "runtime/statedata.h"
+#include "runtime/shared/helper.h"
 #include "undo/MapPropertiesCommand.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -34,8 +35,6 @@
 #include <hunspell.hxx>
 #include "SpellHighlighter.h"
 #endif
-
-
 
 MapPropertiesDialog::MapPropertiesDialog(CMap *map, QUndoStack* stack, QWidget *parent, int tab)
     :  QDialog(parent), m_map(map), m_mainWindow(qobject_cast<MainWindow*>(parent)), m_currentIndex(-1), m_undoStack(stack)
@@ -80,6 +79,11 @@ void MapPropertiesDialog::setupUI()
     m_titleLineEdit->setToolTip("Map title/name");
     formLayout->addRow("Title:", m_titleLineEdit);
 
+    m_aliasLineEdit= new QLineEdit(this);
+    m_aliasLineEdit->setMaxLength(255);
+    m_aliasLineEdit->setToolTip("Map alias");
+    formLayout->addRow("Alias:", m_aliasLineEdit);
+
     // Add a separator line
     QFrame *line = new QFrame(this);
     line->setFrameShape(QFrame::HLine);
@@ -120,6 +124,22 @@ void MapPropertiesDialog::setupUI()
     m_authorLineEdit->setMaxLength(1023);
     m_authorLineEdit->setToolTip("Map author name");
     formLayout->addRow("Author:", m_authorLineEdit);
+
+    // UUID
+    m_uuidLineEdit= new QLineEdit(this);
+    m_uuidLineEdit->setMaxLength(255);
+    m_uuidLineEdit->setToolTip("UUID");
+
+    QHBoxLayout *uuidLayout = new QHBoxLayout(generalTab);
+    QPushButton *newUuidButton = new QPushButton("New Uuid", generalTab);
+    uuidLayout->addWidget(m_uuidLineEdit);
+    uuidLayout->addWidget(newUuidButton);
+    formLayout->addRow("UUID:", uuidLayout);
+    connect(newUuidButton, &QPushButton::clicked, this, [this, newUuidButton]()
+    {
+        m_uuidLineEdit->setText(QString::fromUtf8(getUUID().c_str()));
+        Q_UNUSED(newUuidButton)
+    });
 
     generalLayout->addLayout(formLayout);
     generalLayout->addStretch();
@@ -190,6 +210,8 @@ void MapPropertiesDialog::loadFromMap()
 
     // Get the states object from CMap
     CStates &states = m_map->states();
+    m_aliasLineEdit->setText(QString::fromUtf8(states.getS(StateValue::ALIAS)));
+    m_uuidLineEdit->setText(QString::fromUtf8(states.getS(StateValue::UUID)));
 
     // Load uint16_t values
     m_timeoutSpinBox->setValue(states.getU(StateValue::TIMEOUT));
@@ -216,6 +238,8 @@ void MapPropertiesDialog::applyChanges()
     newStates.setU(StateValue::YEAR, m_yearSpinBox->value());
     newStates.setU(StateValue::PRIVATE, m_privateCheckBox->isChecked() ? 1 : 0);
     newStates.setS(StateValue::AUTHOR, m_authorLineEdit->text().toStdString());
+    newStates.setS(StateValue::ALIAS, m_aliasLineEdit->text().toStdString());
+    newStates.setS(StateValue::UUID, m_uuidLineEdit->text().toStdString());
 
     // Save current message being edited
     if (m_currentIndex != -1)

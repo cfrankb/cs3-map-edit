@@ -578,7 +578,9 @@ void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor
             newMonsters.emplace_back(CActor(p.x, p.y, TYPE_VAMPLANT));
             break;
         }
-        else if (defT.type == TYPE_MONSTER || defT.type == TYPE_DRONE)
+        else if (defT.type == TYPE_MONSTER ||
+                 defT.type == TYPE_DRONE ||
+                 defT.type == TYPE_MONSTERV3)
         {
             const int j = findMonsterAt(p.x, p.y);
             if (j == INVALID)
@@ -712,7 +714,12 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
                         // light other barrels
                         fuseBarrel({x, y});
                     }
-                    else if (actor.type() == TYPE_MONSTER || actor.type() == TYPE_DRONE || actor.type() == TYPE_VAMPLANT)
+                    else if (actor.type() == TYPE_MONSTER ||
+                             actor.type() == TYPE_DRONE ||
+                             actor.type() == TYPE_VAMPLANT ||
+                             actor.type() == TYPE_MONSTERV3 ||
+                             //    actor.type() == TYPE_ICECUBE ||
+                             actor.type() == TYPE_EGG)
                     {
                         // kill mob monsters
                         deletedMonsters.emplace(id);
@@ -849,6 +856,18 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         {
             const Pos &pos = translate(actor.pos(), aim);
             fuseBarrel(pos);
+        }
+        else if (defX.type == TYPE_VAMPLANT)
+        {
+            playSound(SOUND_EXPLOSION1);
+            const Pos &pos = translate(actor.pos(), aim);
+            int i = findMonsterAt(pos.x, pos.y);
+            if (i != INVALID)
+            {
+                deletedMonsters.insert(i);
+                m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION1, .timeout = SFX_EXPLOSION6_TIMEOUT});
+                m_map.set(pos.x, pos.y, TILES_BLANK);
+            }
         }
     }
 }

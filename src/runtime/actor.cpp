@@ -78,6 +78,7 @@ CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAi
     m_path = nullptr;
     m_algo = BossData::Path::NONE;
     m_ttl = CActor::NoTTL;
+    m_attr = 0;
 }
 
 CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim) : m_path(nullptr)
@@ -90,6 +91,7 @@ CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim) : m_path(nullptr)
     m_path = nullptr;
     m_algo = BossData::Path::NONE;
     m_ttl = CActor::NoTTL;
+    m_attr = 0;
 }
 
 CActor::CActor(CActor &&other) noexcept
@@ -99,6 +101,7 @@ CActor::CActor(CActor &&other) noexcept
       m_algo(other.m_algo),
       m_aim(other.m_aim),
       m_pu(other.m_pu),
+      m_attr(other.m_attr),
       m_ttl(other.m_ttl),
       m_path(std::move(other.m_path))
 {
@@ -111,6 +114,7 @@ CActor::CActor(CActor &&other) noexcept
     other.m_pu = 0;
     other.m_algo = BossData::Path::NONE;
     other.m_ttl = CActor::NoTTL;
+    other.m_attr = 0;
 }
 
 CActor &CActor::operator=(CActor &&other) noexcept
@@ -126,6 +130,7 @@ CActor &CActor::operator=(CActor &&other) noexcept
         m_algo = other.m_algo;
         m_path = std::move(other.m_path);
         m_ttl = other.m_ttl;
+        m_attr = other.m_attr;
 
         other.m_x = 0;
         other.m_y = 0;
@@ -134,6 +139,7 @@ CActor &CActor::operator=(CActor &&other) noexcept
         other.m_pu = 0;
         other.m_algo = BossData::Path::NONE;
         other.m_ttl = CActor::NoTTL;
+        other.m_attr = 0;
     }
     return *this;
 }
@@ -437,7 +443,8 @@ bool CActor::readCommon(ReadFunc readfile)
         return false;
     if (!readfile(&m_ttl, sizeof(m_ttl)))
         return false;
-
+    if (!readfile(&m_attr, sizeof(m_attr)))
+        return false;
     return true;
 }
 
@@ -491,7 +498,8 @@ bool CActor::writeCommon(WriteFunc writefile) const
         return false;
     if (!writefile(&m_ttl, sizeof(m_ttl)))
         return false;
-
+    if (!writefile(&m_attr, sizeof(m_attr)))
+        return false;
     return true;
 }
 

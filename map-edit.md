@@ -92,7 +92,9 @@ All other attributes are undefined at the moment.
 | `00` | do nothing |
 | `01-1F` | passages |
 | `40-4F` | secret |
+| `A0-AF` | auto |
 | `B0-B7` | boss spawn point |
+| `C0-CF` | respawn |
 | `D0-D3` | crusher vertical |
 | `D4-D7` | crusher horizontal |
 | `E0-E9` | idle until contact |

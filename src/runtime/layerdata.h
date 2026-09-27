@@ -27,7 +27,7 @@ struct layerdata_t
     uint8_t tileType;
     uint8_t weight;
     uint8_t granular;
-    const char *tag;
+    bool manual;
 };
 
 const uint8_t GranualarUL = 1; // TOP LEFT

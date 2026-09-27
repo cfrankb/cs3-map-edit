@@ -60,6 +60,14 @@ public:
     {
         return m_type;
     }
+    inline uint8_t attr() const
+    {
+        return m_attr;
+    }
+    inline void setAttr(const uint8_t attr)
+    {
+        m_attr = attr;
+    }
     uint8_t getPU() const;
     void setPU(const uint8_t c);
     void setPos(const Pos &pos);
@@ -108,6 +116,7 @@ private:
     };
     JoyAim m_aim;
     uint8_t m_pu;
+    uint8_t m_attr;
     int32_t m_ttl;
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);

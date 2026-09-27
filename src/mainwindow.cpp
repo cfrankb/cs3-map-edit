@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     initMapShortcuts();
     initToolBars();
     updateMenus();
-    setWindowIcon(QIcon(":/data/icons/CS3MapEdit-icon.png"));
+    setWindowIcon(QIcon(":/data/icons/image_9352b5ea-256.png"));
     m_label = new QLabel("", ui->statusbar);
     m_label->setAlignment(Qt::AlignRight);
     m_label0 = new QLabel("", ui->statusbar);

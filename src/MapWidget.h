@@ -1,13 +1,12 @@
 #pragma once
-
 #include <QWidget>
 #include <QPixmap>
 #include <QCache>
 #include <QTimer>
 #include <QUndoCommand>
 #include <vector>
-#include "runtime/map.h"
 #include "runtime/shared/Frame.h"
+#include "runtime/map.h"
 #include "stamp.h"
 
 class QPainter;

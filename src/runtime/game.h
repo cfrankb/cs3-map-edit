@@ -25,6 +25,7 @@
 #include "actor.h"
 #include "map.h"
 #include "events.h"
+#include "game_auto.h"
 
 class CGameStats;
 class CMapArch;
@@ -196,6 +197,7 @@ public:
     scan_t scanPos(const Pos &pos, const uint8_t aim) const;
     bool isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const;
     CAnimator *getAnimator() { return m_animator.get(); }
+    std::vector<automator_t> &automators() { return m_automators; }
 
     enum
     {
@@ -226,6 +228,7 @@ private:
     std::unordered_map<uint16_t, int> m_monsterGrid;
     MapReport m_report;
     std::unique_ptr<CAnimator> m_animator;
+    std::vector<automator_t> m_automators;
 
     int m_defaultLives;
     bool m_quiet = false;

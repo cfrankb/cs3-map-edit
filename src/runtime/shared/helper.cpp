@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <zlib.h>
+#include <random>
 #include "helper.h"
 #include "logger.h"
 
@@ -50,16 +51,26 @@ int upperClean(int c)
 
 std::string getUUID()
 {
+    // std::random_device is required to be non-deterministic: it reads from
+    // /dev/urandom on POSIX and from the OS CSPRNG on Windows, unlike rand(),
+    // which is a weak, predictable PRNG.
+    std::random_device rd;
+    uint8_t b[16];
+    for (uint8_t *p = b; p < b + 16; ++p)
+        *p = static_cast<uint8_t>(rd() & 0xff);
+
+    // Mark as version 4 (random number UUID): the top 4 bits of byte 6 are 0100.
+    b[6] = static_cast<uint8_t>((b[6] & 0x0f) | 0x40);
+    // Mark as RFC 4122 variant: the top 2 bits of byte 8 are 10.
+    b[8] = static_cast<uint8_t>((b[8] & 0x3f) | 0x80);
+
     char uuid[UUID_BUFFER_SIZE];
-    snprintf(uuid, sizeof(uuid), "%.4x%.4x-%.4x-%.4x-%.4x-%.4x%.4x%.4x",
-             rand() & 0xffff,
-             rand() & 0xffff,
-             rand() & 0xffff,
-             rand() & 0xffff,
-             rand() & 0xffff,
-             rand() & 0xffff,
-             rand() & 0xffff,
-             rand() & 0xffff);
+    snprintf(uuid, sizeof(uuid), "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+             b[0], b[1], b[2], b[3],
+             b[4], b[5],
+             b[6], b[7],
+             b[8], b[9],
+             b[10], b[11], b[12], b[13], b[14], b[15]);
     return std::string(uuid);
 }
 

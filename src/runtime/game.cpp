@@ -51,7 +51,7 @@
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000b;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000c;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
@@ -329,6 +329,19 @@ void CGame::consume()
                 m_events.emplace_back(EVENT_PASSAGE);
         }
     }
+    else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
+    {
+        if (clearAttr(attr))
+        {
+            playSound(SOUND_0009);
+        }
+        // activate automators
+        for (auto &a : automators())
+        {
+            if (a.attr == attr)
+                a.active = true;
+        }
+    }
     else if (attr >= MSG0 && m_map.states().hasS(attr))
     {
         // Messsage Event (scrolls, books etc)
@@ -407,6 +420,7 @@ bool CGame::loadLevel(const GameMode mode)
     m_sfx.clear();
     resetStats();
     m_report = currentMapReport();
+
     return true;
 }
 
@@ -541,7 +555,7 @@ void CGame::setMapArch(CMapArch *arch)
 
 bool CGame::isMonsterType(const uint8_t typeID) const
 {
-    std::array<uint8_t, 9> monsterTypes = {
+    std::array<uint8_t, 10> monsterTypes = {
         TYPE_MONSTER,
         TYPE_VAMPLANT,
         TYPE_DRONE,
@@ -551,6 +565,7 @@ bool CGame::isMonsterType(const uint8_t typeID) const
         TYPE_LIGHTNING_BOLT,
         TYPE_BARREL,
         TYPE_EGG,
+        TYPE_MONSTERV3,
     };
 
     for (size_t i = 0; i < monsterTypes.size(); ++i)
@@ -567,6 +582,7 @@ bool CGame::isMonsterType(const uint8_t typeID) const
  */
 bool CGame::spawnMonsters()
 {
+    m_automators.clear();
     m_monsters.clear();
     m_bosses.clear();
     for (int y = 0; y < m_map.height(); ++y)
@@ -577,10 +593,10 @@ bool CGame::spawnMonsters()
             const TileDef &def = getTileDef(c);
             if (isMonsterType(def.type))
             {
-                if (isPushable(def.type))
-                    m_monsters.emplace_back(CActor(x, y, def.type, JoyAim::AIM_NONE));
-                else
-                    m_monsters.emplace_back(CActor(x, y, def.type));
+                uint8_t attr = m_map.getAttr(x, y);
+                CActor &actor = isPushable(def.type) ? m_monsters.emplace_back(CActor(x, y, def.type, JoyAim::AIM_NONE))
+                                                     : m_monsters.emplace_back(CActor(x, y, def.type));
+                actor.setAttr(attr);
             }
         }
     }
@@ -588,16 +604,15 @@ bool CGame::spawnMonsters()
     std::vector<Pos> removed;
     for (const auto &[key, attr] : m_map.attrs())
     {
+        const Pos &pos = CMap::toPos(key);
         if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
         {
-            const Pos &pos = CMap::toPos(key);
             const JoyAim aim = attr < ATTR_CRUSHERH_MIN ? AIM_UP : AIM_LEFT;
             m_monsters.emplace_back(CActor(pos, attr, aim));
             removed.emplace_back(pos);
         }
         else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX))
         {
-            const Pos &pos = CMap::toPos(key);
             const bossData_t *bossData = getBossData(attr);
             if (bossData)
             {
@@ -614,6 +629,29 @@ bool CGame::spawnMonsters()
             }
             removed.emplace_back(pos);
         }
+        else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
+        {
+            // skip main layer
+            for (size_t layerID = 1; layerID < m_map.layers().size(); ++layerID)
+            {
+                const CLayer *layer = m_map.getLayer(layerID);
+                const uint16_t tileID = layer->at(pos.x, pos.y);
+                const layerdata_t &ld = g_layerdata[tileID];
+                if (ld.manual)
+                {
+                    m_automators.push_back(
+                        automator_t{.tileID = tileID,
+                                    .x = pos.x,
+                                    .y = pos.y,
+                                    .layerID = (uint16_t)layerID,
+                                    .ttl = ld.animeSpeed,
+                                    .attr = attr,
+                                    .active = false});
+                    removed.emplace_back(pos);
+                    break;
+                }
+            }
+        }
     }
 
     for (const auto &pos : removed)
@@ -628,6 +666,7 @@ bool CGame::spawnMonsters()
     {
         LOGI("%zu actors found.", m_monsters.size());
         LOGI("%zu bosses found.", m_bosses.size());
+        LOGI("%zu automators found.", m_automators.size());
     }
     return true;
 }

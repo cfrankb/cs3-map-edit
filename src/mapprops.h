@@ -72,6 +72,8 @@ private:
 
     // General tab UI Components
     QLineEdit *m_titleLineEdit;
+    QLineEdit *m_aliasLineEdit;
+    QLineEdit *m_uuidLineEdit;
     QSpinBox *m_timeoutSpinBox;
     QSpinBox *m_mapGoalSpinBox;
     QSpinBox *m_parTimeSpinBox;

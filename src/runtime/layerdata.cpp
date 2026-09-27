@@ -49,7 +49,7 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseIdx
         layers[baseIdx + i].animeSpeed = 1;
         layers[baseIdx + i].tileType = LayerTileType::Background;
         layers[baseIdx + i].weight = 1;
-        layers[baseIdx + i].tag = "";
+        layers[baseIdx + i].manual = false;
     }
 
     jdoc j;
@@ -77,17 +77,20 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseIdx
             continue;
 
         layerdata_t &L = layers[index + baseIdx];
-        L.nextTile =  (uint16_t)tile.value("next", 0);
+        L.nextTile = (uint16_t)tile.value("next", -1);
         if (L.nextTile == DUMMY_NEXT_TILE)
         {
             L.nextTile = 0;
-        } else {
+        }
+        else
+        {
             L.nextTile += baseIdx;
         }
         L.animeSpeed = (uint8_t)tile.value("speed", 1);
         L.tileType = static_cast<LayerTileType>(tile.value("type", 0));
         L.weight = (uint8_t)tile.value("w", 1);
         L.granular = (uint8_t)tile.value("granular", 0);
+        L.manual = (bool)tile.value("manual", 0);
         ++i;
     }
     LOGI("layer tiles: %d", i);

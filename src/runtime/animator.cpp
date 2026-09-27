@@ -21,11 +21,13 @@
 #include "gamesfx.h"
 #include "layerdata.h"
 #include <cstring>
+#include <limits>
 #include <vector>
 #include <set>
 #include <array>
 #include "shared/IFile.h"
 #include "logger.h"
+#include "game.h"
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
 constexpr const size_t SEQ_COUNT = 32;
@@ -68,7 +70,6 @@ constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
-
     for (const auto &seq : g_animzSeq)
     {
         m_seqLookUp[seq.srcTile] = animzInfo_t{
@@ -87,7 +88,7 @@ void CAnimator::reloadTileData()
     {
         const auto &data = g_layerdata[i];
         // if animated (save current index)
-        if (data.nextTile)
+        if (data.nextTile && !data.manual)
             m_tileLayer[i] = i;
     }
 }
@@ -120,6 +121,30 @@ void CAnimator::animate()
         const auto &data = g_layerdata[tileID];
         if (data.nextTile && data.animeSpeed && m_offset % data.animeSpeed == 0)
             tileID = data.nextTile;
+    }
+
+    CGame *game = CGame::getGame();
+    for (auto &a : game->automators())
+    {
+        if (a.active)
+        {
+            if (a.ttl > 0)
+            {
+                --a.ttl;
+                continue;
+            }
+            CLayer *layer = game->getMap().getLayer(a.layerID);
+            const uint16_t tileID = layer->at(a.x, a.y);
+            const layerdata_t &ld = g_layerdata[tileID];
+            if (!ld.nextTile)
+            {
+                a.active = false;
+                continue;
+            }
+            a.tileID = ld.nextTile;
+            a.ttl = g_layerdata[a.tileID].animeSpeed;
+            layer->set(a.x, a.y, a.tileID);
+        }
     }
 }
 
@@ -154,20 +179,62 @@ bool CAnimator::read(IFile &sfile)
         LOGE("failed to read tileLayer");
         return false;
     }
+
+    // read automators
+    auto &automators = CGame::getGame()->automators();
+    automators.clear();
+    uint16_t count = 0;
+    if (sfile.read(&count, sizeof(count)) != IFILE_OK)
+    {
+        LOGE("failed to read automator count");
+        return false;
+    }
+    for (size_t i = 0; i < count; ++i)
+    {
+        automator_t a;
+        if (!a.read(sfile))
+        {
+            LOGE("failed to read automator");
+            return false;
+        }
+        automators.push_back(a);
+    }
     return true;
 }
 
-bool CAnimator::write(IFile &sfile) const
+bool CAnimator::write(IFile &tfile) const
 {
-    if (sfile.write(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
+    if (tfile.write(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
     {
         LOGE("failed to write tileMainLayer");
         return false;
     }
-    if (sfile.write(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
+    if (tfile.write(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
     {
-        LOGE("failed to write tileMainLayer");
+        LOGE("failed to write tileLayer");
         return false;
+    }
+
+    // save automators
+    const auto &automators = CGame::getGame()->automators();
+    if (automators.size() > std::numeric_limits<uint16_t>::max())
+    {
+        LOGE("too many automators: %zu", automators.size());
+        return false;
+    }
+    const uint16_t count = (uint16_t)automators.size();
+    if (tfile.write(&count, sizeof(count)) != IFILE_OK)
+    {
+        LOGE("failed to write automator count");
+        return false;
+    }
+    for (const auto &a : automators)
+    {
+        if (!a.write(tfile))
+        {
+            LOGE("failed to write automator");
+            return false;
+        }
     }
     return true;
 }
