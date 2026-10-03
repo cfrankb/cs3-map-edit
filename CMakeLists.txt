@@ -34,6 +34,8 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui Network)
 file(GLOB RESOURCES src/*.qrc)
 
 # Collect .cpp files
+# Plain GLOB: re-run cmake configure when adding new .cpp files,
+# e.g. `cmake -S . -B build` or Qt Creator's "Re-run CMake Configure".
 file(GLOB CPP_SOURCES
     src/*.cpp
     src/runtime/*.cpp

@@ -48,10 +48,11 @@
 #include "tilesdefs.h"
 #include "layerdata.h"
 #include "animator.h"
+#include "shared/ISerial.h"
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000c;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000e;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
@@ -585,6 +586,7 @@ bool CGame::spawnMonsters()
     m_automators.clear();
     m_monsters.clear();
     m_bosses.clear();
+    m_spawns.clear();
     for (int y = 0; y < m_map.height(); ++y)
     {
         for (int x = 0; x < m_map.width(); ++x)
@@ -639,6 +641,7 @@ bool CGame::spawnMonsters()
                 const layerdata_t &ld = g_layerdata[tileID];
                 if (ld.manual)
                 {
+                    // find a tile that can be autmated
                     m_automators.push_back(
                         automator_t{.tileID = tileID,
                                     .x = pos.x,
@@ -1257,6 +1260,12 @@ bool CGame::read(IFile &sfile)
         return false;
     }
 
+    // read spawns
+    if (!readVector(OBJECT_NAME(m_spawns), m_spawns, sfile))
+    {
+        LOGE("failed to read spawns");
+    }
+
     return true;
 }
 
@@ -1350,6 +1359,12 @@ bool CGame::write(IFile &tfile)
     // save animation state
     if (!m_animator->write(tfile))
         return false;
+
+    // write spawns
+    if (!writeVector(OBJECT_NAME(m_spawns), m_spawns, tfile))
+    {
+        LOGE("failed to write spawns");
+    }
 
     return true;
 }

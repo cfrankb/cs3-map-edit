@@ -51,6 +51,7 @@ const std::list<KeyOption> g_keyOptions = {
     DEF(ALIAS),
     DEF(UUID),
     DEF(NOTES),
+    DEF(MUSIC),
     DEF(PRIVATE),
 };
 

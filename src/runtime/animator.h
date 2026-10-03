@@ -29,9 +29,9 @@ class IFile;
 
 struct animzInfo_t
 {
-    uint8_t frames;
-    uint8_t base;
-    uint8_t offset;
+    uint16_t frames;
+    uint16_t base;
+    uint16_t offset;
 };
 
 class CAnimator
@@ -65,19 +65,26 @@ public:
 
     struct animzSeq_t
     {
-        uint16_t srcTile;  ///< Source tile ID.
-        uint8_t startSeq;  ///< Starting frame ID of animation.
-        uint8_t count;     ///< Number of frames in sequence.
-        uint8_t specialID; ///< Base ID for special animations (0 if none).
+        uint16_t srcTile;   ///< Source tile ID.
+        uint16_t startSeq;  ///< Starting frame ID of animation.
+        uint16_t count;     ///< Number of frames in sequence.
+        uint16_t specialID; ///< Base ID for special animations (0 if none).
     };
 
     void reloadTileData();
+
+    enum : uint32_t
+    {
+        NO_ANIMZ = 0xffff,
+        MAX_TILES = 256,
+        MAX_LAYER_TILES = 1024,
+    };
 
 private:
     static inline constexpr const uint8_t m_specialCases[] = {
         TILES_INSECT1,
         TILES_MUSH_IDLE,
-        TILES_DRAGO,
+        TILES_ZOMBIE,
         TILES_ETURTLE,
         TILES_WHTEWORM,
         TILES_SKELETON,
@@ -85,14 +92,8 @@ private:
         TILES_EGG_WHOLE,
     };
 
-    enum : uint32_t
-    {
-        NO_ANIMZ = 255,
-        MAX_TILES = 256,
-        MAX_LAYER_TILES = 1024,
-    };
     /// Maps tile IDs to current animation frame.
-    uint8_t m_tileMainLayer[MAX_TILES];
+    uint16_t m_tileMainLayer[MAX_TILES];
     uint16_t m_tileLayer[MAX_LAYER_TILES];
     /// Global animation tick counter.
     std::vector<int32_t> m_seqIndex;

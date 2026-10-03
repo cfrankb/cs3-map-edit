@@ -35,7 +35,7 @@ public:
     size_t size();
     const char *lastError();
     void clear();
-    size_t add(std::unique_ptr<CMap> &map);
+    size_t add(std::unique_ptr<CMap> &&map);
     std::unique_ptr<CMap> removeAt(int i);
     void insertAt(int i, std::unique_ptr<CMap> map);
     CMap *at(int i) { return (i >= 0 && i < static_cast<int>(m_maps.size())) ? m_maps[i].get() : nullptr; }

@@ -94,10 +94,10 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_WATERMELON),
     _S(TILES_BOULDER),
     _S(TILES_BOULDER2),
-    _S(TILES_GIFTBOX),
-    _S(TILES_MAGICBOT),
-    _S(TILES_LIGHTBUL),
-    _S(TILES_1ST_AID),
+    _S(TILES_STARS_TR),
+    _S(TILES_POTIONS),
+    _S(TILES_SCROLL4),
+    _S(TILES_HEART),
     _S(TILES_SCROLL),
     _S(TILES_SHIELD),
     _S(TILES_POTION1),
@@ -122,13 +122,13 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_DIAMOND),
     _S(TILES_TRIFORCE),
     _S(TILES_ORB),
-    _S(TILES_TNTSTICK),
+    _S(TILES_BOMB),
     _S(TILES_SKELETON),
     _S(TILES_BABYDRAGON),
     _S(TILES_DEICO),
     _S(TILES_FORCEF94),
-    _S(TILES_FORCEFIH),
-    _S(TILES_FORCEFIV),
+    _S(TILES_SKULL_SW0),
+    _S(TILES_SKULL_SW1),
     _S(TILES_INSECT1),
     _S(TILES_LUTIN),
     _S(TILES_MANKA),
@@ -142,7 +142,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_YELKILLER),
     _S(TILES_WHTEWORM),
     _S(TILES_ETURTLE),
-    _S(TILES_DRAGO),
+    _S(TILES_ZOMBIE),
     _S(TILES_DOORS_LEAF),
     _S(TILES_ICECUBE),
     _S(TILES_FIREBALL),
@@ -188,6 +188,7 @@ static const std::unordered_map<uint16_t, std::string> g_tileNames = {
     _S(TILES_EGG_ROTTEN),
     _S(TILES_EGG_CRACKED),
     _S(TILES_FIREBALL_SM),
+    _S(TILES_BELL),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_aiNames = {
@@ -248,6 +249,8 @@ static const std::unordered_map<uint16_t, std::string> g_typesNames = {
     _S(TYPE_BARREL),
     _S(TYPE_EGG),
     _S(TYPE_MONSTERV3),
+    _S(TYPE_BELL),
+    _S(TYPE_SWITCH),
 };
 
 std::string get_tileNames(const uint16_t i)

@@ -37,6 +37,7 @@
      <property name="title">
       <string>Generate</string>
      </property>
+     <addaction name="actionFile_View_Report"/>
      <addaction name="actionFile_Generate_Report"/>
      <addaction name="actionExport_Screenshots"/>
     </widget>
@@ -473,6 +474,14 @@
   <action name="actionResize_Map">
    <property name="text">
     <string>Resize Map</string>
+   </property>
+  </action>
+  <action name="actionFile_View_Report">
+   <property name="text">
+    <string>View Report</string>
+   </property>
+   <property name="statusTip">
+    <string>View information reports for all the maps</string>
    </property>
   </action>
   <action name="actionFile_Generate_Report">

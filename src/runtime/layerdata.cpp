@@ -93,6 +93,6 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseIdx
         L.manual = (bool)tile.value("manual", 0);
         ++i;
     }
-    LOGI("layer tiles: %d", i);
+    LOGI("tile defs: %d", i);
     return true;
 }

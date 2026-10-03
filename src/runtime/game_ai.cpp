@@ -40,12 +40,52 @@ namespace GamePrivate
         ICE_CUBE_DAMAGE = 16,
         CRUSHER_SPEED_MASK = 3,
         AUTOKILL = -1024,
+        RESPAWN_FACTOR = 10,
+        RESPAWN_DELAY = 20,
+        RESPAWN_SLICE = 7,
     };
 }
 
 using namespace GamePrivate;
 
 /////////////////////////////////////////////////////////////////////
+
+void CGame::manageSpawns(const uint32_t ticks)
+{
+    if ((ticks & RESPAWN_SLICE) == 0)
+    {
+        for (auto &spawn : m_spawns)
+        {
+            if (!spawn.active)
+                continue;
+
+            // spawn.debug();
+            if (spawn.delay)
+            {
+                --spawn.delay;
+                continue;
+            }
+
+            int i = findMonsterAt(spawn.x, spawn.y);
+            if (i != INVALID)
+                continue;
+
+            --spawn.active;
+            spawn.delay = RESPAWN_DELAY;
+
+            const TileDef &def = getTileDef(spawn.tileID);
+            const uint16_t pu = m_map.at(spawn.x, spawn.y);
+            CActor actor(spawn.x, spawn.y, def.type, JoyAim::AIM_NONE);
+            actor.setPU(pu);
+
+            m_map.set(spawn.x, spawn.y, spawn.tileID);
+            m_monsters.emplace_back(std::move(actor));
+            int index = m_monsters.size() - 1;
+            updateMonsterGrid(m_monsters[index], index);
+            m_sfx.emplace_back(sfx_t{.x = spawn.x, .y = spawn.y, .sfxID = SFX_SPARKLE, .timeout = SFX_SPARKLE_TIMEOUT});
+        }
+    }
+}
 
 CActor *CGame::spawnBullet(int x, int y, JoyAim aim, uint8_t tile)
 {
@@ -54,6 +94,9 @@ CActor *CGame::spawnBullet(int x, int y, JoyAim aim, uint8_t tile)
         LOGW("Cannot spawn at invalid coordinates: %d,%d", x, y);
         return nullptr;
     }
+    int i = findMonsterAt(x, y);
+    if (i != INVALID)
+        return nullptr;
 
     const TileDef &def = getTileDef(tile);
     const uint16_t pu = m_map.at(x, y);
@@ -720,18 +763,17 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
                              actor.type() == TYPE_MONSTERV3 ||
                              actor.type() == TYPE_EGG)
                     {
-                        LOGI("actor: %d type %x in blast zone", id, actor.type());
                         // kill mob monsters
-                        m_map.set(x,y, actor.getPU());
                         deletedMonsters.emplace(id);
-                        m_sfx.emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION0, SFX_EXPLOSION0_TIMEOUT});
+                        m_map.set(x, y, actor.getPU());
+                        m_sfx.emplace_back(sfx_t{x, y, SFX_EXPLOSION0, SFX_EXPLOSION6_TIMEOUT});
                     }
                     else if (actor.type() == TYPE_ICECUBE)
                     {
                         // melt icecubes
-                        m_map.set(x,y, actor.getPU());
                         deletedMonsters.emplace(id);
-                        m_sfx.emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
+                        m_map.set(x, y, actor.getPU());
+                        m_sfx.emplace_back(sfx_t{x, y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
                     }
                 }
             }
@@ -793,6 +835,7 @@ void CGame::handleBarrel(CActor &actor, const TileDef &def, const int i, std::se
             .timeout = SFX_EXPLOSION5_TIMEOUT,
         });
         deletedMonsters.emplace(i);
+        queueRespawn(actor);
         m_map.set(pos.x, pos.y, TILES_BARREL2EX);
         playSound(SOUND_EXPLOSION1);
         m_gameStats->set(S_FLASH, 1);
@@ -906,4 +949,24 @@ bool CGame::pushChain(const int x, const int y, const JoyAim aim)
     m_monsters[i].setAim(aim);
     shadowActorMove(m_monsters[i], aim);
     return true;
+}
+
+bool CGame::queueRespawn(const CActor &actor)
+{
+    if (RANGE(actor.attr(), ATTR_RESPAWN_MIN, ATTR_RESPAWN_MAX))
+    {
+        const uint16_t tileID = m_map.at(actor.x(), actor.y());
+        uint8_t active = 1 + actor.attr() - ATTR_RESPAWN_MIN;
+        const Pos origin = actor.origin();
+        m_spawns.push_back(spawn_t{
+            .tileID = tileID,
+            .x = origin.x,
+            .y = origin.y,
+            .delay = RESPAWN_DELAY,
+            .attr = actor.attr(),
+            .active = active});
+        LOGI("added spawn");
+        return true;
+    }
+    return false;
 }

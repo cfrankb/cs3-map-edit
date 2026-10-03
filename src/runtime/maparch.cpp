@@ -82,7 +82,7 @@ void CMapArch::clear()
  * @return size_t mapIndex pos
  */
 
-size_t CMapArch::add(std::unique_ptr<CMap> &map)
+size_t CMapArch::add(std::unique_ptr<CMap> &&map)
 {
     m_maps.emplace_back(std::move(map));
     return m_maps.size() - 1;

@@ -125,6 +125,12 @@ void MapPropertiesDialog::setupUI()
     m_authorLineEdit->setToolTip("Map author name");
     formLayout->addRow("Author:", m_authorLineEdit);
 
+    // Author field
+    m_musicLineEdit = new QLineEdit(this);
+    m_musicLineEdit->setMaxLength(1023);
+    m_musicLineEdit->setToolTip("Music filename");
+    formLayout->addRow("Music:", m_musicLineEdit);
+
     // UUID
     m_uuidLineEdit= new QLineEdit(this);
     m_uuidLineEdit->setMaxLength(255);
@@ -212,6 +218,7 @@ void MapPropertiesDialog::loadFromMap()
     CStates &states = m_map->states();
     m_aliasLineEdit->setText(QString::fromUtf8(states.getS(StateValue::ALIAS)));
     m_uuidLineEdit->setText(QString::fromUtf8(states.getS(StateValue::UUID)));
+    m_musicLineEdit->setText(QString::fromUtf8(states.getS(StateValue::MUSIC)));
 
     // Load uint16_t values
     m_timeoutSpinBox->setValue(states.getU(StateValue::TIMEOUT));
@@ -237,9 +244,10 @@ void MapPropertiesDialog::applyChanges()
     newStates.setU(StateValue::PAR_TIME, m_parTimeSpinBox->value());
     newStates.setU(StateValue::YEAR, m_yearSpinBox->value());
     newStates.setU(StateValue::PRIVATE, m_privateCheckBox->isChecked() ? 1 : 0);
-    newStates.setS(StateValue::AUTHOR, m_authorLineEdit->text().toStdString());
-    newStates.setS(StateValue::ALIAS, m_aliasLineEdit->text().toStdString());
-    newStates.setS(StateValue::UUID, m_uuidLineEdit->text().toStdString());
+    newStates.setS(StateValue::AUTHOR, m_authorLineEdit->text().trimmed().toStdString());
+    newStates.setS(StateValue::ALIAS, m_aliasLineEdit->text().trimmed().toStdString());
+    newStates.setS(StateValue::UUID, m_uuidLineEdit->text().trimmed().toStdString());
+    newStates.setS(StateValue::MUSIC, m_musicLineEdit->text().trimmed().toStdString());
 
     // Save current message being edited
     if (m_currentIndex != -1)

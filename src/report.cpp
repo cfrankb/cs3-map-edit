@@ -17,15 +17,20 @@
 #define ALPHA 0xff000000
 #define BLACK 0xff000000
 
-bool generateReport(CMapFile &mf, const QString &filename)
+QString buildReport(CMapFile &mf)
 {
-    QFileWrap file;
+    QString content;
     const int BUFSIZE = 4095;
-    char *tmp = new char[BUFSIZE + 1];
-    auto writeItem = [&file, tmp](auto str, auto v)
+    char buf[BUFSIZE + 1];
+    char *tmp = buf;
+    auto append = [&content](const char *s)
     {
-        sprintf(tmp, "  -- %-15s: %d\n", str, static_cast<int>(v));
-        file += tmp;
+        content += s;
+    };
+    auto writeItem = [&content, tmp](auto str, auto v)
+    {
+        snprintf(tmp, BUFSIZE + 1, "  -- %-15s: %d\n", str, static_cast<int>(v));
+        content += tmp;
     };
 
     std::unordered_map<uint16_t, std::string> labels;
@@ -36,25 +41,20 @@ bool generateReport(CMapFile &mf, const QString &filename)
     }
 
     typedef std::unordered_map<uint8_t, uint32_t> StatMap;
-    if (!file.open(filename, "wb"))
-    {
-        delete[] tmp;
-        return false;
-    }
 
-    file += "Map List\n";
-    file += "========\n\n";
+    append("Map List\n");
+    append("========\n\n");
 
     for (size_t i = 0; i < mf.size(); ++i)
     {
         CMap *map = mf.at(i);
-        sprintf(tmp, "Level %.2lu: %s\n", i + 1, map->title());
-        file += tmp;
+        snprintf(tmp, BUFSIZE + 1, "Level %.2lu: %s\n", i + 1, map->title());
+        append(tmp);
     }
 
-    file += "\n";
-    file += "MapArch statistics\n";
-    file += "==================\n\n";
+    append("\n");
+    append("MapArch statistics\n");
+    append("==================\n\n");
 
     StatMap globalUsage;
 
@@ -83,14 +83,14 @@ bool generateReport(CMapFile &mf, const QString &filename)
                 }
             }
         }
-        sprintf(tmp, "Level %.2lu: %s\n", i + 1, map->title());
-        file += tmp;
+        snprintf(tmp, BUFSIZE + 1, "Level %.2lu: %s\n", i + 1, map->title());
+        append(tmp);
         writeItem("Unique tiles", usage.size());
         writeItem("Monsters", monsters);
         writeItem("Attributes", map->attrs().size());
         writeItem("Stops", stops);
-        sprintf(tmp, "  -- Size: %d x %d\n", map->width(), map->height());
-        file += tmp;
+        snprintf(tmp, BUFSIZE + 1, "  -- Size: %d x %d\n", map->width(), map->height());
+        append(tmp);
         writeItem("fruits", report.fruits);
         writeItem("treasures", report.bonuses);
         writeItem("secrets", report.secrets);
@@ -99,26 +99,28 @@ bool generateReport(CMapFile &mf, const QString &filename)
         std::vector<StateValuePair> pairs = states.getValues();
         if (pairs.size())
         {
-            file += "\nMeta-data\n";
+            append("\nMeta-data\n");
             for (const auto &item : pairs)
             {
                 const bool isStr = (item.key & 0xff) >= 0x80;
                 const std::string label = labels[item.key];
-                sprintf(tmp, "  -- %-12s %s", label.c_str(), isStr ? item.value.c_str() : item.tip.c_str());
-                file += tmp;
+                snprintf(tmp, BUFSIZE + 1, "  -- %-12s %s", label.c_str(), isStr ? item.value.c_str() : item.tip.c_str());
+                content += tmp;
                 if (isStr)
-                    strncpy(tmp, "\n", BUFSIZE);
+                    append("\n");
                 else
-                    sprintf(tmp, " [%s]\n", item.value.c_str());
-                file += tmp;
+                {
+                    snprintf(tmp, BUFSIZE + 1, " [%s]\n", item.value.c_str());
+                    content += tmp;
+                }
             }
         }
-        file += "\n-----------------------------------\n";
-        file += "\n";
+        append("\n-----------------------------------\n");
+        append("\n");
     }
 
-    file += "Par time\n";
-    file += "==================\n\n";
+    append("Par time\n");
+    append("==================\n\n");
     for (size_t i = 0; i < mf.size(); ++i)
     {
         CMap *map = mf.at(i);
@@ -126,18 +128,29 @@ bool generateReport(CMapFile &mf, const QString &filename)
         uint16_t parTime = states.getU(PAR_TIME);
         if (parTime == 0)
             continue;
-        sprintf(tmp, "Level %.2lu: %s\n", i + 1, map->title());
-        file += tmp;
+        snprintf(tmp, BUFSIZE + 1, "Level %.2lu: %s\n", i + 1, map->title());
+        append(tmp);
         const int seconds = parTime % 60;
         const int minutes = parTime / 60;
-        sprintf(tmp, "   PAR TIME:   %.2d:%.2d\n\n", minutes, seconds);
-        file += tmp;
+        snprintf(tmp, BUFSIZE + 1, "   PAR TIME:   %.2d:%.2d\n\n", minutes, seconds);
+        append(tmp);
     }
 
-    sprintf(tmp, "\nGlobal Unique tiles: %lu\n", globalUsage.size());
-    file += tmp;
+    snprintf(tmp, BUFSIZE + 1, "\nGlobal Unique tiles: %lu\n", globalUsage.size());
+    append(tmp);
+    return content;
+}
+
+bool generateReport(CMapFile &mf, const QString &filename)
+{
+    const QByteArray data = buildReport(mf).toUtf8();
+    QFileWrap file;
+    if (!file.open(filename, "wb"))
+    {
+        return false;
+    }
+    file.write(data.constData(), static_cast<int>(data.size()));
     file.close();
-    delete[] tmp;
     return true;
 }
 

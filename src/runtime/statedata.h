@@ -36,6 +36,7 @@ enum StateValue : uint16_t
     ALIAS,
     UUID,
     NOTES,
+    MUSIC,
     AUTHOR = 0xc0,
     MSG0 = 0xf0,
     MSG1,

@@ -36,7 +36,7 @@ struct sfx_t
 
 enum Sfx : uint16_t
 {
-    SFX_SPARKLE = 0xf0,
+    SFX_SPARKLE = 0x1f0,
     SFX_EXPLOSION1, // fireball explosion
     SFX_EXPLOSION5, // barrel explosion
     SFX_EXPLOSION6, // icecube melting

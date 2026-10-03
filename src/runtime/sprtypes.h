@@ -93,5 +93,7 @@ enum TileType:uint8_t
     TYPE_BARREL               = 0x12,
     TYPE_EGG                  = 0x13,
     TYPE_MONSTERV3            = 0x14,
+    TYPE_BELL                 = 0x15,
+    TYPE_SWITCH               = 0x16,
 };
 

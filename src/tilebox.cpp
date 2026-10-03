@@ -162,6 +162,8 @@ int CTileBox::getTabId(int typeId)
     case TYPE_FIRE:
     case TYPE_BARREL:
     case TYPE_EGG:
+    case TYPE_BELL:
+    case TYPE_SWITCH:
         j = TAB_SPECIAL;
     };
     return j;

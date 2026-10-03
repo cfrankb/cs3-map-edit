@@ -79,6 +79,7 @@ CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAi
     m_algo = BossData::Path::NONE;
     m_ttl = CActor::NoTTL;
     m_attr = 0;
+    m_origin = Pos{x, y};
 }
 
 CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim) : m_path(nullptr)
@@ -92,6 +93,7 @@ CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim) : m_path(nullptr)
     m_algo = BossData::Path::NONE;
     m_ttl = CActor::NoTTL;
     m_attr = 0;
+    m_origin = pos;
 }
 
 CActor::CActor(CActor &&other) noexcept
@@ -103,6 +105,7 @@ CActor::CActor(CActor &&other) noexcept
       m_pu(other.m_pu),
       m_attr(other.m_attr),
       m_ttl(other.m_ttl),
+      m_origin(other.m_origin),
       m_path(std::move(other.m_path))
 {
     // You can't move ISprite, but its state is already constructed
@@ -115,6 +118,7 @@ CActor::CActor(CActor &&other) noexcept
     other.m_algo = BossData::Path::NONE;
     other.m_ttl = CActor::NoTTL;
     other.m_attr = 0;
+    other.m_origin = Pos{0, 0};
 }
 
 CActor &CActor::operator=(CActor &&other) noexcept
@@ -131,6 +135,7 @@ CActor &CActor::operator=(CActor &&other) noexcept
         m_path = std::move(other.m_path);
         m_ttl = other.m_ttl;
         m_attr = other.m_attr;
+        m_origin = other.m_origin;
 
         other.m_x = 0;
         other.m_y = 0;
@@ -140,6 +145,7 @@ CActor &CActor::operator=(CActor &&other) noexcept
         other.m_algo = BossData::Path::NONE;
         other.m_ttl = CActor::NoTTL;
         other.m_attr = 0;
+        other.m_origin = Pos{0, 0};
     }
     return *this;
 }
@@ -445,6 +451,10 @@ bool CActor::readCommon(ReadFunc readfile)
         return false;
     if (!readfile(&m_attr, sizeof(m_attr)))
         return false;
+    if (!readfile(&m_origin.x, sizeof(m_origin.x)))
+        return false;
+    if (!readfile(&m_origin.y, sizeof(m_origin.y)))
+        return false;
     return true;
 }
 
@@ -499,6 +509,10 @@ bool CActor::writeCommon(WriteFunc writefile) const
     if (!writefile(&m_ttl, sizeof(m_ttl)))
         return false;
     if (!writefile(&m_attr, sizeof(m_attr)))
+        return false;
+    if (!writefile(&m_origin.x, sizeof(m_origin.x)))
+        return false;
+    if (!writefile(&m_origin.y, sizeof(m_origin.y)))
         return false;
     return true;
 }

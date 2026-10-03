@@ -157,14 +157,14 @@ constexpr const TileDef tileDefs[] = {
     {.flags=0x00, .type=TYPE_BOULDER, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="boulder.obl", .bullet=0, .rate=0, .path=0, .range=0},
     // 42 TILES_BOULDER2
     {.flags=0x00, .type=TYPE_BOULDER, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="boulder.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 43 TILES_GIFTBOX
-    {.flags=0x2000, .type=TYPE_PICKUP, .score=21, .health=0, .speed=0, .ai=0, .hidden=false, .basename="giftbox.png", .bullet=0, .rate=0, .path=0, .range=0},
-    // 44 TILES_MAGICBOT
-    {.flags=0x2000, .type=TYPE_PICKUP, .score=40, .health=0, .speed=0, .ai=0, .hidden=false, .basename="magicbot.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 45 TILES_LIGHTBUL
-    {.flags=0x2000, .type=TYPE_PICKUP, .score=22, .health=0, .speed=0, .ai=0, .hidden=false, .basename="lightbul.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 46 TILES_1ST_AID
-    {.flags=0x2000, .type=TYPE_PICKUP, .score=9, .health=0, .speed=0, .ai=0, .hidden=false, .basename="1st_aid.obl", .bullet=0, .rate=0, .path=0, .range=0},
+    // 43 TILES_STARS_TR
+    {.flags=0x2000, .type=TYPE_PICKUP, .score=21, .health=0, .speed=0, .ai=0, .hidden=false, .basename="stars_tr.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // 44 TILES_POTIONS
+    {.flags=0x2000, .type=TYPE_PICKUP, .score=25, .health=50, .speed=0, .ai=0, .hidden=false, .basename="potions.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // 45 TILES_SCROLL4
+    {.flags=0x2000, .type=TYPE_PICKUP, .score=22, .health=0, .speed=0, .ai=0, .hidden=false, .basename="scroll4.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // 46 TILES_HEART
+    {.flags=0x2000, .type=TYPE_PICKUP, .score=9, .health=100, .speed=0, .ai=0, .hidden=false, .basename="heart.png", .bullet=0, .rate=0, .path=0, .range=0},
     // 47 TILES_SCROLL
     {.flags=0x2000, .type=TYPE_PICKUP, .score=27, .health=0, .speed=0, .ai=0, .hidden=false, .basename="scroll.png", .bullet=0, .rate=0, .path=0, .range=0},
     // 48 TILES_SHIELD
@@ -213,8 +213,8 @@ constexpr const TileDef tileDefs[] = {
     {.flags=0x6000, .type=TYPE_PICKUP, .score=99, .health=20, .speed=0, .ai=0, .hidden=false, .basename="triforce.obl", .bullet=0, .rate=0, .path=0, .range=0},
     // 5e TILES_ORB
     {.flags=0x2000, .type=TYPE_PICKUP, .score=67, .health=10, .speed=0, .ai=0, .hidden=false, .basename="orb.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 5f TILES_TNTSTICK
-    {.flags=0x2000, .type=TYPE_PICKUP, .score=66, .health=0, .speed=0, .ai=0, .hidden=false, .basename="tntstick.obl", .bullet=0, .rate=0, .path=0, .range=0},
+    // 5f TILES_BOMB
+    {.flags=0x2000, .type=TYPE_PICKUP, .score=66, .health=0, .speed=0, .ai=0, .hidden=false, .basename="bomb.png", .bullet=0, .rate=0, .path=0, .range=0},
     // 60 TILES_SKELETON
     {.flags=0x00, .type=TYPE_MONSTER, .score=0, .health=-20, .speed=4, .ai=3, .hidden=false, .basename="skeletondn.png", .bullet=0, .rate=0, .path=0, .range=0},
     // 61 TILES_BABYDRAGON
@@ -223,10 +223,10 @@ constexpr const TileDef tileDefs[] = {
     {.flags=0x00, .type=TYPE_MONSTER, .score=0, .health=-4, .speed=4, .ai=7, .hidden=false, .basename="deico.obl", .bullet=0, .rate=0, .path=0, .range=0},
     // 63 TILES_FORCEF94
     {.flags=0x00, .type=TYPE_WALLS, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="forcef94.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 64 TILES_FORCEFIH
-    {.flags=0x8000, .type=TYPE_WALLS, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="forcefih.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 65 TILES_FORCEFIV
-    {.flags=0x8000, .type=TYPE_WALLS, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="forcefiv.obl", .bullet=0, .rate=0, .path=0, .range=0},
+    // 64 TILES_SKULL_SW0
+    {.flags=0x00, .type=TYPE_SWITCH, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="skull.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // 65 TILES_SKULL_SW1
+    {.flags=0x8000, .type=TYPE_WALLS, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="skull.png", .bullet=0, .rate=0, .path=0, .range=0},
     // 66 TILES_INSECT1
     {.flags=0x00, .type=TYPE_MONSTER, .score=0, .health=-6, .speed=5, .ai=1, .hidden=false, .basename="insect1_dn.obl", .bullet=0, .rate=0, .path=0, .range=0},
     // 67 TILES_LUTIN
@@ -253,8 +253,8 @@ constexpr const TileDef tileDefs[] = {
     {.flags=0x8000, .type=TYPE_DRONE, .score=0, .health=-5, .speed=4, .ai=0, .hidden=false, .basename="whteworm.obl", .bullet=0, .rate=0, .path=0, .range=0},
     // 72 TILES_ETURTLE
     {.flags=0x8000, .type=TYPE_DRONE, .score=0, .health=-8, .speed=4, .ai=0, .hidden=false, .basename="eturtle.obl", .bullet=0, .rate=0, .path=0, .range=0},
-    // 73 TILES_DRAGO
-    {.flags=0x8000, .type=TYPE_DRONE, .score=0, .health=-9, .speed=4, .ai=0, .hidden=false, .basename="drago.obl", .bullet=0, .rate=0, .path=0, .range=0},
+    // 73 TILES_ZOMBIE
+    {.flags=0x00, .type=TYPE_MONSTERV3, .score=0, .health=-9, .speed=6, .ai=0, .hidden=false, .basename="zombie.png", .bullet=0, .rate=0, .path=PATH_ASTAR, .range=7},
     // 74 TILES_DOORS_LEAF
     {.flags=0x8000, .type=TYPE_BACKGROUND, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="doors_leaf.zip", .bullet=0, .rate=0, .path=0, .range=0},
     // 75 TILES_ICECUBE
@@ -344,7 +344,9 @@ constexpr const TileDef tileDefs[] = {
     // 9f TILES_EGG_CRACKED
     {.flags=0x00, .type=TYPE_BACKGROUND, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="egg_cracked", .bullet=0, .rate=0, .path=0, .range=0},
     // a0 TILES_FIREBALL_SM
-    {.flags=0x00, .type=TYPE_FIREBALL, .score=0, .health=-10, .speed=4, .ai=0, .hidden=false, .basename="fireball_sm.png", .bullet=0, .rate=0, .path=0, .range=0}
+    {.flags=0x00, .type=TYPE_FIREBALL, .score=0, .health=-10, .speed=4, .ai=0, .hidden=false, .basename="fireball_sm.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // a1 TILES_BELL
+    {.flags=0x00, .type=TYPE_BELL, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="bell.png", .bullet=0, .rate=0, .path=0, .range=0}
 };
 
 const uint8_t chMap[] = {
@@ -353,17 +355,17 @@ const uint8_t chMap[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x2f, 0x06, 0x03, 0x5c, 0x04, 0x2e, 0x00,
-    0x00, 0x00, 0x44, 0x46, 0x0b, 0x00, 0x0a, 0x63,
+    0x00, 0x00, 0x00, 0x46, 0x0b, 0x00, 0x0a, 0x63,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x0c, 0x00, 0x00, 0x00, 0x2c, 0x05, 0x2d, 0x43,
     0x4f, 0x61, 0x32, 0x34, 0x62, 0x00, 0x50, 0x35,
     0x51, 0x00, 0x3f, 0x11, 0x00, 0x68, 0x00, 0x5e,
     0x02, 0x0f, 0x57, 0x48, 0x5d, 0x12, 0x00, 0x0e,
-    0x0d, 0x59, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x64,
+    0x0d, 0x59, 0x10, 0x3d, 0x00, 0x3e, 0x5b, 0x00,
     0x00, 0x30, 0x31, 0x33, 0x60, 0x00, 0x00, 0x4c,
     0x52, 0x66, 0x00, 0x00, 0x67, 0x38, 0x00, 0x49,
     0x24, 0x71, 0x58, 0x01, 0x37, 0x00, 0x6d, 0x40,
-    0x00, 0x5a, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00,
+    0x00, 0x5a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
 uint8_t getChTile(const uint8_t i)

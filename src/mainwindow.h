@@ -62,6 +62,7 @@ private slots:
     void on_actionEdit_Last_Map_triggered();
     void on_actionEdit_First_Map_triggered();
     void on_actionFile_Generate_Report_triggered();
+    void on_actionFile_View_Report_triggered();
     void on_actionEdit_Map_States_triggered();
     void on_actionExport_Screenshots_triggered();
     void on_actionEdit_Edit_Messages_triggered();

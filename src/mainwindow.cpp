@@ -1,13 +1,18 @@
 #include "mainwindow.h"
 #include "dlgabout.h"
 #include "ui_mainwindow.h"
+#include <QDialog>
 #include <QDockWidget>
+#include <QFile>
+#include <QFontDatabase>
 #include <QShortcut>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QHBoxLayout>
 #include <QSettings>
 #include <QInputDialog>
 #include <QLabel>
+#include <QPushButton>
 #include <QScrollArea>
 #include <QTextEdit>
 #include <QVBoxLayout>
@@ -1091,6 +1096,51 @@ void MainWindow::on_actionFile_Generate_Report_triggered()
     }
 
     delete dlg;
+}
+
+void MainWindow::on_actionFile_View_Report_triggered()
+{
+    const QString content = buildReport(m_doc);
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Map Report"));
+    dlg.resize(760, 560);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dlg);
+    QTextEdit *view = new QTextEdit(&dlg);
+    view->setReadOnly(true);
+    view->setLineWrapMode(QTextEdit::NoWrap);
+    view->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    view->setPlainText(content);
+    layout->addWidget(view);
+
+    QHBoxLayout *buttonRow = new QHBoxLayout();
+    buttonRow->addStretch(1);
+    QPushButton *saveButton = new QPushButton(tr("Save Report"), &dlg);
+    QPushButton *closeButton = new QPushButton(tr("Close"), &dlg);
+    buttonRow->addWidget(saveButton);
+    buttonRow->addWidget(closeButton);
+    layout->addLayout(buttonRow);
+
+    connect(closeButton, &QPushButton::clicked, &dlg, &QDialog::accept);
+    connect(saveButton, &QPushButton::clicked, &dlg, [&dlg, &content]()
+    {
+        QString fileName = QFileDialog::getSaveFileName(&dlg, tr("Save Report"), "report.txt", tr("Text files (*.txt)"));
+        if (fileName.isEmpty())
+            return;
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        {
+            file.write(content.toUtf8());
+            file.close();
+        }
+        else
+        {
+            QMessageBox::warning(&dlg, tr("Save Report"), tr("Could not open %1 for writing.").arg(fileName));
+        }
+    });
+
+    dlg.exec();
 }
 
 void MainWindow::on_actionEdit_Map_States_triggered()

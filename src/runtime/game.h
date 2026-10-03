@@ -113,6 +113,7 @@ public:
     bool move(const JoyAim dir);
     void manageMonsters(const uint32_t ticks);
     void manageBosses(const uint32_t ticks);
+    void manageSpawns(const uint32_t ticks);
     uint8_t managePlayer(const uint8_t *joystate);
     static Pos translate(const Pos &p, const int aim);
     void consume();
@@ -229,6 +230,7 @@ private:
     MapReport m_report;
     std::unique_ptr<CAnimator> m_animator;
     std::vector<automator_t> m_automators;
+    std::vector<spawn_t> m_spawns;
 
     int m_defaultLives;
     bool m_quiet = false;
@@ -262,6 +264,7 @@ private:
     bool pushChain(const int x, const int y, const JoyAim aim);
     bool fuseBarrel(const Pos &pos);
     void blastRadius(const Pos &pos, const size_t radius, const int damage, std::set<int, std::greater<int>> &deletedMonsters);
+    bool queueRespawn(const CActor &actor);
 
     // boss
     CActor *spawnBullet(int x, int y, JoyAim aim, uint8_t tile);

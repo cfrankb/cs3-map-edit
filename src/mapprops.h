@@ -80,6 +80,7 @@ private:
     QSpinBox *m_yearSpinBox;
     QCheckBox *m_privateCheckBox;
     QLineEdit *m_authorLineEdit;
+    QLineEdit *m_musicLineEdit;
 
     // Messages tab UI Components
     QComboBox *m_cbMessage;

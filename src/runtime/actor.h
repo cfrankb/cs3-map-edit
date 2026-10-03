@@ -89,21 +89,56 @@ public:
     CPath::Result followPath(const Pos &playerPos);
     bool startPath(const Pos &playerPos, const uint8_t algo, const int timeout);
     bool isFollowingPath();
-    void clearPath() { m_path = nullptr; }
-    bool isBoss() const override { return false; }
-    const CPath *path() const { return m_path.get(); };
-    int getTTL() const override { return m_ttl; };
-    void setTTL(int ttl) { m_ttl = ttl; };
+    void clearPath()
+    {
+        m_path = nullptr;
+    }
+    bool isBoss() const override
+    {
+        return false;
+    }
+    const CPath *path() const
+    {
+        return m_path.get();
+    };
+    int getTTL() const override
+    {
+        return m_ttl;
+    };
+    void setTTL(int ttl)
+    {
+        m_ttl = ttl;
+    };
     int decTTL()
     {
         if (m_ttl > 0)
             --m_ttl;
         return m_ttl;
     }
-    uint8_t algo() const { return m_algo; }
-    uint8_t frame() const { return m_frame; }
-    void setFrame(const uint8_t frame) { m_frame = frame; }
-    void setAlgo(const uint8_t algo) { m_algo = algo; }
+    uint8_t algo() const
+    {
+        return m_algo;
+    }
+    uint8_t frame() const
+    {
+        return m_frame;
+    }
+    void setFrame(const uint8_t frame)
+    {
+        m_frame = frame;
+    }
+    void setAlgo(const uint8_t algo)
+    {
+        m_algo = algo;
+    }
+    void setOrigin(const Pos &origin)
+    {
+        m_origin = origin;
+    }
+    Pos origin() const
+    {
+        return m_origin;
+    }
 
 private:
     uint8_t m_x;
@@ -111,13 +146,14 @@ private:
     uint8_t m_type;
     union
     {
-        uint8_t m_frame;
-        uint8_t m_algo;
+        uint16_t m_frame;
+        uint16_t m_algo;
     };
     JoyAim m_aim;
     uint8_t m_pu;
     uint8_t m_attr;
     int32_t m_ttl;
+    Pos m_origin;
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);
     template <typename WriteFunc>

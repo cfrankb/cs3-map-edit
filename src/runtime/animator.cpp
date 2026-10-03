@@ -28,9 +28,10 @@
 #include "shared/IFile.h"
 #include "logger.h"
 #include "game.h"
+#include "shared/ISerial.h"
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
-constexpr const size_t SEQ_COUNT = 32;
+constexpr const size_t SEQ_COUNT = 36;
 
 constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NO_SPECIAL_ID},
@@ -50,6 +51,7 @@ constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_MUSH_IDLE, ANIMZ_MUSH_DOWN, ANIMZ_MUSHROOM_LEN, ANIMZ_MUSHROOM},
     {TILES_WHTEWORM, ANIMZ_WHTEWORM, ANIMZ_WHTEWORM_LEN / 2, ANIMZ_WHTEWORM},
     {TILES_ETURTLE, ANIMZ_ETURTLE, ANIMZ_ETURTLE_LEN / 2, ANIMZ_ETURTLE},
+    {TILES_DEICO, ANIMZ_DEICO, ANIMZ_DEICO_LEN, NO_SPECIAL_ID}, // deico
     //{TILES_DRAGO, ANIMZ_DRAGO, ANIMZ_DRAGO_LEN / 2, ANIMZ_DRAGO},
     {TILES_FIREBALL_SM, ANIMZ_FIREBALL_SM, ANIMZ_FIREBALL_SM_LEN, NO_SPECIAL_ID},
     {TILES_DOORS_LEAF, ANIMZ_DOORS_LEAF, ANIMZ_DOORS_LEAF_LEN, NO_SPECIAL_ID},
@@ -65,7 +67,10 @@ constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {SFX_EXPLOSION0, ANIMZ_EXPLOSION0, ANIMZ_EXPLOSION0_LEN, ANIMZ_EXPLOSION0}, // placeholder for mob death
     {SFX_FLAME, ANIMZ_FLAME, ANIMZ_FLAME_LEN, ANIMZ_FLAME},                     // barrel flame
     {TILES_SKELETON, ANIMZ_SKELETON, ANIMZ_SKELETON_LEN, ANIMZ_SKELETON},
+    {TILES_ZOMBIE, ANIMZ_ZOMBIE, ANIMZ_ZOMBIE_LEN / 4, ANIMZ_ZOMBIE},
     {TILES_BABYDRAGON, ANIMZ_BABYDRAGON, ANIMZ_BABYDRAGON_LEN, ANIMZ_BABYDRAGON}, // baby dragon animator
+    {TILES_STARS_TR, ANIMZ_STARS, ANIMZ_STARS_LEN, NO_SPECIAL_ID},                // spinning star
+    {TILES_HEART, ANIMZ_HEART, ANIMZ_HEART_LEN, NO_SPECIAL_ID},                   // pulsing heart
 }};
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
@@ -161,7 +166,7 @@ animzInfo_t CAnimator::getSpecialInfo(const int tileID) const
         return animzInfo_t{
             .frames = it->second.frames,
             .base = it->second.base,
-            .offset = static_cast<uint8_t>(m_offset % it->second.frames),
+            .offset = static_cast<uint16_t>(m_offset % it->second.frames),
         };
     }
     return animzInfo_t{};
@@ -182,33 +187,24 @@ bool CAnimator::read(IFile &sfile)
 
     // read automators
     auto &automators = CGame::getGame()->automators();
-    automators.clear();
-    uint16_t count = 0;
-    if (sfile.read(&count, sizeof(count)) != IFILE_OK)
+    if (!readVector(OBJECT_NAME(automators), automators, sfile))
     {
-        LOGE("failed to read automator count");
+        LOGE("failed to read automator");
         return false;
     }
-    for (size_t i = 0; i < count; ++i)
-    {
-        automator_t a;
-        if (!a.read(sfile))
-        {
-            LOGE("failed to read automator");
-            return false;
-        }
-        automators.push_back(a);
-    }
+
     return true;
 }
 
 bool CAnimator::write(IFile &tfile) const
 {
+    // write mainLayer state
     if (tfile.write(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
     {
         LOGE("failed to write tileMainLayer");
         return false;
     }
+    // write layertile state
     if (tfile.write(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
     {
         LOGE("failed to write tileLayer");
@@ -217,24 +213,10 @@ bool CAnimator::write(IFile &tfile) const
 
     // save automators
     const auto &automators = CGame::getGame()->automators();
-    if (automators.size() > std::numeric_limits<uint16_t>::max())
+    if (!writeVector(OBJECT_NAME(automators), automators, tfile))
     {
-        LOGE("too many automators: %zu", automators.size());
+        LOGE("failed to write automator");
         return false;
-    }
-    const uint16_t count = (uint16_t)automators.size();
-    if (tfile.write(&count, sizeof(count)) != IFILE_OK)
-    {
-        LOGE("failed to write automator count");
-        return false;
-    }
-    for (const auto &a : automators)
-    {
-        if (!a.write(tfile))
-        {
-            LOGE("failed to write automator");
-            return false;
-        }
     }
     return true;
 }

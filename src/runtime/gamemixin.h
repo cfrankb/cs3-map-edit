@@ -86,7 +86,6 @@ protected:
     enum : uint32_t
     {
         TICK_RATE = 24, // 1s
-        NO_ANIMZ = 255,
         KEY_PRESSED = 1,
         KEY_RELEASED = 0,
         BUTTON_PRESSED = 1,

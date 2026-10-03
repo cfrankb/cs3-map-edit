@@ -643,7 +643,7 @@ CFrame *CGameMixin::tile2Frame(const uint16_t tileID, ColorMask &colorMask, std:
     else
     {
         const uint16_t j = m_animator->at(tileID);
-        if (j == NO_ANIMZ)
+        if (j == CAnimator::NO_ANIMZ)
         {
             const CFrameSet &tiles = *m_tiles;
             tile = tiles[tileID];
@@ -1365,6 +1365,7 @@ void CGameMixin::manageGamePlay()
 
     game.manageMonsters(m_ticks);
     game.manageBosses(m_ticks);
+    game.manageSpawns(m_ticks);
     const uint16_t exitKey = m_game->getMap().states().getU(POS_EXIT);
     if (game.isClosure())
     {
@@ -2139,7 +2140,7 @@ CGameMixin::message_t CGameMixin::getEventText(const int baseY)
         const std::string &line1 = list[0];
         const std::string &line2 = list.size() > 1 ? list[1] : "";
         const std::string &line3 = list.size() > 2 ? list[2] : "";
-        const int y = list.size() == 0 ? baseY - 14 : baseY + -8 * (std ::min(list.size(), (size_t)3));
+        const int y = list.size() == 0 ? baseY - 14 : baseY + -8 * (std::min(list.size(), (size_t)3));
         return {
             .scaleX = 1,
             .scaleY = 1,

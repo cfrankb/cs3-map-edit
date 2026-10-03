@@ -43,6 +43,7 @@ enum GameStat : uint16_t
     S_SHIELD,
     S_BOAT,
     S_FLASH,
+    S_TIME_FREEZE_TIMER, // stops time
 };
 
 class CGameStats
