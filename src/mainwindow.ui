@@ -107,6 +107,7 @@
     <addaction name="actionEdit_Move_Map"/>
     <addaction name="actionClear_Map"/>
     <addaction name="actionEdit_Delete_Map"/>
+    <addaction name="actionEdit_List_Maps"/>
     <addaction name="menuNavigate"/>
    </widget>
    <widget class="QMenu" name="menuTools_2">
@@ -533,6 +534,14 @@
    <property name="statusTip">
     <string>Edit the properties of this Map</string>
    </property>
+  </action>
+  <action name="actionEdit_List_Maps">
+    <property name="text">
+     <string>List Maps...</string>
+    </property>
+    <property name="statusTip">
+     <string>List and edit the name, author, music and UUID of every map in the current file</string>
+    </property>
   </action>
   <action name="actionTools_Select">
    <property name="checkable">

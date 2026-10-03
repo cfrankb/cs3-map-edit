@@ -61,6 +61,7 @@ set(HEADERS
     src/MapWidget.h
     src/tilebox.h
     src/dlgselect.h
+    src/dlgmaps.h
     src/dlgtest.h
     src/mainwindow.h
 

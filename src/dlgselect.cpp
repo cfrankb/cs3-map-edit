@@ -59,7 +59,7 @@ void CDlgSelect::updatePreview(CMap *map)
         {
             for (int col = 0; col < cols; ++col)
             {
-                uint8_t tile = layer->at(col + mx, row + my);
+                uint16_t tile = layer->at(col + mx, row + my);
                 if (!tile) continue;
                 CFrame *frame =  layerID == 0 ? (*m_frameSetMain)[tile] : (*m_frameSetLayers)[tile];
                 for (int y = 0; y < tileSize; ++y)

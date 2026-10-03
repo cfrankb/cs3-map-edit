@@ -29,6 +29,7 @@
 #include "runtime/statedata.h"
 #include "runtime/dirs.h"
 #include "mapprops.h"
+#include "dlgmaps.h"
 #include "TileSelectorWidget.h"
 #include "MapView.h"
 #include "LayerDock.h"
@@ -1222,6 +1223,12 @@ void MainWindow::on_actionEdit_Map_Properties_triggered()
 {
     MapPropertiesDialog dialog(m_doc.map(), activeStack(), this);
     dialog.exec(); // states saved in dialog
+}
+
+void MainWindow::on_actionEdit_List_Maps_triggered()
+{
+    DialogMaps dialog(&m_doc, this);
+    dialog.exec(); // maps saved in dialog; dirty flag set by the dialog
 }
 
 void MainWindow::updateWindowTitle()

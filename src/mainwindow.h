@@ -67,6 +67,7 @@ private slots:
     void on_actionExport_Screenshots_triggered();
     void on_actionEdit_Edit_Messages_triggered();
     void on_actionEdit_Map_Properties_triggered();
+    void on_actionEdit_List_Maps_triggered();
     void on_actionEdit_Undo_triggered();
     void on_actionEdit_Redo_triggered();
     void updateStatus();
