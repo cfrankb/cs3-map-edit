@@ -20,6 +20,8 @@
 #include "runtime/map.h"
 #include "runtime/statedata.h"
 #include "runtime/states.h"
+#include "undo/MapListCommand.h"
+#include <QUndoStack>
 #include <QVBoxLayout>
 #include <QStringList>
 #include <QHBoxLayout>
@@ -198,6 +200,8 @@ void DialogMaps::saveToMapFile()
     m_dirty = false;
     const size_t count = m_mapFile->size();
 
+    std::vector<MapListSaveCommand::MapChange> changes;
+
     for (size_t i = 0; i < count; ++i)
     {
         CMap *map = m_mapFile->at(static_cast<int>(i));
@@ -227,6 +231,13 @@ void DialogMaps::saveToMapFile()
         if (!changed)
             continue;
 
+        // Snapshot the pre-save state so the change can be undone, then
+        // capture the post-save state before applying the edits.
+        MapListSaveCommand::MapChange change;
+        change.map = map;
+        change.oldTitle = map->title();
+        change.oldStates = map->states();
+
         // Write the modified values back to the map.
         map->setTitle(name.toStdString());
         CStates &states = map->states();
@@ -236,6 +247,10 @@ void DialogMaps::saveToMapFile()
         states.setS(StateValue::MUSIC, music.toStdString());
         states.setS(StateValue::NOTES, notes.toStdString());
 
+        change.newTitle = map->title();
+        change.newStates = map->states();
+        changes.push_back(std::move(change));
+
         m_dirty = true;
     }
 
@@ -244,8 +259,18 @@ void DialogMaps::saveToMapFile()
     // set the flag and notify listeners so the editor reflects the change.
     if (m_dirty)
     {
-        m_mapFile->setDirty(true);
-        m_mapFile->emit dirtyChanged(true);
+        // Record the committed edits on the undo stack so the whole map-list
+        // save can be undone/redone as a single action.
+        QUndoStack *stack = m_mapFile->undoGroup()
+                                ? m_mapFile->undoGroup()->activeStack()
+                                : nullptr;
+        if (stack)
+            stack->push(new MapListSaveCommand(m_mapFile, std::move(changes)));
+        else
+        {
+            m_mapFile->setDirty(true);
+            m_mapFile->emit dirtyChanged(true);
+        }
     }
 }
 

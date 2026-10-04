@@ -76,6 +76,7 @@ namespace GamePrivate
         MAX_FACTOR = 4,
         BARREL_TTL = 20,
         AUTOKILL = -1024,
+        TIME_FREEZE_DELAY = 120,
     };
 }
 
@@ -191,6 +192,17 @@ bool CGame::move(const JoyAim aim)
     {
         const Pos pos = CGame::translate(m_player.pos(), aim);
         fuseBarrel(pos);
+    }
+    else if (def.type == TYPE_BELL)
+    {
+        if (!m_gameStats->get(S_TIME_FREEZE_TIMER))
+        {
+            m_gameStats->set(S_TIME_FREEZE_TIMER, TIME_FREEZE_DELAY);
+            LOGI("Bong");
+        }
+    }
+    else if (def.type == TYPE_SWITCH)
+    {
     }
     return false;
 }
@@ -492,7 +504,7 @@ void CGame::decTimers()
         S_RAGE_TIMER,
         S_FREEZE_TIMER,
         S_FLASH,
-    };
+        S_TIME_FREEZE_TIMER};
     for (const auto &stat : stats)
     {
         m_gameStats->dec(stat);
@@ -517,7 +529,7 @@ void CGame::resetStats()
         S_TIME_TAKEN,
         S_CHUTE,
         S_FLASH,
-    };
+        S_TIME_FREEZE_TIMER};
     for (const auto &stat : stats)
     {
         m_gameStats->set(stat, 0);
