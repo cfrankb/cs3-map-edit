@@ -79,7 +79,7 @@ bool copyFile(const std::string in, const std::string out, std::string &errMsg)
     bool result = true;
     FILEWRAP sfile;
     FILEWRAP tfile;
-    if (sfile.open(in.c_str()))
+    if (sfile.open(in))
     {
         int size = sfile.getSize();
         std::vector<char> buf(size);
@@ -120,7 +120,7 @@ bool concat(const std::list<std::string> files, std::string out, std::string &ms
         {
             FILEWRAP sfile;
             std::string in = *iterator;
-            if (sfile.open(in.c_str()))
+            if (sfile.open(in))
             {
                 int size = sfile.getSize();
                 std::vector<char> buf(size);

@@ -1,4 +1,8 @@
 #pragma once
+// Include the map runtime before Qt headers: CMap is defined in map.h and is
+// probed by SFINAE inside some Qt headers. Defining CMap before those Qt
+// includes avoids GCC's -Wsfinae-incomplete (CMap seen incomplete in SFINAE).
+#include "runtime/map.h"
 #include <QWidget>
 #include <QPixmap>
 #include <QCache>
@@ -6,7 +10,6 @@
 #include <QUndoCommand>
 #include <vector>
 #include "runtime/shared/Frame.h"
-#include "runtime/map.h"
 #include "stamp.h"
 
 class QPainter;

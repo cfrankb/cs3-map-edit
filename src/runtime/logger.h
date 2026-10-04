@@ -47,6 +47,7 @@ private:
 
 #if defined(USE_QFILE)
 #include <QtLogging>
+#include <QDebug>
 #define printf qDebug
 #define LOGI(...) qInfo(__VA_ARGS__)
 #define LOGW(...) qWarning(__VA_ARGS__)
