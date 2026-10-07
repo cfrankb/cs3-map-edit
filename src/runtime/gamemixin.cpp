@@ -1304,7 +1304,6 @@ void CGameMixin::manageGamePlay()
 
     manageCurrentEvent();
     manageTimer();
-    game.purgeSfx();
     game.decTimers();
     if (m_ticks % game.playerSpeed() == 0 && game.closusureTimer())
     {
@@ -1360,12 +1359,16 @@ void CGameMixin::manageGamePlay()
         }
     }
 
-    if (m_ticks % 3 == 0)
-        m_animator->animate();
-
-    game.manageMonsters(m_ticks);
-    game.manageBosses(m_ticks);
-    game.manageSpawns(m_ticks);
+    const bool timeFrozen = (bool)m_game->stats().get(S_TIME_FREEZE_TIMER);
+    if (!timeFrozen)
+    {
+        if (m_ticks % 3 == 0)
+            m_animator->animate();
+        game.manageMonsters(m_ticks);
+        game.manageBosses(m_ticks);
+        game.manageSpawns(m_ticks);
+        game.purgeSfx();
+    }
     const uint16_t exitKey = m_game->getMap().states().getU(POS_EXIT);
     if (game.isClosure())
     {

@@ -36,13 +36,15 @@ struct sfx_t
 
 enum Sfx : uint16_t
 {
-    SFX_SPARKLE = 0x1f0,
+    MIN_SFX = 0xf0,
+    SFX_SPARKLE = MIN_SFX,
     SFX_EXPLOSION1, // fireball explosion
     SFX_EXPLOSION5, // barrel explosion
     SFX_EXPLOSION6, // icecube melting
     SFX_EXPLOSION7, // thunderbolt destruction (yellow)
     SFX_EXPLOSION0, // placeholder for mob
     SFX_FLAME,      // barrel flame
+    MAX_SFX
 };
 
 enum SfxTimeout : uint16_t

@@ -203,6 +203,35 @@ bool CGame::move(const JoyAim aim)
     }
     else if (def.type == TYPE_SWITCH)
     {
+        const Pos pos = translate(m_player.pos(), aim);
+        const uint8_t attr = m_map.getAttr(pos.x, pos.y);
+        m_map.setAttr(pos.x, pos.y, 0);
+        const uint16_t tileID = m_map.get(pos.x, pos.y);
+        m_map.set(pos.x, pos.y, tileID + 1);
+        if (RANGE(attr, PASSAGE_ATTR_MIN, PASSAGE_ATTR_MAX))
+        {
+            if (clearAttr(attr))
+            {
+                playSound(SOUND_0009);
+                if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
+                    m_events.emplace_back(EVENT_SECRET);
+                else
+                    m_events.emplace_back(EVENT_PASSAGE);
+            }
+        }
+        else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
+        {
+            if (clearAttr(attr))
+            {
+                playSound(SOUND_0009);
+            }
+            // activate automators
+            for (auto &a : automators())
+            {
+                if (a.attr == attr)
+                    a.active = true;
+            }
+        }
     }
     return false;
 }
@@ -649,7 +678,11 @@ bool CGame::spawnMonsters()
             for (size_t layerID = 1; layerID < m_map.layers().size(); ++layerID)
             {
                 const CLayer *layer = m_map.getLayer(layerID);
+                if (!layer)
+                    continue;
                 const uint16_t tileID = layer->at(pos.x, pos.y);
+                if (!tileID)
+                    continue;
                 const layerdata_t &ld = g_layerdata[tileID];
                 if (ld.manual)
                 {

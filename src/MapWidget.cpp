@@ -1049,7 +1049,7 @@ void MapWidget::createContextMenu(QMenu *menu, const QPoint &point)
             {
         const int x = point.x();
         const int y = point.y();
-        CDlgStat dlg(m_map->at(x, y), m_map->getAttr(x, y), this);
+        CDlgStat dlg(m_map, x,y, this);
         dlg.setWindowTitle(tr("Tile Statistics"));
         dlg.exec(); });
     actionStatTile->setStatusTip(tr("Show the data information on this tile"));

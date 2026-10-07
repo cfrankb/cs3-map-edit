@@ -21,6 +21,7 @@
 #include "runtime/statedata.h"
 #include "runtime/states.h"
 #include "undo/MapListCommand.h"
+#include "runtime/shared/helper.h"
 #include <QUndoStack>
 #include <QVBoxLayout>
 #include <QStringList>
@@ -68,6 +69,7 @@ void DialogMaps::setupUI()
         "Music",
         "Notes",
         "Private",  // checkbox
+        "UUID",     // identifier, regenerated via a per-row button
     };
     constexpr int columnCount = sizeof(columnTitles) / sizeof(columnTitles[0]);
 
@@ -82,17 +84,24 @@ void DialogMaps::setupUI()
     // The name/author/year/music/notes fields and the private checkbox are editable.
     m_table->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
 
-    // Fixed-width columns: year and private.
+    // Fixed-width columns: year, private and uuid.
     m_table->horizontalHeader()->setSectionResizeMode(COL_YEAR, QHeaderView::Fixed);
     m_table->setColumnWidth(COL_YEAR, 70);
     m_table->horizontalHeader()->setSectionResizeMode(COL_PRIVATE, QHeaderView::Fixed);
     m_table->setColumnWidth(COL_PRIVATE, 60);
-    // Everything else stretches to fill the available width.
-    for (int c = 0; c < columnCount; ++c) {
-        if (c == COL_YEAR || c == COL_PRIVATE)
-            continue;
-        m_table->horizontalHeader()->setSectionResizeMode(c, QHeaderView::Stretch);
-    }
+    m_table->horizontalHeader()->setSectionResizeMode(COL_UUID, QHeaderView::Fixed);
+    m_table->setColumnWidth(COL_UUID, 420);
+    // The remaining columns use interactive resize with sensible starting
+    // widths. Their combined width exceeds the dialog's minimum width, so a
+    // horizontal scrollbar appears automatically when not all columns fit.
+    m_table->horizontalHeader()->setSectionResizeMode(COL_NAME, QHeaderView::Interactive);
+    m_table->setColumnWidth(COL_NAME, 220);
+    m_table->horizontalHeader()->setSectionResizeMode(COL_AUTHOR, QHeaderView::Interactive);
+    m_table->setColumnWidth(COL_AUTHOR, 150);
+    m_table->horizontalHeader()->setSectionResizeMode(COL_MUSIC, QHeaderView::Interactive);
+    m_table->setColumnWidth(COL_MUSIC, 150);
+    m_table->horizontalHeader()->setSectionResizeMode(COL_NOTES, QHeaderView::Interactive);
+    m_table->setColumnWidth(COL_NOTES, 200);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -168,26 +177,44 @@ void DialogMaps::loadFromMapFile()
             data.isPrivate = states.getU(StateValue::PRIVATE) != 0;
             data.music  = QString::fromUtf8(states.getS(StateValue::MUSIC));
             data.notes  = QString::fromUtf8(states.getS(StateValue::NOTES));
+            data.uuid   = QString::fromUtf8(states.getS(StateValue::UUID));
         }
         m_original.push_back(data);
 
+        const int row = static_cast<int>(i);
+
         // Columns 0..1: name, author
-        m_table->setItem(static_cast<int>(i), COL_NAME, new QTableWidgetItem(data.name));
-        m_table->setItem(static_cast<int>(i), COL_AUTHOR, new QTableWidgetItem(data.author));
+        m_table->setItem(row, COL_NAME, new QTableWidgetItem(data.name));
+        m_table->setItem(row, COL_AUTHOR, new QTableWidgetItem(data.author));
 
         // Column 2: year (text, fixed width)
         QTableWidgetItem *yearItem = new QTableWidgetItem(QString::number(data.year));
         yearItem->setTextAlignment(Qt::AlignCenter);
-        m_table->setItem(static_cast<int>(i), COL_YEAR, yearItem);
+        m_table->setItem(row, COL_YEAR, yearItem);
 
         // Columns 3..4: music, notes
-        m_table->setItem(static_cast<int>(i), COL_MUSIC, new QTableWidgetItem(data.music));
-        m_table->setItem(static_cast<int>(i), COL_NOTES, new QTableWidgetItem(data.notes));
+        m_table->setItem(row, COL_MUSIC, new QTableWidgetItem(data.music));
+        m_table->setItem(row, COL_NOTES, new QTableWidgetItem(data.notes));
 
         // Column 5: private (checkbox)
         QCheckBox *privBox = new QCheckBox(this);
         privBox->setChecked(data.isPrivate);
-        m_table->setCellWidget(static_cast<int>(i), COL_PRIVATE, privBox);
+        m_table->setCellWidget(row, COL_PRIVATE, privBox);
+
+        // Column 6: UUID (read-only label + per-row "New Uuid" button)
+        m_uuidLabels.push_back(nullptr);
+        QWidget *uuidCell = new QWidget(this);
+        QHBoxLayout *uuidLayout = new QHBoxLayout(uuidCell);
+        uuidLayout->setContentsMargins(6, 2, 6, 2);
+        QLabel *uuidLabel = new QLabel(data.uuid, uuidCell);
+        uuidLabel->setToolTip(data.uuid);
+        QPushButton *newUuidBtn = new QPushButton("New Uuid", uuidCell);
+        newUuidBtn->setFixedWidth(76);
+        connect(newUuidBtn, &QPushButton::clicked, this, [this, row]() { onNewUuid(row); });
+        uuidLayout->addWidget(uuidLabel);
+        uuidLayout->addWidget(newUuidBtn);
+        m_table->setCellWidget(row, COL_UUID, uuidCell);
+        m_uuidLabels[row] = uuidLabel;
     }
     m_table->setUpdatesEnabled(true);
 }
@@ -223,11 +250,17 @@ void DialogMaps::saveToMapFile()
         const int year = yearItem ? yearItem->text().trimmed().toInt() : 0;
         const bool isPrivate = privBox ? privBox->isChecked() : false;
 
+        // UUID lives in the per-row label (the "New Uuid" button only updates
+        // the display here; the value is written to the map at save time).
+        const QString uuid = (i < static_cast<int>(m_uuidLabels.size()) && m_uuidLabels[i])
+                                 ? m_uuidLabels[i]->text().trimmed() : QString();
+
         // Detect modification against the values captured at load.
         const RowData &orig = m_original[i];
         const bool changed = (name != orig.name) || (author != orig.author)
                              || (year != orig.year) || (isPrivate != orig.isPrivate)
-                             || (music != orig.music) || (notes != orig.notes);
+                             || (music != orig.music) || (notes != orig.notes)
+                             || (uuid != orig.uuid);
         if (!changed)
             continue;
 
@@ -246,6 +279,7 @@ void DialogMaps::saveToMapFile()
         states.setU(StateValue::PRIVATE, isPrivate ? 1 : 0);
         states.setS(StateValue::MUSIC, music.toStdString());
         states.setS(StateValue::NOTES, notes.toStdString());
+        states.setS(StateValue::UUID, uuid.toStdString());
 
         change.newTitle = map->title();
         change.newStates = map->states();
@@ -371,6 +405,26 @@ void DialogMaps::onResizeToScreen()
     const int w = qBound(minimumWidth(), qRound(geo.width() * 0.90), geo.width());
     const int h = qBound(minimumHeight(), qRound(geo.height() * 0.80), geo.height());
     resize(w, h);
+}
+
+void DialogMaps::onNewUuid(int row)
+{
+    if (row < 0 || row >= m_table->rowCount())
+        return;
+
+    CMap *map = m_mapFile ? m_mapFile->at(row) : nullptr;
+    if (!map)
+        return;
+
+    // Generate a fresh UUID and reflect it in the row's label. The map's
+    // states are written to disk only when the dialog is saved (see
+    // saveToMapFile), so this stays consistent with the other editable fields.
+    const QString newUuid = QString::fromUtf8(getUUID().c_str());
+    if (row < static_cast<int>(m_uuidLabels.size()) && m_uuidLabels[row])
+    {
+        m_uuidLabels[row]->setText(newUuid);
+        m_uuidLabels[row]->setToolTip(newUuid);
+    }
 }
 
 void DialogMaps::onAccept()

@@ -70,11 +70,17 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseIdx
     for (const auto &tile : j["tiles"])
     {
         if (!tile.contains("index"))
+        {
+            LOGW("no index in tileDef");
             continue;
+        }
 
         int index = tile.at("index").get<int>();
         if (index < 0 || index >= TOTAL_TILE_COUNT)
+        {
+            LOGW("invalid index: %d for tileDef", index);
             continue;
+        }
 
         layerdata_t &L = layers[index + baseIdx];
         L.nextTile = (uint16_t)tile.value("next", -1);

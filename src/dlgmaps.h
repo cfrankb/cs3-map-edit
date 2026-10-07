@@ -51,6 +51,7 @@ private slots:
     void onMusicFolderBrowse();
     void onCheckMusic();
     void onResizeToScreen();
+    void onNewUuid(int row);
 
 private:
     // Persisted music-folder path key (value stored in app settings).
@@ -72,6 +73,7 @@ private:
         COL_MUSIC = 3,
         COL_NOTES = 4,
         COL_PRIVATE = 5,
+        COL_UUID = 6,
     };
 
     struct RowData {
@@ -81,12 +83,14 @@ private:
         bool isPrivate = false;
         QString music;
         QString notes;
+        QString uuid;
     };
 
     CMapFile *m_mapFile;
     QTableWidget *m_table;
     bool m_dirty;
     std::vector<RowData> m_original; // values captured at load, for dirty detection
+    std::vector<QLabel *> m_uuidLabels; // per-row UUID label (index == table row)
 
     QLineEdit *m_musicFolderEdit;
     QLabel *m_statusLabel;

@@ -21,14 +21,14 @@
 #include "gamesfx.h"
 #include "layerdata.h"
 #include <cstring>
-#include <limits>
 #include <vector>
-#include <set>
 #include <array>
 #include "shared/IFile.h"
 #include "logger.h"
 #include "game.h"
 #include "shared/ISerial.h"
+
+#define _U(_v) static_cast<uint32_t>(_v)
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
 constexpr const size_t SEQ_COUNT = 36;
@@ -75,6 +75,13 @@ constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
+    if (_U(MAX_SFX) > _U(MAX_TILES))
+        LOGE("SFX_XXXX bleed out of the tile array");
+    if (_U(TILES_TOTAL_COUNT) > _U(MIN_SFX))
+        LOGE("TILES_XXXX and SFX_XXXX collide");
+    if (_U(TILES_TOTAL_COUNT) > _U(MAX_TILES))
+        LOGE("TILES_XXXX over the limit");
+
     for (const auto &seq : g_animzSeq)
     {
         m_seqLookUp[seq.srcTile] = animzInfo_t{
@@ -124,7 +131,7 @@ void CAnimator::animate()
             break;
         }
         const auto &data = g_layerdata[tileID];
-        if (data.nextTile && data.animeSpeed && m_offset % data.animeSpeed == 0)
+        if (!data.manual && data.nextTile && data.animeSpeed && m_offset % data.animeSpeed == 0)
             tileID = data.nextTile;
     }
 
