@@ -82,7 +82,7 @@ bool loadTileLayer(const std::string &filename, layerdata_t *layers, int baseIdx
             continue;
         }
 
-        layerdata_t &L = layers[index + baseIdx];
+        layerdata_t &L = layers[baseIdx + index];
         L.nextTile = (uint16_t)tile.value("next", -1);
         if (L.nextTile == DUMMY_NEXT_TILE)
         {

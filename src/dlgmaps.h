@@ -52,6 +52,7 @@ private slots:
     void onCheckMusic();
     void onResizeToScreen();
     void onNewUuid(int row);
+    void onExport();
 
 private:
     // Persisted music-folder path key (value stored in app settings).
@@ -85,6 +86,16 @@ private:
         QString notes;
         QString uuid;
     };
+
+    // Read the current table contents into a vector of RowData so the export
+    // helpers can render CSV/text/JSON from whatever is displayed (including
+    // edits made before exporting).
+    std::vector<RowData> collectRowData() const;
+
+    // Render the exported table in each supported format.
+    QString buildCsv(const std::vector<RowData> &rows) const;
+    QString buildText(const std::vector<RowData> &rows) const;
+    QString buildJson(const std::vector<RowData> &rows) const;
 
     CMapFile *m_mapFile;
     QTableWidget *m_table;

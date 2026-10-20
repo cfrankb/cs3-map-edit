@@ -246,6 +246,7 @@ void CGame::handleBossHitboxContact(CBoss &boss)
                              int i = game->findMonsterAt(pos.x, pos.y);
                              if (i != CGame::INVALID)
                              {
+                                 queueRespawn(i);
                                  game->deleteMonster(i);
                                  game->getSfx().emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
                                  map.set(pos.x, pos.y, TILES_BLANK);
@@ -888,6 +889,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             int i = findMonsterAt(pos.x, pos.y);
             if (i != INVALID)
             {
+                queueRespawn(i);
                 deletedMonsters.insert(i);
                 m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION6, .timeout = SFX_EXPLOSION6_TIMEOUT});
                 m_map.set(pos.x, pos.y, TILES_BLANK);
@@ -909,6 +911,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             int i = findMonsterAt(pos.x, pos.y);
             if (i != INVALID)
             {
+                queueRespawn(i);
                 deletedMonsters.insert(i);
                 m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION1, .timeout = SFX_EXPLOSION6_TIMEOUT});
                 m_map.set(pos.x, pos.y, TILES_BLANK);
@@ -968,5 +971,13 @@ bool CGame::queueRespawn(const CActor &actor)
         LOGI("added spawn");
         return true;
     }
+    return false;
+}
+
+bool CGame::queueRespawn(const int i)
+{
+    const size_t index = static_cast<size_t>(i);
+    if (index < m_monsters.size())
+        return queueRespawn(m_monsters[i]);
     return false;
 }

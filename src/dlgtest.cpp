@@ -16,6 +16,7 @@
 #include "runtime/logger.h"
 #include "runtime/layerdata.h"
 #include "runtime/animator.h"
+#include "runtime/bossdata.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),
@@ -244,6 +245,12 @@ void CDlgTest::preloadAssets()
             file.close();
         } else {
             qDebug("failed to open: %s", path.toStdString().c_str());
+        }
+
+        LOGI("loading boss data");
+        if (loadBossData(":/data/bosses", ":/data/bosses/bosses/data"))
+        {
+            LOGE("failed to load boss data");
         }
     }
     m_animator->reloadTileData();

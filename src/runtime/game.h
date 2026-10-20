@@ -239,6 +239,7 @@ private:
     void setQuiet(bool state);
     void rebuildMonsterGrid();
     void updateMonsterGrid(const CActor &actor, const int index);
+    void manageTrigger(const int x, const int y, const uint8_t attr);
 
     CGame();
     int clearAttr(const uint8_t attr);
@@ -265,6 +266,7 @@ private:
     bool fuseBarrel(const Pos &pos);
     void blastRadius(const Pos &pos, const size_t radius, const int damage, std::set<int, std::greater<int>> &deletedMonsters);
     bool queueRespawn(const CActor &actor);
+    bool queueRespawn(const int actorIndex);
 
     // boss
     CActor *spawnBullet(int x, int y, JoyAim aim, uint8_t tile);

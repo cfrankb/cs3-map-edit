@@ -185,5 +185,8 @@ enum Tiles
     TILES_EGG_CRACKED         = 0x9f,
     TILES_FIREBALL_SM         = 0xa0,
     TILES_BELL                = 0xa1,
-    TILES_TOTAL_COUNT         = 0xa2,
+    TILES_BARRELW             = 0xa2,
+    TILES_BARRELW_DOWN        = 0xa3,
+    TILES_BARRELW_WATER       = 0xa4,
+    TILES_TOTAL_COUNT         = 0xa5,
 };

@@ -23,6 +23,7 @@
 #include "map.h"
 #include "shared/IFile.h"
 #include "states.h"
+#include "statedata.h"
 #include "logger.h"
 #include <cstdint>
 
@@ -533,8 +534,7 @@ bool CMap::shift(const Direction aim)
     case Direction::UP:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.y = (pos.y == 0) ? m_hei - 1 : pos.y - 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -542,8 +542,7 @@ bool CMap::shift(const Direction aim)
     case Direction::DOWN:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.y = (pos.y == m_hei - 1) ? 0 : pos.y + 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -551,8 +550,7 @@ bool CMap::shift(const Direction aim)
     case Direction::LEFT:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.x = (pos.x == 0) ? m_len - 1 : pos.x - 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -560,8 +558,7 @@ bool CMap::shift(const Direction aim)
     case Direction::RIGHT:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.x = (pos.x == m_len - 1) ? 0 : pos.x + 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -572,7 +569,42 @@ bool CMap::shift(const Direction aim)
     }
 
     m_attrs = std::move(newAttrs); // Update attributes
+
+    // Shift spawn/exit positions so they keep pointing at the same tile
+    // (toroidal wrap), matching how attributes are shifted above.
+    if (m_states->hasU(POS_ORIGIN))
+    {
+        Pos pos = shiftPos(toPos(m_states->getU(POS_ORIGIN)), aim);
+        m_states->setU(POS_ORIGIN, toKey(pos));
+    }
+    if (m_states->hasU(POS_EXIT))
+    {
+        Pos pos = shiftPos(toPos(m_states->getU(POS_EXIT)), aim);
+        m_states->setU(POS_EXIT, toKey(pos));
+    }
+
     return true;
+}
+
+Pos CMap::shiftPos(const Pos &p, const Direction aim) const
+{
+    Pos pos = p;
+    switch (aim)
+    {
+    case Direction::UP:
+        pos.y = (pos.y == 0) ? m_hei - 1 : pos.y - 1;
+        break;
+    case Direction::DOWN:
+        pos.y = (pos.y == m_hei - 1) ? 0 : pos.y + 1;
+        break;
+    case Direction::LEFT:
+        pos.x = (pos.x == 0) ? m_len - 1 : pos.x - 1;
+        break;
+    case Direction::RIGHT:
+        pos.x = (pos.x == m_len - 1) ? 0 : pos.x + 1;
+        break;
+    }
+    return pos;
 }
 
 uint16_t CMap::toKey(const uint8_t x, const uint8_t y)

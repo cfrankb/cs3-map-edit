@@ -19,6 +19,7 @@
 
 #include "gamesfx.h"
 #include "tilesdata.h"
+#include "layerdata.h"
 #include "logger.h"
 #include <cstdint>
 #include <unordered_map>
@@ -79,7 +80,6 @@ public:
     {
         NO_ANIMZ = 0xffff,
         MAX_TILES = 256,
-        MAX_LAYER_TILES = 1024,
     };
 
 private:
@@ -96,7 +96,7 @@ private:
 
     /// Maps tile IDs to current animation frame.
     uint16_t m_tileMainLayer[MAX_TILES];
-    uint16_t m_tileLayer[MAX_LAYER_TILES];
+    uint16_t m_tileLayer[TOTAL_TILE_COUNT];
     /// Global animation tick counter.
     std::vector<int32_t> m_seqIndex;
     uint16_t m_offset = 0;

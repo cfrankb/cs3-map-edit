@@ -117,6 +117,7 @@ public:
     }
 
     bool shift(const Direction aim);
+    Pos shiftPos(const Pos &p, const Direction aim) const;
     void debug();
     inline uint16_t &get(const int x, const int y)
     {

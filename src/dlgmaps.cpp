@@ -37,8 +37,33 @@
 #include <QMessageBox>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QInputDialog>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QLabel>
+#include <QFile>
+#include <QTextStream>
+#include <QStringConverter>
 
 const char *const DialogMaps::KEY_MUSIC_FOLDER = "music/musicFolder";
+
+namespace {
+
+// Quote a CSV field only when it contains a comma, double quote or newline,
+// doubling any embedded double quotes per RFC 4180.
+QString csvField(const QString &value)
+{
+    if (value.contains(QChar(',')) || value.contains(QChar('"'))
+        || value.contains(QChar('\n')) || value.contains(QChar('\r'))) {
+        QString escaped = value;
+        escaped.replace(QChar('"'), QLatin1String("\"\""));
+        return QLatin1Char('"') + escaped + QLatin1Char('"');
+    }
+    return value;
+}
+
+} // namespace
 
 DialogMaps::DialogMaps(CMapFile *mapFile, QWidget *parent)
     : QDialog(parent)
@@ -122,8 +147,11 @@ void DialogMaps::setupUI()
     QHBoxLayout *checkRow = new QHBoxLayout();
     QPushButton *checkBtn = new QPushButton(tr("Check Music Files"), this);
     QPushButton *resizeBtn = new QPushButton(tr("Resize to Screen"), this);
+    QPushButton *exportBtn = new QPushButton(tr("Export…"), this);
     checkRow->addWidget(checkBtn);
     checkRow->addWidget(resizeBtn);
+    // Export the table to CSV, text or JSON
+    checkRow->addWidget(exportBtn);
     checkRow->addStretch();
     topLayout->addLayout(checkRow);
 
@@ -148,6 +176,7 @@ void DialogMaps::setupUI()
     connect(browseBtn, &QPushButton::clicked, this, &DialogMaps::onMusicFolderBrowse);
     connect(checkBtn, &QPushButton::clicked, this, &DialogMaps::onCheckMusic);
     connect(resizeBtn, &QPushButton::clicked, this, &DialogMaps::onResizeToScreen);
+    connect(exportBtn, &QPushButton::clicked, this, &DialogMaps::onExport);
 
     setLayout(mainLayout);
 }
@@ -439,4 +468,181 @@ void DialogMaps::onAccept()
 void DialogMaps::onReject()
 {
     reject();
+}
+
+std::vector<DialogMaps::RowData> DialogMaps::collectRowData() const
+{
+    std::vector<RowData> rows;
+    const int rowCount = m_table->rowCount();
+    rows.reserve(static_cast<size_t>(rowCount));
+
+    for (int r = 0; r < rowCount; ++r)
+    {
+        RowData data;
+
+        QTableWidgetItem *name  = m_table->item(r, COL_NAME);
+        if (name)  data.name  = name->text();
+
+        QTableWidgetItem *author = m_table->item(r, COL_AUTHOR);
+        if (author) data.author = author->text();
+
+        QTableWidgetItem *year = m_table->item(r, COL_YEAR);
+        if (year) data.year = year->text().trimmed().toInt();
+
+        QTableWidgetItem *music = m_table->item(r, COL_MUSIC);
+        if (music) data.music = music->text();
+
+        QTableWidgetItem *notes = m_table->item(r, COL_NOTES);
+        if (notes) data.notes = notes->text();
+
+        QCheckBox *privBox = qobject_cast<QCheckBox *>(m_table->cellWidget(r, COL_PRIVATE));
+        if (privBox) data.isPrivate = privBox->isChecked();
+
+        QWidget *uuidCell = m_table->cellWidget(r, COL_UUID);
+        if (uuidCell) {
+            QHBoxLayout *uuidLayout = qobject_cast<QHBoxLayout *>(uuidCell->layout());
+            if (uuidLayout && uuidLayout->count() > 0) {
+                QLabel *uuidLabel = qobject_cast<QLabel *>(uuidLayout->itemAt(0)->widget());
+                if (uuidLabel) data.uuid = uuidLabel->text();
+            }
+        }
+
+        rows.push_back(data);
+    }
+
+    return rows;
+}
+
+void DialogMaps::onExport()
+{
+    const QString title = tr("Export Map List");
+    const QString filter = tr(
+        "CSV files (*.csv);;Text files (*.txt);;JSON files (*.json)");
+    QString selectedFilter;
+
+    QString path = QFileDialog::getSaveFileName(
+        this, title, QString(), filter, &selectedFilter);
+    if (path.isEmpty())
+        return;
+
+    const std::vector<RowData> rows = collectRowData();
+
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    QString content;
+    if (suffix == "csv")
+        content = buildCsv(rows);
+    else if (suffix == "txt")
+        content = buildText(rows);
+    else if (suffix == "json")
+        content = buildJson(rows);
+    else if (selectedFilter.contains(".csv")) {
+        path += ".csv";
+        content = buildCsv(rows);
+    } else if (selectedFilter.contains(".txt")) {
+        path += ".txt";
+        content = buildText(rows);
+    } else {
+        path += ".json";
+        content = buildJson(rows);
+    }
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(
+            this, title,
+            tr("Could not open the file for writing:\n%1").arg(path));
+        return;
+    }
+
+    QTextStream stream(&file);
+    stream.setEncoding(QStringConverter::Utf8);
+    stream << content;
+    stream.flush();
+
+    QMessageBox::information(
+        this, title,
+        tr("Exported %1 map(s) to:\n%2").arg(static_cast<int>(rows.size())).arg(path));
+}
+
+QString DialogMaps::buildCsv(const std::vector<RowData> &rows) const
+{
+    const QStringList header = {
+        tr("#"),
+        tr("Map Name"), tr("Author"), tr("Year"),
+        tr("Music"), tr("Notes"), tr("Private"), tr("UUID"),
+    };
+
+    QStringList lines;
+    lines.reserve(static_cast<int>(rows.size()) + 1);
+
+    QStringList headerLine;
+    headerLine.reserve(header.size());
+    for (const QString &col : header)
+        headerLine << csvField(col);
+    lines << headerLine.join(QLatin1Char(','));
+
+    int level = 0;
+    for (const RowData &row : rows) {
+        QStringList rowLine = {
+            QString("%1").arg(++level),
+            csvField(row.name),
+            csvField(row.author),
+            csvField(QString::number(row.year)),
+            csvField(row.music),
+            csvField(row.notes),
+            csvField(row.isPrivate ? tr("true") : tr("false")),
+            csvField(row.uuid),
+        };
+        lines << rowLine.join(QLatin1Char(','));
+    }
+
+    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+}
+
+QString DialogMaps::buildText(const std::vector<RowData> &rows) const
+{
+    QStringList out;
+    out.reserve(static_cast<int>(rows.size()) * 8 + 4);
+
+    out << QStringLiteral("Map List Export");
+    out << QString("Total maps: %1").arg(static_cast<int>(rows.size()));
+    out << QStringLiteral("");
+
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+        const RowData &row = rows[static_cast<size_t>(i)];
+        const QString name = row.name.isEmpty() ? QStringLiteral("(unnamed)") : row.name;
+
+        out << QString("[%1] %2").arg(i + 1).arg(name);
+        out << QString("    Author: %1").arg(row.author);
+        out << QString("    Year:   %1").arg(row.year);
+        out << QString("    Music:  %1").arg(row.music);
+        out << QString("    Notes:  %1").arg(row.notes);
+        out << QString("    Private: %1").arg(row.isPrivate ? tr("yes") : tr("no"));
+        out << QString("    UUID:   %1").arg(row.uuid);
+        out << QStringLiteral("");
+    }
+
+    return out.join(QStringLiteral("\n")) + QStringLiteral("\n");
+}
+
+QString DialogMaps::buildJson(const std::vector<RowData> &rows) const
+{
+    QJsonArray array;
+
+    int level = 0;
+    for (const RowData &row : rows) {
+        QJsonObject obj;
+        obj["level"] = ++level;
+        obj["name"] = row.name;
+        obj["author"] = row.author;
+        obj["year"] = static_cast<double>(row.year);
+        obj["music"] = row.music;
+        obj["notes"] = row.notes;
+        obj["private"] = row.isPrivate;
+        obj["uuid"] = row.uuid;
+        array.append(obj);
+    }
+
+    QJsonDocument doc(array);
+    return QString::fromUtf8(doc.toJson(QJsonDocument::Indented));
 }

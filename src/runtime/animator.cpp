@@ -75,6 +75,7 @@ constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
+    // sanity check
     if (_U(MAX_SFX) > _U(MAX_TILES))
         LOGE("SFX_XXXX bleed out of the tile array");
     if (_U(TILES_TOTAL_COUNT) > _U(MIN_SFX))
@@ -96,7 +97,7 @@ void CAnimator::reloadTileData()
 {
     memset(m_tileMainLayer, NO_ANIMZ, sizeof(m_tileMainLayer));
     memset(m_tileLayer, '\0', sizeof(m_tileLayer));
-    for (size_t i = 0; i < (size_t)MAX_LAYER_TILES; ++i)
+    for (size_t i = 0; i < (size_t)TOTAL_TILE_COUNT; ++i)
     {
         const auto &data = g_layerdata[i];
         // if animated (save current index)
@@ -111,6 +112,7 @@ CAnimator::~CAnimator()
 
 void CAnimator::animate()
 {
+    // main layer tiles
     int i = 0;
     for (const auto &seq : g_animzSeq)
     {
@@ -121,11 +123,12 @@ void CAnimator::animate()
     }
     ++m_offset;
 
+    // additional layer tiles
     for (auto &tileID : m_tileLayer)
     {
         if (!tileID)
             continue;
-        if (tileID >= MAX_LAYER_TILES)
+        if (tileID >= TOTAL_TILE_COUNT)
         {
             LOGW("out of bound layer tile: %u", tileID);
             break;
@@ -135,6 +138,7 @@ void CAnimator::animate()
             tileID = data.nextTile;
     }
 
+    // automators
     CGame *game = CGame::getGame();
     for (auto &a : game->automators())
     {

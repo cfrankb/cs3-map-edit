@@ -95,5 +95,6 @@ enum TileType:uint8_t
     TYPE_MONSTERV3            = 0x14,
     TYPE_BELL                 = 0x15,
     TYPE_SWITCH               = 0x16,
+    TYPE_PUSHOVER             = 0x17,
 };
 

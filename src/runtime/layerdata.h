@@ -47,9 +47,9 @@ enum LayerTileType
 enum
 {
     LAYER_TILE_COUNT = 256,
-    TOTAL_TILE_COUNT = 1024,
     DUMMY_NEXT_TILE = 0xffff,
-    LAYER_COUNT = 3
+    LAYER_COUNT = 3,
+    TOTAL_TILE_COUNT = LAYER_TILE_COUNT * LAYER_COUNT
 };
 extern layerdata_t g_layerdata[TOTAL_TILE_COUNT];
 

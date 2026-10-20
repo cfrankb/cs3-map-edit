@@ -346,7 +346,13 @@ constexpr const TileDef tileDefs[] = {
     // a0 TILES_FIREBALL_SM
     {.flags=0x00, .type=TYPE_FIREBALL, .score=0, .health=-10, .speed=4, .ai=0, .hidden=false, .basename="fireball_sm.png", .bullet=0, .rate=0, .path=0, .range=0},
     // a1 TILES_BELL
-    {.flags=0x00, .type=TYPE_BELL, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="bell.png", .bullet=0, .rate=0, .path=0, .range=0}
+    {.flags=0x00, .type=TYPE_BELL, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="bell.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // a2 TILES_BARRELW
+    {.flags=0x00, .type=TYPE_PUSHOVER, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="barrelw.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // a3 TILES_BARRELW_DOWN
+    {.flags=0x00, .type=TYPE_WALLS, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="barrelw.png", .bullet=0, .rate=0, .path=0, .range=0},
+    // a4 TILES_BARRELW_WATER
+    {.flags=0x00, .type=TYPE_SWAMP, .score=0, .health=0, .speed=0, .ai=0, .hidden=false, .basename="barrelw.png", .bullet=0, .rate=0, .path=0, .range=0}
 };
 
 const uint8_t chMap[] = {

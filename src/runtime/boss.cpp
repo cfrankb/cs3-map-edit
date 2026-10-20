@@ -620,6 +620,8 @@ void CBoss::setSolidOperator()
         m_solidCheck = &CBoss::isGhostBlocked;
     else if (m_bossData->type == BOSS_HARPY)
         m_solidCheck = &CBoss::isSolid;
+    else if (m_bossData->type == BOSS_BEHOLDER)
+        m_solidCheck = &CBoss::isSolid;
     else
     {
         LOGW("No custom solidOperator for this boss");

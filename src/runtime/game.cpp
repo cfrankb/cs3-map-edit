@@ -171,18 +171,21 @@ bool CGame::fuseBarrel(const Pos &pos)
  */
 bool CGame::move(const JoyAim aim)
 {
-    const uint8_t tileID = m_player.tileAt(aim);
-    const TileDef &def = getTileDef(tileID);
     if (m_player.canMove(aim))
     {
         m_player.move(aim);
         consume();
         return true;
     }
-    else if (isPushable(def.type))
+
+    const Pos pos = CGame::translate(m_player.pos(), aim);
+    if (pos == m_player.pos())
+        return false;
+    const uint8_t tileID = m_player.tileAt(aim);
+    const TileDef &def = getTileDef(tileID);
+    if (isPushable(def.type))
     {
-        Pos pushPos = translate(m_player.pos(), aim);
-        if (pushChain(pushPos.x, pushPos.y, aim))
+        if (pushChain(pos.x, pos.y, aim))
         {
             m_player.move(aim);
             return true;
@@ -190,48 +193,33 @@ bool CGame::move(const JoyAim aim)
     }
     else if (def.type == TYPE_BARREL)
     {
-        const Pos pos = CGame::translate(m_player.pos(), aim);
         fuseBarrel(pos);
     }
     else if (def.type == TYPE_BELL)
     {
         if (!m_gameStats->get(S_TIME_FREEZE_TIMER))
         {
-            m_gameStats->set(S_TIME_FREEZE_TIMER, TIME_FREEZE_DELAY);
+            const uint8_t attr = m_map.getAttr(pos.x, pos.y);
+            const uint16_t lenght = (1 + (attr & 0xf)) * TIME_FREEZE_DELAY;
+            m_gameStats->set(S_TIME_FREEZE_TIMER, lenght);
             LOGI("Bong");
         }
     }
     else if (def.type == TYPE_SWITCH)
     {
-        const Pos pos = translate(m_player.pos(), aim);
         const uint8_t attr = m_map.getAttr(pos.x, pos.y);
         m_map.setAttr(pos.x, pos.y, 0);
         const uint16_t tileID = m_map.get(pos.x, pos.y);
         m_map.set(pos.x, pos.y, tileID + 1);
-        if (RANGE(attr, PASSAGE_ATTR_MIN, PASSAGE_ATTR_MAX))
-        {
-            if (clearAttr(attr))
-            {
-                playSound(SOUND_0009);
-                if (RANGE(attr, SECRET_ATTR_MIN, SECRET_ATTR_MAX))
-                    m_events.emplace_back(EVENT_SECRET);
-                else
-                    m_events.emplace_back(EVENT_PASSAGE);
-            }
-        }
-        else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
-        {
-            if (clearAttr(attr))
-            {
-                playSound(SOUND_0009);
-            }
-            // activate automators
-            for (auto &a : automators())
-            {
-                if (a.attr == attr)
-                    a.active = true;
-            }
-        }
+        manageTrigger(pos.x, pos.y, attr);
+    }
+    else if (def.type == TYPE_PUSHOVER &&
+             aim == JoyAim::AIM_DOWN)
+    {
+        m_map.set(pos.x, pos.y, tileID + 1);
+        const Pos pu = translate(pos, aim);
+        if (m_map.at(pu.x, pu.y) == TILES_BLANK)
+            m_map.set(pu.x, pu.y, tileID + 2);
     }
     return false;
 }
@@ -346,9 +334,15 @@ void CGame::consume()
     }
 
     // trigger key
-    int x = m_player.x();
-    int y = m_player.y();
-    uint8_t attr = m_map.getAttr(x, y);
+    const int x = m_player.x();
+    const int y = m_player.y();
+    const uint8_t attr = m_map.getAttr(x, y);
+    m_map.setAttr(x, y, 0);
+    manageTrigger(x, y, attr);
+}
+
+void CGame::manageTrigger(const int x, const int y, const uint8_t attr)
+{
     m_map.setAttr(x, y, 0);
     if (attr == ATTR_FREEZE_TRAP)
     {

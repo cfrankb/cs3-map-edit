@@ -29,6 +29,9 @@ Any consumable , when assigned an attribute (attributes `01-1F` and `40-4F` -- s
 | scrolls | messages (lore) |
 | treasures | gold / points |
 | stop | deny monster access |
+| bell | stops time |
+| potion / heart | restore health|
+| switch / lever | open secret passage|
 
 ### Level Enter / Exit
 
