@@ -95,13 +95,24 @@ jobs:
           # Display structured output for confirmation
           find dist -type f | sort
 
+      - name: Package distribution archive
+        shell: pwsh
+        run: |
+          # Zip the content of dist/ (no dist/ prefix inside the archive).
+          # pwsh (PS7) is used because `zip` is not guaranteed on Windows runners
+          # and PS7 stores entry names with forward slashes.
+          $zip = Join-Path $env:SOURCE_DIR "build/$env:ARTIFACT.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "$env:SOURCE_DIR/build/dist/*" -DestinationPath $zip
+          Get-ChildItem $zip | Select-Object Name, Length
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             LICENSE
-            build/dist/**
+            ${{ env.SOURCE_DIR }}/build/${{ env.ARTIFACT }}.zip
 
       - name: Save build artifact
         uses: actions/upload-artifact@v5
