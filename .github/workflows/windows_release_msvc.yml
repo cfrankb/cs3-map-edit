@@ -116,9 +116,13 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          # action-gh-release@v1 globs with node-glob, which treats "\" as an
+          # escape character -- absolute Windows paths (SOURCE_DIR) never match.
+          # Use workspace-relative paths (the action runs in the workspace).
           files: |
             LICENSE
-            ${{ env.SOURCE_DIR }}/build/${{ env.ARTIFACT }}.zip
+            build/${{ env.ARTIFACT }}.zip
+          fail_on_unmatched_files: true
 
       - name: Save build artifact
         uses: actions/upload-artifact@v5
