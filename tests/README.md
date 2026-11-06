@@ -7,6 +7,15 @@ methodology this folder implements.
 ## Running
 
 ```bash
+scripts/run_tests.sh          # configure (first run), build, run everything
+scripts/run_tests.sh ci       # the CI subset only
+```
+
+The script sets `QT_QPA_PLATFORM=offscreen`, looks for a hunspell dictionary
+(`CS3_SPELL_AFF`/`CS3_SPELL_DIC` win if already set) and passes any extra
+argument on to `ctest`. The manual steps it wraps:
+
+```bash
 cmake -S . -B build                       # tests are configured by default
 cmake --build build
 ctest --test-dir build --output-on-failure          # everything

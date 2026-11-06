@@ -99,12 +99,18 @@ jobs:
         shell: pwsh
         run: |
           # Zip the content of dist/ (no dist/ prefix inside the archive).
-          # pwsh (PS7) is used because `zip` is not guaranteed on Windows runners
-          # and PS7 stores entry names with forward slashes.
+          # 7z is preinstalled on Windows runners, stores entry names with
+          # forward slashes, and signals failures via its exit code
+          # (Compress-Archive could leave a missing/partial zip unnoticed).
+          $dist = Join-Path $env:SOURCE_DIR "build/dist"
           $zip = Join-Path $env:SOURCE_DIR "build/$env:ARTIFACT.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path "$env:SOURCE_DIR/build/dist/*" -DestinationPath $zip
-          Get-ChildItem $zip | Select-Object Name, Length
+          7z a -tzip "$zip" "$dist\*"
+          if ($LASTEXITCODE -ne 0) { throw "7z failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path $zip)) { throw "Archive not created: $zip" }
+          $item = Get-Item $zip
+          if ($item.Length -eq 0) { throw "Archive is empty: $zip" }
+          "{0}  {1:N0} bytes" -f $item.Name, $item.Length
 
       - name: Release
         uses: softprops/action-gh-release@v1
