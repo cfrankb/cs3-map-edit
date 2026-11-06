@@ -55,7 +55,7 @@ jobs:
           sudo apt install -y libhunspell-dev
 
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
