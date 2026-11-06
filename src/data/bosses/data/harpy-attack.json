@@ -1,0 +1,31 @@
+{
+    "frame": {
+        "cols": 8,
+        "height": 64,
+        "width": 48
+    },
+    "hitboxes": [
+        {
+            "h": 24,
+            "type": 2,
+            "w": 24,
+            "x": 144,
+            "y": 40
+        },
+        {
+            "h": 24,
+            "type": 2,
+            "w": 24,
+            "x": 96,
+            "y": 40
+        },
+        {
+            "h": 32,
+            "type": 2,
+            "w": 24,
+            "x": 192,
+            "y": 32
+        }
+    ],
+    "imagePath": "/home/cfrankb/toolkit/gcc/cs3-runtime-sdl/tools/sheet/data/harpy/harpy-attack.png"
+}

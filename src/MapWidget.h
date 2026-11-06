@@ -1,0 +1,179 @@
+#pragma once
+// Include the map runtime before Qt headers: CMap is defined in map.h and is
+// probed by SFINAE inside some Qt headers. Defining CMap before those Qt
+// includes avoids GCC's -Wsfinae-incomplete (CMap seen incomplete in SFINAE).
+#include "runtime/map.h"
+#include <QWidget>
+#include <QPixmap>
+#include <QCache>
+#include <QTimer>
+#include <QUndoCommand>
+#include <vector>
+#include "runtime/shared/Frame.h"
+#include "stamp.h"
+
+class QPainter;
+class QMouseEvent;
+class QKeyEvent;
+class MainWindow;
+class CMapFile;
+class PaintCommand;
+
+// Tool selection
+enum class ToolType
+{
+    None,
+    Stamp,     // Place single or multi-tile stamp
+    Picker,    // Pick tile under cursor
+    Selection, // Rectangular selection (with move/copy later)
+    Eraser,
+    Dice,
+    FloodFill
+};
+
+class MapWidget : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit MapWidget(QWidget *parent = nullptr, CMapFile *doc=nullptr);
+    ~MapWidget() override;
+
+    // Set the current map (owned externally)
+    void setMap(CMap *map);
+    CMap *map() const { return m_map; }
+
+    void setTool(ToolType tool);
+    ToolType currentTool() const { return m_tool; }
+
+    // Zoom control
+    void setZoom(int factor); // 1 = 100%, 2 = 200%, etc.
+    int zoom() const { return m_zoom; }
+
+    // Grid visibility
+    void setGridVisible(bool visible);
+    bool isGridVisible() const { return m_showGrid; }
+
+    // Selection
+    QRect currentSelection() const { return m_selection; }
+    void clearSelection();
+    void fillSelection(uint16_t tileId = UINT8_MAX); // UINT8_MAX = use current brush
+    void preloadAssets();
+    void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
+    static QString toolName(ToolType toolID);
+
+    // Font diagnostics: returns true if the font resolved correctly on this platform
+    static bool isValidFont(const QString &family, QFont::StyleHint hint);
+
+signals:
+    void tilePicked(uint16_t tileId);
+    void selectionChanged(const QRect &rect); // in tile coordinates
+    void mapModified();                       // emitted after commit
+    void copyRequested(const QRect &tileRect);
+    void pasteRequested(const QPoint &atTilePos);
+    void tilePropertiesRequested(int tileX, int tileY);
+    void statusChanged(const QString &);
+
+public slots:
+    // Current tile(s) to paint with (for Stamp tool)
+    void setCurrentTile(uint16_t tileId);
+    void setCurrentTiles(const std::vector<uint16_t> &tileIds, int cols); // for multi-tile stamps
+    void setCurrentStamp(const Stamp &stamp);
+    void changeActiveLayer(int layerID);
+    void updateLayerVisibility(int layerID, bool visibility);
+    void resetLayerVisibilityList();
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void leaveEvent(QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
+
+private:
+
+    bool fetchTileSet(const QString & path, CFrameSet &frameSetLayers);
+    void startToolCmd(const ToolType tool);
+    void commitToolCmd();
+    static bool isCombinedTool(const ToolType);
+
+    // Convert between screen and map coordinates
+    QPoint screenToTile(const QPoint &pos) const;
+    QRect screenToTileRect(const QRect &rect) const;
+    QPoint tileToScreen(const QPoint &tile) const;
+
+    // Rendering helpers
+    void drawMap(QPainter &painter);
+    void drawGrid(QPainter &painter);
+    void drawShadowTile(QPainter &painter, const Stamp &stamp);
+    void drawSelectionRect(QPainter &painter);
+    void createContextMenu(QMenu *menu, const QPoint &point);
+    void createSelectionMenu(QMenu *menu, const QPoint &point);
+    QColor attr2color(const uint8_t attr);
+    QColor rgbaToQColor(const uint32_t rgba);
+
+    // Tile pixmap cache: tileId → QPixmap (scaled)
+    QPixmap getCachedPixmap(uint16_t tileId, uint16_t baseId);
+
+    // Commit current shadow stamp
+    void commitStampAt(const QPoint &tilePos, const Stamp &stamp);
+    void updateCursor();
+    uint16_t randomTile(const std::vector<uint16_t> &tiles);
+
+    // Layers
+    enum {
+        MAIN_LAYER_ID = 0,
+        MAX_FRAME_SETS = 5,
+    };
+    int m_activeLayer = MAIN_LAYER_ID;
+    QList<bool> m_layerVisibilityList;
+    inline bool validateBaseIDForCurrentLayer(const uint16_t & baseID) {
+        CLayer *layer = getActiveLayer();
+        if (!layer)
+            return false;
+        return layer->baseID() == baseID;
+    }
+    inline CLayer * getActiveLayer() {
+        return m_map->getLayer(m_activeLayer);
+    }
+
+    CMap *m_map = nullptr;
+    ToolType m_tool = ToolType::None;
+    uint16_t m_currentTile = 0;
+    Stamp m_currentStamp{{0}, 1, 1, Stamp::MainTilesetBaseID};
+
+    int m_zoom = 2; // 2x by default (32x32 visible tiles)
+    bool m_showGrid = false;
+
+    // Shadow preview (where mouse is)
+    QPoint m_shadowTilePos{-1, -1};
+
+    // Selection
+    QRect m_selection; // in tile coords
+    QPoint m_selectionStart{-1, -1};
+    bool m_selecting = false;
+
+    // Mouse state
+    bool m_leftPressed = false;
+
+    QTimer m_flashTimer;
+    bool m_flashState = false; // true = visible, false = hidden
+    uint8_t m_attr = 0;
+    int m_hx = 0;
+    int m_hy = 0;
+
+    // Tile rendering cache
+    struct FrameSetLookup {
+        uint16_t baseID;
+        std::vector<CFrame *> frames;
+    };
+    FrameSetLookup m_frameSetLookup[MAX_FRAME_SETS];
+    size_t m_frameSetCount = 0;
+    QCache<uint16_t, QPixmap> m_pixmapCache; // key: tileId + zoom*1000
+
+    MainWindow *m_mainWindow = nullptr;
+    CMapFile   *m_doc;
+    PaintCommand* m_currentCommand = nullptr;
+};

@@ -557,11 +557,6 @@ void CFrameSet::clear()
     m_tags.clear();
 }
 
-size_t CFrameSet::getSize()
-{
-    return m_frames.size();
-}
-
 int CFrameSet::operator++()
 {
     this->add(new CFrame);
@@ -735,7 +730,6 @@ bool CFrameSet::importIMA(IFile &file, const long org)
         m_lastError = "this is not a valid .ima file";
         return false;
     }
-    // LOGI("datasize: %d ima len:%d hei:%d", dataSize, imaHead.len, imaHead.hei);
     std::vector<char> pIMA(dataSize);
     if (file.read(pIMA.data(), dataSize) != IFILE_OK)
     {
@@ -1392,7 +1386,12 @@ void CFrameSet::setCurrFrame(int curr)
     m_currFrame = curr;
 }
 
-const std::vector<CFrame *> &CFrameSet::frames()
+std::vector<CFrame *> &CFrameSet::frames()
+{
+    return m_frames;
+}
+
+const std::vector<CFrame *> &CFrameSet::framesConst()
 {
     return m_frames;
 }

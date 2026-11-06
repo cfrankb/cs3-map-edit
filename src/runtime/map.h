@@ -25,6 +25,9 @@
 #include "dirs.h"
 #include "layer.h"
 
+#ifndef ___POS_T
+#define ___POS_T
+
 typedef std::unordered_map<uint16_t, uint8_t> attrMap_t;
 struct Pos
 {
@@ -56,6 +59,7 @@ struct Pos
         return true;
     }
 };
+#endif
 
 class IFile;
 class CStates;
@@ -64,7 +68,7 @@ class CLayer;
 class CMap
 {
 public:
-    CMap(uint16_t len = 0, uint16_t hei = 0, uint8_t t = 0);
+    CMap(uint16_t len = 0, uint16_t hei = 0, uint16_t t = 0);
     CMap(const CMap &map);
     ~CMap();
     bool read(const char *fname);
@@ -74,21 +78,33 @@ public:
     bool write(FILE *tfile) const;
     bool write(IFile &tfile) const;
     void clear();
-    inline int len() const { return m_len; };
-    inline int hei() const { return m_hei; };
-    bool resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast);
-    const Pos findFirst(const uint8_t tileId) const;
-    size_t count(const uint8_t tileId) const;
-    void fill(uint8_t ch = 0);
-    uint8_t getAttr(const uint8_t x, const uint8_t y) const;
+    inline int width() const { return m_len; };
+    inline int height() const { return m_hei; };
+    bool resize(uint16_t in_len, uint16_t in_hei, uint16_t t, bool fast);
+    const Pos findFirst(const uint16_t tileId) const;
+    size_t count(const uint16_t tileId) const;
+    void fill(uint16_t ch = 0);
+    inline uint8_t getAttr(const uint8_t x, const uint8_t y) const
+    {
+        const uint16_t key = toKey(x, y);
+        const auto &it = m_attrs.find(key);
+        if (it != m_attrs.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            return 0;
+        }
+    }
     void setAttr(const uint8_t x, const uint8_t y, const uint8_t a);
     size_t size() const;
     const char *lastError();
     CMap &operator=(const CMap &map);
     bool fromMemory(uint8_t *mem);
     const char *title();
-    void setTitle(const char *title);
-    void replaceTile(const uint8_t, const uint8_t);
+    void setTitle(const std::string_view &title);
+    void replaceTile(const uint16_t, const uint16_t);
     const attrMap_t &attrs() { return m_attrs; }
     CStates &states();
     inline const CStates &statesConst() const { return *m_states; };
@@ -100,39 +116,80 @@ public:
         return x >= 0 && x < m_len && y >= 0 && y < m_hei;
     }
 
-    void shift(Direction aim);
+    bool shift(const Direction aim);
+    Pos shiftPos(const Pos &p, const Direction aim) const;
     void debug();
-    inline uint8_t &get(const int x, const int y)
+    inline uint16_t &get(const int x, const int y)
     {
-        return m_mainLayer.get(x, y);
+        return getMainLayer()->get(x, y);
     }
 
-    inline uint8_t at(const int x, const int y) const
+    inline uint16_t at(const int x, const int y) const
     {
-        return m_mainLayer.at(x, y);
+        return getMainLayer()->at(x, y);
     }
 
-    inline void set(const int x, const int y, const uint8_t t)
+    inline void set(const int x, const int y, const uint16_t t)
     {
         get(x, y) = t;
     }
+
+    inline std::vector<std::unique_ptr<CLayer>> &layers()
+    {
+        return m_layers;
+    }
+
+    inline const std::vector<std::unique_ptr<CLayer>> &layersConst() const
+    {
+        return m_layers;
+    }
+
+    inline CLayer *getMainLayer() const
+    {
+        return m_layers[0].get();
+    }
+
+    inline size_t layerCount() const
+    {
+        return m_layers.size();
+    }
+
+    CLayer *addLayer(const CLayer::LayerType lt, const std::string_view &name, uint16_t baseID);
+    inline CLayer *getLayer(const size_t index) const
+    {
+        if (index < m_layers.size())
+            return m_layers[index].get();
+        else
+            return nullptr;
+    }
+    std::unique_ptr<CLayer> popLayer();
+    void pushLayer(std::unique_ptr<CLayer> &layer);
 
     enum : int16_t
     {
         NOT_FOUND = -1,
     };
 
+    enum MapVersion : uint16_t
+    {
+        VERSION0 = 0,
+        VERSION1 = 1,
+        VERSION2 = 2,
+        VERSION3 = 3,
+    };
+
 private:
+    void addMainLayer();
     template <typename WriteFunc>
     bool writeCommon(WriteFunc writefile) const;
     template <typename ReadFunc>
-    bool readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates);
+    bool readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates);
 
     uint16_t m_len;
     uint16_t m_hei;
-    CLayer m_mainLayer;
     attrMap_t m_attrs;
     std::string m_lastError;
     std::string m_title;
     std::unique_ptr<CStates> m_states;
+    std::vector<std::unique_ptr<CLayer>> m_layers;
 };

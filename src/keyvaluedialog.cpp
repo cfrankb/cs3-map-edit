@@ -199,7 +199,6 @@ StateType KeyValueDialog::getOptionType(uint16_t value)
     }
 }
 
-
 uint16_t KeyValueDialog::parseStringToUint16(const std::string &s, bool &isValid)
 {
     uint16_t v = 0;
@@ -208,8 +207,9 @@ uint16_t KeyValueDialog::parseStringToUint16(const std::string &s, bool &isValid
     if (s.substr(0, 2) == "0x" ||
         s.substr(0, 2) == "0X")
     {
-        if (s.size() > 2) {
-            const std::string t= s.substr(2);
+        if (s.size() > 2)
+        {
+            const std::string t = s.substr(2);
             v = std::stoul(t, &size, 16);
             isValid = size == t.size();
         }

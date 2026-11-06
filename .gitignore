@@ -75,3 +75,6 @@ backup/
 build-mapedit*/
 src/build/*
 build/
+.qtcreator/*
+.aider-desk/*
+.aider*

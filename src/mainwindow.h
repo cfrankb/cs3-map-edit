@@ -3,11 +3,16 @@
 
 #include <QMainWindow>
 #include "mapfile.h"
-#include "qactiongroup.h"
 
 class CMapScroll;
 class QComboBox;
 class QLabel;
+class MapView;
+class QUndoStack;
+class QListWidget;
+class QPushButton;
+class QScrollArea;
+class QTabWidget;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,37 +25,29 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    QUndoStack* activeStack() { return m_doc.undoGroup()->activeStack(); }
 
 signals:
     void resizeMap(int, int);   // notify of a map resize
     void mapChanged(CMap *);    // notify of a map change
     void newTile(int);          // select a diffent tile in the tilebox
-    void setHighlight(uint8_t); // set attr to highlight
-    void setHighlightXY(uint8_t, uint8_t); // set x,y for highlight
+    void refreshMap();          // notify the mapview to refreshMap
+    void propertiesChanged();   // notify that map property was changed
 
 private slots:
+    void updateDocHistoryList();
+    void updateMapHistoryList();
     void loadFile(const QString & filename);
     void setStatus(const QString str);
-    void showAttrDialog();
-    void on_setStartPos();
-    void on_setExitPos();
-    void on_deleteTile();
     void on_actionFile_New_File_triggered();
     void on_actionFile_Open_triggered();
     void on_actionFile_Save_triggered();
     void on_actionFile_Save_as_triggered();
     void on_actionEdit_ResizeMap_triggered();
-    void showContextMenu(const QPoint&pos);
-    void changeTile(int tile);
-    void onLeftClick(int x, int y);
-    void openRecentFile();
-    void shiftUp();
-    void shiftDown();
-    void shiftLeft();
-    void shiftRight();
     void on_actionClear_Map_triggered();
     void on_actionHelp_About_triggered();
     void on_actionHelp_About_Qt_triggered();
+    void on_actionSpell_SpellSettings_triggered();
     void on_actionEdit_Previous_Map_triggered();
     void on_actionEdit_Next_Map_triggered();
     void on_actionEdit_Add_Map_triggered();
@@ -64,18 +61,24 @@ private slots:
     void on_actionEdit_Rename_Map_triggered();
     void on_actionEdit_Last_Map_triggered();
     void on_actionEdit_First_Map_triggered();
-    void showStatDialog();
     void on_actionFile_Generate_Report_triggered();
+    void on_actionFile_View_Report_triggered();
     void on_actionEdit_Map_States_triggered();
-    void on_highlight();
-    void on_highlightXY();
-    void updateStatus();
     void on_actionExport_Screenshots_triggered();
     void on_actionEdit_Edit_Messages_triggered();
     void on_actionEdit_Map_Properties_triggered();
+    void on_actionEdit_List_Maps_triggered();
+    void on_actionEdit_Undo_triggered();
+    void on_actionEdit_Redo_triggered();
+    void updateStatus();
+    void openRecentFile();
+    void shiftUp();
+    void shiftDown();
+    void shiftLeft();
+    void shiftRight();    
 
 private:
-    virtual void closeEvent(QCloseEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
     bool maybeSave();
     void setDocument(const QString);
     void warningMessage(const QString message);
@@ -90,29 +93,44 @@ private:
     void initFileMenu();
     void initTilebox();
     void initMapShortcuts();
-    void initToolBar();
+
+    void initToolBars();
+    void initToolBarDocument();
+    void initToolBarTools();
+    void initUndoRedo();
+
+    void initSelectorWidget();
+    void initLayerBox();
+    void initHistoryWidget();
+    void updateWindowTitle();
+    void setDirty(bool dirty);
     int currentTool();
+    void updateZoom();
+    QScrollArea *addTileSetTab(QTabWidget *tabWidget, const QString &path, uint16_t tilesetID);
 
     enum {
         MAX_RECENT_FILES = 12,
-        GRID_SIZE = 32,
-        TOOL_SELECT = 0,
-        TOOL_PAINT=1,
-        TOOL_ERASE=2
+        TILE_SIZE = 16,
     };
 
     QString m_appName = tr("mapedit");
     QString m_allFilter = tr("All Supported Maps (*.dat *.cs3 *.map *.mapz)");
     Ui::MainWindow *ui;
-    CMapScroll *m_scrollArea;
+    MapView *m_mapView;
     QComboBox *m_cbSkill;
-    CMapFile m_doc;
+    CMapFile m_doc = CMapFile(this);
     int m_hx = -1;
     int m_hy = -1;
     QActionGroup *m_toolGroup;
-    uint8_t m_currTile = 0;
     QAction *m_recentFileActs[MAX_RECENT_FILES];
     QLabel *m_label;
     QLabel *m_label0;
+
+    QListWidget* m_docHistoryList;
+    QListWidget* m_mapHistoryList;
+    QPushButton* m_docUndoButton;
+    QPushButton* m_docRedoButton;
+    QPushButton* m_mapUndoButton;
+    QPushButton* m_mapRedoButton;
 };
 #endif // MAINWINDOW_H

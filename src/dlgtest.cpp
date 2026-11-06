@@ -14,6 +14,9 @@
 #include "runtime/shared/qtgui/qfilewrap.h"
 #include "runtime/skills.h"
 #include "runtime/logger.h"
+#include "runtime/layerdata.h"
+#include "runtime/animator.h"
+#include "runtime/bossdata.h"
 
 CDlgTest::CDlgTest(QWidget *parent) :
     QDialog(parent),
@@ -115,6 +118,7 @@ void CDlgTest::paintEvent(QPaintEvent *)
     case CGame::MODE_SKLLSELECT:
     case CGame::MODE_NEW_INPUTNAME:
     case CGame::MODE_TEST:
+    case CGame::MODE_SPLASH:
         break;
     }
 
@@ -167,12 +171,10 @@ void CDlgTest::preloadAssets()
 {
     QFileWrap file;
 
-
     typedef struct {
         const char *filename;
         std::unique_ptr<CFrameSet> *frameset;
     } asset_t;
-
 
     asset_t assets[] = {
         {":/data/tiles.obl", &m_tiles},
@@ -180,7 +182,7 @@ void CDlgTest::preloadAssets()
         {":/data/annie.obl", &m_users},
         {":/data/sheet0.obl", &m_sheet0},
         {":/data/sheet1.obl", &m_sheet1},
-        {":/data/uisheet.png", &m_uisheet}
+        {":/data/uisheet.png", &m_uisheet},
     };
 
     size_t count = sizeof(assets) / sizeof(assets[0]);
@@ -212,6 +214,46 @@ void CDlgTest::preloadAssets()
     }
 
     loadColorMaps();
+
+    m_layerTiles = std::unique_ptr<CFrameSet>(new CFrameSet);
+    qDebug("m_layerTiles: %p",m_layerTiles.get());
+    for (int i=0; i < LAYER_COUNT; ++i) {
+        QString path = QString(":/data/layer%1.json").arg(i);
+        qDebug("reading : %s", path.toStdString().c_str());
+        if (!loadTileLayer(path.toStdString(), g_layerdata, LAYER_TILE_COUNT *i))
+        {
+            LOGE("failed to load tile data");
+        }
+        //const char layerTilesFilename[] = ":/data/cs3layers.png";
+        path = QString(":/data/layer%1.png").arg(i);
+        qDebug("reading: %s", path.toStdString().c_str() );
+        CFrameSet tmp;
+        if (file.open(path, "rb")) {
+            if (!tmp.extract(file)) {
+                qDebug("failed to read: %s", path.toStdString().c_str());
+            } else {
+                CFrameSet * newFrames = tmp[0]->split(TILE_SIZE,TILE_SIZE);
+                m_layerTiles->frames().insert(
+                    m_layerTiles->frames().end(),
+                    std::make_move_iterator(newFrames->frames().begin()),
+                    std::make_move_iterator(newFrames->frames().end())
+                    );
+                qDebug("count: %lu", m_layerTiles->size());
+                newFrames->removeAll();
+                delete newFrames;
+            }
+            file.close();
+        } else {
+            qDebug("failed to open: %s", path.toStdString().c_str());
+        }
+
+        LOGI("loading boss data");
+        if (loadBossData(":/data/bosses", ":/data/bosses/bosses/data"))
+        {
+            LOGE("failed to load boss data");
+        }
+    }
+    m_animator->reloadTileData();
 }
 
 void CDlgTest::loadColorMaps()

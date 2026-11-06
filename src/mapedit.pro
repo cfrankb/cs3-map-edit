@@ -11,7 +11,6 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 INCLUDEPATH += runtime/shared/
 DEFINES += USE_QFILE=1
 #DEFINES += USE_SDL_MIXER=1
-DEFINES += USE_HUNSPELL=1
 
 SOURCES += \
     runtime/ai_path.cpp \
@@ -40,7 +39,6 @@ SOURCES += \
     runtime/tilesdebug.cpp \
     runtime/states.cpp \
     runtime/statedata.cpp \
-    runtime/chars.cpp \
     runtime/recorder.cpp \
     runtime/gamestats.cpp \
     runtime/colormap.cpp \
@@ -57,10 +55,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mapfile.cpp \
-    mapscroll.cpp \
-    mapwidget.cpp \
     report.cpp \
-    mapprops.cpp
+    mapprops.cpp \
+    TileSelectorWidget.cpp \
+    MapWidget.cpp \
+    MapView.cpp \
+    LayerDock.cpp \
+    LayerRowWidget.cpp \
+    layerdata.cpp
 
 
 HEADERS += \
@@ -120,12 +122,20 @@ HEADERS += \
     dlgtest.h \
     mainwindow.h \
     mapfile.h \
-    mapscroll.h \
-    mapwidget.h \
     report.h \
     tilebox.h \
     keyvaluedialog.h \
-    mapprops.h
+    mapprops.h \
+    TileSelectorWidget.h \
+    MapWidget.h \
+    MapView.h \
+    LayerDock.h \
+    LayerRowWidget.h \
+    layerdata.h \
+    undo/MapPropertiesCommand.h \
+    undo/MapCommand.h \
+    undo/DocumentCommand.h
+
 
 FORMS += \
     dlgattr.ui \
@@ -159,7 +169,10 @@ win32:INCLUDEPATH += ../include
 QMAKE_CXXFLAGS_RELEASE += -std=c++20 -O3
 QMAKE_CXXFLAGS_DEBUG += -std=c++20 -g3
 
-contains(DEFINES, USE_HUNSPELL=1){
+# Only enable the spell-checking code when the bundled hunspell source is
+# present (i.e. the library is actually linked in).
+exists(external/hunspell/src/hunspell/hunspell.h){
+    #DEFINES += USE_HUNSPELL=1
     INCLUDEPATH += ../external/hunspell/src/hunspell
     LIBS += -Lpath/to/hunspell/lib -lhunspell
     HEADERS += SpellHighlighter.h \

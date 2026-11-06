@@ -31,31 +31,75 @@
 #include "gamestats.h"
 #include "tilesdefs.h"
 #include "gamesfx.h"
+#include "animzdata.h"
 
-namespace Game
+namespace GamePrivate
 {
     enum
     {
         ICE_CUBE_DAMAGE = 16,
         CRUSHER_SPEED_MASK = 3,
         AUTOKILL = -1024,
+        RESPAWN_FACTOR = 10,
+        RESPAWN_DELAY = 20,
+        RESPAWN_SLICE = 7,
     };
 }
 
-using namespace Game;
+using namespace GamePrivate;
 
 /////////////////////////////////////////////////////////////////////
 
+void CGame::manageSpawns(const uint32_t ticks)
+{
+    if ((ticks & RESPAWN_SLICE) == 0)
+    {
+        for (auto &spawn : m_spawns)
+        {
+            if (!spawn.active)
+                continue;
+
+            // spawn.debug();
+            if (spawn.delay)
+            {
+                --spawn.delay;
+                continue;
+            }
+
+            int i = findMonsterAt(spawn.x, spawn.y);
+            if (i != INVALID)
+                continue;
+
+            --spawn.active;
+            spawn.delay = RESPAWN_DELAY;
+
+            const TileDef &def = getTileDef(spawn.tileID);
+            const uint16_t pu = m_map.at(spawn.x, spawn.y);
+            CActor actor(spawn.x, spawn.y, def.type, JoyAim::AIM_NONE);
+            actor.setPU(pu);
+
+            m_map.set(spawn.x, spawn.y, spawn.tileID);
+            m_monsters.emplace_back(std::move(actor));
+            int index = m_monsters.size() - 1;
+            updateMonsterGrid(m_monsters[index], index);
+            m_sfx.emplace_back(sfx_t{.x = spawn.x, .y = spawn.y, .sfxID = SFX_SPARKLE, .timeout = SFX_SPARKLE_TIMEOUT});
+        }
+    }
+}
+
 CActor *CGame::spawnBullet(int x, int y, JoyAim aim, uint8_t tile)
 {
-    if (x < 0 || y < 0 || x >= m_map.len() || y >= m_map.hei())
+    if (x < 0 || y < 0 || x >= m_map.width() || y >= m_map.height())
     {
         LOGW("Cannot spawn at invalid coordinates: %d,%d", x, y);
         return nullptr;
     }
+    int i = findMonsterAt(x, y);
+    if (i != INVALID)
+        return nullptr;
 
     const TileDef &def = getTileDef(tile);
-    const uint8_t pu = m_map.at(x, y);
+    const uint16_t pu = m_map.at(x, y);
     CActor actor(x, y, def.type, aim);
     actor.setPU(pu);
     const TileDef &defPU = getTileDef(pu);
@@ -79,12 +123,12 @@ void CGame::handleBossPath(CBoss &boss)
     Pos playerPos{static_cast<int16_t>(m_player.x() * CBoss::BOSS_GRANULAR_FACTOR),
                   static_cast<int16_t>(m_player.y() * CBoss::BOSS_GRANULAR_FACTOR)};
 
-    if (playerPos.x < 0 || playerPos.x >= m_map.len() * boss.getGranularFactor() ||
-        playerPos.y < 0 || playerPos.y >= m_map.hei() * boss.getGranularFactor())
+    if (playerPos.x < 0 || playerPos.x >= m_map.width() * boss.getGranularFactor() ||
+        playerPos.y < 0 || playerPos.y >= m_map.height() * boss.getGranularFactor())
     {
         LOGE("Invalid player position (%d,%d) for map bounds (%d,%d)",
-             playerPos.x, playerPos.y, m_map.len() * boss.getGranularFactor(),
-             m_map.hei() * boss.getGranularFactor());
+             playerPos.x, playerPos.y, m_map.width() * boss.getGranularFactor(),
+             m_map.height() * boss.getGranularFactor());
         return;
     }
 
@@ -146,7 +190,10 @@ bool CGame::handleBossBullet(CBoss &boss)
         boss.setState(CBoss::BossState::Attack);
         playSound(boss.data()->attack_sound);
         if (boss.data()->bullet_algo != BossData::Path::NONE)
+        {
+            LOGI("bullet path algo: %d", boss.data()->bullet_algo);
             bullet->startPath(m_player.pos(), boss.data()->bullet_algo, boss.data()->bullet_ttl);
+        }
 
         return true;
     }
@@ -199,6 +246,7 @@ void CGame::handleBossHitboxContact(CBoss &boss)
                              int i = game->findMonsterAt(pos.x, pos.y);
                              if (i != CGame::INVALID)
                              {
+                                 queueRespawn(i);
                                  game->deleteMonster(i);
                                  game->getSfx().emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
                                  map.set(pos.x, pos.y, TILES_BLANK);
@@ -222,7 +270,7 @@ void CGame::handleBossHitboxContact(CBoss &boss)
                      });
 }
 
-void CGame::manageBosses(const int ticks)
+void CGame::manageBosses(const uint32_t ticks)
 {
     auto &rng = getRandom();
     rng.setTick(ticks);
@@ -316,7 +364,7 @@ void CGame::manageBosses(const int ticks)
  * @param ticks clock ticks since start
  */
 
-void CGame::manageMonsters(const int ticks)
+void CGame::manageMonsters(const uint32_t ticks)
 {
     std::vector<CActor> newMonsters;
     std::set<int, std::greater<int>> deletedMonsters;
@@ -337,15 +385,14 @@ void CGame::manageMonsters(const int ticks)
             continue;
         CActor &actor = m_monsters[i];
         const Pos pos = actor.pos();
-        const uint8_t tileID = m_map.at(pos.x, pos.y);
+        const uint16_t tileID = m_map.at(pos.x, pos.y);
         const uint8_t attr = m_map.getAttr(pos.x, pos.y);
         if (RANGE(attr, ATTR_IDLE_MIN, ATTR_IDLE_MAX))
         {
             const uint8_t distance = (attr & 0xf) + 1;
             if (actor.distance(m_player) <= distance)
                 m_map.setAttr(pos.x, pos.y, 0);
-            else
-                continue;
+            continue;
         }
 
         const TileDef &def = getTileDef(tileID);
@@ -355,6 +402,10 @@ void CGame::manageMonsters(const int ticks)
         if (actor.type() == TYPE_MONSTER)
         {
             handleMonster(actor, def);
+        }
+        else if (actor.type() == TYPE_MONSTERV3)
+        {
+            handleMonsterV3(actor, def, ticks);
         }
         else if (actor.type() == TYPE_DRONE)
         {
@@ -387,6 +438,10 @@ void CGame::manageMonsters(const int ticks)
         else if (actor.type() == TYPE_BARREL)
         {
             handleBarrel(actor, def, i, deletedMonsters);
+        }
+        else if (actor.type() == TYPE_EGG)
+        {
+            handleEgg(actor, def);
         }
         else
         {
@@ -451,6 +506,75 @@ void CGame::handleMonster(CActor &actor, const TileDef &def)
     }
 }
 
+void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ticks)
+{
+    static constexpr JoyAim g_dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
+    if (actor.isPlayerThere(actor.getAim()))
+    {
+        // apply health damages
+        addHealth(def.health);
+        if (def.ai & AI_STICKY)
+        {
+            return;
+        }
+    }
+
+    if (actor.type() == TYPE_MONSTERV3)
+    {
+        int distance = actor.distance(m_player);
+        if (distance < def.range)
+        {
+            if (actor.isFollowingPath())
+            {
+                const CPath::Result result = actor.followPath(m_player.pos());
+                if (result != CPath::Result::Blocked)
+                {
+                    JoyAim aim = actor.getAim();
+                    actor.setAim(aim);
+                    if (!def.bullet || (def.rate && ticks % def.rate != 0))
+                        return;
+                    if (actor.canMove(aim))
+                    {
+                        Pos t = translate(actor.pos(), aim);
+                        spawnBullet(t.x, t.y, aim, def.bullet); // TILES_FIREBALL_SM);
+                    }
+                }
+            }
+            else
+            {
+                actor.startPath(m_player.pos(), def.path, -1); // BossData::ASTAR, -1);
+            }
+            return;
+        }
+        actor.clearPath();
+    }
+
+    bool reverse = def.ai & AI_REVERSE;
+    JoyAim aim = actor.findNextDir(reverse);
+    if (aim != AIM_NONE)
+    {
+        shadowActorMove(actor, aim);
+        if (!(def.ai & AI_ROUND))
+        {
+            return;
+        }
+    }
+    for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
+    {
+        if (actor.getAim() != g_dirs[i] &&
+            actor.isPlayerThere(g_dirs[i]))
+        {
+            // apply health damages
+            addHealth(def.health);
+            if (def.ai & AI_FOCUS)
+            {
+                actor.setAim(g_dirs[i]);
+            }
+            break;
+        }
+    }
+}
+
 void CGame::handleDrone(CActor &actor, const TileDef &def)
 {
     JoyAim aim = actor.getAim();
@@ -485,7 +609,7 @@ void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor
     for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
     {
         const Pos p = CGame::translate(Pos{actor.x(), actor.y()}, g_dirs[i]);
-        const uint8_t ct = m_map.at(p.x, p.y);
+        const uint16_t ct = m_map.at(p.x, p.y);
         const TileDef &defT = getTileDef(ct);
         if (defT.type == TYPE_PLAYER)
         {
@@ -498,7 +622,9 @@ void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor
             newMonsters.emplace_back(CActor(p.x, p.y, TYPE_VAMPLANT));
             break;
         }
-        else if (defT.type == TYPE_MONSTER || defT.type == TYPE_DRONE)
+        else if (defT.type == TYPE_MONSTER ||
+                 defT.type == TYPE_DRONE ||
+                 defT.type == TYPE_MONSTERV3)
         {
             const int j = findMonsterAt(p.x, p.y);
             if (j == INVALID)
@@ -632,17 +758,23 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
                         // light other barrels
                         fuseBarrel({x, y});
                     }
-                    else if (actor.type() == TYPE_MONSTER || actor.type() == TYPE_DRONE || actor.type() == TYPE_VAMPLANT)
+                    else if (actor.type() == TYPE_MONSTER ||
+                             actor.type() == TYPE_DRONE ||
+                             actor.type() == TYPE_VAMPLANT ||
+                             actor.type() == TYPE_MONSTERV3 ||
+                             actor.type() == TYPE_EGG)
                     {
                         // kill mob monsters
                         deletedMonsters.emplace(id);
-                        m_sfx.emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION0, SFX_EXPLOSION0_TIMEOUT});
+                        m_map.set(x, y, actor.getPU());
+                        m_sfx.emplace_back(sfx_t{x, y, SFX_EXPLOSION0, SFX_EXPLOSION6_TIMEOUT});
                     }
                     else if (actor.type() == TYPE_ICECUBE)
                     {
                         // melt icecubes
                         deletedMonsters.emplace(id);
-                        m_sfx.emplace_back(sfx_t{pos.x, pos.y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
+                        m_map.set(x, y, actor.getPU());
+                        m_sfx.emplace_back(sfx_t{x, y, SFX_EXPLOSION6, SFX_EXPLOSION6_TIMEOUT});
                     }
                 }
             }
@@ -670,6 +802,27 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
     }
 }
 
+void CGame::handleEgg(CActor &actor, const TileDef &def)
+{
+    (void)def;
+    uint8_t frame = actor.frame();
+    ++frame;
+    if (frame < ANIMZ_EGG_HATCH_LEN)
+    {
+        actor.setFrame(frame);
+    }
+    else
+    {
+        const uint16_t tileID = def.bullet; // TILES_BABYDRAGON;
+        const TileDef &td = getTileDef(tileID);
+        actor.setType(td.type);
+        actor.setPU(TILES_EGG_CRACKED);
+        actor.setAim(AIM_UP);
+        actor.setAlgo(td.path);
+        m_map.set(actor.x(), actor.y(), tileID);
+    }
+}
+
 void CGame::handleBarrel(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters)
 {
     if (actor.decTTL() == 0)
@@ -683,6 +836,7 @@ void CGame::handleBarrel(CActor &actor, const TileDef &def, const int i, std::se
             .timeout = SFX_EXPLOSION5_TIMEOUT,
         });
         deletedMonsters.emplace(i);
+        queueRespawn(actor);
         m_map.set(pos.x, pos.y, TILES_BARREL2EX);
         playSound(SOUND_EXPLOSION1);
         m_gameStats->set(S_FLASH, 1);
@@ -703,7 +857,6 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         aim = actor.getAim();
         // if (actor.canMove(aim) && actor.getTTL() != 0)
         //     return;
-        // LOGI("sprite: %p not moving result:[%d]; aim=[%d] isPlayerThere=[%d] [%p]", &actor, result, actor.getAim(), actor.isPlayerThere(aim), actor.path());
     }
     else
     {
@@ -712,7 +865,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             shadowActorMove(actor, aim);
     }
 
-    if (!isMoving || !actor.getTTL() == 0)
+    if (!isMoving || (actor.getTTL() == 0 && actor.algo() != BossData::Path::NONE))
     {
         playSound(bullet.sound);
         // remove actor/ set to be deleted
@@ -727,7 +880,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         if (CGame::translate(Pos{actor.x(), actor.y()}, aim) == actor.pos())
             // coordonate outside map bounds
             return;
-        const uint8_t tileID = actor.tileAt(aim);
+        const uint16_t tileID = actor.tileAt(aim);
         const TileDef &defX = getTileDef(tileID);
         if (defX.type == TYPE_ICECUBE)
         {
@@ -736,6 +889,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             int i = findMonsterAt(pos.x, pos.y);
             if (i != INVALID)
             {
+                queueRespawn(i);
                 deletedMonsters.insert(i);
                 m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION6, .timeout = SFX_EXPLOSION6_TIMEOUT});
                 m_map.set(pos.x, pos.y, TILES_BLANK);
@@ -749,6 +903,19 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         {
             const Pos &pos = translate(actor.pos(), aim);
             fuseBarrel(pos);
+        }
+        else if (defX.type == TYPE_VAMPLANT)
+        {
+            playSound(SOUND_EXPLOSION1);
+            const Pos &pos = translate(actor.pos(), aim);
+            int i = findMonsterAt(pos.x, pos.y);
+            if (i != INVALID)
+            {
+                queueRespawn(i);
+                deletedMonsters.insert(i);
+                m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION1, .timeout = SFX_EXPLOSION6_TIMEOUT});
+                m_map.set(pos.x, pos.y, TILES_BLANK);
+            }
         }
     }
 }
@@ -785,4 +952,32 @@ bool CGame::pushChain(const int x, const int y, const JoyAim aim)
     m_monsters[i].setAim(aim);
     shadowActorMove(m_monsters[i], aim);
     return true;
+}
+
+bool CGame::queueRespawn(const CActor &actor)
+{
+    if (RANGE(actor.attr(), ATTR_RESPAWN_MIN, ATTR_RESPAWN_MAX))
+    {
+        const uint16_t tileID = m_map.at(actor.x(), actor.y());
+        uint8_t active = 1 + actor.attr() - ATTR_RESPAWN_MIN;
+        const Pos origin = actor.origin();
+        m_spawns.push_back(spawn_t{
+            .tileID = tileID,
+            .x = origin.x,
+            .y = origin.y,
+            .delay = RESPAWN_DELAY,
+            .attr = actor.attr(),
+            .active = active});
+        LOGI("added spawn");
+        return true;
+    }
+    return false;
+}
+
+bool CGame::queueRespawn(const int i)
+{
+    const size_t index = static_cast<size_t>(i);
+    if (index < m_monsters.size())
+        return queueRespawn(m_monsters[i]);
+    return false;
 }

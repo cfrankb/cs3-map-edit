@@ -7,17 +7,32 @@
 #include "runtime/tilesdebug.h"
 #include "runtime/attr.h"
 #include "runtime/tilesdefs.h"
+#include "runtime/map.h"
+#include "runtime/layerdata.h"
 
-CDlgStat::CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent)
+CDlgStat::CDlgStat(CMap *map, const int x,  const int y, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::CDlgStat)
 {
     ui->setupUi(this);
 
+    for (int i=0; i < LAYER_COUNT; ++i) {
+        QString path = QString(":/data/layer%1.json").arg(i);
+        qDebug("reading : %s", path.toStdString().c_str());
+        if (!loadTileLayer(path.toStdString(), g_layerdata, LAYER_TILE_COUNT *i))
+        {
+            LOGE("failed to load tile data");
+        }
+    }
+
+    const uint8_t tileID = map->at(x, y);
+    const uint8_t attr= map->getAttr(x, y);
+
     const TileDef & def = getTileDef(tileID);
     ui->sName->setText(def.basename);
     QListWidget * w = ui->listWidget;
 
+    w->addItem("----- layer main ");
     w->addItem(QString("%1 [0x%2]").arg(get_tileNames(tileID).c_str()).arg(tileID,2, 16, QChar('0')));
     if (def.hidden) {
         w->addItem(tr("hidden"));
@@ -61,6 +76,25 @@ CDlgStat::CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent)
         QString s = tr("ATTR: %1 [0x%2]").arg(attr2text(attr)).arg(attr,2, 16, QChar('0'));
         w->addItem(s);
     }
+
+    for (int i=1; i < map->layerCount(); ++i) {
+        CLayer *layer = map->getLayer(i);
+        uint16_t tileID = layer->at(x,y);
+        if (!tileID) continue;
+        w->addItem("");
+        w->addItem(QString("---- layer %1 %2")
+                       .arg(i).arg(layer->getName()));
+        w->addItem(QString("tile %1 [0x%2]")
+                       .arg(tileID)
+                       .arg(tileID,2, 16, QChar('0')));
+
+        const layerdata_t & tileData=  g_layerdata[tileID];
+        w->addItem(QString("animeSpeed %1")
+                       .arg(tileData.animeSpeed));
+        w->addItem(QString("nextTile %1")
+                       .arg(tileData.nextTile));
+    }
+
 
     ui->label->setText(get_typesNames(def.type).c_str());
 }

@@ -1,6 +1,6 @@
 /*
     cs3-runtime-sdl
-    Copyright (C) 2025 Francois Blanchette
+    Copyright (C) 2026 Francois Blanchette
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,6 +32,10 @@ struct TileDef
     uint16_t ai;
     bool hidden;
     const char * basename;
+    uint16_t bullet;
+    uint8_t rate;
+    uint8_t path;
+    uint8_t range;
 };
 
 extern const TileDef tileDefs[];

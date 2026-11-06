@@ -89,8 +89,8 @@ std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
 {
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor;
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor;
+    const int mapHei = map.height() * granularFactor;
     std::vector<JoyAim> directions;
     const Pos startPos = sprite.pos();
 
@@ -199,8 +199,8 @@ std::vector<JoyAim> BFS::findPath(ISprite &sprite, const Pos &goalPos) const
 {
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor;
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor;
+    const int mapHei = map.height() * granularFactor;
     const Pos startPos = sprite.pos();
 
     if (startPos.x < 0 || startPos.x >= mapLen || startPos.y < 0 || startPos.y >= mapHei ||
@@ -281,8 +281,8 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
 {
     int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor; // Half-tile bounds
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor; // Half-tile bounds
+    const int mapHei = map.height() * granularFactor;
     const Pos startPos = sprite.pos(); // Half-tile coordinates
     const Pos goalPos = playerPos;
 
@@ -346,11 +346,7 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
             }
         }
         if (!moved)
-        {
-            //     LOGE("Cannot move from (%d,%d) toward (%d,%d) on line %d",
-            //        x, y, goalPos.x, goalPos.y, __LINE__);
             return {};
-        }
     }
 
     return directions;
@@ -369,8 +365,8 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
         return {};
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor; // Half-tile bounds
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor; // Half-tile bounds
+    const int mapHei = map.height() * granularFactor;
     std::vector<Pos> smoothedPath = {path[0]};
 
     LineOfSight los;
@@ -429,8 +425,8 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 {
     const int granularFactor = sprite.getGranularFactor();
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len() * granularFactor; // Half-tile bounds
-    const int mapHei = map.hei() * granularFactor;
+    const int mapLen = map.width() * granularFactor; // Half-tile bounds
+    const int mapHei = map.height() * granularFactor;
     const Pos startPos = sprite.pos(); // Half-tile coordinates
     const Pos goalPos = playerPos;
 
@@ -498,12 +494,6 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 ////////////////////////////////////////////////
 CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPath &astar)
 {
-    //if (!sprite.isBoss())
-        //LOGI("sprite: %p[%d,%d] aim:%d p[%d,%d] ptr=%lu timeout=%lu cache:%lu ttl:%d",
-        //     &sprite, sprite.x(), sprite.y(), sprite.getAim(),
-        //     playerPos.x, playerPos.y,
-        //     m_pathIndex, m_pathTimeout, m_cachedDirections.size(), sprite.getTTL());
-
     // Check if path is invalid or timed out
     if (m_pathIndex >= m_cachedDirections.size() || m_pathTimeout <= 0)
     {
@@ -513,8 +503,8 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
             m_pathTimeout = PATH_TIMEOUT_MAX;
         if (m_cachedDirections.empty())
         {
-            if (!sprite.isBoss())
-                LOGI("sprite: %p -- path empty", &sprite);
+            // if (!sprite.isBoss())
+            //     LOGI("sprite: %p -- path empty", &sprite);
             return Result::NoValidPath; // No valid path
         }
     }
@@ -538,8 +528,8 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
     }
 
     // Move failed, invalidate cache and recompute next turn
-    if (!sprite.isBoss())
-        LOGI("sprite: %p -- cannot move", &sprite);
+    // if (!sprite.isBoss())
+    //    LOGI("sprite: %p -- cannot move", &sprite);
     m_cachedDirections.clear();
     m_pathIndex = 0;
     m_pathTimeout = 0;

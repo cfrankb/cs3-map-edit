@@ -20,5 +20,5 @@
 class CFrameSet;
 class IFile;
 
-bool parsePNG(CFrameSet &set, IFile &file, int orgPos = 0);
+bool parsePNG(CFrameSet &set, IFile &file, int orgPos = 0, bool skipOblt = false);
 void enablePngMagicVerbose();

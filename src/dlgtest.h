@@ -47,7 +47,8 @@ private:
     void toggleFullscreen() override {}
     void manageTitleScreen() override {}
     void toggleGameMenu() override {}
-    void manageGameMenu() override {}
+    bool manageGameMenu() override {return false;}
+    void manageSplash() override {}
     void manageOptionScreen() override {}
     void load() override {}
     void save() override {}

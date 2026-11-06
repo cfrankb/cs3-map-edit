@@ -20,7 +20,6 @@
 #include <stdarg.h>
 #include <string>
 #include <vector>
-#include <set>
 #include <algorithm>
 #include <memory>
 #include <array>
@@ -47,10 +46,13 @@
 #include "gamesfx.h"
 #include "boss.h"
 #include "tilesdefs.h"
+#include "layerdata.h"
+#include "animator.h"
+#include "shared/ISerial.h"
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0008;
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000e;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
     Random g_randomz(12345, 0);
 
@@ -73,6 +75,8 @@ namespace GamePrivate
         MAX_SHIELDS = 2,
         MAX_FACTOR = 4,
         BARREL_TTL = 20,
+        AUTOKILL = -1024,
+        TIME_FREEZE_DELAY = 120,
     };
 }
 
@@ -93,6 +97,7 @@ CGame::CGame()
     m_defaultLives = DEFAULT_LIVES;
     m_nextLife = SCORE_LIFE;
     m_lives = defaultLives();
+    m_animator = std::make_unique<CAnimator>();
 }
 
 /**
@@ -166,18 +171,21 @@ bool CGame::fuseBarrel(const Pos &pos)
  */
 bool CGame::move(const JoyAim aim)
 {
-    const uint8_t tileID = m_player.tileAt(aim);
-    const TileDef &def = getTileDef(tileID);
     if (m_player.canMove(aim))
     {
         m_player.move(aim);
         consume();
         return true;
     }
-    else if (isPushable(def.type))
+
+    const Pos pos = CGame::translate(m_player.pos(), aim);
+    if (pos == m_player.pos())
+        return false;
+    const uint8_t tileID = m_player.tileAt(aim);
+    const TileDef &def = getTileDef(tileID);
+    if (isPushable(def.type))
     {
-        Pos pushPos = translate(m_player.pos(), aim);
-        if (pushChain(pushPos.x, pushPos.y, aim))
+        if (pushChain(pos.x, pos.y, aim))
         {
             m_player.move(aim);
             return true;
@@ -185,8 +193,33 @@ bool CGame::move(const JoyAim aim)
     }
     else if (def.type == TYPE_BARREL)
     {
-        const Pos pos = CGame::translate(m_player.pos(), aim);
         fuseBarrel(pos);
+    }
+    else if (def.type == TYPE_BELL)
+    {
+        if (!m_gameStats->get(S_TIME_FREEZE_TIMER))
+        {
+            const uint8_t attr = m_map.getAttr(pos.x, pos.y);
+            const uint16_t lenght = (1 + (attr & 0xf)) * TIME_FREEZE_DELAY;
+            m_gameStats->set(S_TIME_FREEZE_TIMER, lenght);
+            LOGI("Bong");
+        }
+    }
+    else if (def.type == TYPE_SWITCH)
+    {
+        const uint8_t attr = m_map.getAttr(pos.x, pos.y);
+        m_map.setAttr(pos.x, pos.y, 0);
+        const uint16_t tileID = m_map.get(pos.x, pos.y);
+        m_map.set(pos.x, pos.y, tileID + 1);
+        manageTrigger(pos.x, pos.y, attr);
+    }
+    else if (def.type == TYPE_PUSHOVER &&
+             aim == JoyAim::AIM_DOWN)
+    {
+        m_map.set(pos.x, pos.y, tileID + 1);
+        const Pos pu = translate(pos, aim);
+        if (m_map.at(pu.x, pu.y) == TILES_BLANK)
+            m_map.set(pu.x, pu.y, tileID + 2);
     }
     return false;
 }
@@ -199,7 +232,8 @@ void CGame::consume()
 {
     const uint8_t pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
-
+    const auto &result = scanPos(m_player.pos(), JoyAim::AIM_NONE);
+    const bool isWater = result.isWater || def.type == TYPE_SWAMP;
     if (def.type == TYPE_PICKUP)
     {
         addPoints(def.score);
@@ -224,8 +258,9 @@ void CGame::consume()
         addHealth(def.health);
         playTileSound(pu);
     }
-    else if (def.type == TYPE_SWAMP && m_gameStats->get(S_BOAT) == 0)
+    else if (isWater && m_gameStats->get(S_BOAT) == 0)
     {
+        // apply swamp damage if no boat
         addHealth(def.health);
     }
     else if (def.type == TYPE_CHUTE)
@@ -236,6 +271,11 @@ void CGame::consume()
     else if (def.type == TYPE_FIRE)
     {
         addHealth(def.health);
+    }
+
+    if (result.isDeadly)
+    {
+        addHealth(AUTOKILL);
     }
 
     if (isFruit(pu))
@@ -294,9 +334,15 @@ void CGame::consume()
     }
 
     // trigger key
-    int x = m_player.x();
-    int y = m_player.y();
-    uint8_t attr = m_map.getAttr(x, y);
+    const int x = m_player.x();
+    const int y = m_player.y();
+    const uint8_t attr = m_map.getAttr(x, y);
+    m_map.setAttr(x, y, 0);
+    manageTrigger(x, y, attr);
+}
+
+void CGame::manageTrigger(const int x, const int y, const uint8_t attr)
+{
     m_map.setAttr(x, y, 0);
     if (attr == ATTR_FREEZE_TRAP)
     {
@@ -317,6 +363,19 @@ void CGame::consume()
                 m_events.emplace_back(EVENT_SECRET);
             else
                 m_events.emplace_back(EVENT_PASSAGE);
+        }
+    }
+    else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
+    {
+        if (clearAttr(attr))
+        {
+            playSound(SOUND_0009);
+        }
+        // activate automators
+        for (auto &a : automators())
+        {
+            if (a.attr == attr)
+                a.active = true;
         }
     }
     else if (attr >= MSG0 && m_map.states().hasS(attr))
@@ -357,7 +416,9 @@ bool CGame::loadLevel(const GameMode mode)
         LOGW("hints not loaded -- not available???");
 
     m_introHint = m_hints.size() ? rand() % m_hints.size() : 0;
-    m_events.clear();
+
+    // clear event list
+    clearEvents();
 
     // Use origin pos if available
     CStates &states = m_map.states();
@@ -387,7 +448,7 @@ bool CGame::loadLevel(const GameMode mode)
     }
     if (!m_quiet)
         LOGI("Player at: %d %d", pos.x, pos.y);
-    m_player = std::move(CActor(pos, TYPE_PLAYER, AIM_DOWN));
+    m_player = CActor(pos, TYPE_PLAYER, AIM_DOWN);
     m_diamonds = states.hasU(MAP_GOAL) ? states.getU(MAP_GOAL) : m_map.count(TILES_DIAMOND);
     resetKeys();
     m_health = DEFAULT_HEALTH;
@@ -395,6 +456,7 @@ bool CGame::loadLevel(const GameMode mode)
     m_sfx.clear();
     resetStats();
     m_report = currentMapReport();
+
     return true;
 }
 
@@ -422,7 +484,7 @@ void CGame::nextLevel()
  */
 void CGame::restartLevel()
 {
-    m_events.clear();
+    clearEvents();
     resetStats();
     resetStatsUponDeath();
 }
@@ -465,7 +527,7 @@ void CGame::decTimers()
         S_RAGE_TIMER,
         S_FREEZE_TIMER,
         S_FLASH,
-    };
+        S_TIME_FREEZE_TIMER};
     for (const auto &stat : stats)
     {
         m_gameStats->dec(stat);
@@ -490,7 +552,7 @@ void CGame::resetStats()
         S_TIME_TAKEN,
         S_CHUTE,
         S_FLASH,
-    };
+        S_TIME_FREEZE_TIMER};
     for (const auto &stat : stats)
     {
         m_gameStats->set(stat, 0);
@@ -529,7 +591,7 @@ void CGame::setMapArch(CMapArch *arch)
 
 bool CGame::isMonsterType(const uint8_t typeID) const
 {
-    std::array<uint8_t, 8> monsterTypes = {
+    std::array<uint8_t, 10> monsterTypes = {
         TYPE_MONSTER,
         TYPE_VAMPLANT,
         TYPE_DRONE,
@@ -538,6 +600,8 @@ bool CGame::isMonsterType(const uint8_t typeID) const
         TYPE_FIREBALL,
         TYPE_LIGHTNING_BOLT,
         TYPE_BARREL,
+        TYPE_EGG,
+        TYPE_MONSTERV3,
     };
 
     for (size_t i = 0; i < monsterTypes.size(); ++i)
@@ -554,20 +618,22 @@ bool CGame::isMonsterType(const uint8_t typeID) const
  */
 bool CGame::spawnMonsters()
 {
+    m_automators.clear();
     m_monsters.clear();
     m_bosses.clear();
-    for (int y = 0; y < m_map.hei(); ++y)
+    m_spawns.clear();
+    for (int y = 0; y < m_map.height(); ++y)
     {
-        for (int x = 0; x < m_map.len(); ++x)
+        for (int x = 0; x < m_map.width(); ++x)
         {
             uint8_t c = m_map.at(x, y);
             const TileDef &def = getTileDef(c);
             if (isMonsterType(def.type))
             {
-                if (isPushable(def.type))
-                    m_monsters.emplace_back(std::move(CActor(x, y, def.type, JoyAim::AIM_NONE)));
-                else
-                    m_monsters.emplace_back(std::move(CActor(x, y, def.type)));
+                uint8_t attr = m_map.getAttr(x, y);
+                CActor &actor = isPushable(def.type) ? m_monsters.emplace_back(CActor(x, y, def.type, JoyAim::AIM_NONE))
+                                                     : m_monsters.emplace_back(CActor(x, y, def.type));
+                actor.setAttr(attr);
             }
         }
     }
@@ -575,16 +641,15 @@ bool CGame::spawnMonsters()
     std::vector<Pos> removed;
     for (const auto &[key, attr] : m_map.attrs())
     {
+        const Pos &pos = CMap::toPos(key);
         if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
         {
-            const Pos &pos = CMap::toPos(key);
             const JoyAim aim = attr < ATTR_CRUSHERH_MIN ? AIM_UP : AIM_LEFT;
-            m_monsters.emplace_back(std::move(CActor(pos, attr, aim)));
+            m_monsters.emplace_back(CActor(pos, attr, aim));
             removed.emplace_back(pos);
         }
         else if (RANGE(attr, ATTR_BOSS_MIN, ATTR_BOSS_MAX))
         {
-            const Pos &pos = CMap::toPos(key);
             const bossData_t *bossData = getBossData(attr);
             if (bossData)
             {
@@ -601,6 +666,34 @@ bool CGame::spawnMonsters()
             }
             removed.emplace_back(pos);
         }
+        else if (RANGE(attr, ATTR_AUTO_MIN, ATTR_AUTO_MAX))
+        {
+            // skip main layer
+            for (size_t layerID = 1; layerID < m_map.layers().size(); ++layerID)
+            {
+                const CLayer *layer = m_map.getLayer(layerID);
+                if (!layer)
+                    continue;
+                const uint16_t tileID = layer->at(pos.x, pos.y);
+                if (!tileID)
+                    continue;
+                const layerdata_t &ld = g_layerdata[tileID];
+                if (ld.manual)
+                {
+                    // find a tile that can be autmated
+                    m_automators.push_back(
+                        automator_t{.tileID = tileID,
+                                    .x = pos.x,
+                                    .y = pos.y,
+                                    .layerID = (uint16_t)layerID,
+                                    .ttl = ld.animeSpeed,
+                                    .attr = attr,
+                                    .active = false});
+                    removed.emplace_back(pos);
+                    break;
+                }
+            }
+        }
     }
 
     for (const auto &pos : removed)
@@ -615,6 +708,7 @@ bool CGame::spawnMonsters()
     {
         LOGI("%zu actors found.", m_monsters.size());
         LOGI("%zu bosses found.", m_bosses.size());
+        LOGI("%zu automators found.", m_automators.size());
     }
     return true;
 }
@@ -645,20 +739,25 @@ uint8_t CGame::managePlayer(const uint8_t *joystate)
 {
     auto const pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
-    if (pu == TILES_SWAMP && m_gameStats->get(S_BOAT) == 0)
+    const auto &result = scanPos(m_player.pos(), JoyAim::AIM_NONE);
+    const bool isWater = result.isWater || def.type == TYPE_SWAMP;
+    if (result.isDeadly)
+    {
+        addHealth(AUTOKILL);
+    }
+    else if (isWater && m_gameStats->get(S_BOAT) == 0)
     {
         // apply health damage
         addHealth(def.health);
     }
-    else if (pu == TILES_FLAME)
+    else if (pu == TILES_FLAME || def.type == TYPE_FIRE)
     {
         // apply health damage
         addHealth(def.health);
     }
     const JoyAim aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
-    for (uint8_t i = 0; i < TOTAL_AIMS; ++i)
+    for (const JoyAim &aim : aims)
     {
-        const JoyAim aim = aims[i];
         if (joystate[aim] && move(aim))
         {
             return aim;
@@ -687,7 +786,7 @@ Pos CGame::translate(const Pos &p, const int aim)
         }
         break;
     case AIM_DOWN:
-        if (t.y < m_map.hei() - 1)
+        if (t.y < m_map.height() - 1)
         {
             ++t.y;
         }
@@ -699,7 +798,7 @@ Pos CGame::translate(const Pos &p, const int aim)
         }
         break;
     case AIM_RIGHT:
-        if (t.x < m_map.len() - 1)
+        if (t.x < m_map.width() - 1)
         {
             ++t.x;
         }
@@ -896,6 +995,7 @@ void CGame::checkClosure()
  */
 void CGame::setMode(const GameMode mode)
 {
+    LOGI("set game mode: %d", mode);
     m_mode = mode;
 }
 
@@ -1190,7 +1290,20 @@ bool CGame::read(IFile &sfile)
     }
 
     // clear events
-    m_events.clear();
+    clearEvents();
+
+    // read animation state
+    if (!m_animator->read(sfile))
+    {
+        LOGE("Failed to read animator state");
+        return false;
+    }
+
+    // read spawns
+    if (!readVector(OBJECT_NAME(m_spawns), m_spawns, sfile))
+    {
+        LOGE("failed to read spawns");
+    }
 
     return true;
 }
@@ -1281,6 +1394,16 @@ bool CGame::write(IFile &tfile)
     _W(&sfxCount, sizeof(sfxCount));
     for (const auto &sfx : m_sfx)
         _W(&sfx, sizeof(sfx));
+
+    // save animation state
+    if (!m_animator->write(tfile))
+        return false;
+
+    // write spawns
+    if (!writeVector(OBJECT_NAME(m_spawns), m_spawns, tfile))
+    {
+        LOGE("failed to write spawns");
+    }
 
     return true;
 }
@@ -1479,9 +1602,9 @@ MapReport CGame::generateMapReport(CMap &map)
 {
     MapReport report;
     std::unordered_map<uint8_t, int> tiles;
-    for (int y = 0; y < map.hei(); ++y)
+    for (int y = 0; y < map.height(); ++y)
     {
-        for (int x = 0; x < map.len(); ++x)
+        for (int x = 0; x < map.width(); ++x)
         {
             const auto &tile = map.at(x, y);
             tiles[tile] += 1;
@@ -1771,4 +1894,94 @@ void CGame::updateMonsterGrid(const CActor &actor, const int monsterIndex)
     const Pos pos = actor.pos();
     if (monsterIndex != INVALID && m_map.isValid(pos.x, pos.y))
         m_monsterGrid[CMap::toKey(pos.x, pos.y)] = monsterIndex;
+}
+
+scan_t CGame::scanPos(const Pos &pos, const uint8_t aim) const
+{
+    auto testGranular = [](const uint8_t &gr, const uint8_t &g1, const uint8_t &g2)
+    {
+        return (gr & g1) && (gr & g2);
+    };
+    scan_t result{false, false, false};
+    const CMap &map = getMap();
+    const int layerCount = (int)map.layerCount();
+    for (int i = layerCount - 1; i >= 0; --i)
+    {
+        const CLayer *layer = map.getLayer(i);
+        if (!layer)
+            continue;
+
+        const uint16_t tileID = layer->at(pos.x, pos.y);
+        if (layer->baseID() == 0)
+        {
+            const TileDef &def = getTileDef(tileID);
+            if (def.type == TileType::TYPE_SWAMP)
+                result.isWater = true;
+        }
+        else
+        {
+            const auto curr = m_animator->getLayerTile(tileID);
+            const layerdata_t &data = getLayerTileDef(curr);
+            const uint8_t &gr = data.granular;
+            if (data.tileType == LayerTileType::Deadly)
+                result.isDeadly = true;
+            else if (data.tileType == LayerTileType::Solid)
+                result.isSolid = true;
+            else if (data.tileType == LayerTileType::Water)
+                result.isWater = true;
+            else if (gr)
+            {
+                if (aim == JoyAim::AIM_UP && testGranular(gr, GranualarDL, GranualarDR))
+                    result.isSolid = true;
+                else if (aim == JoyAim::AIM_DOWN && testGranular(gr, GranualarUL, GranualarUR))
+                    result.isSolid = true;
+                else if (aim == JoyAim::AIM_LEFT && testGranular(gr, GranualarUR, GranualarDR))
+                    result.isSolid = true;
+                else if (aim == JoyAim::AIM_RIGHT && testGranular(gr, GranualarUL, GranualarDL))
+                    result.isSolid = true;
+            }
+        }
+    }
+    return result;
+}
+
+bool CGame::isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const
+{
+    auto testGranular = [](const uint8_t &gr, const uint8_t &g1, const uint8_t &g2)
+    {
+        bool result = (gr & g1) && (gr & g2);
+        // LOGI("gr:%.2x g1: %.2x g2: %.2x => %d", gr, g1, g2, result);
+        return result;
+    };
+
+    const CMap &map = getMap();
+    const int layerCount = (int)map.layerCount();
+    for (int i = layerCount - 1; i >= 0; --i)
+    {
+        const CLayer *layer = map.getLayer(i);
+        if (!layer || layer->baseID() == 0)
+            continue;
+
+        const uint16_t tileID = layer->at(pos.x, pos.y);
+        const auto curr = m_animator->getLayerTile(tileID);
+        const layerdata_t &data = getLayerTileDef(curr);
+        const uint8_t &granular = data.granular;
+        if (granular)
+        {
+            if (aim == JoyAim::AIM_UP && testGranular(granular, GranualarUL, GranualarUR))
+                return true;
+            else if (aim == JoyAim::AIM_DOWN && testGranular(granular, GranualarDL, GranualarDR))
+                return true;
+            else if (aim == JoyAim::AIM_LEFT && testGranular(granular, GranualarUL, GranualarDL))
+                return true;
+            else if (aim == JoyAim::AIM_RIGHT && testGranular(granular, GranualarUR, GranualarDR))
+                return true;
+        }
+    }
+    return false;
+}
+
+void CGame::clearEvents()
+{
+    m_events.clear();
 }

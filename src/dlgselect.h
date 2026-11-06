@@ -27,12 +27,15 @@ private slots:
 private:
     enum {
         BLACK = 0xff000000,
-        ALPHA = 0xff000000
+        ALPHA = 0xff000000,
+        TILE_SIZE = 16,
     };
     void updatePreview(CMap *map);
-    CFrameSet* preloadTiles();
+    CFrameSet* preloadMainTiles();
+    CFrameSet* preloadLayerTiles();
     Ui::CDlgSelect *ui;
-    CFrameSet *m_frameSet;
+    CFrameSet *m_frameSetMain;
+    CFrameSet *m_frameSetLayers;
     CMapFile *m_mapFile;
 };
 

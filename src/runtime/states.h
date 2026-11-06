@@ -58,6 +58,9 @@ public:
     const std::unordered_map<uint16_t, std::string> &rawS() { return m_stateS; }
     const std::unordered_map<uint16_t, uint16_t> &rawU() { return m_stateU; }
 
+    bool operator==(const CStates &states) const;
+    bool operator!=(const CStates &states) const;
+
 private:
     std::unordered_map<uint16_t, std::string> m_stateS;
     std::unordered_map<uint16_t, uint16_t> m_stateU;

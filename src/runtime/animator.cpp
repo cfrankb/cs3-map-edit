@@ -19,15 +19,21 @@
 #include "tilesdata.h"
 #include "animzdata.h"
 #include "gamesfx.h"
+#include "layerdata.h"
 #include <cstring>
 #include <vector>
-#include <set>
 #include <array>
+#include "shared/IFile.h"
+#include "logger.h"
+#include "game.h"
+#include "shared/ISerial.h"
+
+#define _U(_v) static_cast<uint32_t>(_v)
 
 constexpr uint8_t NO_SPECIAL_ID = 0;
-constexpr const size_t SEQ_COUNT = 30;
+constexpr const size_t SEQ_COUNT = 36;
 
-const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
+constexpr const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_DIAMOND, ANIMZ_DIAMOND, ANIMZ_DIAMOND_LEN, NO_SPECIAL_ID},
     {TILES_INSECT1, ANIMZ_INSECT1_DN, ANIMZ_INSECT1_LEN, ANIMZ_INSECT1},
     {TILES_SWAMP, ANIMZ_SWAMP, ANIMZ_SWAMP_LEN, NO_SPECIAL_ID},
@@ -45,32 +51,38 @@ const std::array<CAnimator::animzSeq_t, SEQ_COUNT> g_animzSeq = {{
     {TILES_MUSH_IDLE, ANIMZ_MUSH_DOWN, ANIMZ_MUSHROOM_LEN, ANIMZ_MUSHROOM},
     {TILES_WHTEWORM, ANIMZ_WHTEWORM, ANIMZ_WHTEWORM_LEN / 2, ANIMZ_WHTEWORM},
     {TILES_ETURTLE, ANIMZ_ETURTLE, ANIMZ_ETURTLE_LEN / 2, ANIMZ_ETURTLE},
-    {TILES_DRAGO, ANIMZ_DRAGO, ANIMZ_DRAGO_LEN / 2, ANIMZ_DRAGO},
+    {TILES_DEICO, ANIMZ_DEICO, ANIMZ_DEICO_LEN, NO_SPECIAL_ID}, // deico
+    //{TILES_DRAGO, ANIMZ_DRAGO, ANIMZ_DRAGO_LEN / 2, ANIMZ_DRAGO},
+    {TILES_FIREBALL_SM, ANIMZ_FIREBALL_SM, ANIMZ_FIREBALL_SM_LEN, NO_SPECIAL_ID},
     {TILES_DOORS_LEAF, ANIMZ_DOORS_LEAF, ANIMZ_DOORS_LEAF_LEN, NO_SPECIAL_ID},
     {TILES_FIREBALL, ANIMZ_FIREBALL, ANIMZ_FIREBALL_LEN, NO_SPECIAL_ID},
     {TILES_FIRE, ANIMZ_FIRE, ANIMZ_FIRE_LEN, NO_SPECIAL_ID},
     {TILES_BULLETY1, ANIMZ_BULLETY1, ANIMZ_BULLETY1_LEN, NO_SPECIAL_ID},
     {TILES_FLAME, ANIMZ_FLAME, ANIMZ_FLAME_LEN, NO_SPECIAL_ID},
-    {SFX_SPARKLE, ANIMZ_SPARKLE, ANIMZ_SPARKLE_LEN, ANIMZ_SPARKLE},
+    {SFX_SPARKLE, ANIMZ_SPARKLE, ANIMZ_SPARKLE_LEN, ANIMZ_SPARKLE},             // secret passages
     {SFX_EXPLOSION1, ANIMZ_EXPLOSION1, ANIMZ_EXPLOSION1_LEN, ANIMZ_EXPLOSION1}, // fireball explosion
     {SFX_EXPLOSION5, ANIMZ_EXPLOSION5, ANIMZ_EXPLOSION5_LEN, ANIMZ_EXPLOSION5}, // barrel explosion
     {SFX_EXPLOSION6, ANIMZ_EXPLOSION6, ANIMZ_EXPLOSION6_LEN, ANIMZ_EXPLOSION6}, // icecube melting
     {SFX_EXPLOSION7, ANIMZ_EXPLOSION7, ANIMZ_EXPLOSION7_LEN, ANIMZ_EXPLOSION7}, // thunderbolt destruction (yellow)
     {SFX_EXPLOSION0, ANIMZ_EXPLOSION0, ANIMZ_EXPLOSION0_LEN, ANIMZ_EXPLOSION0}, // placeholder for mob death
     {SFX_FLAME, ANIMZ_FLAME, ANIMZ_FLAME_LEN, ANIMZ_FLAME},                     // barrel flame
+    {TILES_SKELETON, ANIMZ_SKELETON, ANIMZ_SKELETON_LEN, ANIMZ_SKELETON},
+    {TILES_ZOMBIE, ANIMZ_ZOMBIE, ANIMZ_ZOMBIE_LEN / 4, ANIMZ_ZOMBIE},
+    {TILES_BABYDRAGON, ANIMZ_BABYDRAGON, ANIMZ_BABYDRAGON_LEN, ANIMZ_BABYDRAGON}, // baby dragon animator
+    {TILES_STARS_TR, ANIMZ_STARS, ANIMZ_STARS_LEN, NO_SPECIAL_ID},                // spinning star
+    {TILES_HEART, ANIMZ_HEART, ANIMZ_HEART_LEN, NO_SPECIAL_ID},                   // pulsing heart
 }};
-
-const std::set<uint8_t> g_specialCases = {
-    TILES_INSECT1,
-    TILES_MUSH_IDLE,
-    TILES_DRAGO,
-    TILES_ETURTLE,
-    TILES_WHTEWORM,
-};
 
 CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
 {
-    std::fill(m_tileReplacement.begin(), m_tileReplacement.end(), NO_ANIMZ);
+    // sanity check
+    if (_U(MAX_SFX) > _U(MAX_TILES))
+        LOGE("SFX_XXXX bleed out of the tile array");
+    if (_U(TILES_TOTAL_COUNT) > _U(MIN_SFX))
+        LOGE("TILES_XXXX and SFX_XXXX collide");
+    if (_U(TILES_TOTAL_COUNT) > _U(MAX_TILES))
+        LOGE("TILES_XXXX over the limit");
+
     for (const auto &seq : g_animzSeq)
     {
         m_seqLookUp[seq.srcTile] = animzInfo_t{
@@ -81,36 +93,80 @@ CAnimator::CAnimator() : m_seqIndex(g_animzSeq.size(), 0)
     }
 }
 
+void CAnimator::reloadTileData()
+{
+    memset(m_tileMainLayer, NO_ANIMZ, sizeof(m_tileMainLayer));
+    memset(m_tileLayer, '\0', sizeof(m_tileLayer));
+    for (size_t i = 0; i < (size_t)TOTAL_TILE_COUNT; ++i)
+    {
+        const auto &data = g_layerdata[i];
+        // if animated (save current index)
+        if (data.nextTile && !data.manual)
+            m_tileLayer[i] = i;
+    }
+}
+
 CAnimator::~CAnimator()
 {
 }
 
 void CAnimator::animate()
 {
+    // main layer tiles
     int i = 0;
     for (const auto &seq : g_animzSeq)
     {
         int32_t &index = m_seqIndex[i];
-        m_tileReplacement[seq.srcTile] = seq.startSeq + index;
+        m_tileMainLayer[seq.srcTile] = seq.startSeq + index;
         index = index < seq.count - 1 ? index + 1 : 0;
         ++i;
     }
     ++m_offset;
-}
 
-uint16_t CAnimator::at(uint8_t tileID) const
-{
-    return m_tileReplacement[tileID];
+    // additional layer tiles
+    for (auto &tileID : m_tileLayer)
+    {
+        if (!tileID)
+            continue;
+        if (tileID >= TOTAL_TILE_COUNT)
+        {
+            LOGW("out of bound layer tile: %u", tileID);
+            break;
+        }
+        const auto &data = g_layerdata[tileID];
+        if (!data.manual && data.nextTile && data.animeSpeed && m_offset % data.animeSpeed == 0)
+            tileID = data.nextTile;
+    }
+
+    // automators
+    CGame *game = CGame::getGame();
+    for (auto &a : game->automators())
+    {
+        if (a.active)
+        {
+            if (a.ttl > 0)
+            {
+                --a.ttl;
+                continue;
+            }
+            CLayer *layer = game->getMap().getLayer(a.layerID);
+            const uint16_t tileID = layer->at(a.x, a.y);
+            const layerdata_t &ld = g_layerdata[tileID];
+            if (!ld.nextTile)
+            {
+                a.active = false;
+                continue;
+            }
+            a.tileID = ld.nextTile;
+            a.ttl = g_layerdata[a.tileID].animeSpeed;
+            layer->set(a.x, a.y, a.tileID);
+        }
+    }
 }
 
 uint16_t CAnimator::offset() const
 {
     return m_offset;
-}
-
-bool CAnimator::isSpecialCase(uint8_t tileID) const
-{
-    return g_specialCases.find(tileID) != g_specialCases.end();
 }
 
 animzInfo_t CAnimator::getSpecialInfo(const int tileID) const
@@ -121,8 +177,57 @@ animzInfo_t CAnimator::getSpecialInfo(const int tileID) const
         return animzInfo_t{
             .frames = it->second.frames,
             .base = it->second.base,
-            .offset = static_cast<uint8_t>(m_offset % it->second.frames),
+            .offset = static_cast<uint16_t>(m_offset % it->second.frames),
         };
     }
     return animzInfo_t{};
+}
+
+bool CAnimator::read(IFile &sfile)
+{
+    if (sfile.read(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
+    {
+        LOGE("failed to read tileMainLayer");
+        return false;
+    }
+    if (sfile.read(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
+    {
+        LOGE("failed to read tileLayer");
+        return false;
+    }
+
+    // read automators
+    auto &automators = CGame::getGame()->automators();
+    if (!readVector(OBJECT_NAME(automators), automators, sfile))
+    {
+        LOGE("failed to read automator");
+        return false;
+    }
+
+    return true;
+}
+
+bool CAnimator::write(IFile &tfile) const
+{
+    // write mainLayer state
+    if (tfile.write(m_tileMainLayer, sizeof(m_tileMainLayer)) != IFILE_OK)
+    {
+        LOGE("failed to write tileMainLayer");
+        return false;
+    }
+    // write layertile state
+    if (tfile.write(m_tileLayer, sizeof(m_tileLayer)) != IFILE_OK)
+    {
+        LOGE("failed to write tileLayer");
+        return false;
+    }
+
+    // save automators
+    const auto &automators = CGame::getGame()->automators();
+    if (!writeVector(OBJECT_NAME(automators), automators, tfile))
+    {
+        LOGE("failed to write automator");
+        return false;
+    }
+    return true;
 }

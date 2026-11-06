@@ -17,16 +17,24 @@
 */
 #pragma once
 
+#include "gamesfx.h"
+#include "tilesdata.h"
+#include "layerdata.h"
+#include "logger.h"
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include <array>
 
+extern const uint8_t g_specialCases[];
+
+class IFile;
+
 struct animzInfo_t
 {
-    uint8_t frames;
-    uint8_t base;
-    uint8_t offset;
+    uint16_t frames;
+    uint16_t base;
+    uint16_t offset;
 };
 
 class CAnimator
@@ -35,27 +43,60 @@ public:
     CAnimator();
     ~CAnimator();
     void animate();
-    uint16_t at(uint8_t tileID) const;
+    inline uint16_t at(uint8_t tileID) const
+    {
+        return m_tileMainLayer[tileID];
+    }
+    inline uint16_t getLayerTile(const uint16_t tileID) const
+    {
+        const uint16_t &c = m_tileLayer[tileID];
+        return c ? c : tileID;
+    }
+
     uint16_t offset() const;
-    bool isSpecialCase(uint8_t tileID) const;
+    constexpr bool isSpecialCase(uint8_t tileID) const
+    {
+        for (const auto &val : m_specialCases)
+            if (val == tileID)
+                return true;
+        return false;
+    }
     animzInfo_t getSpecialInfo(const int tileID) const;
+
+    bool read(IFile &sfile);
+    bool write(IFile &tfile) const;
 
     struct animzSeq_t
     {
-        uint16_t srcTile;  ///< Source tile ID.
-        uint8_t startSeq;  ///< Starting frame ID of animation.
-        uint8_t count;     ///< Number of frames in sequence.
-        uint8_t specialID; ///< Base ID for special animations (0 if none).
+        uint16_t srcTile;   ///< Source tile ID.
+        uint16_t startSeq;  ///< Starting frame ID of animation.
+        uint16_t count;     ///< Number of frames in sequence.
+        uint16_t specialID; ///< Base ID for special animations (0 if none).
+    };
+
+    void reloadTileData();
+
+    enum : uint32_t
+    {
+        NO_ANIMZ = 0xffff,
+        MAX_TILES = 256,
     };
 
 private:
-    enum : uint32_t
-    {
-        NO_ANIMZ = 255,
-        MAX_TILES = 256,
+    static inline constexpr const uint8_t m_specialCases[] = {
+        TILES_INSECT1,
+        TILES_MUSH_IDLE,
+        TILES_ZOMBIE,
+        TILES_ETURTLE,
+        TILES_WHTEWORM,
+        TILES_SKELETON,
+        TILES_BABYDRAGON,
+        TILES_EGG_WHOLE,
     };
+
     /// Maps tile IDs to current animation frame.
-    std::array<uint8_t, MAX_TILES> m_tileReplacement;
+    uint16_t m_tileMainLayer[MAX_TILES];
+    uint16_t m_tileLayer[TOTAL_TILE_COUNT];
     /// Global animation tick counter.
     std::vector<int32_t> m_seqIndex;
     uint16_t m_offset = 0;

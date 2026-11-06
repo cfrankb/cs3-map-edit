@@ -20,6 +20,9 @@
 /// Usage: LOGI("Message %s", str); LOGF("Fatal error %d", code);
 
 #pragma once
+#ifndef __LOGGER_H__
+#define __LOGGER_H__
+
 #include <cstdio>
 #include <mutex>
 #include <string>
@@ -47,6 +50,7 @@ private:
 
 #if defined(USE_QFILE)
 #include <QtLogging>
+#include <QDebug>
 #define printf qDebug
 #define LOGI(...) qInfo(__VA_ARGS__)
 #define LOGW(...) qWarning(__VA_ARGS__)
@@ -65,4 +69,6 @@ private:
 #define LOGF(...)                                             \
     Logger::log(Logger::L_FATAL, __FILE_NAME__, __VA_ARGS__); \
     exit(1)
+#endif
+
 #endif

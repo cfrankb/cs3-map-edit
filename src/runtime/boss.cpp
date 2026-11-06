@@ -36,7 +36,7 @@ namespace BossPrivate
     constexpr int MAX_HP = 4096;
     constexpr int MAX_SPEED = 10;
     constexpr int MAX_FRAME = 16;
-};
+}
 
 using namespace BossPrivate;
 
@@ -61,10 +61,12 @@ bool CBoss::isSolid(const Pos &pos) const
 
 bool CBoss::isGhostBlocked(const Pos &pos) const
 {
+    CGame *game = CGame::getGame();
+    scan_t result = game->scanPos(pos, JoyAim::AIM_NONE);
     CMap &map = CGame::getMap();
     const auto c = map.at(pos.x, pos.y);
     const TileDef &def = getTileDef(c);
-    return def.type == TYPE_SWAMP || def.type == TYPE_ICECUBE || c == TILES_WALLS93_3;
+    return def.type == TYPE_SWAMP || def.type == TYPE_ICECUBE || c == TILES_WALLS93_3 || result.isWater;
 }
 
 std::vector<HitResult> CBoss::testHitbox2(const CMap &map,
@@ -227,8 +229,8 @@ std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
 bool CBoss::canMove(const JoyAim aim) const
 {
     const CMap &map = CGame::getMap();
-    const int mapLen = map.len();
-    const int mapHei = map.hei();
+    const int mapLen = map.width();
+    const int mapHei = map.height();
     const int x = m_x / BOSS_GRANULAR_FACTOR;
     const int y = m_y / BOSS_GRANULAR_FACTOR;
     const int w = m_bossData->hitbox.width / BOSS_GRANULAR_FACTOR;
@@ -401,14 +403,13 @@ void CBoss::animate()
     }
 
     int maxFrames = seq->lenght;
-    // sanity check
+    ++m_framePtr;
     if (maxFrames == 0)
     {
+        // sanity check
         m_framePtr = 0;
-        return;
     }
 
-    ++m_framePtr;
     if (m_framePtr >= maxFrames)
     {
         m_framePtr = 0;
@@ -435,7 +436,10 @@ void CBoss::setState(const BossState state)
 {
     m_state = state;
     m_framePtr = 0;
-};
+    const boss_seq_t *seq = getCurrentSeq();
+    if (seq != nullptr && seq->lenght == 0)
+        m_state = Hidden;
+}
 
 int CBoss::maxHp() const
 {
@@ -615,6 +619,8 @@ void CBoss::setSolidOperator()
     else if (m_bossData->type == BOSS_GHOST)
         m_solidCheck = &CBoss::isGhostBlocked;
     else if (m_bossData->type == BOSS_HARPY)
+        m_solidCheck = &CBoss::isSolid;
+    else if (m_bossData->type == BOSS_BEHOLDER)
         m_solidCheck = &CBoss::isSolid;
     else
     {

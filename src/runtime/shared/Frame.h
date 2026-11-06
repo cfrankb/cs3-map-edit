@@ -32,7 +32,7 @@ class CFrame
 {
 public:
     CFrame(int width = 0, int height = 0);
-    CFrame(const CFrame &src);
+    CFrame(const CFrame &src) = default;
     CFrame(CFrame &&src) noexcept;
     ~CFrame() = default;
 
@@ -59,6 +59,7 @@ public:
     }
 
     inline std::vector<uint32_t> &getRGB() { return m_rgb; }
+    inline const std::vector<uint32_t> &getPixelsConst() const { return m_rgb; }
     void setRGB(std::vector<uint32_t> &rgb) { m_rgb = std::move(rgb); }
     bool hasTransparency() const;
     bool isEmpty() const;
@@ -91,6 +92,86 @@ public:
     CFrame *toAlphaGray(int mx = 0, int my = 0, int cx = -1, int cy = -1);
     void fill(unsigned int rgba);
     void drawAt(CFrame &frame, int bx, int by, bool tr);
+
+    // Horizontal line: x to x+len-1 at y
+    inline void hline(int x, int y, int len, uint32_t color) noexcept
+    {
+        if (y < 0 || y >= height() || x >= width())
+            return;
+        if (x + len > width())
+            len = width() - x;
+        if (len <= 0 || x < 0)
+            return;
+
+        uint32_t *row = getRGB().data() + y * width() + x;
+        for (int i = 0; i < len; ++i)
+            row[i] = color;
+    }
+
+    // Vertical line: y to y+len-1 at x
+    inline void vline(int x, int y, int len, uint32_t color) noexcept
+    {
+        if (x < 0 || x >= width() || y >= height())
+            return;
+        if (y + len > height())
+            len = height() - y;
+        if (len <= 0 || y < 0)
+            return;
+
+        uint32_t *dst = getRGB().data() + y * width() + x;
+        const int stride = width();
+        for (int i = 0; i < len; ++i)
+        {
+            *dst = color;
+            dst += stride;
+        }
+    }
+
+    // Add these two ultra-lightweight helpers to CFrame (or as static functions)
+    inline void dotted_hline(int x, int y, int len, uint32_t color) noexcept
+    {
+        if (y < 0 || y >= height())
+            return;
+        if (x < 0)
+        {
+            len += x;
+            x = 0;
+        }
+        if (x + len > width())
+            len = width() - x;
+        if (len <= 0)
+            return;
+
+        uint32_t *ptr = getRGB().data() + y * width() + x;
+        for (int i = 0; i < len; i += 4)
+        { // step 4 → matches your 2px spacing + axis rule
+            if (i < len)
+                ptr[i] = color; // only draw every 4th pixel
+        }
+    }
+
+    inline void dotted_vline(int x, int y, int len, uint32_t color) noexcept
+    {
+        if (x < 0 || x >= width())
+            return;
+        if (y < 0)
+        {
+            len += y;
+            y = 0;
+        }
+        if (y + len > height())
+            len = height() - y;
+        if (len <= 0)
+            return;
+
+        uint32_t *ptr = getRGB().data() + y * width() + x;
+        const int stride = width();
+        for (int i = 0; i < len; i += 4)
+        {
+            if (i < len)
+                ptr[i * stride] = color;
+        }
+    }
 
     bool read(IFile &file);
     bool write(IFile &file);

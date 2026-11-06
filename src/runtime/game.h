@@ -25,6 +25,7 @@
 #include "actor.h"
 #include "map.h"
 #include "events.h"
+#include "game_auto.h"
 
 class CGameStats;
 class CMapArch;
@@ -32,6 +33,8 @@ class ISound;
 class CBoss;
 class Random;
 class IFile;
+class CAnimator;
+
 struct TileDef;
 enum Event;
 enum Sfx : uint16_t;
@@ -49,6 +52,13 @@ struct bulletData_t
     uint8_t sound;
     Sfx sfxID;
     uint16_t sfxTimeOut;
+};
+
+struct scan_t
+{
+    bool isWater;
+    bool isSolid;
+    bool isDeadly;
 };
 
 class CGame
@@ -73,6 +83,7 @@ public:
         MODE_NEW_INPUTNAME,
         MODE_CHUTE,
         MODE_TEST,
+        MODE_SPLASH,
     };
 
     enum : uint32_t
@@ -100,8 +111,9 @@ public:
     ~CGame();
     bool loadLevel(const GameMode mode);
     bool move(const JoyAim dir);
-    void manageMonsters(const int ticks);
-    void manageBosses(const int ticks);
+    void manageMonsters(const uint32_t ticks);
+    void manageBosses(const uint32_t ticks);
+    void manageSpawns(const uint32_t ticks);
     uint8_t managePlayer(const uint8_t *joystate);
     static Pos translate(const Pos &p, const int aim);
     void consume();
@@ -145,6 +157,7 @@ public:
     void decTimers();
     void parseHints(const char *data);
     int getEvent();
+    void clearEvents();
     void purgeSfx();
     static CGame *getGame();
     static void destroy();
@@ -182,6 +195,10 @@ public:
     static bool isPushable(const uint8_t typeID);
 
     bool shadowActorMove(CActor &actor, const JoyAim aim);
+    scan_t scanPos(const Pos &pos, const uint8_t aim) const;
+    bool isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const;
+    CAnimator *getAnimator() { return m_animator.get(); }
+    std::vector<automator_t> &automators() { return m_automators; }
 
     enum
     {
@@ -211,6 +228,10 @@ private:
     std::vector<Pos> m_usedItems;
     std::unordered_map<uint16_t, int> m_monsterGrid;
     MapReport m_report;
+    std::unique_ptr<CAnimator> m_animator;
+    std::vector<automator_t> m_automators;
+    std::vector<spawn_t> m_spawns;
+
     int m_defaultLives;
     bool m_quiet = false;
     void resetKeys();
@@ -218,6 +239,7 @@ private:
     void setQuiet(bool state);
     void rebuildMonsterGrid();
     void updateMonsterGrid(const CActor &actor, const int index);
+    void manageTrigger(const int x, const int y, const uint8_t attr);
 
     CGame();
     int clearAttr(const uint8_t attr);
@@ -232,15 +254,19 @@ private:
 
     // regular monsters (mob)
     void handleMonster(CActor &actor, const TileDef &def);
+    void handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ticks);
     void handleDrone(CActor &actor, const TileDef &def);
     void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters);
     void handleCrusher(CActor &actor, const bool speeds[]);
     void handleIceCube(CActor &actor);
     void handleBullet(CActor &actor, const TileDef &def, const int i, const bulletData_t &bullet, std::set<int, std::greater<int>> &deletedMonsters);
     void handleBarrel(CActor &actor, const TileDef &def, const int i, std::set<int, std::greater<int>> &deletedMonsters);
+    void handleEgg(CActor &actor, const TileDef &def);
     bool pushChain(const int x, const int y, const JoyAim aim);
     bool fuseBarrel(const Pos &pos);
     void blastRadius(const Pos &pos, const size_t radius, const int damage, std::set<int, std::greater<int>> &deletedMonsters);
+    bool queueRespawn(const CActor &actor);
+    bool queueRespawn(const int actorIndex);
 
     // boss
     CActor *spawnBullet(int x, int y, JoyAim aim, uint8_t tile);
@@ -250,4 +276,7 @@ private:
 
     inline static CMap m_map;
     friend class CGameMixin;
+    friend class CRuntime;
+    friend class Engine;
+    friend class EngineHW;
 };

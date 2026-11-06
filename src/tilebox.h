@@ -36,9 +36,9 @@ private:
 
     enum
     {
-        MAX_WIDTH = 150,
+        MAX_WIDTH = 200,
         MAX_HEIGHT = 400,
-        MAX_COLS = 4,
+        MAX_COLS = 5,
         HIGHLIGHT_RED = 0x40,
         HIGHLIGHT_GREEN = 0xf0,
         HIGHLIGHT_BLUE = 0xf5,

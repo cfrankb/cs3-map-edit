@@ -4,14 +4,12 @@ on:
   push:
     branches:
       - "master"
-      #- "continuous-integration"
-      #- "cross-platform"
+      - "develop"
     tags:
       - "v*"
   pull_request:
     branches:
       - "master"
-      #- "continuous-integration"
 
 defaults:
   run:
@@ -19,8 +17,7 @@ defaults:
 
 env:
   SOURCE_DIR: ${{ github.workspace }}
-  QT_VERSION: 6.5.3
-  #QT_VERSION: 6.8.3
+  QT_VERSION: 6.10.3
   ARTIFACT: "CS3MapEdit-x86_64.AppImage"
 
 jobs:
@@ -28,22 +25,15 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y libhunspell-dev
+
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Copy AppIcon
-        run: |
-          echo "SOURCEDIR: ${{ env.SOURCE_DIR }}/"
-          echo "RUNNERDIR: ${{ runner.temp }}"
-          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png /home/runner/work/cs3-map-edit/CS3MapEdit-icon.png
-          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png ${{ runner.temp }}
-          ls -l /home/runner/work/cs3-map-edit/
-
-      - name: Run Python script
-        run: |
-          python3 bin/patch.py
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -51,18 +41,19 @@ jobs:
           version: ${{ env.QT_VERSION }}
           host: linux
           target: desktop
-          arch: gcc_64
+          arch: linux_gcc_64
           dir: ${{ runner.temp }}
           setup-python: false
 
-      - name: Create build directory
-        run: mkdir ${{ env.SOURCE_DIR }}/build
+      - name: Configure build with CMake
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release -DCS3_BUILD_ZLIB_FROM_SOURCE=ON
 
       - name: Build
-        working-directory: ${{ env.SOURCE_DIR }}/build
+        working-directory: ${{ env.SOURCE_DIR }}
         run: |
-          qmake -r ${{ env.SOURCE_DIR }}/src/mapedit.pro
-          make
+          cmake --build build
 
       - name: AppImage
         working-directory: ${{ env.SOURCE_DIR }}/build
@@ -72,14 +63,10 @@ jobs:
           sudo apt install libfuse2
           wget -O deploy.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod +x deploy.AppImage
-          ls -l ${{ env.SOURCE_DIR }}
-          cp ${{ env.SOURCE_DIR }}/linux/* .
-          ls -l ${{ runner.temp }}
-          cp ${{ env.SOURCE_DIR }}/linux/* ${{ runner.temp }}
-          ./deploy.AppImage CS3MapEdit.desktop -appimage -no-translations -qmldir=${{ env.SOURCE_DIR }} -extra-plugins=renderers
-          ls -l
-          mkdir ${{ env.SOURCE_DIR }}/build/release
-          ls -l
+          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit.desktop .
+          cp ${{ env.SOURCE_DIR }}/linux/CS3MapEdit-icon.png .
+          ./deploy.AppImage CS3MapEdit.desktop -appimage -no-translations -extra-plugins=renderers
+          mkdir -p ${{ env.SOURCE_DIR }}/build/release
           mv CS3MapEdit*.AppImage ${{ env.SOURCE_DIR }}/build/release
 
       - name: Release
@@ -91,7 +78,7 @@ jobs:
             LICENSE
 
       - name: Linux artefact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ env.SOURCE_DIR }}/build/release

@@ -4,6 +4,8 @@
 #include <QDialog>
 #include <cstdint>
 
+class CMap;
+
 namespace Ui {
 class CDlgStat;
 }
@@ -13,7 +15,7 @@ class CDlgStat : public QDialog
     Q_OBJECT
 
 public:
-    explicit CDlgStat(const uint8_t tileID, const uint8_t attr, QWidget *parent = nullptr);
+    explicit CDlgStat(CMap *map, const int x, const int y,  QWidget *parent = nullptr);
     ~CDlgStat();
 
 private:

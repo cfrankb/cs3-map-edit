@@ -23,6 +23,7 @@
 #include "map.h"
 #include "shared/IFile.h"
 #include "states.h"
+#include "statedata.h"
 #include "logger.h"
 #include <cstdint>
 
@@ -35,12 +36,11 @@ namespace MapPrivate
     };
     constexpr char SIG[]{'M', 'A', 'P', 'Z'};
     constexpr char XTR_SIG[]{"XTR"};
-    constexpr uint16_t VERSION0 = 0;
-    constexpr uint16_t VERSION1 = 1;
-    constexpr uint16_t VERSION = 0;
+
+    constexpr uint16_t VERSION = CMap::VERSION3;
     constexpr uint16_t MAX_SIZE = 256;
     constexpr uint16_t MAX_TITLE = 255;
-};
+}
 
 using namespace MapPrivate;
 
@@ -50,27 +50,42 @@ typedef struct
     char ver;
 } extrahdr_t;
 
-CMap::CMap(uint16_t len, uint16_t hei, uint8_t t) : m_mainLayer(len, hei), m_states(std::make_unique<CStates>())
+CMap::CMap(uint16_t len, uint16_t hei, uint16_t t) : m_len(len),
+                                                     m_hei(hei), m_states(std::make_unique<CStates>())
 {
+    addMainLayer();
     resize(len, hei, t, true);
-};
+}
 
 CMap::CMap(const CMap &map) : m_len(map.m_len),
                               m_hei(map.m_hei),
-                              m_mainLayer(map.m_mainLayer),
                               m_attrs(map.m_attrs),
                               m_title(map.m_title),
-                              m_states(std::make_unique<CStates>(*map.m_states)) {}
+                              m_states(std::make_unique<CStates>(*map.m_states))
+{
+    m_layers.reserve(map.m_layers.size());
+    for (const auto &layer : map.m_layers)
+    {
+        m_layers.emplace_back(new CLayer(*layer));
+    }
+    if (m_layers.size() == 0)
+        addMainLayer();
+}
 
 CMap::~CMap()
 {
-    clear();
-};
+    // clear();
+}
+
+void CMap::addMainLayer()
+{
+    m_layers.emplace_back(std::make_unique<CLayer>(m_len, m_hei, CLayer::LayerType::LAYER_MAIN, 0, "main"));
+}
 
 void CMap::clear()
 {
     m_states->clear();
-    m_mainLayer.clear();
+    m_layers.clear();
     m_len = 0;
     m_hei = 0;
     m_attrs.clear();
@@ -123,7 +138,7 @@ bool CMap::read(IFile &file)
         return (*states)->read(file);
     };
 
-    return readImpl(readfile, tell, seek, readStates);
+    return readCommon(readfile, tell, seek, readStates);
 }
 
 bool CMap::read(FILE *sfile)
@@ -149,11 +164,11 @@ bool CMap::read(FILE *sfile)
         return (*states)->read(sfile);
     };
 
-    return readImpl(readfile, tell, seek, readStates);
+    return readCommon(readfile, tell, seek, readStates);
 }
 
 template <typename ReadFunc>
-bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates)
+bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::function<bool(size_t)> seek, std::function<bool()> readStates)
 {
     // Read and verify signature
     char sig[sizeof(SIG)];
@@ -187,14 +202,46 @@ bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::func
         return false;
     }
 
-    if (!m_mainLayer.readImpl(readfile))
+    m_layers.clear();
+
+    // read layers
+    if (ver >= VERSION1)
     {
-        m_lastError = m_mainLayer.lastError();
-        LOGE("%s", m_lastError.c_str());
-        return false;
+        size_t layerCount = 0;
+        if (!readfile(&layerCount, sizeof(uint8_t)))
+        {
+            m_lastError = "failed to read LayerCount";
+            LOGE("%s", m_lastError.c_str());
+            return false;
+        }
+        m_layers.reserve(layerCount);
+        for (size_t i = 0; i < layerCount; ++i)
+        {
+            std::unique_ptr<CLayer> layer = std::make_unique<CLayer>(m_len, m_hei);
+            if (!layer->readCommon(readfile, ver))
+            {
+                m_lastError = std::string("failed read Layer: ") + layer->lastError();
+                LOGE("%s", m_lastError.c_str());
+                return false;
+            }
+            m_layers.emplace_back(std::move(layer));
+        }
     }
-    m_len = m_mainLayer.len();
-    m_hei = m_mainLayer.hei();
+    else
+    {
+        // add main layer for compatibility w/ older versions
+        std::unique_ptr<CLayer> layer = std::make_unique<CLayer>(m_len, m_hei);
+        if (!layer->readCommon(readfile, ver))
+        {
+            m_lastError = std::string("failed read MainLayer: ") + getMainLayer()->lastError();
+            LOGE("%s", m_lastError.c_str());
+            return false;
+        }
+        m_layers.emplace_back(std::move(layer));
+    }
+
+    m_len = getMainLayer()->width();
+    m_hei = getMainLayer()->height();
 
     // Read attributes
     m_attrs.clear();
@@ -235,16 +282,25 @@ bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::func
             uint16_t size = 0;
             if (readfile(&size, 1) != IFILE_OK)
             {
-                LOGE("failed to read map title size");
+                m_lastError = "failed to read map title size";
+                LOGE("%s", m_lastError.c_str());
                 return false;
             }
-            if (size != 0)
+
+            if (size >= MAX_TITLE)
+            {
+                m_lastError = "title too long";
+                LOGE("%s", m_lastError.c_str());
+                return false;
+            }
+            else if (size != 0)
             {
                 char tmp[MAX_TITLE + 1];
                 tmp[size] = 0;
                 if (readfile(tmp, size) != IFILE_OK)
                 {
-                    LOGE("failed to read map title");
+                    m_lastError = "failed to read map title";
+                    LOGE("%s", m_lastError.c_str());
                     return false;
                 }
                 m_title = tmp;
@@ -263,7 +319,6 @@ bool CMap::readImpl(ReadFunc &&readfile, std::function<size_t()> tell, std::func
             seek(ptr);
         }
     }
-
     return true;
 }
 
@@ -294,7 +349,7 @@ bool CMap::fromMemory(uint8_t *mem)
         return (*states)->fromMemory(mem);
     };
 
-    return readImpl(readfile, tell, seek, readStates);
+    return readCommon(readfile, tell, seek, readStates);
 }
 
 bool CMap::write(FILE *tfile) const
@@ -333,18 +388,17 @@ bool CMap::writeCommon(WriteFunc writefile) const
     if (!writefile(&VERSION, sizeof(VERSION)))
         return false;
 
-    /*
-       if (!writefile(&m_len, sizeof(uint8_t)))
-           return false;
-       if (!writefile(&m_hei, sizeof(uint8_t)))
-           return false;
-       if (!writefile(m_map.data(), m_len * m_hei))
-           return false;
-    */
-    if (!m_mainLayer.writeCommon(writefile))
+    // write additional layers
+    size_t layerCount = m_layers.size();
+    if (!writefile(&layerCount, sizeof(uint8_t)))
     {
-        LOGE("failed to write mainlayer");
+        LOGE("failed to write layerCount");
         return false;
+    }
+    for (const auto &layer : m_layers)
+    {
+        if (!layer->writeCommon(writefile))
+            return false;
     }
 
     // Write attributes
@@ -385,7 +439,7 @@ bool CMap::writeCommon(WriteFunc writefile) const
     return true;
 }
 
-const Pos CMap::findFirst(const uint8_t tileId) const
+const Pos CMap::findFirst(const uint16_t tileId) const
 {
     for (int y = 0; y < m_hei; ++y)
     {
@@ -400,7 +454,7 @@ const Pos CMap::findFirst(const uint8_t tileId) const
     return Pos{NOT_FOUND, NOT_FOUND};
 }
 
-size_t CMap::count(const uint8_t tileId) const
+size_t CMap::count(const uint16_t tileId) const
 {
     size_t count = 0;
     for (uint16_t y = 0; y < m_hei; ++y)
@@ -416,24 +470,10 @@ size_t CMap::count(const uint8_t tileId) const
     return count;
 }
 
-void CMap::fill(uint8_t ch)
+void CMap::fill(uint16_t ch)
 {
-    m_mainLayer.fill(ch);
+    getMainLayer()->fill(ch);
     m_attrs.clear();
-}
-
-uint8_t CMap::getAttr(const uint8_t x, const uint8_t y) const
-{
-    const uint16_t key = toKey(x, y);
-    const auto &it = m_attrs.find(key);
-    if (it != m_attrs.end())
-    {
-        return it->second;
-    }
-    else
-    {
-        return 0;
-    }
 }
 
 void CMap::setAttr(const uint8_t x, const uint8_t y, const uint8_t a)
@@ -456,32 +496,35 @@ const char *CMap::lastError()
 
 size_t CMap::size() const
 {
-    return m_mainLayer.size(); //  m_map.size();
+    return getMainLayer()->size();
 }
 
 CMap &CMap::operator=(const CMap &map)
 {
+    clear();
     if (this != &map)
     {
         m_len = map.m_len;
         m_hei = map.m_hei;
-        m_mainLayer = map.m_mainLayer;
         m_attrs = map.m_attrs;
         m_title = map.m_title;
         *m_states = *map.m_states;
+        for (const auto &layer : map.m_layers)
+        {
+            m_layers.emplace_back(new CLayer(*layer.get()));
+        }
     }
     return *this;
 }
 
-void CMap::shift(Direction aim)
+bool CMap::shift(const Direction aim)
 {
     if (m_len == 0 || m_hei == 0)
-        return; // No-op for empty map
+        return false; // No-op for empty map
 
-    if (!m_mainLayer.shift(aim))
-    {
-        return;
-    }
+    for (const auto &layer : m_layers)
+        if (!layer->shift(aim))
+            return false;
 
     attrMap_t newAttrs; // New attribute map for shifted positions
 
@@ -491,8 +534,7 @@ void CMap::shift(Direction aim)
     case Direction::UP:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.y = (pos.y == 0) ? m_hei - 1 : pos.y - 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -500,8 +542,7 @@ void CMap::shift(Direction aim)
     case Direction::DOWN:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.y = (pos.y == m_hei - 1) ? 0 : pos.y + 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -509,8 +550,7 @@ void CMap::shift(Direction aim)
     case Direction::LEFT:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.x = (pos.x == 0) ? m_len - 1 : pos.x - 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
@@ -518,18 +558,53 @@ void CMap::shift(Direction aim)
     case Direction::RIGHT:
         for (const auto &[key, attr] : m_attrs)
         {
-            Pos pos = toPos(key);
-            pos.x = (pos.x == m_len - 1) ? 0 : pos.x + 1;
+            Pos pos = shiftPos(toPos(key), aim);
             newAttrs[toKey(pos.x, pos.y)] = attr;
         }
         break;
 
     default:
         LOGW("Invalid shift direction: %d", static_cast<int>(aim));
-        return;
+        return false;
     }
 
     m_attrs = std::move(newAttrs); // Update attributes
+
+    // Shift spawn/exit positions so they keep pointing at the same tile
+    // (toroidal wrap), matching how attributes are shifted above.
+    if (m_states->hasU(POS_ORIGIN))
+    {
+        Pos pos = shiftPos(toPos(m_states->getU(POS_ORIGIN)), aim);
+        m_states->setU(POS_ORIGIN, toKey(pos));
+    }
+    if (m_states->hasU(POS_EXIT))
+    {
+        Pos pos = shiftPos(toPos(m_states->getU(POS_EXIT)), aim);
+        m_states->setU(POS_EXIT, toKey(pos));
+    }
+
+    return true;
+}
+
+Pos CMap::shiftPos(const Pos &p, const Direction aim) const
+{
+    Pos pos = p;
+    switch (aim)
+    {
+    case Direction::UP:
+        pos.y = (pos.y == 0) ? m_hei - 1 : pos.y - 1;
+        break;
+    case Direction::DOWN:
+        pos.y = (pos.y == m_hei - 1) ? 0 : pos.y + 1;
+        break;
+    case Direction::LEFT:
+        pos.x = (pos.x == 0) ? m_len - 1 : pos.x - 1;
+        break;
+    case Direction::RIGHT:
+        pos.x = (pos.x == m_len - 1) ? 0 : pos.x + 1;
+        break;
+    }
+    return pos;
 }
 
 uint16_t CMap::toKey(const uint8_t x, const uint8_t y)
@@ -567,7 +642,7 @@ const char *CMap::title()
     return m_title.c_str();
 }
 
-void CMap::setTitle(const char *title)
+void CMap::setTitle(const std::string_view &title)
 {
     m_title = title;
 }
@@ -577,7 +652,7 @@ CStates &CMap::states()
     return *m_states;
 }
 
-bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
+bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint16_t t, bool fast)
 {
     in_len = std::min(in_len, MAX_SIZE);
     in_hei = std::min(in_hei, MAX_SIZE);
@@ -585,10 +660,9 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     m_len = in_len;
     m_hei = in_hei;
 
-    if (!m_mainLayer.resize(in_hei, in_hei, t, fast))
-    {
-        return false;
-    }
+    for (const auto &layer : m_layers)
+        if (!layer->resize(in_len, in_hei, t, fast))
+            return false;
 
     attrMap_t newAttrs;
     for (const auto &[key, attr] : m_attrs)
@@ -602,7 +676,28 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint8_t t, bool fast)
     return true;
 }
 
-void CMap::replaceTile(const uint8_t src, const uint8_t repl)
+void CMap::replaceTile(const uint16_t src, const uint16_t repl)
 {
-    m_mainLayer.replaceTile(src, repl);
+    getMainLayer()->replaceTile(src, repl);
+}
+
+CLayer *CMap::addLayer(const CLayer::LayerType lt, const std::string_view &name, uint16_t baseID)
+{
+    return m_layers.emplace_back(new CLayer(m_len, m_hei, lt, baseID, name.data())).get();
+}
+
+std::unique_ptr<CLayer> CMap::popLayer()
+{
+    if (m_layers.empty())
+        return nullptr;
+
+    // Move out the last element
+    std::unique_ptr<CLayer> layer = std::move(m_layers.back());
+    m_layers.pop_back(); // cleaner than resize(size-1)
+    return layer;
+}
+
+void CMap::pushLayer(std::unique_ptr<CLayer> &layer)
+{
+    m_layers.emplace_back(std::move(layer));
 }
