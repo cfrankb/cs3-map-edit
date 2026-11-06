@@ -1,0 +1,91 @@
+name: Tests
+
+# Runs the CTest suites tagged "ci" (see tests/CMakeLists.txt and tests/README.md).
+# The "local" suites (MainWindow, .ui resources, hunspell) are only run on a
+# developer machine.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "master"
+      - "develop"
+  pull_request:
+    branches:
+      - "master"
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  QT_VERSION: 6.10.3
+  SOURCE_DIR: ${{ github.workspace }}
+
+jobs:
+  tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            runs-on: ubuntu-22.04
+            qt-host: linux
+            qt-arch: linux_gcc_64
+            generator: Ninja
+            # Ninja ignores -A and is single-config; the Visual Studio generator
+            # is multi-config and needs both the platform and -C Release.
+            cmake-platform: ""
+            ctest-config: ""
+          - name: Windows (MSVC)
+            runs-on: windows-2022
+            qt-host: windows
+            qt-arch: win64_msvc2022_64
+            generator: "Visual Studio 17 2022"
+            cmake-platform: "-A x64"
+            ctest-config: "-C Release"
+
+    steps:
+      - name: Install dependencies
+        if: matrix.runs-on == 'ubuntu-22.04'
+        run: |
+          sudo apt update -y
+          sudo apt install -y libhunspell-dev
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: ${{ matrix.qt-host }}
+          target: desktop
+          arch: ${{ matrix.qt-arch }}
+          dir: ${{ runner.temp }}
+          setup-python: false
+
+      - name: Configure build with CMake
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          cmake -G "${{ matrix.generator }}" ${{ matrix.cmake-platform }} -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CONFIGURATION_TYPES=Release \
+            -DCS3_BUILD_ZLIB_FROM_SOURCE=ON \
+            -DCS3_BUILD_TESTS=ON
+
+      - name: Build
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: cmake --build build --config Release
+
+      - name: Run tests
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          # The bundled zlib is built as a shared library; make its DLL
+          # reachable for the test executables (no-op on Linux).
+          export PATH="$PWD/build/zlib/Release:$PATH"
+          ctest --test-dir build ${{ matrix.ctest-config }} -L ci --output-on-failure

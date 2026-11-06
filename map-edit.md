@@ -54,11 +54,11 @@ You can set a timeout for the map.
 
 Right click on a tile to modify the attribute
 
-![Right click on a tile to modify the attribute](images/Screenshot_2026-09-06_17-09-50.png)
+![Right click on a tile to modify the attribute](docs/images/Screenshot_2026-09-06_17-09-50.png)
 
 Scroll messages are defined using attribute `F0...FF`
 
-![Scroll message attribute F0...FF](images/Screenshot_2026-09-06_17-11-28.png)
+![Scroll message attribute F0...FF](docs/images/Screenshot_2026-09-06_17-11-28.png)
 
 ## Main Layer Tiles
 
@@ -75,6 +75,21 @@ Tiles for the Floor and Walls are located in the right (toolbox).
 | Select | select a region |
 | Random Mode (Dices) | place tiles randomly |
 | Flood Fill | fill an area with a tile |
+
+## Complexe layout
+
+The Editor supports more complexe compoisition.
+
+On the right side of the screen, you there is a layer selector.
+Click `Add Layers` button to add more layers.
+
+![alt text](docs/images/Screenshot_2026-11-05_20-34-21.png)
+
+You'll see the standard 3 layers.
+Click `Add Layer` to add a decor layer.
+
+ ![alt text](docs/images/Screenshot_2026-11-05_20-34-48.png)
+
 
 ## Game Rules
 

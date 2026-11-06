@@ -10,17 +10,6 @@ set(CMAKE_AUTOUIC ON)   # UI
 set(CMAKE_AUTOMOC ON)   # MOC
 set(CMAKE_AUTORCC ON)   # QRC
 
-# Emit debug info (symbols) so crashes can be backtraced.
-# Always enabled; the cost is larger binaries, which is worth it for
-# being able to attach a debugger / produce a usable call stack.
-#if(NOT CMAKE_CXX_FLAGS)
-#    set(CMAKE_CXX_FLAGS "-g")
-#else()
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-#endif()
-
-
-
 # Find Qt 6 packages
 # The undo/redo framework (QUndoCommand, QUndoStack) lives in the QtGui module
 # across all tested Qt 6 releases (verified on 6.8.3, 6.9.3 and 6.10.3 - there is
@@ -30,26 +19,88 @@ set(CMAKE_AUTORCC ON)   # QRC
 # single running instance of the editor.
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui Network)
 
-#file(GLOB HEADERS src/*.h)
-file(GLOB RESOURCES src/*.qrc)
+# zlib is used directly by the PNG decompression code (FrameSet.cpp, PngMagic.cpp).
+# Link it so the symbols (uncompress, zError) resolve.
+#
+# When CS3_BUILD_ZLIB_FROM_SOURCE is enabled (or when running under GitHub CI,
+# where the CI environment variable is set), build zlib from the bundled
+# external/zlib source instead of relying on a system-installed libz.
+set(CS3_ZLIB "")
+if(CS3_BUILD_ZLIB_FROM_SOURCE OR DEFINED ENV{CI})
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/zlib/CMakeLists.txt")
+        add_subdirectory(external/zlib zlib)
+        set(CS3_ZLIB ZLIB::ZLIB)
+    else()
+        message(WARNING "external/zlib source not found; falling back to system zlib")
+        find_library(ZLIB_LIBRARY z)
+        if(ZLIB_LIBRARY)
+            set(CS3_ZLIB ${ZLIB_LIBRARY})
+        endif()
+    endif()
+else()
+    # Fall back to the system zlib library.
+    find_library(ZLIB_LIBRARY z)
+    if(ZLIB_LIBRARY)
+        set(CS3_ZLIB ${ZLIB_LIBRARY})
+    endif()
+endif()
 
-# Collect .cpp files
+# ---------------------------------------------------------------------------
+# mapruntime: the engine/data layer (src/runtime). Isolated as a library so it
+# can be linked into the editor and into the test executables (tests/TESTING.md).
+#
 # Plain GLOB: re-run cmake configure when adding new .cpp files,
 # e.g. `cmake -S . -B build` or Qt Creator's "Re-run CMake Configure".
-file(GLOB CPP_SOURCES
-    src/*.cpp
+# ---------------------------------------------------------------------------
+file(GLOB RUNTIME_SOURCES
     src/runtime/*.cpp
     src/runtime/shared/*.cpp
     src/runtime/shared/qtgui/*.cpp
 )
 
 # The map editor uses GDI, not SDL3. The following files are runtime-origin
-# (SDL3-based) and must not be compiled into the map editor:
-#   - layerdata.cpp: map editor defines its own g_layerdata in src/layerdata.cpp
+# (SDL3-based) and must not be compiled:
 #   - tileset_tex.cpp: runtime uses SDL3; the map editor uses GDI
-list(REMOVE_ITEM CPP_SOURCES
+list(REMOVE_ITEM RUNTIME_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/tileset_tex.cpp"
 )
+
+add_library(mapruntime STATIC ${RUNTIME_SOURCES})
+
+# Define SDL_NOT_WANTED so the SDL headers compile to no-ops, avoiding pulling
+# SDL functionality into the editor. USE_QFILE selects the QFile-backed file
+# layer. Both are tested by runtime headers, so they must be PUBLIC to keep
+# consumers consistent with the library itself.
+target_compile_definitions(mapruntime PUBLIC SDL_NOT_WANTED=1 USE_QFILE=1)
+target_include_directories(mapruntime PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/shared
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+target_link_libraries(mapruntime PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets ${CS3_ZLIB})
+
+# ---------------------------------------------------------------------------
+# Hunspell (spell checking) is optional.
+# Prefer a system-installed hunspell (found via a CMake config or pkg-config);
+# otherwise fall back to the bundled submodule only if it has been initialized.
+# ---------------------------------------------------------------------------
+find_package(Hunspell QUIET)
+if(NOT TARGET hunspell)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(HUNSPELL hunspell)
+    endif()
+endif()
+if(NOT TARGET hunspell AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/hunspell/CMakeLists.txt")
+    add_subdirectory(external/hunspell hunspell)
+endif()
+
+# ---------------------------------------------------------------------------
+# mapedit_core: editor logic and widgets, i.e. everything in src/ except the
+# entry point, so the test executables can link it without main().
+# ---------------------------------------------------------------------------
+file(GLOB CORE_SOURCES src/*.cpp)
+list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 set(HEADERS
     src/dlgabout.h
@@ -77,95 +128,69 @@ set(UI_FILES
     src/mainwindow.ui
 )
 
-
-# Create executable with Qt-aware handling
-qt_add_executable(${PROJECT_NAME}
-    MANUAL_FINALIZATION
+add_library(mapedit_core STATIC
+    ${CORE_SOURCES}
     ${UI_FILES}
-    ${CPP_SOURCES}
     ${HEADERS}
-    ${RESOURCES}
 )
-
-
-# Hunspell (spell checking) is optional.
-# Prefer a system-installed hunspell (found via a CMake config or pkg-config);
-# otherwise fall back to the bundled submodule only if it has been initialized.
-find_package(Hunspell QUIET)
-if(NOT TARGET hunspell)
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_check_modules(HUNSPELL hunspell)
-    endif()
-endif()
-if(NOT TARGET hunspell AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/hunspell/CMakeLists.txt")
-    add_subdirectory(external/hunspell hunspell)
-endif()
 
 # Link Qt libraries
 # Core must be explicit for MinGW builds.
 # Gui provides the undo/redo framework (QUndoCommand, QUndoStack) for all Qt 6
 # versions, and the editor uses it directly - link it explicitly.
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network)
+target_include_directories(mapedit_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(mapedit_core PUBLIC
+    mapruntime
+    Qt6::Widgets
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Network
+)
 
-# The map editor uses GDI, not SDL. Define SDL_NOT_WANTED so the SDL headers
-# compile to no-ops, avoiding pulling SDL functionality into the editor.
-target_compile_definitions(${PROJECT_NAME} PRIVATE SDL_NOT_WANTED=1)
-target_compile_definitions(${PROJECT_NAME} PRIVATE USE_QFILE=1)
-
-
-# zlib is used directly by the PNG decompression code (FrameSet.cpp, PngMagic.cpp).
-# Link it so the symbols (uncompress, zError) resolve.
-#
-# When CS3_BUILD_ZLIB_FROM_SOURCE is enabled (or when running under GitHub CI,
-# where the CI environment variable is set), build zlib from the bundled
-# external/zlib source instead of relying on a system-installed libz.
-if(CS3_BUILD_ZLIB_FROM_SOURCE OR DEFINED ENV{CI})
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/zlib/CMakeLists.txt")
-        add_subdirectory(external/zlib zlib)
-        target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
-    else()
-        message(WARNING "external/zlib source not found; falling back to system zlib")
-        find_library(ZLIB_LIBRARY z)
-        if(ZLIB_LIBRARY)
-            target_link_libraries(${PROJECT_NAME} PRIVATE ${ZLIB_LIBRARY})
-        endif()
-    endif()
-else()
-    # Fall back to the system zlib library.
-    find_library(ZLIB_LIBRARY z)
-    if(ZLIB_LIBRARY)
-        target_link_libraries(${PROJECT_NAME} PRIVATE ${ZLIB_LIBRARY})
-    endif()
-endif()
-#find_library(OGG_LIBRARY ogg)
-#find_library(VORBIS_LIBRARY vorbisfile)
-
-
-# Optional: include Hunspell if available
-# find_package(Hunspell REQUIRED)
+# Optional: include Hunspell if available.
 # Only define USE_HUNSPELL when the library is actually linked, so the
 # `#if defined(USE_HUNSPELL)` guards in the source compile the code out
-# otherwise.
+# otherwise. PUBLIC because SpellTextEdit.h / SpellHighlighter.h expose
+# <hunspell.hxx> to whoever includes them.
 if(TARGET hunspell)
     # Built from the bundled submodule or found via a CMake config package.
-    target_link_libraries(${PROJECT_NAME} PRIVATE hunspell z)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/hunspell/src/hunspell)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_HUNSPELL=1)
+    target_link_libraries(mapedit_core PUBLIC hunspell z)
+    target_include_directories(mapedit_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/hunspell/src/hunspell)
+    target_compile_definitions(mapedit_core PUBLIC USE_HUNSPELL=1)
 elseif(HUNSPELL_FOUND)
     # System hunspell found via pkg-config.
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${HUNSPELL_LIBRARIES} z)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${HUNSPELL_INCLUDE_DIRS})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_HUNSPELL=1)
+    target_link_libraries(mapedit_core PUBLIC ${HUNSPELL_LIBRARIES} z)
+    target_include_directories(mapedit_core PUBLIC ${HUNSPELL_INCLUDE_DIRS})
+    target_compile_definitions(mapedit_core PUBLIC USE_HUNSPELL=1)
 endif()
 
+# ---------------------------------------------------------------------------
+# Executable: the entry point plus the Qt resources.
+# The .qrc stays in the executable on purpose - resource initializers compiled
+# into a static library can be dropped by the linker unless Q_INIT_RESOURCE is
+# called for them.
+# ---------------------------------------------------------------------------
+file(GLOB RESOURCES src/*.qrc)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/shared
-    ${CMAKE_CURRENT_SOURCE_DIR}/external
+# Create executable with Qt-aware handling
+qt_add_executable(${PROJECT_NAME}
+    MANUAL_FINALIZATION
+    src/main.cpp
+    ${RESOURCES}
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE mapedit_core)
 
 # Finalize Qt setup
 qt_finalize_executable(${PROJECT_NAME})
+
+# ---------------------------------------------------------------------------
+# Tests (tests/TESTING.md): Qt Test suites, one executable per execution
+# environment. Tests labelled `ci` run on GitHub CI, `local` need a developer
+# machine (AUTOUIC .ui checks, hunspell, main window).
+# ---------------------------------------------------------------------------
+option(CS3_BUILD_TESTS "Build the Qt Test suites" ON)
+if(CS3_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

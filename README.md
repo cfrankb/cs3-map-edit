@@ -18,7 +18,7 @@ The world behind the maps: [lore.md](lore.md)
 
 ### Preview map in the editor.
 
-![alt text](images/Screenshot_2025-08-11_00-05-50.png)
+![alt text](docs/images/Screenshot_2025-08-11_00-05-50.png)
 
 ### Runtimes available
 
