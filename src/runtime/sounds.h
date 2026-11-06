@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
+// @enum
 enum SoundFx
 {
     SOUND_NONE,
@@ -41,4 +42,5 @@ enum SoundFx
     SOUND_SHOOT3,
     SOUND_SPLASH01,
     SOUND_DINOSAUR3,
+    SOUND_COUNT, // total number of sounds
 };

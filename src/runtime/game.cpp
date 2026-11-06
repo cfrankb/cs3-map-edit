@@ -207,6 +207,7 @@ bool CGame::move(const JoyAim aim)
     }
     else if (def.type == TYPE_SWITCH)
     {
+        LOGI("switch");
         const uint8_t attr = m_map.getAttr(pos.x, pos.y);
         m_map.setAttr(pos.x, pos.y, 0);
         const uint16_t tileID = m_map.get(pos.x, pos.y);

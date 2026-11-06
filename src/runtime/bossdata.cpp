@@ -43,12 +43,12 @@
 #include <utility>
 
 #include "logger.h"
-#include "shared/FileWrap.h"
-
-#define _N(__VAL) {#__VAL, __VAL}
+#include "names.h"
 
 #ifdef USE_QFILE
 #include "shared/qtgui/qfilewrap.h"
+#else
+#include "shared/FileWrap.h"
 #endif
 
 // ---------------------------------------------------------------------------
@@ -303,179 +303,6 @@ namespace
             return true;
         }
     };
-
-    // -----------------------------------------------------------------------
-    // Name -> value resolvers. The static generator emitted enum names and
-    // let the compiler resolve them; here we resolve to the same values.
-    // -----------------------------------------------------------------------
-    struct NameValue
-    {
-        const char *name;
-        uint32_t value;
-    };
-
-    const NameValue kColors[] = {
-        _N(CLEAR),
-        _N(ALPHA),
-        _N(WHITE),
-        _N(YELLOW),
-        _N(PURPLE),
-        _N(DARKPURPLE),
-        _N(BLACK),
-        _N(GREEN),
-        _N(DARKGREEN),
-        _N(LIME),
-        _N(BLUE),
-        _N(MIDBLUE),
-        _N(CYAN),
-        _N(RED),
-        _N(DARKRED),
-        _N(DARKBLUE),
-        _N(DARKGRAY),
-        _N(GRAY),
-        _N(LIGHTGRAY),
-        _N(LIGHTSLATEGRAY),
-        _N(ORANGE),
-        _N(DARKORANGE),
-        _N(CORAL),
-        _N(PINK),
-        _N(HOTPINK),
-        _N(DEEPPINK),
-        _N(OLIVE),
-        _N(MEDIUMSEAGREEN),
-        _N(SEAGREEN),
-        _N(BLUEVIOLET),
-        _N(DEEPSKYBLUE),
-        _N(LAVENDER),
-        _N(DARKSLATEGREY),
-        _N(BROWN),
-        _N(RED_BROWN),
-        _N(PALE_BROWN),
-        _N(DARK_BROWN),
-        _N(DARK_BROWN2),
-    };
-
-    const NameValue kSounds[] = {
-        _N(SOUND_NONE),
-        _N(SOUND_GRUUP),
-        _N(SOUND_KEY),
-        _N(SOUND_0009),
-        _N(SOUND_COIN1),
-        _N(SOUND_OUCHFAST),
-        _N(SOUND_POUF),
-        _N(SOUND_POW),
-        _N(SOUND_POWERUP),
-        _N(SOUND_POWERUP2),
-        _N(SOUND_POWERUP3),
-        _N(SOUND_BONUS),
-        _N(SOUND_BEEP),
-        _N(SOUND_GOLD3),
-        _N(SOUND_SPRING05),
-        _N(SOUND_EXPLOSION1),
-        _N(SOUND_EXIT),
-        _N(SOUND_DEATH),
-        _N(SOUND_BELLS1),
-        _N(SOUND_HIT2),
-        _N(SOUND_SHOOT3),
-        _N(SOUND_SPLASH01),
-        _N(SOUND_DINOSAUR3),
-    };
-
-    const NameValue kPaths[] = {
-        {"NONE", BossData::NONE},
-        {"ASTAR", BossData::ASTAR},
-        {"BFS", BossData::BFS},
-        {"LOS", BossData::LOS},
-        {"ASTAR_SMOOTH", BossData::ASTAR_SMOOTH},
-    };
-
-    const NameValue kTiles[] = {
-        _N(TILES_BLANK),
-        _N(TILES_FIREBALL),
-        _N(TILES_BULLETY1),
-        _N(TILES_FIREBALL_SM),
-    };
-
-    // Boss flags are #defines in the data, so their values are baked in here.
-    const NameValue kFlags[] = {
-        _N(FLAG_FIREBALL),
-        _N(BOSS_FLAG_PROXIMITY_ATTACK),
-        _N(BOSS_FLAG_ICE_DAMAGE),
-    };
-
-    const NameValue *lookup(const NameValue *table, size_t n, const std::string &name)
-    {
-        for (size_t i = 0; i < n; ++i)
-            if (table[i].name == name)
-                return &table[i];
-        return nullptr;
-    }
-
-    // "Path::ASTAR" or bare "ASTAR"
-    uint32_t resolvePath(const std::string &s)
-    {
-        std::string name = s;
-        const std::string prefix = "Path::";
-        if (name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0)
-            name = name.substr(prefix.size());
-        const NameValue *nv = lookup(kPaths, sizeof(kPaths) / sizeof(kPaths[0]), name);
-        if (!nv)
-            LOGW("failed resolvePath: %s", s.c_str());
-        return nv ? nv->value : 0;
-    }
-
-    uint8_t resolveTile(const std::string &s)
-    {
-        const NameValue *nv = lookup(kTiles, sizeof(kTiles) / sizeof(kTiles[0]), s);
-        if (!nv)
-            LOGW("failed resolveTile: %s", s.c_str());
-        return nv ? static_cast<uint8_t>(nv->value) : 0;
-    }
-
-    uint8_t resolveSound(const std::string &s)
-    {
-        const NameValue *nv = lookup(kSounds, sizeof(kSounds) / sizeof(kSounds[0]), s);
-        if (!nv)
-            LOGW("failed resolveSound: %s", s.c_str());
-        return nv ? static_cast<uint8_t>(nv->value) : 0;
-    }
-
-    Color resolveColor(const std::string &s)
-    {
-        const NameValue *nv = lookup(kColors, sizeof(kColors) / sizeof(kColors[0]), s);
-        if (!nv)
-            LOGW("failed resolveColor: %s", s.c_str());
-        return nv ? static_cast<Color>(nv->value) : CLEAR;
-    }
-
-    // OR-combines one or more named flags; "0" or empty yields 0.
-    uint32_t resolveFlags(const std::string &s)
-    {
-        uint32_t acc = 0;
-        std::string tokens = s;
-        size_t i = 0;
-        while (i < tokens.size())
-        {
-            while (i < tokens.size() && std::isspace((unsigned char)tokens[i]))
-                ++i;
-            if (i >= tokens.size())
-                break;
-            size_t start = i;
-            while (i < tokens.size() && !std::isspace((unsigned char)tokens[i]))
-                ++i;
-            std::string name = tokens.substr(start, i - start);
-            if (name.empty())
-                continue;
-            const NameValue *nv = lookup(kFlags, sizeof(kFlags) / sizeof(kFlags[0]), name);
-            if (nv)
-                acc |= nv->value;
-            else if (name == "0")
-                ; // explicit none
-            else
-                acc |= static_cast<uint32_t>(std::strtoul(name.c_str(), nullptr, 0));
-        }
-        return acc;
-    }
 
     // -----------------------------------------------------------------------
     // INI helpers (mirror parse.py tokeniser)

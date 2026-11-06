@@ -101,7 +101,7 @@ bool processLevel(CMap &map, const char *fname)
     }
     // Resize map
     map.clear();
-    map.resize(maxCols, maxRows, '\0', true);
+    map.resize(maxCols, maxRows, u'\0', true);
     // Set tiles
     pos = 0;
     int y = 0;
@@ -183,7 +183,7 @@ bool convertCs3Level(CMap &map, const char *fname)
     }
 
     map.clear();
-    map.resize(CS3_MAP_LEN, CS3_MAP_HEI, '\0', true);
+    map.resize(CS3_MAP_LEN, CS3_MAP_HEI, u'\0', true);
     auto p = CS3_MAP_OFFSET;
     for (int y = 0; y < CS3_MAP_LEN; ++y)
     {

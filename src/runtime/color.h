@@ -28,6 +28,7 @@ inline constexpr pixel_t RGB(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) n
 }
 #endif
 
+// @enum
 enum Color : uint32_t
 {
     CLEAR = 0,
