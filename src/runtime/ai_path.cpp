@@ -565,6 +565,12 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
                      static_cast<void *>(&sprite));
                 return Result::Blocked;
             }
+            // A pathing CActor must never occupy the player's cell: the
+            // CActor::move tile swap would displace the player's stamped
+            // map identity. MONSTERV3 canMove() admits that cell only so
+            // the A* goal is reachable.
+            if (actor->isPlayerThere(aim))
+                return Result::NoValidPath;
             CGame::getGame()->shadowActorMove(*actor, aim);
         }
         ++m_pathIndex;

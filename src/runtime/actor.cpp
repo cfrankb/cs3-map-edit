@@ -208,6 +208,16 @@ bool CActor::canMove(const JoyAim aim) const
         if (def.type == TYPE_PLAYER)
             return true;
     }
+    else if (m_type == TYPE_MONSTERV3)
+    {
+        // The player's tile is stamped on the map at their cell, so without
+        // this the A* goal is unreachable and MONSTERV3 never paths to the
+        // player (it stood still firing forever). CPath::followPath refuses
+        // the actual final step; the AI_STICKY contact damage in
+        // handleMonsterV3 is what halts the monster at the player.
+        if (def.type == TYPE_PLAYER)
+            return true;
+    }
     else if (CGame::isMoveableType(m_type) || CGame::isBulletType(m_type))
     {
         if (def.type == TYPE_STOP)

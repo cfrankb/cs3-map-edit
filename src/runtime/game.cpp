@@ -2152,6 +2152,18 @@ bool CGame::isOneTimeItem(const uint8_t tileID)
 
 bool CGame::shadowActorMove(CActor &actor, const JoyAim aim)
 {
+    // MONSTERV3 may target the player's stamped cell for pathfinding goal
+    // reachability (CActor::canMove), but must never stamp over the player's
+    // map identity: CActor::move() would carry the player's tile away with
+    // the monster.
+    if (actor.type() == TYPE_MONSTERV3)
+    {
+        const Pos dest = CGame::translate(actor.pos(), aim);
+        if (m_map.isValid(dest.x, dest.y) &&
+            getTileDef(m_map.at(dest.x, dest.y)).type == TYPE_PLAYER)
+            return false;
+    }
+
     uint16_t oldKey = CMap::toKey(actor.x(), actor.y());
     auto it = m_monsterGrid.find(oldKey);
     int monsterIndex = INVALID;
