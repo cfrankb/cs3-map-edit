@@ -18,6 +18,7 @@
 #include "states.h"
 #include "shared/IFile.h"
 #include "logger.h"
+#include <cstdio>
 #include <cstring>
 
 void CStates::setU(const uint16_t k, const uint16_t v)

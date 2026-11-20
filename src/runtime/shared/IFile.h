@@ -18,12 +18,42 @@
 
 #pragma once
 
+// MAINTAINER DIRECTIVE (2026-11-18): this is the engine's file-interface
+// contract and it is FROZEN — do not remove, rename, or re-sign members,
+// including the "production-dead" virtuals flagged in
+// docs/audits/IFile.h.audit.md. Two backends plus the external LGCK
+// builder/editor (bin/utils/sync.sh) compile against this exact surface.
+
 #define IFILE_OK 1
 #define IFILE_NOT_OK 0
 
 #include <string>
 #include <string_view>
 
+// IFile contract (pinned 2026-11-17; both CFileWrap and CFileMem must obey):
+// - Wire format for the string operators: little-endian length prefix,
+//   1 byte when length < 0xff, else 0xff + uint16, and when that uint16 is
+//   0xffff a following uint32 carries the real length. int is a raw 4-byte
+//   host-order passthrough. Both backends must encode/decode identically.
+// - read()/write() return an IFILE_OK/IFILE_NOT_OK *flag*, never a byte
+//   count; callers must compare against IFILE_OK only.
+// - read(buf, 0) and write(buf, 0) are success no-ops returning IFILE_OK.
+// - seek(): negative offsets fail on both backends; seeking past EOF succeeds
+//   (subsequent reads then fail). Verified 2026-11-18 in FileWrap/FileMem.
+// - open() releases any previously held handle before reopening (both).
+//   Mode vocabulary is fopen-style; a legal mode contains at least one of
+//   'r', 'w', 'a' ("rb", "wb", "rw+", "ab" are in use). Divergence callers
+//   must know: 'w' truncates a disk file (fopen) but does NOT clear CFileMem's
+//   existing buffer — stale tail bytes remain visible to getSize(); generic
+//   code must not rely on truncation.
+// - Mode gating: CFileMem rejects read() without 'r' and write() without
+//   'w'/'a' as IFILE_NOT_OK. CFileWrap does not inspect the mode and defers
+//   to stdio (a failed open leaves a null handle; transfers then return
+//   IFILE_NOT_OK). The string operators can bypass a backend's own gate —
+//   do not mix modes and string operators portably.
+// - close() flushes and releases. CFileWrap returns false when nothing was
+//   open; CFileMem always returns true and DESTROYS its buffer contents:
+//   inspect getSize()/buffer() before close(), never after (its dtor closes).
 class IFile
 {
 public:

@@ -26,6 +26,7 @@
 #include "map.h"
 #include "events.h"
 #include "game_auto.h"
+#include "gamesfx.h"
 
 class CGameStats;
 class CMapArch;
@@ -37,8 +38,6 @@ class CAnimator;
 
 struct TileDef;
 enum Event;
-enum Sfx : uint16_t;
-struct sfx_t;
 
 struct MapReport
 {
@@ -110,6 +109,10 @@ public:
 
     ~CGame();
     bool loadLevel(const GameMode mode);
+    // maintainer ruling 2026-11-18: hostile map files must not smuggle cell
+    // values that index out of bounds into getTileDef()/g_layerdata();
+    // CMap/CLayer are untouched, the engine gates its own map after every ingest
+    size_t sanitiseMapTiles();
     bool move(const JoyAim dir);
     void manageMonsters(const uint32_t ticks);
     void manageBosses(const uint32_t ticks);
@@ -134,6 +137,7 @@ public:
     int score() const;
     int lives() const;
     int health() const;
+    void addHealth(const int hp); // public so tests can observe damage (see t_game_ai)
     int sugar() const;
     bool hasExtraSpeed() const;
     void setMapArch(CMapArch *arch);
@@ -144,12 +148,14 @@ public:
     int playerSpeed() const;
     static userKeys_t &keys();
     std::vector<CActor> &getMonsters();
-    CActor &getMonster(int i);
+    CActor &getMonster(int i); // contract (2026-11-18 ruling): caller owns bounds checking against getMonsters().size()
+    std::vector<CBoss> &getBosses(); // public so tests can inject bosses (see t_game_ai)
+    void rebuildMonsterGrid(); // public so tests can sync the grid after getMonsters() injection
     std::vector<sfx_t> &getSfx();
     void playSound(const int id) const;
     void playTileSound(const int tileID) const;
     void setLives(const int lives);
-    void attach(std::shared_ptr<ISound> &s);
+    void attach(const std::shared_ptr<ISound> &s);
     void setSkill(const uint8_t v);
     uint8_t skill() const;
     int size() const;
@@ -159,6 +165,12 @@ public:
     int getEvent();
     void clearEvents();
     void purgeSfx();
+    std::vector<fx_t> &getFx();
+    int spawnFx(const int effectID, const int tileX, const int tileY);
+    int spawnFxPx(const int effectID, const int px, const int py);
+    void tickFx();
+    void getFxToDraw(const fxView_t &view, const bool front,
+                     std::vector<fxDraw_t> &out) const;
     static CGame *getGame();
     static void destroy();
     bool isClosure() const;
@@ -186,6 +198,7 @@ public:
     void deleteMonster(const int i);
     static Random &getRandom();
     static bool validateSignature(const char *signature, const uint32_t version);
+    static bool countWithinBudget(uint32_t count, long remainingBytes, uint32_t minRecordBytes);
     bool isMonsterType(const uint8_t typeID) const;
     static bool isFruit(const uint8_t tileID);
     static bool isBonusItem(const uint8_t tileID);
@@ -198,6 +211,7 @@ public:
     scan_t scanPos(const Pos &pos, const uint8_t aim) const;
     bool isGranularSolidFromPos(const Pos &pos, const uint8_t aim) const;
     CAnimator *getAnimator() { return m_animator.get(); }
+    CGameStats &stats(); // public so tests can observe stats (see t_game)
     std::vector<automator_t> &automators() { return m_automators; }
 
     enum
@@ -206,20 +220,24 @@ public:
     };
 
 private:
-    Pos m_chuteTarget;
+    Pos m_chuteTarget = {};
+    // serialized after gameStats since the 0x0011 save-format bump
+    // (S_CHUTE flag itself lives in gameStats)
     int m_lives = 0;
     int m_health = 0;
     int m_level = 0;
     int m_score = 0;
-    int m_nextLife;
+    int m_nextLife; // set in ctor (SCORE_LIFE is not visible in this header)
     int m_diamonds = 0;
     inline static userKeys_t m_keys;
-    GameMode m_mode;
+    GameMode m_mode = MODE_TITLE;
     int m_introHint = 0;
+    bool m_exitAnnounced = false; // EVENT_EXIT_OPENED fires once per level
     std::vector<Event> m_events;
     std::vector<CActor> m_monsters;
     std::vector<CBoss> m_bosses;
     std::vector<sfx_t> m_sfx;
+    std::vector<fx_t> m_fx;
     CActor m_player;
     CMapArch *m_mapArch = nullptr;
     std::shared_ptr<ISound> m_sound;
@@ -227,7 +245,7 @@ private:
     std::unique_ptr<CGameStats> m_gameStats;
     std::vector<Pos> m_usedItems;
     std::unordered_map<uint16_t, int> m_monsterGrid;
-    MapReport m_report;
+    MapReport m_report = {};
     std::unique_ptr<CAnimator> m_animator;
     std::vector<automator_t> m_automators;
     std::vector<spawn_t> m_spawns;
@@ -237,26 +255,24 @@ private:
     void resetKeys();
     void clearKeyIndicators();
     void setQuiet(bool state);
-    void rebuildMonsterGrid();
     void updateMonsterGrid(const CActor &actor, const int index);
     void manageTrigger(const int x, const int y, const uint8_t attr);
 
     CGame();
     int clearAttr(const uint8_t attr);
     bool spawnMonsters();
-    void addHealth(const int hp);
     void addPoints(const int points);
     void addLife();
     int calcScoreLife() const;
     const char *getHintText();
-    CGameStats &stats();
     const CGameStats &statsConst() const;
 
     // regular monsters (mob)
     void handleMonster(CActor &actor, const TileDef &def);
     void handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ticks);
     void handleDrone(CActor &actor, const TileDef &def);
-    void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters);
+    void handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters,
+                        const std::set<int, std::greater<int>> &deletedMonsters);
     void handleCrusher(CActor &actor, const bool speeds[]);
     void handleIceCube(CActor &actor);
     void handleBullet(CActor &actor, const TileDef &def, const int i, const bulletData_t &bullet, std::set<int, std::greater<int>> &deletedMonsters);

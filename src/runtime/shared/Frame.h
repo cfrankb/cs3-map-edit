@@ -17,26 +17,35 @@
 */
 
 #pragma once
+
+// MAINTAINER DIRECTIVE (2026-11-18): the CFrame contract is FROZEN — do
+// not remove or re-sign declared members, including the test-only editor
+// API flagged in docs/audits/Frame.cpp.audit.md. The Dot POD moved to
+// dot.h unchanged (CDotArray deprecated and deleted 2026-11-18).
+
+#include <string>
 #include <cstdint>
 #include <vector>
 #include <stdexcept>
-#include "DotArray.h"
+#include "dot.h"
 
 class CFrameSet;
-class CDotArray;
-class CSS3Map;
 class CUndo;
 class IFile;
 
 class CFrame
 {
 public:
+    // hard ceiling accepted by the ctor (it throws beyond this); MAX_IMAGE_SIZE
+    // in ss_limits.h is the smaller cap the OBL5 read/write paths enforce
+    static constexpr int MAX_FRAME_DIM = 4096;
+
     CFrame(int width = 0, int height = 0);
     CFrame(const CFrame &src) = default;
     CFrame(CFrame &&src) noexcept;
     ~CFrame() = default;
 
-    CFrame &operator=(CFrame src);
+    CFrame &operator=(CFrame src); // copy-and-swap: universal assignment (const, rvalue, self)
     friend void swap(CFrame &a, CFrame &b) noexcept;
 
     inline bool isValid(int x, int y) const
@@ -64,7 +73,6 @@ public:
     bool hasTransparency() const;
     bool isEmpty() const;
 
-    CFrame &operator=(const CFrame &src);
     void clear();
     void resize(int len, int hei);
     void setTransparency(uint32_t rgba);
@@ -76,7 +84,6 @@ public:
     // CFrameSet *split(int pxSize, bool whole = true);
     CFrameSet *split(int pxSize, int pySize);
     void shrink();
-    const CSS3Map &getMap() const;
     void shiftUP(const bool wrap = true);
     void shiftDOWN(const bool wrap = true);
     void shiftLEFT(const bool wrap = true);
@@ -176,7 +183,6 @@ public:
     bool read(IFile &file);
     bool write(IFile &file);
 
-    void toBmp(uint8_t *&bmp, int &size);
     bool toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5data = {});
 
     static uint32_t toNet(const uint32_t a);

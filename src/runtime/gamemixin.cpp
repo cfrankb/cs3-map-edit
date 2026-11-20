@@ -15,6 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include "gamemixin.h"
@@ -82,6 +84,9 @@ CGameMixin::CGameMixin()
 
 CGameMixin::~CGameMixin()
 {
+    // finalize/close an open recording and release m_recorderFile's IFile*
+    // before member teardown (audit 85-87); safe when already stopped
+    stopRecorder();
 }
 
 /**
@@ -100,12 +105,18 @@ void CGameMixin::drawFont(CFrame &frame, int x, int y, const char *text, const C
 {
     uint32_t *rgba = frame.getRGB().data();
     const int rowPixels = frame.width();
+    const int frameHeight = frame.height();
     const int fontSize = FONT_SIZE;
     const int fontOffset = fontSize;
     const int textSize = strlen(text);
+    if (m_fontData.empty()) // no glyphs preloaded: data() is null (audit 111-116)
+        return;
     for (int i = 0; i < textSize; ++i)
     {
         uint8_t c = static_cast<uint8_t>(text[i]);
+        // control bytes must not negative-index the glyph atlas (audit 111-116)
+        if (c < ' ')
+            c = ' ';
         // const uint8_t *font = c >= CHARS_CUSTOM ? getCustomChars() + (c - CHARS_CUSTOM) * fontOffset
         //                                       : m_fontData.data() + (c - ' ') * fontOffset;
 
@@ -120,10 +131,16 @@ void CGameMixin::drawFont(CFrame &frame, int x, int y, const char *text, const C
                 const uint32_t &pixColor = font[yy] & bitFilter ? color : bgcolor;
                 for (int stepY = 0; stepY < scaleY; ++stepY)
                 {
+                    const int py = yy * scaleY + y + stepY;
+                    if (py < 0 || py >= frameHeight)
+                        continue;
                     for (int stepX = 0; stepX < scaleX; ++stepX)
                     {
+                        const int px = xx * scaleX + x + stepX;
+                        if (px < 0 || px >= rowPixels)
+                            continue;
                         if (pixColor)
-                            rgba[(yy * scaleY + y + stepY) * rowPixels + xx * scaleX + x + stepX] = pixColor;
+                            rgba[py * rowPixels + px] = pixColor;
                     }
                 }
             }
@@ -137,6 +154,8 @@ void CGameMixin::drawFont6x6(CFrame &bitmap, int x, int y, const char *text, con
     constexpr int fontSize = 6;
     constexpr int fontOffset = FONT_SIZE;
     const int textSize = strlen(text);
+    if (m_fontData.empty()) // no glyphs preloaded: data() is null (audit 111-116)
+        return;
     constexpr int rowIndex[] = {0, 2, 3, 4, 5, 6};
     constexpr int colIndex[] = {0, 2, 3, 4, 5, 6};
     enum
@@ -158,7 +177,10 @@ void CGameMixin::drawFont6x6(CFrame &bitmap, int x, int y, const char *text, con
 
     for (int i = 0; i < textSize; ++i)
     {
-        const uint8_t c = static_cast<uint8_t>(text[i]);
+        uint8_t c = static_cast<uint8_t>(text[i]);
+        // control bytes must not negative-index the glyph atlas (audit 170-175)
+        if (c < ' ')
+            c = ' ';
         //   const uint8_t *font = c >= CHARS_CUSTOM ? getCustomChars() + (c - CHARS_CUSTOM) * fontOffset
         //                                         : m_fontData.data() + (c - ' ') * fontOffset;
 
@@ -211,25 +233,29 @@ void CGameMixin::drawRect(CFrame &frame, const rect_t &rect, const Color color, 
 {
     uint32_t *rgba = frame.getRGB().data();
     const int rowPixels = frame.width();
+    const int y0 = std::max(0, rect.y);
+    const int y1 = std::min(frame.height(), rect.y + rect.height);
+    const int x0 = std::max(0, rect.x);
+    const int x1 = std::min(rowPixels, rect.x + rect.width);
     if (fill)
     {
-        for (int y = 0; y < rect.height; y++)
+        for (int y = y0; y < y1; y++)
         {
-            for (int x = 0; x < rect.width; x++)
+            for (int x = x0; x < x1; x++)
             {
-                rgba[(rect.y + y) * rowPixels + rect.x + x] = color;
+                rgba[y * rowPixels + x] = color;
             }
         }
     }
     else
     {
-        for (int y = 0; y < rect.height; y++)
+        for (int y = y0; y < y1; y++)
         {
-            for (int x = 0; x < rect.width; x++)
+            for (int x = x0; x < x1; x++)
             {
-                if (y == 0 || y == rect.height - 1 || x == 0 || x == rect.width - 1)
+                if (y == rect.y || y == rect.y + rect.height - 1 || x == rect.x || x == rect.x + rect.width - 1)
                 {
-                    rgba[(rect.y + y) * rowPixels + rect.x + x] = color;
+                    rgba[y * rowPixels + x] = color;
                 }
             }
         }
@@ -455,6 +481,8 @@ void CGameMixin::drawKeys(CFrame &bitmap)
     const CGame::userKeys_t &keys = game.keys();
     for (size_t i = 0; i < CGame::MAX_KEYS; ++i)
     {
+        if (x < 0) // narrow window: remaining keys would draw off-screen (audit)
+            break;
         const uint8_t &k = keys.tiles[i];
         const uint8_t &u = keys.indicators[i];
         if (k)
@@ -511,7 +539,7 @@ void CGameMixin::drawScreen(CFrame &bitmap)
     }
     else if (m_currentEvent == EVENT_SUGAR)
     {
-        const Color rectBG = isFullWidth && m_currentEvent >= MSG0 ? WHITE : DARKGRAY;
+        const Color rectBG = DARKGRAY; // m_currentEvent < MSG0 inside this branch (audit 525-527)
         const Color rectBorder = isPlayerHurt              ? PINK
                                  : visualcues.livesShimmer ? GREEN
                                                            : LIGHTGRAY;
@@ -707,6 +735,46 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
     }
 }
 
+void CGameMixin::drawFx(CFrame &bitmap, const bool front, const int viewLeft, const int viewTop)
+{
+    if (!m_fxSheet)
+        return;
+    const fxView_t view{viewLeft, viewTop, viewLeft + getWidth(), viewTop + getHeight()};
+    std::vector<fxDraw_t> draws;
+    m_game->getFxToDraw(view, front, draws);
+    for (const auto &draw : draws)
+    {
+        CFrame *frame = (*m_fxSheet)[draw.frameID];
+        if (!frame)
+            continue;
+        // anchor = frame center; frames exceed TILE_SIZE and may hang off
+        // the view (spec R3), so clip here -- the tile blits assume
+        // in-bounds TILE_SIZE sources
+        int x = draw.x - frame->width() / 2 - viewLeft;
+        int y = draw.y - frame->height() / 2 - viewTop;
+        rect_t rect{.x = 0, .y = 0, .width = frame->width(), .height = frame->height()};
+        if (x < 0)
+        {
+            rect.x = -x;
+            rect.width += x;
+            x = 0;
+        }
+        if (y < 0)
+        {
+            rect.y = -y;
+            rect.height += y;
+            y = 0;
+        }
+        if (x + rect.width > getWidth())
+            rect.width = getWidth() - x;
+        if (y + rect.height > getHeight())
+            rect.height = getHeight() - y;
+        if (rect.width <= 0 || rect.height <= 0)
+            continue;
+        drawTile(bitmap, x, y, *frame, rect);
+    }
+}
+
 void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
 {
     const CMap *map = &m_game->getMap();
@@ -730,6 +798,10 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
         int px = ox ? -halfOffset : 0;
         for (int x = 0; x < cols + ox; ++x)
         {
+            if (x + mx >= map->width())
+                break;
+            if (y + my >= map->height())
+                break;
             bool firstX = ox && x == 0;
             bool lastX = ox && x == cols;
             uint16_t tileID = map->at(x + mx, y + my);
@@ -764,6 +836,12 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
     /////////////////////////////////////////////////////////////////////////////
     // overlay special case monsters and sfx
 
+    // fx view origin: the world left/top edge on screen, same as the tile
+    // loop (column mx drawn at -halfOffset when odd) -- spec R2
+    const int fxLeft = mx * TILE_SIZE + (ox ? halfOffset : 0);
+    const int fxTop = my * TILE_SIZE + (oy ? halfOffset : 0);
+    drawFx(bitmap, false, fxLeft, fxTop);
+
     std::vector<sprite_t> sprites;
     gatherSprites(sprites, {.mx = mx, .ox = ox, .my = my, .oy = oy});
     for (const auto &sprite : sprites)
@@ -772,6 +850,8 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
         const int x = sprite.x - mx;
         const int y = sprite.y - my;
         CFrame *tile = calcSpecialFrame(sprite);
+        if (tile == nullptr)
+            continue; // BUG-C8: bad animz/tile index; skip like base tiles
         bool firstY = oy && y == 0;
         bool lastY = oy && y == rows;
         bool firstX = ox && x == 0;
@@ -798,6 +878,8 @@ void CGameMixin::drawViewPortDynamic(CFrame &bitmap)
             drawTile(bitmap, px, py, *tile, true);
         }
     }
+
+    drawFx(bitmap, true, fxLeft, fxTop);
 
     // draw Bosses
     drawBossses(bitmap, m_cx, m_cy, maxCols * CBoss::BOSS_GRANULAR_FACTOR, maxRows * CBoss::BOSS_GRANULAR_FACTOR);
@@ -850,7 +932,7 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
                     const uint16_t refID = m_animator->getLayerTile(tileID);
                     tile = (*m_layerTiles)[refID];
                     const layerdata_t &data = getLayerTileDef(refID);
-                    if (data.tileType == LayerTileType::Foreground)
+                    if (tile != nullptr && data.tileType == LayerTileType::Foreground)
                     {
                         const int px = x * TILE_SIZE;
                         const int py = y * TILE_SIZE;
@@ -872,6 +954,9 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         }
     }
 
+    // fx back layer: before actors, player-centered clamped origin (spec R2)
+    drawFx(bitmap, false, mx * TILE_SIZE, my * TILE_SIZE);
+
     std::vector<sprite_t> sprites;
     gatherSprites(sprites, {.mx = mx, .ox = 0, .my = my, .oy = 0});
     for (const auto &sprite : sprites)
@@ -880,8 +965,13 @@ void CGameMixin::drawViewPortStatic(CFrame &bitmap)
         const int x = sprite.x - mx;
         const int y = sprite.y - my;
         CFrame *tile = calcSpecialFrame(sprite);
+        if (tile == nullptr)
+            continue; // BUG-C8: bad animz/tile index; skip like base tiles
         drawTile(bitmap, x * TILE_SIZE, y * TILE_SIZE, *tile, true);
     }
+
+    // fx front layer: where classic sfx draw today, before fg overlays
+    drawFx(bitmap, true, mx * TILE_SIZE, my * TILE_SIZE);
 
     for (const auto &overlay : overlays)
         drawTile(bitmap, overlay.x, overlay.y, *overlay.tile, true);
@@ -916,13 +1006,6 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
         return _wu;
     };
 
-    auto printRect = [](const rect_t &rect, const std::string_view &name)
-    {
-        LOGI("%s (%d, %d) w:%d h: %d", name.data(), rect.x, rect.y, rect.width, rect.height);
-    };
-
-    (void)printRect;
-
     constexpr int MAX_HP_GAUGE = 64;
     constexpr int GRID_SIZE = 8;
     constexpr int HP_BAR_HEIGHT = 8;
@@ -951,6 +1034,14 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
         }
 
         const int num = boss.currentFrame();
+        // BUG-C8: currentFrame() is data-driven (aims/base/lenght); out of
+        // range means operator[] yields nullptr — skip the boss, not the level
+        if (num < 0 || num >= static_cast<int>(frames->size()) || (*frames)[num] == nullptr)
+        {
+            LOGW("boss 0x%.2x frame %d outside sheet %d (%zu frames)",
+                 boss.data()->type, num, boss.data()->sheet, frames->size());
+            continue;
+        }
         CFrame &frame = *(*frames)[num];
         const hitbox_t &hitbox = boss.hitbox();
 
@@ -996,7 +1087,8 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
             continue;
 
         // Hp Rect
-        const float hpRatio = (float)boss.maxHp() / MAX_HP_GAUGE;
+        // data with maxHp == 0 would make the bar width hp()/0.0f (audit 1016)
+        const float hpRatio = boss.maxHp() > 0 ? (float)boss.maxHp() / MAX_HP_GAUGE : 1.0f;
         const rect_t hRect{
             .x = bRect.x,
             .y = bRect.y - HP_BAR_HEIGHT - HP_BAR_SPACING,
@@ -1046,7 +1138,7 @@ void CGameMixin::centerCamera()
     const int my = std::min(lmy, map->height() > rows ? map->height() - rows : 0);
     m_cx = mx * 2;
     m_cy = my * 2;
-    LOGI("centerCamera cx=%d cy=%d", m_cx, m_cy);
+    // (audit 1066: per-re-center LOGI spam removed)
 }
 
 void CGameMixin::drawLevelIntro(CFrame &bitmap)
@@ -1076,6 +1168,9 @@ void CGameMixin::drawLevelIntro(CFrame &bitmap)
         break;
     case CGame::MODE_CHUTE:
         snprintf(t, sizeof(t), "DROP TO LEVEL %.2d", m_game->level() + 1);
+        break;
+    default:
+        t[0] = '\0';
     };
 
     const int x = (getWidth() - strlen(t) * 2 * FONT_SIZE) / 2;
@@ -1340,9 +1435,9 @@ void CGameMixin::manageGamePlay()
             {
                 game.stats().set(S_PLAYER_HURT, CGame::HurtStart);
             }
-            else if (*(reinterpret_cast<uint32_t *>(joyState)))
+            else if (joyState[0] | joyState[1] | joyState[2] | joyState[3])
             {
-                m_playerFrameOffset = (m_playerFrameOffset + 1) & PLAYER_STD_FRAMES;
+                m_playerFrameOffset = (m_playerFrameOffset + 1) & (PLAYER_FRAMES - 1);
             }
             else
             {
@@ -1355,7 +1450,7 @@ void CGameMixin::manageGamePlay()
         }
         else
         {
-            m_playerFrameOffset = (m_playerFrameOffset + 1) % PLAYER_STD_FRAMES;
+            m_playerFrameOffset = (m_playerFrameOffset + 1) & (PLAYER_FRAMES - 1);
         }
     }
 
@@ -1368,6 +1463,7 @@ void CGameMixin::manageGamePlay()
         game.manageBosses(m_ticks);
         game.manageSpawns(m_ticks);
         game.purgeSfx();
+        game.tickFx();
     }
     const uint16_t exitKey = m_game->getMap().states().getU(POS_EXIT);
     if (game.isClosure())
@@ -1572,7 +1668,7 @@ void CGameMixin::drawScores(CFrame &bitmap)
             color = CYAN;
         }
         bool showCaret = (color == YELLOW) && (m_ticks & CARET_SPEED);
-        snprintf(t, sizeof(t), " %.8d %.2d %s%c",
+        snprintf(t, sizeof(t), " %.8d %.2d %.16s%c",
                  m_hiscores[i].score,
                  m_hiscores[i].level,
                  m_hiscores[i].name,
@@ -1767,7 +1863,8 @@ bool CGameMixin::handleInputString(char *inputDest, const size_t limit)
 
     for (int k = 0; k < Key_Count; ++k)
     {
-        m_keyRepeters[k] ? --m_keyRepeters[k] : 0;
+        if (m_keyRepeters[k])
+            --m_keyRepeters[k];
     }
 
     for (int k = 0; k < Key_Count; ++k)
@@ -1833,6 +1930,8 @@ bool CGameMixin::handleInputString(char *inputDest, const size_t limit)
 bool CGameMixin::inputPlayerName()
 {
     const int j = m_scoreRank;
+    if (j < 0 || j >= static_cast<int>(MAX_SCORES)) // INVALID/out-of-range rank: nothing to edit (audit bounds)
+        return false;
     return handleInputString(m_hiscores[j].name,
                              sizeof(m_hiscores[j].name));
 }
@@ -1884,15 +1983,15 @@ bool CGameMixin::read(IFile &sfile, std::string &name)
     _R(&m_healthRef, sizeof(m_healthRef));
     _R(&m_countdown, sizeof(m_countdown));
 
-    size_t ptr = 0;
+    uint32_t ptr = 0;
     sfile.seek(SAVENAME_PTR_OFFSET);
     // fseek(sfile, SAVENAME_PTR_OFFSET, SEEK_SET);
     _R(&ptr, sizeof(uint32_t));
     sfile.seek(ptr);
     // fseek(sfile, ptr, SEEK_SET);
-    size_t size = 0;
+    uint16_t size = 0;
     _R(&size, sizeof(uint16_t));
-    std::vector<char> tmp(size);
+    std::vector<char> tmp(size + 1, 0); // NUL-terminated: name = tmp.data()
     _R(tmp.data(), size);
     name = tmp.data();
     return true;
@@ -1910,10 +2009,12 @@ bool CGameMixin::write(IFile &tfile, const std::string &name)
     _W(&m_healthRef, sizeof(m_healthRef));
     _W(&m_countdown, sizeof(m_countdown));
 
-    const size_t ptr = tfile.tell();
-    const size_t size = name.size();
+    // save name must fit the uint16 wire length
+    const std::string trimmed = name.substr(0, 65535);
+    const uint32_t ptr = static_cast<uint32_t>(tfile.tell());
+    const uint16_t size = static_cast<uint16_t>(trimmed.size());
     _W(&size, sizeof(uint16_t));
-    _W(name.c_str(), name.size());
+    _W(trimmed.data(), trimmed.size());
     // save EOF offset
     auto offset = tfile.tell();
     tfile.seek(SAVENAME_PTR_OFFSET);
@@ -1946,28 +2047,21 @@ void CGameMixin::clearButtonStates()
 void CGameMixin::fazeScreen(CFrame &bitmap, const int bitShift)
 {
     const uint32_t colorFilter = fazFilter(bitShift);
-    for (int y = 0; y < bitmap.height(); ++y)
-    {
-        for (int x = 0; x < bitmap.width(); ++x)
-        {
-            bitmap.at(x, y) =
-                ((bitmap.at(x, y) >> bitShift) & colorFilter) | ALPHA;
-        }
-    }
+    // flat row-major buffer, same direct access as CFrame::hline; the old
+    // per-pixel at() did two vector calls + bounds checks each way (audit)
+    uint32_t *px = bitmap.getRGB().data();
+    const int n = bitmap.width() * bitmap.height();
+    for (int i = 0; i < n; ++i)
+        px[i] = ((px[i] >> bitShift) & colorFilter) | ALPHA;
 }
 
 void CGameMixin::flashScreen(CFrame &bitmap)
 {
-    for (int y = 0; y < bitmap.height(); ++y)
-    {
-        for (int x = 0; x < bitmap.width(); ++x)
-        {
-            const auto &rgba = bitmap.at(x, y);
-            if (rgba & 0xffffff)
-                bitmap.at(x, y) =
-                    rgba | 0xffffff;
-        }
-    }
+    uint32_t *px = bitmap.getRGB().data();
+    const int n = bitmap.width() * bitmap.height();
+    for (int i = 0; i < n; ++i)
+        if (px[i] & 0xffffff)
+            px[i] |= 0xffffff;
 }
 
 void CGameMixin::stopRecorder()
@@ -1990,7 +2084,12 @@ void CGameMixin::recordGame()
         LOGE("cannot create: %s", path.c_str());
         return;
     }
-    write(m_recorderFile, name);
+    if (!write(m_recorderFile, name)) // audit 2013: don't start on a failed header
+    {
+        LOGE("cannot write recorder header for %s", path.c_str());
+        m_recorderFile.close();
+        return;
+    }
     m_recorder->start(&m_recorderFile, true);
 }
 
@@ -2004,7 +2103,12 @@ void CGameMixin::playbackGame()
         LOGE("cannot read: %s", path.c_str());
         return;
     }
-    read(m_recorderFile, name);
+    if (!read(m_recorderFile, name)) // audit 2027: don't play a headerless file
+    {
+        LOGE("cannot read recorder header for %s", path.c_str());
+        m_recorderFile.close();
+        return;
+    }
     openMusicForLevel(m_game->level());
     m_recorder->start(&m_recorderFile, false);
 }
@@ -2056,7 +2160,7 @@ void CGameMixin::drawEventText(CFrame &bitmap)
         const size_t maxLines = sizeof(message.lines) / sizeof(message.lines[0]);
         for (size_t i = 0; i < maxLines; ++i)
         {
-            const auto &line = std::move(message.lines[i]);
+            const auto &line = message.lines[i];
             if (line.size() == 0)
                 break;
             const int x = (getWidth() - line.size() * FONT_SIZE * message.scaleX) / 2;
@@ -2140,7 +2244,7 @@ CGameMixin::message_t CGameMixin::getEventText(const int baseY)
     {
         const std::string tmp = m_game->getMap().states().getS(m_currentEvent);
         const auto list = split(tmp, '\n');
-        const std::string &line1 = list[0];
+        const std::string &line1 = list.size() > 0 ? list[0] : "";
         const std::string &line2 = list.size() > 1 ? list[1] : "";
         const std::string &line3 = list.size() > 2 ? list[2] : "";
         const int y = list.size() == 0 ? baseY - 14 : baseY + -8 * (std::min(list.size(), (size_t)3));
@@ -2319,7 +2423,8 @@ void CGameMixin::drawSugarMeter(CFrame &bitmap, const int bx)
         !m_visualStates.sugarFx)
     {
         if (sugar > 0)
-            m_visualStates.sugarCubes[sugar - 1] = MAX_FX_COLOR;
+            m_visualStates.sugarCubes[(sugar < SUGAR_CUBES ? sugar : SUGAR_CUBES) - 1] =
+                MAX_FX_COLOR; // clamp: crafted saves can push S_SUGAR past SUGAR_CUBES
         m_visualStates.sugarFx = MAX_FX_COLOR;
     }
     else if (m_visualStates.sugarFx && updateNow)
@@ -2455,10 +2560,14 @@ void CGameMixin::drawHealthBar(CFrame &bitmap, const bool isPlayerHurt)
     if (m_healthBar == HEALTHBAR_HEARTHS)
     {
         int step = FONT_SIZE;
-        const int maxHealth = game.maxHealth() / 2 / FONT_SIZE;
+        int maxHealth = game.maxHealth() / 2 / FONT_SIZE;
         int health = game.health() / 2;
         int bx = 2;
         int by = bitmap.height() - 12;
+        // bitmap.at() throws beyond the frame; cap hearts to the bitmap width
+        const int room = (bitmap.width() - bx) / FONT_SIZE;
+        if (maxHealth > room)
+            maxHealth = room;
         for (int i = 0; i < maxHealth; ++i)
         {
             drawHearth(bx, by, health > 0 ? health : 0);
@@ -2553,10 +2662,11 @@ void CGameMixin::drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues)
 void CGameMixin::beginLevelIntro(CGame::GameMode mode)
 {
     LOGI("beginLevelIntro: %d", mode);
-    m_mutex.lock();
-    startCountdown(COUNTDOWN_INTRO);
-    m_game->loadLevel(mode);
-    m_mutex.unlock();
+    {
+        std::lock_guard<std::mutex> guard(m_mutex);
+        startCountdown(COUNTDOWN_INTRO);
+        m_game->loadLevel(mode);
+    }
     centerCamera();
     clearVisualStates();
 }
@@ -2593,7 +2703,7 @@ void CGameMixin::initUI()
 void CGameMixin::drawUI(CFrame &bitmap, CGameUI &ui)
 {
     const int baseX = getWidth() - ui.width() - ui.margin();
-    const int baseY = getWidth() - ui.height() - ui.margin();
+    const int baseY = getHeight() - ui.height() - ui.margin();
     for (const auto &btn : ui.buttons())
     {
         int x = baseX + btn.x;

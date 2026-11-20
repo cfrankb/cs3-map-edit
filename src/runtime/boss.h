@@ -55,14 +55,17 @@ public:
         Hidden,
         MAX_STATES = Hidden
     };
-    CBoss(const int16_t x = 0, const int16_t y = 0, const bossData_t *data = nullptr);
+    // BUG-C6: the 3-arg ctor derefs data (speed/maxHp/solidCheck); callers
+    // must pass a live getBossData() entry. Default construction only exists
+    // for the save-load path (vector resize + read() populates every field).
+    CBoss() = default;
+    CBoss(const int16_t x, const int16_t y, const bossData_t *data);
     virtual ~CBoss() {};
     inline int16_t x() const override { return m_x; }
     inline int16_t y() const override { return m_y; }
     inline const hitbox_t &hitbox() const { return m_bossData->hitbox; }
     uint8_t type() const override { return m_bossData->type; }
-    std::vector<HitResult> testHitbox1(const CMap &map, hitboxTestCallback_t testCallback, hitboxActionCallback_t actionCallback) const;
-    std::vector<HitResult> testHitbox2(const CMap &map, hitboxTestCallback_t testCallback, hitboxActionCallback_t actionCallback) const;
+    std::vector<HitResult> testHitbox1(const CMap &map, const hitboxTestCallback_t &testCallback, const hitboxActionCallback_t &actionCallback) const;
 
     bool isSolid(const Pos &pos) const;
     bool isGhostBlocked(const Pos &pos) const;
@@ -75,7 +78,7 @@ public:
     void setHP(const int hp) { m_hp = hp; }
     int hp() const { return m_hp; }
     int maxHp() const;
-    bool subtainDamage(const int lostHP);
+    bool sustainDamage(const int lostHP);
     bool isHidden() const { return m_state == Hidden; }
     bool isDone() const { return m_state == Hidden; }
     bool isGoal() const { return m_bossData->is_goal; }
@@ -122,14 +125,14 @@ public:
 
 private:
     const boss_seq_t *getCurrentSeq() const;
-    const bossData_t *m_bossData;
-    int m_framePtr;
-    int16_t m_x;
-    int16_t m_y;
-    int m_hp;
-    BossState m_state;
-    int m_speed;
-    JoyAim m_aim;
+    const bossData_t *m_bossData = nullptr;
+    int m_framePtr = 0;
+    int16_t m_x = 0;
+    int16_t m_y = 0;
+    int m_hp = 0;
+    BossState m_state = Patrol;
+    int m_speed = 0;
+    JoyAim m_aim = AIM_NONE;
     BossTileCheck m_solidCheck = nullptr;
     void setSolidOperator();
     CPath m_path;

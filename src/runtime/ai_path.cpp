@@ -21,6 +21,7 @@
 #include <cmath>
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include "map.h"
 #include "logger.h"
 #include "ai_path.h"
@@ -38,12 +39,19 @@ namespace PathData
 
     constexpr int PATH_TIMEOUT_MAX = 10; // Recompute path every 10 turns
     constexpr size_t MAX_PATH_SIZE = 4096;
-    constexpr JoyAim g_dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
-    constexpr std::array<Pos, JoyAim::TOTAL_AIMS> g_deltas = {
-        Pos{-1, 0}, // Up
-        Pos{1, 0},  // Down
-        Pos{0, -1}, // Left
-        Pos{0, 1},  // Right
+    // delta+direction pairs kept structurally in sync; must match the
+    // CGame::translate()/JoyAim convention used by sprites and by the
+    // direction labelling below
+    struct Step
+    {
+        Pos delta;
+        JoyAim dir;
+    };
+    constexpr Step g_steps[] = {
+        {Pos{0, -1}, AIM_UP},   // Up
+        {Pos{0, 1}, AIM_DOWN},  // Down
+        {Pos{-1, 0}, AIM_LEFT}, // Left
+        {Pos{1, 0}, AIM_RIGHT}, // Right
     };
 }
 
@@ -54,10 +62,12 @@ namespace std
     template <>
     struct hash<Pos>
     {
-        // hashes a key for Pos
+        // packs the int16_t pair (every Pos value) injectively into 32 bits;
+        // the previous sign-extended 64-bit shift worked only by accident
         size_t operator()(const Pos &pos) const
         {
-            return (static_cast<uint64_t>(pos.x) << 32) | (pos.y & 0xFFFFFFFF);
+            return (static_cast<uint32_t>(static_cast<uint16_t>(pos.x)) << 16) |
+                   static_cast<uint16_t>(pos.y);
         }
     };
 }
@@ -117,6 +127,10 @@ std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
         Node *current = openList.top();
         openList.pop();
 
+        // BUG-C9: relaxation re-pushes the same node; skip stale copies
+        if (closedList.find(current->pos) != closedList.end())
+            continue;
+
         // Reached goal
         if (current->pos == goalPos)
         {
@@ -156,10 +170,10 @@ std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
         closedList[current->pos] = true;
 
         // Explore neighbors
-        for (size_t i = 0; i < g_deltas.size(); ++i)
+        for (size_t i = 0; i < std::size(g_steps); ++i)
         {
-            const Pos newPos{static_cast<int16_t>(current->pos.x + g_deltas[i].x),
-                             static_cast<int16_t>(current->pos.y + g_deltas[i].y)};
+            const Pos newPos{static_cast<int16_t>(current->pos.x + g_steps[i].delta.x),
+                             static_cast<int16_t>(current->pos.y + g_steps[i].delta.y)};
 
             // Check bounds before moving
             if (newPos.x < 0 || newPos.x >= mapLen || newPos.y < 0 || newPos.y >= mapHei)
@@ -168,26 +182,32 @@ std::vector<JoyAim> AStar::findPath(ISprite &sprite, const Pos &goalPos) const
             if (closedList.find(newPos) != closedList.end())
                 continue;
 
-            // save original position
-            Pos originalPos{sprite.pos()};
-
-            // Check if move is valid
-            sprite.move(newPos);
-            if (!sprite.canMove(g_dirs[i]))
-            {
-                sprite.move(originalPos);
-                continue;
-            }
+            // probe canMove from the expanded node so the entered cell is checked
+            const Pos originalPos{sprite.pos()};
+            sprite.move(current->pos);
+            const bool canStep = sprite.canMove(g_steps[i].dir);
             sprite.move(originalPos);
+            if (!canStep)
+                continue;
 
             int newGCost = current->gCost + 1;
             int newHCost = manhattanDistance(newPos, goalPos);
 
             auto it = nodes.find(newPos);
-            if (it == nodes.end() || newGCost < it->second->gCost)
+            if (it == nodes.end())
             {
                 nodes[newPos] = std::make_unique<Node>(newPos, newGCost, newHCost, current);
                 openList.push(nodes[newPos].get());
+            }
+            else if (newGCost < it->second->gCost)
+            {
+                // BUG-C9: relax in place. Reassigning the unique_ptr here
+                // freed the Node while openList still held its raw pointer.
+                // Re-push the same pointer so the heap sees the improved
+                // fCost; the stale copy is skipped on pop via closedList.
+                it->second->gCost = newGCost;
+                it->second->parent = current;
+                openList.push(it->second.get());
             }
         }
     }
@@ -257,21 +277,26 @@ std::vector<JoyAim> BFS::findPath(ISprite &sprite, const Pos &goalPos) const
             return directions;
         }
 
-        for (size_t i = 0; i < g_deltas.size(); ++i)
+        for (size_t i = 0; i < std::size(g_steps); ++i)
         {
-            Pos newPos = {static_cast<int16_t>(current.x + g_deltas[i].x), static_cast<int16_t>(current.y + g_deltas[i].y)};
-            if (newPos.x < 0 || newPos.x >= mapLen || newPos.y < 0 || newPos.y >= mapHei || visited[newPos])
+            Pos newPos = {static_cast<int16_t>(current.x + g_steps[i].delta.x), static_cast<int16_t>(current.y + g_steps[i].delta.y)};
+            // find(), not operator[]: operator[] would default-insert false
+            // keys for every rejected neighbor (only true is ever inserted)
+            if (newPos.x < 0 || newPos.x >= mapLen || newPos.y < 0 || newPos.y >= mapHei ||
+                visited.find(newPos) != visited.end())
                 continue;
 
-            Pos originalPos = sprite.pos();
-            sprite.move(newPos);
-            if (sprite.canMove(g_dirs[i]))
+            // probe canMove from the expanded node so the entered cell is checked
+            const Pos originalPos = sprite.pos();
+            sprite.move(current);
+            const bool canStep = sprite.canMove(g_steps[i].dir);
+            sprite.move(originalPos);
+            if (canStep)
             {
                 queue.push(newPos);
                 visited[newPos] = true;
                 parent[newPos] = current;
             }
-            sprite.move(originalPos);
         }
     }
     return {};
@@ -315,7 +340,8 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
             Pos next = {static_cast<int16_t>(x + stepX), static_cast<int16_t>(y)};
             if (next.x >= 0 && next.x < mapLen && next.y >= 0 && next.y < mapHei)
             {
-                sprite.move(next);
+                // probe canMove from the current cell so the entered cell is checked
+                sprite.move(Pos{static_cast<int16_t>(x), static_cast<int16_t>(y)});
                 JoyAim aim = (stepX > 0 ? AIM_RIGHT : AIM_LEFT);
                 if (sprite.canMove(aim))
                 {
@@ -333,7 +359,8 @@ std::vector<JoyAim> LineOfSight::findPath(ISprite &sprite, const Pos &playerPos)
             Pos next = {static_cast<int16_t>(x), static_cast<int16_t>(y + stepY)};
             if (next.x >= 0 && next.x < mapLen && next.y >= 0 && next.y < mapHei)
             {
-                const_cast<ISprite &>(sprite).move(next);
+                // probe canMove from the current cell so the entered cell is checked
+                sprite.move(Pos{static_cast<int16_t>(x), static_cast<int16_t>(y)});
                 JoyAim aim = (stepY > 0 ? AIM_DOWN : AIM_UP);
                 if (sprite.canMove(aim))
                 {
@@ -367,11 +394,14 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
     const CMap &map = CGame::getMap();
     const int mapLen = map.width() * granularFactor; // Half-tile bounds
     const int mapHei = map.height() * granularFactor;
-    std::vector<Pos> smoothedPath = {path[0]};
+    const Pos originalPos = sprite.pos();
 
     LineOfSight los;
+    std::vector<JoyAim> directions;
     for (size_t i = 1; i < path.size();)
     {
+        // probe line-of-sight from the actual segment start
+        sprite.move(path[i - 1]);
         size_t j = i + 1;
         while (j < path.size())
         {
@@ -385,7 +415,7 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
                 break;
             }
             // Reuse LineOfSight to check if direct path is clear in half-tile space
-            if (!los.findPath(const_cast<ISprite &>(sprite), end).empty())
+            if (!los.findPath(sprite, end).empty())
             {
                 j++;
             }
@@ -394,30 +424,19 @@ std::vector<JoyAim> AStarSmooth::smoothPath(const std::vector<Pos> &path, ISprit
                 break;
             }
         }
-        smoothedPath.push_back(path[j - 1]);
-        i = j;
-    }
-
-    std::vector<JoyAim> directions;
-    for (size_t i = 1; i < smoothedPath.size(); ++i)
-    {
-        const int dx = smoothedPath[i].x - smoothedPath[i - 1].x;
-        const int dy = smoothedPath[i].y - smoothedPath[i - 1].y;
-        if (dx == 1 && dy == 0)
-            directions.push_back(JoyAim::AIM_RIGHT);
-        else if (dx == -1 && dy == 0)
-            directions.push_back(JoyAim::AIM_LEFT);
-        else if (dx == 0 && dy == 1)
-            directions.push_back(JoyAim::AIM_DOWN);
-        else if (dx == 0 && dy == -1)
-            directions.push_back(JoyAim::AIM_UP);
-        else
+        // emit the unit moves from path[i-1] to path[j-1] (LOS is all-or-nothing)
+        const auto segment = los.findPath(sprite, path[j - 1]);
+        if (segment.empty())
         {
-            LOGE("Invalid smoothed path transition from (%d,%d) to (%d,%d) on line %d",
-                 smoothedPath[i - 1].x, smoothedPath[i - 1].y, smoothedPath[i].x, smoothedPath[i].y, __LINE__);
+            LOGE("Invalid smoothed path transition from (%d,%d) to (%d,%d)",
+                 path[i - 1].x, path[i - 1].y, path[j - 1].x, path[j - 1].y);
+            sprite.move(originalPos);
             return {};
         }
+        directions.insert(directions.end(), segment.begin(), segment.end());
+        i = j;
     }
+    sprite.move(originalPos);
     return directions;
 }
 
@@ -450,6 +469,10 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
         Node *current = openList.top();
         openList.pop();
 
+        // BUG-C9: relaxation re-pushes the same node; skip stale copies
+        if (closedList.find(current->pos) != closedList.end())
+            continue;
+
         if (current->pos == goalPos)
         {
             std::vector<Pos> path;
@@ -465,26 +488,39 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 
         closedList[current->pos] = true;
 
-        for (int i = 0; i < 4; ++i)
+        for (size_t i = 0; i < std::size(g_steps); ++i)
         {
-            const Pos newPos = {static_cast<int16_t>(current->pos.x + g_deltas[i].x), static_cast<int16_t>(current->pos.y + g_deltas[i].y)};
-            if (newPos.x < 0 || newPos.x >= mapLen || newPos.y < 0 || newPos.y >= mapHei || closedList[newPos])
+            const Pos newPos = {static_cast<int16_t>(current->pos.x + g_steps[i].delta.x), static_cast<int16_t>(current->pos.y + g_steps[i].delta.y)};
+            // find(), not operator[]: BUG-C9's pop skip treats map membership
+            // as closed, so no false-valued probes may enter closedList
+            if (newPos.x < 0 || newPos.x >= mapLen || newPos.y < 0 || newPos.y >= mapHei ||
+                closedList.find(newPos) != closedList.end())
                 continue;
 
+            // probe canMove from the expanded node so the entered cell is checked
             const Pos originalPos = sprite.pos();
-            const_cast<ISprite &>(sprite).move(newPos);
-            if (!sprite.canMove(g_dirs[i]))
-            {
-                sprite.move(originalPos);
-                continue;
-            }
+            sprite.move(current->pos);
+            const bool canStep = sprite.canMove(g_steps[i].dir);
             sprite.move(originalPos);
+            if (!canStep)
+                continue;
 
             int newGCost = current->gCost + 1;
-            if (!nodes[newPos] || newGCost < nodes[newPos]->gCost)
+            // find() first: operator[] here default-inserted a *null* entry for
+            // every probed neighbor and re-hashed on each access
+            auto it = nodes.find(newPos);
+            if (it == nodes.end())
             {
                 nodes[newPos] = std::make_unique<Node>(newPos, newGCost, manhattanDistance(newPos, goalPos), current);
                 openList.push(nodes[newPos].get());
+            }
+            else if (newGCost < it->second->gCost)
+            {
+                // BUG-C9: relax in place (see AStar); replacing the unique_ptr
+                // would free the Node still referenced by openList
+                it->second->gCost = newGCost;
+                it->second->parent = current;
+                openList.push(it->second.get());
             }
         }
     }
@@ -494,19 +530,20 @@ std::vector<JoyAim> AStarSmooth::findPath(ISprite &sprite, const Pos &playerPos)
 ////////////////////////////////////////////////
 CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPath &astar)
 {
+    // Maintainer ruling 2026-11-18: standing on the goal needs no search;
+    // skip the (expensive, always-empty) recompute instead of re-running it.
+    if (sprite.pos() == playerPos)
+        return Result::NoValidPath;
+
     // Check if path is invalid or timed out
-    if (m_pathIndex >= m_cachedDirections.size() || m_pathTimeout <= 0)
+    if (m_pathIndex >= m_cachedDirections.size() || m_pathTimeout == 0)
     {
         m_cachedDirections = astar.findPath(sprite, playerPos);
         m_pathIndex = 0;
         if (!m_pathTimeout)
             m_pathTimeout = PATH_TIMEOUT_MAX;
         if (m_cachedDirections.empty())
-        {
-            // if (!sprite.isBoss())
-            //     LOGI("sprite: %p -- path empty", &sprite);
             return Result::NoValidPath; // No valid path
-        }
     }
 
     // Try the next direction
@@ -520,7 +557,15 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
         }
         else
         {
-            CGame::getGame()->shadowActorMove(*static_cast<CActor *>(&sprite), aim);
+            // unchecked downcast was UB for any other ISprite; fail safe
+            CActor *actor = dynamic_cast<CActor *>(&sprite);
+            if (!actor)
+            {
+                LOGE("CPath::followPath: non-boss sprite %p is not a CActor",
+                     static_cast<void *>(&sprite));
+                return Result::Blocked;
+            }
+            CGame::getGame()->shadowActorMove(*actor, aim);
         }
         ++m_pathIndex;
         --m_pathTimeout;
@@ -528,8 +573,6 @@ CPath::Result CPath::followPath(ISprite &sprite, const Pos &playerPos, const IPa
     }
 
     // Move failed, invalidate cache and recompute next turn
-    // if (!sprite.isBoss())
-    //    LOGI("sprite: %p -- cannot move", &sprite);
     m_cachedDirections.clear();
     m_pathIndex = 0;
     m_pathTimeout = 0;
@@ -543,39 +586,14 @@ bool CPath::read(IFile &sfile)
         return sfile.read(ptr, size) == IFILE_OK;
     };
 
-    auto checkBound = [](auto a, auto b)
+    // all three gated fields are size_t after the 0x0011 uint16-local reads
+    auto checkBound = [](const char *name, size_t value, size_t max) -> bool
     {
-        using T = decltype(a);
-
-        if constexpr (std::is_same_v<T, size_t>)
+        if (value > max)
         {
-            if (a > b)
-            {
-                LOGE("%s: %lu outside expected -- expected < %lu", _S(a), a, b);
-                return false;
-            }
+            LOGE("%s: %zu outside expected -- expected <= %zu", name, value, max);
+            return false;
         }
-        else if constexpr (std::is_same_v<T, uint8_t>)
-        {
-            if (a > b)
-            {
-                LOGE("%s: %u outside expected -- expected < %u", _S(a), a, b);
-                return false;
-            }
-        }
-        else if constexpr (std::is_integral_v<T>)
-        {
-            if (a > b || a < 0)
-            {
-                LOGE("%s: %d outside expected -- expected > 0 && < %d", _S(a), a, b);
-                return false;
-            }
-        }
-        else
-        {
-            static_assert(std::is_integral_v<T>, "checkBound only supports integral types");
-        }
-
         return true;
     };
 
@@ -583,21 +601,34 @@ bool CPath::read(IFile &sfile)
     //////////////////////////////////////
     // Read Path (saved)
     m_cachedDirections.clear();
-    size_t pathSize = 0;
-    _R(&pathSize, DATA_SIZE);
-    checkBound(pathSize, MAX_PATH_SIZE);
+    uint16_t u16 = 0;
+    _R(&u16, DATA_SIZE);
+    size_t pathSize = u16;
+    if (!checkBound("pathSize", pathSize, MAX_PATH_SIZE))
+        return false;
     for (size_t i = 0; i < pathSize; ++i)
     {
         JoyAim dir;
         _R(&dir, sizeof(dir));
+        // cached directions only ever hold AIM_UP..AIM_RIGHT (see g_steps);
+        // AIM_NONE/0xff and other garbage never legitimately reach the wire
+        if (dir >= TOTAL_AIMS)
+        {
+            LOGE("CPath::read: corrupt direction %.2x", dir);
+            return false;
+        }
         m_cachedDirections.emplace_back(dir);
     }
     m_pathIndex = 0;
-    _R(&m_pathIndex, DATA_SIZE);
-    checkBound(m_pathIndex, MAX_PATH_SIZE);
+    _R(&u16, DATA_SIZE);
+    m_pathIndex = u16;
+    if (!checkBound("m_pathIndex", m_pathIndex, MAX_PATH_SIZE))
+        return false;
     m_pathTimeout = 0;
-    _R(&m_pathTimeout, DATA_SIZE);
-    checkBound(m_pathTimeout, MAX_PATH_SIZE);
+    _R(&u16, DATA_SIZE);
+    m_pathTimeout = u16;
+    if (!checkBound("m_pathTimeout", m_pathTimeout, MAX_PATH_SIZE))
+        return false;
 
     return true;
 }
@@ -610,14 +641,18 @@ bool CPath::write(IFile &tfile)
     };
 
     constexpr size_t DATA_SIZE = 2;
-    const auto pathSize = m_cachedDirections.size();
+    // values are bounded by MAX_PATH_SIZE / PATH_TIMEOUT_MAX, so the
+    // uint16 wire fields cannot truncate
+    const uint16_t pathSize = static_cast<uint16_t>(m_cachedDirections.size());
     _W(&pathSize, DATA_SIZE);
     for (const auto &dir : m_cachedDirections)
     {
         _W(&dir, sizeof(dir));
     }
-    _W(&m_pathIndex, DATA_SIZE);
-    _W(&m_pathTimeout, DATA_SIZE);
+    const uint16_t pathIndex = static_cast<uint16_t>(m_pathIndex);
+    const uint16_t pathTimeout = static_cast<uint16_t>(m_pathTimeout);
+    _W(&pathIndex, DATA_SIZE);
+    _W(&pathTimeout, DATA_SIZE);
 
     return true;
 }
@@ -655,5 +690,7 @@ const IPath *CPath::getPathAlgo(const uint8_t algo)
 
 void CPath::setTimeout(int timeout)
 {
-    m_pathTimeout = timeout;
+    // m_pathTimeout is size_t: a negative argument would wrap to a huge
+    // value and disable path expiry
+    m_pathTimeout = timeout < 0 ? 0 : static_cast<size_t>(timeout);
 }

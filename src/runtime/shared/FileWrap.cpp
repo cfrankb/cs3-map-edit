@@ -72,28 +72,41 @@ int CFileWrap::read(void *buf, int size)
 {
     if (m_memFile)
         return m_memFile->read(buf, size);
-    else
-        return fread(buf, size, 1, m_file) == 1 ? IFILE_OK : IFILE_NOT_OK;
+    if (!m_file)
+        return IFILE_NOT_OK;
+    if (size < 0)
+        return IFILE_NOT_OK; // negative length would wrap to a huge size_t
+    if (size == 0)
+        return IFILE_OK; // reading nothing is not a failure
+    return fread(buf, (size_t)size, 1, m_file) == 1 ? IFILE_OK : IFILE_NOT_OK;
 }
 
 int CFileWrap::write(const void *buf, int size)
 {
     if (m_memFile)
         return m_memFile->write(buf, size);
-    else
-        return fwrite(buf, size, 1, m_file) == 1 ? IFILE_OK : IFILE_NOT_OK;
+    if (!m_file)
+        return IFILE_NOT_OK;
+    if (size < 0)
+        return IFILE_NOT_OK; // negative length would wrap to a huge size_t
+    if (size == 0)
+        return IFILE_OK; // writing nothing is not a failure
+    return fwrite(buf, (size_t)size, 1, m_file) == 1 ? IFILE_OK : IFILE_NOT_OK;
 }
 
 bool CFileWrap::open(const std::string_view &fileName, const std::string_view &mode)
 {
     m_mode = mode;
+    close(); // release any previously open FILE* before switching targets
+    if (fileName.empty())
+        return false;
     if ((m_memFile = findFile(fileName)))
     {
         return m_memFile->open(fileName, mode);
     }
     else
     {
-        m_file = fopen(fileName.data(), mode.data());
+        m_file = fopen(std::string(fileName).c_str(), std::string(mode).c_str());
         return m_file != nullptr;
     }
 }
@@ -119,7 +132,7 @@ long CFileWrap::getSize()
     {
         return m_memFile->getSize();
     }
-    else
+    else if (m_file)
     {
         long cur = ftell(m_file);
         fseek(m_file, 0, SEEK_END);
@@ -127,20 +140,21 @@ long CFileWrap::getSize()
         fseek(m_file, cur, SEEK_SET);
         return w;
     }
+    return -1;
 }
 
 bool CFileWrap::seek(long p)
 {
     if (m_memFile)
         return m_memFile->seek(p);
-    else if (fseek(m_file, p, SEEK_SET) != 0)
-        return false;
-    return true;
+    return m_file && fseek(m_file, p, SEEK_SET) == 0;
 }
 
 long CFileWrap::tell()
 {
-    return m_memFile ? m_memFile->tell() : ftell(m_file);
+    if (m_memFile)
+        return m_memFile->tell();
+    return m_file ? ftell(m_file) : -1;
 }
 
 bool CFileWrap::operator>>(std::string &str)
@@ -151,26 +165,35 @@ bool CFileWrap::operator>>(std::string &str)
     }
     else
     {
-        int size = 0;
-        if (fread(&size, 1, 1, m_file) != 1)
+        if (!m_file)
             return false;
-        if (size == 0xff)
+        // BUG-C10: decode with width-exact locals mirroring CFileMem: a byte
+        // < 0xff is the length; 0xff introduces a uint16; a uint16 of 0xffff
+        // introduces the uint32 content size. Reusing one int for all reads
+        // made the 0xffff case dead and desynced the stream on 32-bit writes.
+        uint8_t byte = 0;
+        if (fread(&byte, sizeof(byte), 1, m_file) != 1)
+            return false;
+        uint32_t size = byte;
+        if (byte == 0xff)
         {
-            if (size == 0xffff)
+            uint16_t w16 = 0;
+            if (fread(&w16, sizeof(w16), 1, m_file) != 1)
+                return false;
+            size = w16;
+            if (w16 == 0xffff)
             {
                 // 32 bits version
                 if (fread(&size, sizeof(uint32_t), 1, m_file) != 1)
                     return false;
             }
-            else
-            {
-                // 16 bits
-                if (fread(&size, sizeof(uint16_t), 1, m_file) != 1)
-                    return false;
-            }
         }
+        // the declared payload must actually be in the file (mirrors BUG-C1)
+        const long remain = getSize() - ftell(m_file);
+        if (remain < 0 || static_cast<size_t>(size) > static_cast<size_t>(remain))
+            return false;
         str.resize(size); // Allocate space in str
-        if (fread(str.data(), size, 1, m_file) != 1)
+        if (size != 0 && fread(str.data(), size, 1, m_file) != 1)
         {
             str.clear(); // Reset on failure
             return false;

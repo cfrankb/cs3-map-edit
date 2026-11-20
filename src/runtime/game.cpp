@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <unordered_map>
+#include <cstdint>
 #include <cstring>
 #include <stdarg.h>
 #include <string>
@@ -52,9 +53,22 @@
 
 namespace GamePrivate
 {
-    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x000e;
+    // Actor wire format changed (m_frame serialized separately from m_algo
+    // after the union split, see actor.h); old saves are rejected.
+    // extended fx section added (m_fx save block after the sfx block);
+    // old saves are rejected by the version gate (spec N3).
+    constexpr uint32_t ENGINE_VERSION = (0x0200 << 16) + 0x0012;
     constexpr const char GAME_SIGNATURE[]{'C', 'S', '3', 'b'};
+    // Minimum on-disk bytes of one saved monster/boss record: the fixed
+    // serialized fields plus at least one path-tag byte (CActor common
+    // section is 11 fields >= 1 byte each; CBoss is 13 fixed bytes).
+    constexpr uint32_t MIN_ACTOR_RECORD = 12;
+    constexpr uint32_t MIN_BOSS_RECORD = 13;
     Random g_randomz(12345, 0);
+
+    // tile size for the spawnFx tile->pixel conversion (spec S1);
+    // engine.h / gamemixin.h own their own copies
+    constexpr int FX_TILE_SIZE = 16;
 
     enum
     {
@@ -181,7 +195,7 @@ bool CGame::move(const JoyAim aim)
     const Pos pos = CGame::translate(m_player.pos(), aim);
     if (pos == m_player.pos())
         return false;
-    const uint8_t tileID = m_player.tileAt(aim);
+    const uint16_t tileID = m_player.tileAt(aim);
     const TileDef &def = getTileDef(tileID);
     if (isPushable(def.type))
     {
@@ -209,9 +223,8 @@ bool CGame::move(const JoyAim aim)
     {
         LOGI("switch");
         const uint8_t attr = m_map.getAttr(pos.x, pos.y);
-        m_map.setAttr(pos.x, pos.y, 0);
-        const uint16_t tileID = m_map.get(pos.x, pos.y);
-        m_map.set(pos.x, pos.y, tileID + 1);
+        const uint16_t switchTile = m_map.get(pos.x, pos.y);
+        m_map.set(pos.x, pos.y, switchTile + 1);
         manageTrigger(pos.x, pos.y, attr);
     }
     else if (def.type == TYPE_PUSHOVER &&
@@ -231,7 +244,7 @@ bool CGame::move(const JoyAim aim)
  */
 void CGame::consume()
 {
-    const uint8_t pu = m_player.getPU();
+    const uint16_t pu = m_player.getPU();
     const TileDef &def = getTileDef(pu);
     const auto &result = scanPos(m_player.pos(), JoyAim::AIM_NONE);
     const bool isWater = result.isWater || def.type == TYPE_SWAMP;
@@ -338,8 +351,7 @@ void CGame::consume()
     const int x = m_player.x();
     const int y = m_player.y();
     const uint8_t attr = m_map.getAttr(x, y);
-    m_map.setAttr(x, y, 0);
-    manageTrigger(x, y, attr);
+    manageTrigger(x, y, attr); // clears the cell attr
 }
 
 void CGame::manageTrigger(const int x, const int y, const uint8_t attr)
@@ -393,18 +405,75 @@ void CGame::manageTrigger(const int x, const int y, const uint8_t attr)
  * @return true - upon success
  * @return false
  */
+/**
+ * @brief Replace tile IDs outside the table each layer feeds
+ *
+ * Maintainer ruling 2026-11-18: run at the engine's map ingest points
+ * (loadLevel, savegame read). CMap/CLayer stay untouched. baseID==0 layers
+ * feed tileDefs (limit TILES_TOTAL_COUNT); the rest feed the animator
+ * tables and g_layerdata (limit TOTAL_TILE_COUNT). Invalid cells become
+ * TILES_BLANK/no-sprite (0); a single warning carries the total count.
+ *
+ * @return number of replaced cells
+ */
+size_t CGame::sanitiseMapTiles()
+{
+    size_t replaced = 0;
+    for (size_t i = 0; i < m_map.layerCount(); ++i)
+    {
+        CLayer *layer = m_map.getLayer(i);
+        if (layer == nullptr)
+            continue;
+        // baseID==0 == main layer on the primary tileset: cells index
+        // tileDefs (TILES_TOTAL_COUNT, tilesdata.h); other layers index
+        // the animator tables and g_layerdata (TOTAL_TILE_COUNT,
+        // layerdata.h). See docs/spec/gamespec/tile-table-limits.md.
+        const uint16_t limit = layer->baseID() == 0 ? TILES_TOTAL_COUNT : TOTAL_TILE_COUNT;
+        for (int y = 0; y < layer->height(); ++y)
+        {
+            for (int x = 0; x < layer->width(); ++x)
+            {
+                if (layer->at(x, y) >= limit)
+                {
+                    layer->set(x, y, 0); // TILES_BLANK / no-sprite
+                    ++replaced;
+                }
+            }
+        }
+    }
+    if (replaced != 0)
+        LOGW("map: %zu invalid tile IDs replaced with TILES_BLANK", replaced);
+    return replaced;
+}
+
 bool CGame::loadLevel(const GameMode mode)
 {
     if (!m_quiet)
         LOGI("loading level: %d ...", m_level + 1);
+
+    // extract level from MapArch (BUG-C7: at() yields nullptr out of range;
+    // m_level can come from a save or setLevel unchecked). Checked before any
+    // state mutation so a bogus level leaves the game untouched.
+    if (m_mapArch == nullptr)
+    {
+        LOGE("loadLevel: no map archive set");
+        return false;
+    }
+    CMap *levelMap = m_mapArch->at(m_level);
+    if (levelMap == nullptr)
+    {
+        LOGE("loadLevel: level %d outside archive (%zu maps)", m_level, m_mapArch->size());
+        return false;
+    }
+
     setMode(mode);
 
     // clear used items list when entering a new level
     if (mode == MODE_CHUTE || mode == MODE_LEVEL_INTRO)
         m_usedItems.clear();
 
-    // extract level from MapArch
-    m_map = *(m_mapArch->at(m_level));
+    m_map = *levelMap;
+    sanitiseMapTiles();
 
     // remove used item
     for (const auto &pos : m_usedItems)
@@ -416,10 +485,11 @@ bool CGame::loadLevel(const GameMode mode)
     if (m_hints.size() == 0)
         LOGW("hints not loaded -- not available???");
 
-    m_introHint = m_hints.size() ? rand() % m_hints.size() : 0;
+    m_introHint = m_hints.size() ? getRandom().range(0, static_cast<int>(m_hints.size())) : 0;
 
     // clear event list
     clearEvents();
+    m_exitAnnounced = false;
 
     // Use origin pos if available
     CStates &states = m_map.states();
@@ -455,6 +525,7 @@ bool CGame::loadLevel(const GameMode mode)
     m_health = DEFAULT_HEALTH;
     spawnMonsters();
     m_sfx.clear();
+    m_fx.clear();
     resetStats();
     m_report = currentMapReport();
 
@@ -553,7 +624,9 @@ void CGame::resetStats()
         S_TIME_TAKEN,
         S_CHUTE,
         S_FLASH,
-        S_TIME_FREEZE_TIMER};
+        S_TIME_FREEZE_TIMER,
+        S_PLAYER_HURT,
+        S_BOAT};
     for (const auto &stat : stats)
     {
         m_gameStats->set(stat, 0);
@@ -567,6 +640,16 @@ void CGame::resetStats()
  */
 void CGame::setLevel(int levelId)
 {
+    // maintainer ruling 2026-11-18: clamp out-of-range early with LOGW.
+    // Only clamped when an archive is present; the archive can be set after
+    // setLevel(), and loadLevel() (L453-463) remains the authoritative guard.
+    if (m_mapArch && m_mapArch->size() != 0 && m_mapArch->at(levelId) == nullptr)
+    {
+        const int clamped = std::clamp(levelId, 0, static_cast<int>(m_mapArch->size()) - 1);
+        LOGW("setLevel: %d out of range (archive has %zu maps); using %d",
+             levelId, m_mapArch->size(), clamped);
+        levelId = clamped;
+    }
     m_level = levelId;
 }
 
@@ -592,7 +675,7 @@ void CGame::setMapArch(CMapArch *arch)
 
 bool CGame::isMonsterType(const uint8_t typeID) const
 {
-    std::array<uint8_t, 10> monsterTypes = {
+    static constexpr std::array<uint8_t, 10> monsterTypes = {
         TYPE_MONSTER,
         TYPE_VAMPLANT,
         TYPE_DRONE,
@@ -834,19 +917,20 @@ bool CGame::hasKey(const uint8_t c)
  */
 void CGame::addKey(const uint8_t c)
 {
-    for (uint32_t i = 0; i < sizeof(m_keys); ++i)
+    for (uint32_t i = 0; i < MAX_KEYS; ++i)
     {
         if (m_keys.tiles[i] == c)
         {
-            break;
+            return;
         }
         if (m_keys.tiles[i] == '\0')
         {
             m_keys.tiles[i] = c;
             m_keys.indicators[i] = MAX_KEY_STATE;
-            break;
+            return;
         }
     }
+    LOGW("key inventory full, dropping key '%c'", c);
 }
 
 /**
@@ -917,8 +1001,9 @@ void CGame::addHealth(const int hp)
              hurtStage == HurtNone)
     {
         const int shields = std::min(m_gameStats->get(S_SHIELD), (int)MAX_SHIELDS);
-        const float damageFactor = (MAX_FACTOR - shields) / (float)MAX_FACTOR;
-        const int hpToken = (int)damageFactor * (hp * (1 + 1 * skill));
+        // integer math: a float factor truncated with (int) cast the factor
+        // itself to 0 for 1 or 2 shields, which made shields total immunity
+        const int hpToken = hp * (MAX_FACTOR - shields) * (1 + skill) / MAX_FACTOR;
         m_health = std::max(m_health + hpToken, 0);
         playSound(SOUND_OUCHFAST);
     }
@@ -952,8 +1037,13 @@ void CGame::checkClosure()
         const uint16_t exitKey = m_map.states().getU(POS_EXIT);
         if (exitKey != 0)
         {
-            // Exit Notification Message
-            m_events.emplace_back(EVENT_EXIT_OPENED);
+            // Exit Notification Message -- maintainer ruling 2026-11-18:
+            // announce once per level (checkClosure re-runs on every hit)
+            if (!m_exitAnnounced)
+            {
+                m_events.emplace_back(EVENT_EXIT_OPENED);
+                m_exitAnnounced = true;
+            }
             const bool revealExit = m_gameStats->get(S_REVEAL_EXIT) != 0;
             const Pos exitPos = CMap::toPos(exitKey);
             if (!revealExit)
@@ -1151,6 +1241,11 @@ std::vector<CActor> &CGame::getMonsters()
     return m_monsters;
 }
 
+std::vector<CBoss> &CGame::getBosses()
+{
+    return m_bosses;
+}
+
 /**
  * @brief get a specific Monster
  *
@@ -1162,19 +1257,28 @@ CActor &CGame::getMonster(int i)
     return m_monsters[i];
 }
 
+bool CGame::countWithinBudget(uint32_t count, long remainingBytes, uint32_t minRecordBytes)
+{
+    // Corrupt save counts must be rejected, not turned into an allocation
+    // storm: every declared record has to consume at least
+    // minRecordBytes of the remaining stream.
+    return remainingBytes >= 0 &&
+           static_cast<uint64_t>(count) * minRecordBytes <= static_cast<uint64_t>(remainingBytes);
+}
+
 bool CGame::validateSignature(const char *signature, const uint32_t version)
 {
     if (memcmp(signature, GAME_SIGNATURE, sizeof(GAME_SIGNATURE)) != 0)
     {
         char tmp[sizeof(GAME_SIGNATURE) + 1];
-        memcpy(tmp, &signature, sizeof(GAME_SIGNATURE));
+        memcpy(tmp, signature, sizeof(GAME_SIGNATURE));
         tmp[sizeof(GAME_SIGNATURE)] = '\0';
 
         char gameSig[sizeof(GAME_SIGNATURE) + 1];
         memcpy(gameSig, GAME_SIGNATURE, sizeof(GAME_SIGNATURE));
         gameSig[sizeof(GAME_SIGNATURE)] = '\0';
 
-        LOGW("savefile signature mismatch: `%s` -- expecting `%s`", signature, gameSig);
+        LOGW("savefile signature mismatch: `%s` -- expecting `%s`", tmp, gameSig);
         return false;
     }
     if (version != ENGINE_VERSION)
@@ -1199,6 +1303,9 @@ bool CGame::read(IFile &sfile)
         return sfile.read(ptr, size) == 1;
     };
 
+    // NOTE (audit 2026-11-18): the _R/_W raw-POD reads below make the save
+    // format little-endian- and sizeof-dependent by design; cross-platform
+    // saves would need the ISerial per-field helpers instead.
     // check signature/version
     uint32_t signature = 0;
     _R(&signature, sizeof(signature));
@@ -1215,6 +1322,14 @@ bool CGame::read(IFile &sfile)
     _R(&m_lives, sizeof(m_lives));
     _R(&m_health, sizeof(m_health));
     _R(&m_level, sizeof(m_level));
+    // BUG-C7: a corrupt save must not smuggle an out-of-range level past the
+    // loadLevel gate. Validated whenever an archive is loaded (headless runs
+    // without one rely on the loadLevel check instead).
+    if (m_mapArch != nullptr && (m_level < 0 || m_level >= static_cast<int>(m_mapArch->size())))
+    {
+        LOGE("save refers to level %d outside the loaded archive", m_level);
+        return false;
+    }
     _R(&m_nextLife, sizeof(m_nextLife));
     _R(&m_diamonds, sizeof(m_diamonds));
     _R(m_keys.tiles, sizeof(m_keys.tiles));
@@ -1230,6 +1345,12 @@ bool CGame::read(IFile &sfile)
         LOGE("failed to read gamestats");
         return false;
     };
+    // BUG-H18: chute landing position (S_CHUTE flag itself is in gameStats)
+    if (!m_chuteTarget.read(sfile))
+    {
+        LOGE("failed to read chute target");
+        return false;
+    }
 
     // reading map
     CMap &map = getMap();
@@ -1238,10 +1359,17 @@ bool CGame::read(IFile &sfile)
         LOGE("failed to read map");
         return false;
     }
+    sanitiseMapTiles();
 
     // monsters
     uint32_t actorCount = 0;
     _R(&actorCount, sizeof(uint32_t));
+    if (!countWithinBudget(actorCount, sfile.getSize() - sfile.tell(), MIN_ACTOR_RECORD))
+    {
+        LOGE("save declares %u monsters over %ld remaining bytes; rejected",
+             actorCount, sfile.getSize() - sfile.tell());
+        return false;
+    }
     m_monsters.clear();
     m_monsters.resize(actorCount);
     for (size_t i = 0; i < actorCount; ++i)
@@ -1256,7 +1384,13 @@ bool CGame::read(IFile &sfile)
 
     // bosses
     uint32_t bossCount = 0;
-    readfile(&bossCount, sizeof(uint32_t));
+    _R(&bossCount, sizeof(uint32_t));
+    if (!countWithinBudget(bossCount, sfile.getSize() - sfile.tell(), MIN_BOSS_RECORD))
+    {
+        LOGE("save declares %u bosses over %ld remaining bytes; rejected",
+             bossCount, sfile.getSize() - sfile.tell());
+        return false;
+    }
     m_bosses.clear();
     m_bosses.resize(bossCount);
     for (size_t i = 0; i < bossCount; ++i)
@@ -1270,12 +1404,16 @@ bool CGame::read(IFile &sfile)
 
     // used items
     m_usedItems.clear();
-    size_t usedItemCount = 0;
+    uint32_t usedItemCount = 0;
     _R(&usedItemCount, sizeof(uint32_t));
-    for (size_t i = 0; i < usedItemCount; ++i)
+    for (uint32_t i = 0; i < usedItemCount; ++i)
     {
         Pos pos;
-        pos.read(sfile);
+        if (!pos.read(sfile))
+        {
+            LOGE("failed to read used item %u of %u", i, usedItemCount);
+            return false;
+        }
         m_usedItems.emplace_back(pos);
     }
 
@@ -1288,6 +1426,17 @@ bool CGame::read(IFile &sfile)
         sfx_t sfx;
         _R(&sfx, sizeof(sfx));
         m_sfx.emplace_back(std::move(sfx));
+    }
+
+    // load fx
+    m_fx.clear();
+    uint16_t fxCount = 0;
+    _R(&fxCount, sizeof(fxCount));
+    for (uint16_t i = 0; i < fxCount; ++i)
+    {
+        fx_t fx;
+        _R(&fx, sizeof(fx));
+        m_fx.emplace_back(std::move(fx));
     }
 
     // clear events
@@ -1351,6 +1500,12 @@ bool CGame::write(IFile &tfile)
         LOGE("failed write gameStats");
         return false;
     }
+    // mirror of read(): chute landing position
+    if (!m_chuteTarget.write(tfile))
+    {
+        LOGE("failed write chute target");
+        return false;
+    }
 
     // saving map
     CMap &map = getMap();
@@ -1361,40 +1516,50 @@ bool CGame::write(IFile &tfile)
     }
 
     // monsters
-    size_t actorCount = m_monsters.size();
+    const uint32_t actorCount = static_cast<uint32_t>(m_monsters.size());
     _W(&actorCount, sizeof(uint32_t));
     for (size_t i = 0; i < m_monsters.size(); ++i)
     {
         if (!m_monsters[i].write(tfile))
         {
-            LOGE("failed to write actor %lu of %lu", i, actorCount);
+            LOGE("failed to write actor %lu of %u", i, actorCount);
             return false;
         }
     }
 
     // bosses
-    size_t bossCount = m_bosses.size();
+    const uint32_t bossCount = static_cast<uint32_t>(m_bosses.size());
     _W(&bossCount, sizeof(uint32_t));
     for (size_t i = 0; i < m_bosses.size(); ++i)
     {
         if (!m_bosses[i].write(tfile))
         {
-            LOGE("failed to write boss %lu of %lu", i, bossCount);
+            LOGE("failed to write boss %lu of %u", i, bossCount);
             return false;
         }
     }
 
     // used items
-    size_t usedItemCount = m_usedItems.size();
+    const uint32_t usedItemCount = static_cast<uint32_t>(m_usedItems.size());
     _W(&usedItemCount, sizeof(uint32_t));
     for (const Pos &pos : m_usedItems)
         pos.write(tfile);
 
     // save sfx
-    uint16_t sfxCount = (uint16_t)m_sfx.size();
+    if (m_sfx.size() > UINT16_MAX)
+        LOGW("sfx list of %zu exceeds uint16 save field; truncating", m_sfx.size());
+    const uint16_t sfxCount = static_cast<uint16_t>(m_sfx.size());
     _W(&sfxCount, sizeof(sfxCount));
     for (const auto &sfx : m_sfx)
         _W(&sfx, sizeof(sfx));
+
+    // save fx
+    if (m_fx.size() > UINT16_MAX)
+        LOGW("fx list of %zu exceeds uint16 save field; truncating", m_fx.size());
+    const uint16_t fxCount = static_cast<uint16_t>(m_fx.size());
+    _W(&fxCount, sizeof(fxCount));
+    for (const auto &fx : m_fx)
+        _W(&fx, sizeof(fx));
 
     // save animation state
     if (!m_animator->write(tfile))
@@ -1460,7 +1625,7 @@ void CGame::playTileSound(int tileID) const
  *
  * @param s
  */
-void CGame::attach(std::shared_ptr<ISound> &s)
+void CGame::attach(const std::shared_ptr<ISound> &s)
 {
     m_sound = s;
 }
@@ -1504,7 +1669,7 @@ int CGame::calcScoreLife() const
  */
 int CGame::size() const
 {
-    return m_mapArch->size();
+    return m_mapArch ? m_mapArch->size() : 0;
 }
 
 /**
@@ -1514,7 +1679,9 @@ int CGame::size() const
  */
 const char *CGame::getHintText()
 {
-    return m_hints.size() ? m_hints[m_introHint].c_str() : "";
+    // clamp at use: m_introHint is randomized in loadLevel() against the
+    // then-current hint count
+    return m_hints.empty() ? "" : m_hints[m_introHint % m_hints.size()].c_str();
 }
 
 /**
@@ -1525,6 +1692,8 @@ const char *CGame::getHintText()
 void CGame::parseHints(const char *data)
 {
     m_hints.clear();
+    if (!data) // maintainer ruling 2026-11-18: empty file gives data() == nullptr
+        return;
     const auto lines = split(std::string(data), '\n');
     for (const auto &line : lines)
     {
@@ -1541,9 +1710,9 @@ void CGame::parseHints(const char *data)
 int CGame::getEvent()
 {
     int event = EVENT_NONE;
-    if (m_events.size() > 0)
+    if (!m_events.empty())
     {
-        event = m_events.at(0);
+        event = m_events.front();
         m_events.erase(m_events.begin());
     }
     return event;
@@ -1651,9 +1820,127 @@ std::vector<sfx_t> &CGame::getSfx()
  */
 void CGame::purgeSfx()
 {
-    m_sfx.erase(std::remove_if(m_sfx.begin(), m_sfx.end(), [](auto &sfx)
-                               { --sfx.timeout; return sfx.timeout == 0; }),
+    // maintainer ruling 2026-11-18: a 0 timeout (e.g. restored from a save
+    // record) purges immediately; decrementing it wrapped to 65535 and the
+    // sfx lived ~18 minutes
+    m_sfx.erase(std::remove_if(m_sfx.begin(), m_sfx.end(),
+                               [](auto &sfx)
+                               {
+                                   if (sfx.timeout == 0)
+                                       return true;
+                                   --sfx.timeout;
+                                   return sfx.timeout == 0;
+                               }),
                 m_sfx.end());
+}
+
+/**
+ * @brief Get extended fx list
+ *
+ * @return std::vector<fx_t>&
+ */
+std::vector<fx_t> &CGame::getFx()
+{
+    return m_fx;
+}
+
+/**
+ * @brief Spawn an extended fx at tile coords (spec S1): converts to world
+ * pixels (tile center) and records the origin point ox/oy.
+ *
+ * @return instance index, or -1 for an unknown effectID
+ */
+int CGame::spawnFx(const int effectID, const int tileX, const int tileY)
+{
+    if (!fxDataAt(effectID))
+        return -1;
+    m_fx.emplace_back(fx_t{
+        .x = static_cast<int16_t>(tileX * FX_TILE_SIZE + FX_TILE_SIZE / 2),
+        .y = static_cast<int16_t>(tileY * FX_TILE_SIZE + FX_TILE_SIZE / 2),
+        .ox = static_cast<int16_t>(tileX),
+        .oy = static_cast<int16_t>(tileY),
+        .effectID = static_cast<int16_t>(effectID),
+        .timer = 0});
+    return static_cast<int>(m_fx.size()) - 1;
+}
+
+/**
+ * @brief Spawn an extended fx at world pixels (spec S1): origin not
+ * available, ox = oy = -1.
+ *
+ * @return instance index, or -1 for an unknown effectID
+ */
+int CGame::spawnFxPx(const int effectID, const int px, const int py)
+{
+    if (!fxDataAt(effectID))
+        return -1;
+    m_fx.emplace_back(fx_t{
+        .x = static_cast<int16_t>(px),
+        .y = static_cast<int16_t>(py),
+        .ox = -1,
+        .oy = -1,
+        .effectID = static_cast<int16_t>(effectID),
+        .timer = 0});
+    return static_cast<int>(m_fx.size()) - 1;
+}
+
+/**
+ * @brief Advance fx timers and end expired instances (spec I1), firing the
+ * table entry's onEnd before erase. Called next to purgeSfx().
+ *
+ */
+void CGame::tickFx()
+{
+    for (auto it = m_fx.begin(); it != m_fx.end();)
+    {
+        const fxData_t *def = fxDataAt(it->effectID);
+        if (!def)
+        {
+            // dangling effectID (table shrank since save): end at once
+            it = m_fx.erase(it);
+            continue;
+        }
+        it->timer++;
+        bool ended = false;
+        if (def->flags & FX_REPEATABLE)
+            ended = it->timer >= def->ttl;
+        else
+        {
+            const uint16_t frames = std::max(def->back.count, def->front.count);
+            ended = it->timer >= static_cast<uint32_t>(frames) * def->speed;
+        }
+        if (ended)
+        {
+            if (def->onEnd)
+                def->onEnd(*this, *it);
+            it = m_fx.erase(it);
+        }
+        else
+            ++it;
+    }
+}
+
+/**
+ * @brief Collect visible fx draw entries for one layer side (spec S2/S3):
+ * center inside the view rect inflated by the table w/2, h/2.
+ *
+ */
+void CGame::getFxToDraw(const fxView_t &view, const bool front,
+                        std::vector<fxDraw_t> &out) const
+{
+    for (const auto &fx : m_fx)
+    {
+        const fxData_t *def = fxDataAt(fx.effectID);
+        if (!def)
+            continue;
+        const fx_layer_t &layer = front ? def->front : def->back;
+        if (layer.count == 0)
+            continue;
+        if (!fx.isWithin(view.left - def->w / 2, view.top - def->h / 2,
+                         view.right + def->w / 2, view.bottom + def->h / 2))
+            continue;
+        out.emplace_back(fxDraw_t{fx.x, fx.y, fxFrameIndex(fx, *def, layer)});
+    }
 }
 
 CGameStats &CGame::stats()
@@ -1671,10 +1958,14 @@ bool CGame::isRageMode() const
     return m_gameStats->get(S_RAGE_TIMER) != 0;
 }
 
+static std::unique_ptr<CGame> s_instance;
+
 CGame *CGame::getGame()
 {
-    static std::unique_ptr<CGame> instance(new CGame);
-    return instance.get();
+    // lazy: CGameMixin's ctor runs before static init in some builds
+    if (s_instance == nullptr)
+        s_instance = std::unique_ptr<CGame>(new CGame);
+    return s_instance.get();
 }
 
 /**
@@ -1724,7 +2015,7 @@ bool CGame::isFrozen() const
  */
 void CGame::destroy()
 {
-    getGame();
+    s_instance.reset();
 }
 
 /**
@@ -1797,7 +2088,8 @@ void CGame::resetKeys()
 void CGame::decKeyIndicators()
 {
     for (auto &u : m_keys.indicators)
-        u ? --u : 0;
+        if (u)
+            --u;
 }
 
 void CGame::clearKeyIndicators()
@@ -1870,13 +2162,16 @@ bool CGame::shadowActorMove(CActor &actor, const JoyAim aim)
     }
 
     const Pos newPos = CGame::translate(actor.pos(), aim);
-    if (monsterIndex != INVALID && m_map.isValid(newPos.x, newPos.y))
+    if (monsterIndex == INVALID || !m_map.isValid(newPos.x, newPos.y))
     {
-        m_monsterGrid[CMap::toKey(newPos.x, newPos.y)] = monsterIndex;
-        actor.move(aim);
-        return true;
+        // put back the entry we removed above, otherwise the actor stays in
+        // m_monsters but is invisible to findMonsterAt()
+        updateMonsterGrid(actor, monsterIndex);
+        return false;
     }
-    return false;
+    m_monsterGrid[CMap::toKey(newPos.x, newPos.y)] = monsterIndex;
+    actor.move(aim);
+    return true;
 }
 
 void CGame::rebuildMonsterGrid()

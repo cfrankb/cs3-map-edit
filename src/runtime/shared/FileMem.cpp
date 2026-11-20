@@ -32,7 +32,7 @@ CFileMem::~CFileMem()
     close();
 }
 
-void CFileMem::append(const void *data, int size)
+void CFileMem::append(const void *data, size_t size)
 {
     const size_t newSize = m_ptr + size;
     if (newSize > m_buffer.size())
@@ -56,6 +56,8 @@ int CFileMem::read(void *buf, int size)
 {
     if (m_mode.find('r') == std::string::npos)
         return IFILE_NOT_OK;
+    if (size < 0)
+        return IFILE_NOT_OK;
     int leftBytes = m_buffer.size() - m_ptr;
     if (leftBytes >= size)
     {
@@ -73,6 +75,8 @@ int CFileMem::write(const void *buf, int size)
 {
     if (m_mode.find('w') == std::string::npos &&
         m_mode.find('a') == std::string::npos)
+        return IFILE_NOT_OK;
+    if (size < 0)
         return IFILE_NOT_OK;
     append(buf, size);
     return IFILE_OK;
@@ -108,6 +112,8 @@ long CFileMem::getSize()
 
 bool CFileMem::seek(long p)
 {
+    if (p < 0)
+        return false; // negative positions would index the buffer out of bounds
     m_ptr = p;
     return true;
 }
@@ -132,10 +138,17 @@ bool CFileMem::operator>>(std::string &str)
         // implemented 32 bits version
         if (length == 0xffff)
         {
+            if (m_ptr + sizeof(uint32_t) > m_buffer.size())
+                return false;
             memcpy(&length, &m_buffer[m_ptr], sizeof(uint32_t));
             m_ptr += sizeof(uint32_t);
         }
     }
+    // the declared payload must actually be in the buffer (BUG-C1); the
+    // m_ptr > size test stops the size_t subtraction underflowing after a
+    // legal past-EOF seek
+    if (m_ptr > m_buffer.size() || length > m_buffer.size() - m_ptr)
+        return false;
     str.resize(length);
     if (length != 0)
     {

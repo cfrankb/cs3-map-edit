@@ -19,10 +19,10 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include "shared/helper.h" // readFile (do not re-declare: ODR footgun)
 class CMap;
 
 typedef std::vector<std::string> StringVector;
-std::vector<uint8_t> readFile(const char *fname);
 bool processLevel(CMap &map, const char *fname);
 bool convertCs3Level(CMap &map, const char *fname);
 void splitString(const std::string str, StringVector &list);

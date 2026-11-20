@@ -233,7 +233,7 @@ bool CMap::readCommon(ReadFunc &&readfile, std::function<size_t()> tell, std::fu
         std::unique_ptr<CLayer> layer = std::make_unique<CLayer>(m_len, m_hei);
         if (!layer->readCommon(readfile, ver))
         {
-            m_lastError = std::string("failed read MainLayer: ") + getMainLayer()->lastError();
+            m_lastError = std::string("failed read MainLayer: ") + layer->lastError();
             LOGE("%s", m_lastError.c_str());
             return false;
         }
@@ -659,6 +659,10 @@ bool CMap::resize(uint16_t in_len, uint16_t in_hei, uint16_t t, bool fast)
 
     m_len = in_len;
     m_hei = in_hei;
+
+    // a map emptied by clear() has no layers; recreate the main layer
+    if (m_layers.empty())
+        addMainLayer();
 
     for (const auto &layer : m_layers)
         if (!layer->resize(in_len, in_hei, t, fast))

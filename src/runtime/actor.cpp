@@ -15,6 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <algorithm>
+
 #include "actor.h"
 #include "tilesdata.h"
 #include "tilesdefs.h"
@@ -22,6 +24,7 @@
 #include "sprtypes.h"
 #include "attr.h"
 #include <cstdio>
+#include <cstdlib> // std::abs(int) (audit L550)
 #include <cmath>
 #include <stdexcept>
 #include <memory>
@@ -75,31 +78,24 @@ CActor::CActor(const uint8_t x, const uint8_t y, const uint8_t type, const JoyAi
     m_type = type;
     m_aim = aim;
     m_pu = TILES_BLANK;
-    m_path = nullptr;
     m_algo = BossData::Path::NONE;
+    m_frame = 0;
     m_ttl = CActor::NoTTL;
     m_attr = 0;
     m_origin = Pos{x, y};
 }
 
-CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim) : m_path(nullptr)
+// delegates so both ctors share the aim validation (audit L85-97)
+CActor::CActor(const Pos &pos, uint8_t type, JoyAim aim)
+    : CActor(static_cast<uint8_t>(pos.x), static_cast<uint8_t>(pos.y), type, aim)
 {
-    m_x = pos.x;
-    m_y = pos.y;
-    m_type = type;
-    m_aim = aim;
-    m_pu = TILES_BLANK;
-    m_path = nullptr;
-    m_algo = BossData::Path::NONE;
-    m_ttl = CActor::NoTTL;
-    m_attr = 0;
-    m_origin = pos;
 }
 
 CActor::CActor(CActor &&other) noexcept
     : m_x(other.m_x),
       m_y(other.m_y),
       m_type(other.m_type),
+      m_frame(other.m_frame),
       m_algo(other.m_algo),
       m_aim(other.m_aim),
       m_pu(other.m_pu),
@@ -113,6 +109,7 @@ CActor::CActor(CActor &&other) noexcept
     other.m_x = 0;
     other.m_y = 0;
     other.m_type = 0;
+    other.m_frame = 0;
     other.m_aim = AIM_UP;
     other.m_pu = 0;
     other.m_algo = BossData::Path::NONE;
@@ -131,6 +128,7 @@ CActor &CActor::operator=(CActor &&other) noexcept
         m_type = other.m_type;
         m_aim = other.m_aim;
         m_pu = other.m_pu;
+        m_frame = other.m_frame;
         m_algo = other.m_algo;
         m_path = std::move(other.m_path);
         m_ttl = other.m_ttl;
@@ -140,6 +138,7 @@ CActor &CActor::operator=(CActor &&other) noexcept
         other.m_x = 0;
         other.m_y = 0;
         other.m_type = 0;
+        other.m_frame = 0;
         other.m_aim = AIM_UP;
         other.m_pu = 0;
         other.m_algo = BossData::Path::NONE;
@@ -181,7 +180,7 @@ bool CActor::canMove(const JoyAim aim) const
     if (game->isGranularSolidFromPos(pos, aim))
         return false;
 
-    const uint8_t c = map.at(newPos.x, newPos.y);
+    const uint16_t c = map.at(newPos.x, newPos.y);
     const TileDef &def = getTileDef(c);
     if (def.type == TYPE_BACKGROUND)
     {
@@ -226,7 +225,7 @@ bool CActor::canMove(const JoyAim aim) const
 void CActor::move(const JoyAim aim)
 {
     CMap &map = CGame::getMap();
-    const uint8_t c = map.at(m_x, m_y);
+    const uint16_t c = map.at(m_x, m_y);
     map.set(m_x, m_y, m_pu);
 
     const Pos pos = CGame::translate(Pos{m_x, m_y}, aim);
@@ -244,7 +243,7 @@ void CActor::move(const JoyAim aim)
  * @return uint8_t
  */
 
-uint8_t CActor::getPU() const
+uint16_t CActor::getPU() const
 {
     return m_pu;
 }
@@ -255,13 +254,19 @@ uint8_t CActor::getPU() const
  * @param c
  */
 
-void CActor::setPU(const uint8_t c)
+void CActor::setPU(const uint16_t c)
 {
     m_pu = c;
 }
 
 /**
  * @brief Set Sprite Position
+ *
+ * Moves the actor only: deliberately does NOT touch the map. Distinct
+ * use case from move() -- repositioning (camera placement, actor setup)
+ * where the cells must stay put. If a caller needs move()-style cell
+ * bookkeeping (the occupied cell holds `m_pu`), it performs that swap
+ * itself. Maintainer ruling 2026-11-18.
  *
  * @param pos
  */
@@ -281,6 +286,8 @@ void CActor::setPos(const Pos &pos)
 JoyAim CActor::findNextDir(const bool reverse) const
 {
     const int aim = m_aim;
+    if (aim >= TOTAL_AIMS)
+        return AIM_NONE; // AIM_NONE is an inactive-actor placeholder, not a table index
     int i = TOTAL_AIMS - 1;
     while (i >= 0)
     {
@@ -329,7 +336,7 @@ void CActor::setAim(const JoyAim aim)
 
 bool CActor::isPlayerThere(JoyAim aim) const
 {
-    const uint8_t c = tileAt(aim);
+    const uint16_t c = tileAt(aim);
     const TileDef &def = getTileDef(c);
     return def.type == TYPE_PLAYER;
 }
@@ -338,9 +345,9 @@ bool CActor::isPlayerThere(JoyAim aim) const
  * @brief Get tileID at give relative position
  *
  * @param aim
- * @return uint8_t
+ * @return uint16_t
  */
-uint8_t CActor::tileAt(JoyAim aim) const
+uint16_t CActor::tileAt(JoyAim aim) const
 {
     const CMap &map = CGame::getMap();
     const Pos &p = CGame::translate(Pos{m_x, m_y}, aim);
@@ -385,7 +392,12 @@ bool CActor::readPath(IFile &sfile)
 {
     auto readfile = [&sfile](auto ptr, auto size) -> bool
     {
-        return sfile.read(ptr, size) == IFILE_OK;
+        if (sfile.read(ptr, size) != IFILE_OK)
+        {
+            LOGE("CActor::readPath: failed to read %zu bytes at %ld", size, sfile.tell());
+            return false;
+        }
+        return true;
     };
     // read path
     uint8_t pathDefined = 0;
@@ -400,14 +412,7 @@ bool CActor::readPath(IFile &sfile)
     if (pathDefined == PATH_DEFINED)
     {
         if (!m_path)
-        {
-            m_path = std::make_unique<CPath>();
-            if (!m_path)
-            {
-                LOGE("failed create CPath");
-                return false;
-            }
-        }
+            m_path = std::make_unique<CPath>(); // never null: bad_alloc throws
         if (!m_path->read(sfile))
             return false;
     }
@@ -418,7 +423,12 @@ bool CActor::read(IFile &sfile)
 {
     auto readfile = [&sfile](auto ptr, auto size) -> bool
     {
-        return sfile.read(ptr, size) == IFILE_OK;
+        if (sfile.read(ptr, size) != IFILE_OK)
+        {
+            LOGE("CActor::read: failed to read %zu bytes at %ld", size, sfile.tell());
+            return false;
+        }
+        return true;
     };
 
     return readCommon(readfile) && readPath(sfile);
@@ -443,9 +453,19 @@ bool CActor::readCommon(ReadFunc readfile)
         return false;
     if (!readfile(&m_aim, sizeof(m_aim)))
         return false;
+    // defense in depth (audit L444): the ctor validates aim, and a raw
+    // m_aim feeds the g_aims table lookup; AIM_NONE is the only valid
+    // out-of-range value (inactive-actor placeholder, saved routinely)
+    if (m_aim >= TOTAL_AIMS && m_aim != AIM_NONE)
+    {
+        LOGE("CActor::read: invalid aim %.2x", m_aim);
+        return false;
+    }
     if (!readfile(&m_pu, sizeof(m_pu)))
         return false;
     if (!readfile(&m_algo, sizeof(m_algo)))
+        return false;
+    if (!readfile(&m_frame, sizeof(m_frame)))
         return false;
     if (!readfile(&m_ttl, sizeof(m_ttl)))
         return false;
@@ -506,6 +526,8 @@ bool CActor::writeCommon(WriteFunc writefile) const
         return false;
     if (!writefile(&m_algo, sizeof(m_algo)))
         return false;
+    if (!writefile(&m_frame, sizeof(m_frame)))
+        return false;
     if (!writefile(&m_ttl, sizeof(m_ttl)))
         return false;
     if (!writefile(&m_attr, sizeof(m_attr)))
@@ -560,8 +582,10 @@ int CActor::distance(const CActor &actor) const
  */
 void CActor::move(const int16_t x, const int16_t y)
 {
-    m_x = static_cast<uint8_t>(x & 0xff);
-    m_y = static_cast<uint8_t>(y & 0xff);
+    // coordinates are capped to the representable cell range, never
+    // wrapped (maintainer ruling 2026-11-18)
+    m_x = static_cast<uint8_t>(std::clamp<int16_t>(x, 0, UINT8_MAX));
+    m_y = static_cast<uint8_t>(std::clamp<int16_t>(y, 0, UINT8_MAX));
 }
 
 void CActor::move(const Pos pos)
@@ -600,5 +624,6 @@ bool CActor::startPath(const Pos &playerPos, const uint8_t algo, const int ttl)
     if (!m_path)
         m_path = std::make_unique<CPath>();
     m_ttl = ttl;
-    return m_path->followPath(*this, playerPos, *pathAlgo);
+    // Result is not a bool: NoValidPath/NotConfigured are truthy ints
+    return m_path->followPath(*this, playerPos, *pathAlgo) == CPath::Result::MoveSuccesful;
 }

@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <stdint.h>
 #include "color.h"
 #include "sounds.h"

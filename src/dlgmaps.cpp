@@ -206,7 +206,7 @@ void DialogMaps::loadFromMapFile()
             data.isPrivate = states.getU(StateValue::PRIVATE) != 0;
             data.music  = QString::fromUtf8(states.getS(StateValue::MUSIC));
             data.notes  = QString::fromUtf8(states.getS(StateValue::NOTES));
-            data.uuid   = QString::fromUtf8(states.getS(StateValue::UUID));
+            data.uuid   = QString::fromUtf8(states.getS(StateValue::STATE_UUID));
         }
         m_original.push_back(data);
 
@@ -308,7 +308,7 @@ void DialogMaps::saveToMapFile()
         states.setU(StateValue::PRIVATE, isPrivate ? 1 : 0);
         states.setS(StateValue::MUSIC, music.toStdString());
         states.setS(StateValue::NOTES, notes.toStdString());
-        states.setS(StateValue::UUID, uuid.toStdString());
+        states.setS(StateValue::STATE_UUID, uuid.toStdString());
 
         change.newTitle = map->title();
         change.newStates = map->states();

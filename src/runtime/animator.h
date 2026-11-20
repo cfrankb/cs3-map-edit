@@ -95,8 +95,8 @@ private:
     };
 
     /// Maps tile IDs to current animation frame.
-    uint16_t m_tileMainLayer[MAX_TILES];
-    uint16_t m_tileLayer[TOTAL_TILE_COUNT];
+    uint16_t m_tileMainLayer[MAX_TILES] = {}; // reloadTileData() rewrites at map load
+    uint16_t m_tileLayer[TOTAL_TILE_COUNT] = {};
     /// Global animation tick counter.
     std::vector<int32_t> m_seqIndex;
     uint16_t m_offset = 0;

@@ -19,7 +19,6 @@
 #include <string>
 #include <list>
 #include <vector>
-#include <list>
 #include <cstdint>
 const char *toUpper(char *s);
 std::string getUUID();

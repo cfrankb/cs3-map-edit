@@ -34,9 +34,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <climits>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
 #include <string>
 #include <vector>
 #include <map>
@@ -58,6 +58,42 @@
 // ---------------------------------------------------------------------------
 namespace
 {
+    // INI numeric fields go through these instead of bare atoi: garbage
+    // ("hp = fast") used to silently become 0 at this mod-data trust
+    // boundary. Base 0 accepts the hex forms `type` may use.
+    int toInt(const std::string &s, const char *key)
+    {
+        if (s.empty())
+            return 0; // absent field defaults to 0, not garbage
+        const char *c = s.c_str();
+        char *endp = nullptr;
+        long v = std::strtol(c, &endp, 0);
+        if (endp == c || *endp != '\0')
+        {
+            LOGW("Warning: field '%s' value '%s' is not numeric; using 0\n", key, c);
+            return 0;
+        }
+        if (v > INT_MAX)
+            return INT_MAX;
+        if (v < INT_MIN)
+            return INT_MIN;
+        return static_cast<int>(v);
+    }
+    uint8_t toU8(const std::string &s, const char *key)
+    {
+        if (s.empty())
+            return 0;
+        const char *c = s.c_str();
+        char *endp = nullptr;
+        long v = std::strtol(c, &endp, 0);
+        if (endp == c || *endp != '\0' || v < 0 || v > 255)
+        {
+            LOGW("Warning: field '%s' value '%s' outside 0..255; using 0\n", key, c);
+            return 0;
+        }
+        return static_cast<uint8_t>(v);
+    }
+
     struct JsonValue
     {
         enum class Type : uint8_t
@@ -83,7 +119,15 @@ namespace
                     return &kv.second;
             return nullptr;
         }
-        int asInt() const { return static_cast<int>(num); }
+        int asInt() const
+        {
+            // out-of-int-range JSON numbers are UB to cast; saturate instead
+            if (num >= static_cast<double>(INT_MAX))
+                return INT_MAX;
+            if (num <= static_cast<double>(INT_MIN))
+                return INT_MIN;
+            return static_cast<int>(num);
+        }
     };
 
     class JsonParser
@@ -93,6 +137,7 @@ namespace
         {
             p = text;
             end = text + len;
+            depth_ = 0;
             skipWs();
             if (!parseValue(root_))
                 return false;
@@ -104,6 +149,7 @@ namespace
     private:
         const char *p = nullptr;
         const char *end = nullptr;
+        int depth_ = 0;
         JsonValue root_;
 
         void skipWs()
@@ -127,6 +173,18 @@ namespace
         }
 
         bool parseValue(JsonValue &out)
+        {
+            // depth cap: '[[[[...' in a modded file would otherwise
+            // overflow the stack via recursive descent (audit Medium)
+            if (depth_ >= 64)
+                return false;
+            ++depth_;
+            bool ok = parseValueInner(out);
+            --depth_;
+            return ok;
+        }
+
+        bool parseValueInner(JsonValue &out)
         {
             skipWs();
             if (p >= end)
@@ -167,6 +225,15 @@ namespace
                 JsonValue v;
                 if (!parseValue(v))
                     return false;
+                for (const auto &prev : out.obj)
+                {
+                    if (prev.first == kv.str)
+                    {
+                        LOGW("Warning: duplicate JSON key '%s'; keeping first\n",
+                             kv.str.c_str());
+                        break;
+                    }
+                }
                 out.obj.emplace_back(std::move(kv.str), std::move(v));
                 skipWs();
                 if (p < end && *p == ',')
@@ -246,6 +313,9 @@ namespace
                         s += '\\';
                         break;
                     default:
+                        // \uXXXX and any other escape the fixed schema never
+                        // uses: keep the raw char (legacy behaviour) but flag it
+                        LOGW("Warning: unknown escape '\\%c' in JSON string; keeping raw\n", e);
                         s += e;
                         break;
                     }
@@ -299,6 +369,8 @@ namespace
             if (p == start)
                 return false;
             out.type = JsonValue::Type::Number;
+            // strtod ignores `end` and needs NUL termination; every caller
+            // parses a std::string buffer, so .data()'s NUL bounds the scan.
             out.num = std::strtod(start, nullptr);
             return true;
         }
@@ -387,17 +459,46 @@ namespace
             return false;
         }
 
-        int frameWidth = frame->find("width")->asInt();
-        int frameHeight = frame->find("height")->asInt();
-        int cols = frame->find("cols")->asInt();
+        int frameWidth = 0;
+        int frameHeight = 0;
+        int cols = 0;
+        auto numAt = [](const JsonValue &obj, const char *key, int &out) -> bool
+        {
+            const JsonValue *v = obj.find(key);
+            if (!v || v->type != JsonValue::Type::Number)
+                return false;
+            out = v->asInt();
+            return true;
+        };
+        if (!numAt(*frame, "width", frameWidth) ||
+            !numAt(*frame, "height", frameHeight) ||
+            !numAt(*frame, "cols", cols) ||
+            frameWidth <= 0 || frameHeight <= 0 || cols <= 0)
+        {
+            LOGE("Error: bad frame schema in '%s'.\n", path.c_str());
+            return false;
+        }
 
         for (const JsonValue &hb : hbs->arr)
         {
-            int x = hb.find("x")->asInt();
-            int y = hb.find("y")->asInt();
-            int w = hb.find("w")->asInt();
-            int h = hb.find("h")->asInt();
-            int type = hb.find("type")->asInt();
+            int x = 0;
+            int y = 0;
+            int w = 0;
+            int h = 0;
+            int type = 0;
+            if (hb.type != JsonValue::Type::Object ||
+                !numAt(hb, "x", x) || !numAt(hb, "y", y) ||
+                !numAt(hb, "w", w) || !numAt(hb, "h", h) ||
+                !numAt(hb, "type", type))
+            {
+                LOGE("Error: bad hitbox entry in '%s'.\n", path.c_str());
+                return false;
+            }
+            if (x < 0 || y < 0 || w < 0 || h < 0)
+            { // negative coords would produce negative col/row/frame ids
+                LOGE("Error: negative hitbox coord in '%s'.\n", path.c_str());
+                return false;
+            }
             if (type == 0)
                 continue; // ignored frame marker, same as parse.py
 
@@ -444,7 +545,6 @@ namespace
     struct BossAccum
     {
         std::string name;
-        int sheet = 0;
         std::map<std::string, std::string> fields; // final-name -> raw token
 
         bossData_t build(int sheetIndex) const
@@ -459,36 +559,45 @@ namespace
                 return it == fields.end() ? std::string() : it->second;
             };
 
-            d.speed = std::atoi(get("speed").c_str());
-            d.speed_anime = std::atoi(get("speed_anime").c_str());
-            d.hp = std::atoi(get("hp").c_str());
-            d.type = static_cast<uint8_t>(std::strtoul(get("type").c_str(), nullptr, 0));
-            d.score = std::atoi(get("score").c_str());
-            d.damage = std::atoi(get("damage").c_str());
-            d.damage_attack = std::atoi(get("damage_attack").c_str());
-            d.damage_special1 = std::atoi(get("damage_special1").c_str());
-            d.damage_special2 = std::atoi(get("damage_special2").c_str());
+            d.speed = toInt(get("speed"), "speed");
+            d.speed_anime = toInt(get("speed_anime"), "speed_anime");
+            d.hp = toInt(get("hp"), "hp");
+            d.type = toU8(get("type"), "type");
+            d.score = toInt(get("score"), "score");
+            d.damage = toInt(get("damage"), "damage");
+            d.damage_attack = toInt(get("damage_attack"), "damage_attack");
+            d.damage_special1 = toInt(get("damage_special1"), "damage_special1");
+            d.damage_special2 = toInt(get("damage_special2"), "damage_special2");
             d.flags = resolveFlags(get("flags"));
             d.path = resolvePath(get("path"));
             d.bullet = resolveTile(get("bullet"));
-            d.bullet_rate = static_cast<uint8_t>(std::atoi(get("bullet_rate").c_str()));
+            d.bullet_rate = toU8(get("bullet_rate"), "bullet_rate");
             d.bullet_algo = resolvePath(get("bullet_algo"));
             d.bullet_sound = resolveSound(get("bullet_sound"));
             {
                 std::string ttl = get("bullet_ttl");
-                d.bullet_ttl = (ttl == "NoTTL") ? BossData::NoTTL : std::atoi(ttl.c_str());
+                d.bullet_ttl = (ttl == "NoTTL") ? BossData::NoTTL : toInt(ttl, "bullet_ttl");
             }
             d.attack_sound = resolveSound(get("attack_sound"));
-            d.distance_chase = std::atoi(get("distance_chase").c_str());
-            d.distance_pursuit = std::atoi(get("distance_pursuit").c_str());
-            d.distance_attack = std::atoi(get("distance_attack").c_str());
+            d.distance_chase = toInt(get("distance_chase"), "distance_chase");
+            d.distance_pursuit = toInt(get("distance_pursuit"), "distance_pursuit");
+            d.distance_attack = toInt(get("distance_attack"), "distance_attack");
             std::string goal = get("is_goal");
             d.is_goal = (goal == "true" || goal == "1");
             std::string show = get("show_details");
             d.show_details = (show == "true" || show == "1");
             d.color_hp = resolveColor(get("color_hp"));
             d.color_name = resolveColor(get("color_name"));
-            d.aims = std::atoi(get("aims").c_str());
+            d.aims = toInt(get("aims"), "aims");
+            if (d.aims <= 0)
+            {
+                // aim count feeds the frame layout and CBoss::currentFrame()
+                // modulo: flag garbage/missing keys at load instead of
+                // silently dividing by zero later.
+                LOGW("Warning: boss '%s' has garbage/missing aims (%d); using 1\n",
+                     name.c_str(), d.aims);
+                d.aims = 1;
+            }
 
             auto seqFrom = [&](const char *name) -> boss_seq_t
             {
@@ -543,7 +652,6 @@ namespace
         std::vector<bossData_t> bosses;
         std::vector<std::string> namePool;
         std::vector<HitboxFrame> hitboxFrames;
-        std::vector<std::string> defines; // for completeness / diagnostics
 
         int sheet = 0;
         int frame = 0;
@@ -576,9 +684,8 @@ namespace
             auto flush = [&]()
             {
                 if (hasSection)
-                    pushBoss(seq);
+                    pushBoss(seq); // pushBoss resets seq
                 hasSection = false;
-                seq = BossAccum{};
             };
 
             for (const std::string &rawLine : splitLines(text))
@@ -608,8 +715,7 @@ namespace
                 {
                     flush();
                     std::string sec = t;
-                    if (sec.front() == '[')
-                        sec.erase(sec.begin());
+                    sec.erase(sec.begin()); // '[' guaranteed by the if above
                     if (!sec.empty() && sec.back() == ']')
                         sec.pop_back();
                     if (sec.empty())
@@ -617,9 +723,11 @@ namespace
                         LOGE("Error: empty section header on line %d.\n", lineNo);
                         return 1;
                     }
+                    if (std::find(namePool.begin(), namePool.end(), sec) != namePool.end())
+                        LOGW("Warning: duplicate boss section '[%s]' on line %d; getBossData will use the first\n",
+                             sec.c_str(), lineNo);
                     section = sec;
                     seq.name = section;
-                    seq.sheet = sheet;
                     hasSection = true;
                     continue;
                 }
@@ -634,18 +742,8 @@ namespace
 
                 if (!hasSection)
                 {
-                    // general config
-                    if (e[0] == "private" && e.size() >= 3)
-                    {
-                        defines.push_back(e[1] + " = " + e[2]);
-                    }
-                    else if (e[0] == "define" && e.size() >= 3)
-                    {
-                        std::string key = e[1];
-                        for (char &c : key)
-                            c = static_cast<char>(std::toupper((unsigned char)c));
-                        defines.push_back(key + " = " + e[2]);
-                    }
+                    // general config (private/define lines): parsed and
+                    // discarded — nothing in the runtime consumed them
                     continue;
                 }
 
@@ -661,6 +759,12 @@ namespace
                         size_t eq = e[i].find('=');
                         if (eq != std::string::npos)
                         {
+                            if (eq == 0)
+                            {
+                                LOGW("Warning: empty composite key in '%s' on line %d: %s\n",
+                                     item.c_str(), lineNo, e[i].c_str());
+                                continue;
+                            }
                             std::string key = item + "_" + e[i].substr(0, eq);
                             std::string val = e[i].substr(eq + 1);
                             seq.fields[key] = val;
@@ -694,22 +798,18 @@ namespace
                     seq.fields[k] = v;
                 };
 
-                if (item == "type")
-                    setScalar("type", e[1]);
-                else if (item == "hp")
-                    setScalar("hp", e[1]);
-                else if (item == "score")
-                    setScalar("score", e[1]);
-                else if (item == "path")
-                    setScalar("path", e[1]);
-                else if (item == "attack_sound")
-                    setScalar("attack_sound", e[1]);
-                else if (item == "is_goal")
-                    setScalar("is_goal", e[1]);
-                else if (item == "show_details")
-                    setScalar("show_details", e[1]);
-                else if (item == "aims")
-                    setScalar("aims", e[1]);
+                if (item == "type" || item == "hp" || item == "score" ||
+                    item == "path" || item == "attack_sound" || item == "is_goal" ||
+                    item == "show_details" || item == "aims")
+                {
+                    if (e.size() < 2)
+                    {
+                        LOGW("Warning: '%s' on line %d is missing a value: %s\n",
+                             item.c_str(), lineNo, t.c_str());
+                        continue;
+                    }
+                    setScalar(item, e[1]);
+                }
                 else if (item == "moving" || item == "attack" || item == "hurt" ||
                          item == "death" || item == "idle")
                 {
@@ -728,37 +828,63 @@ namespace
         void handleSeq(BossAccum &seq, const std::string &seqName,
                        const std::vector<std::string> &e)
         {
-            std::string hitboxFile = e.size() == 3 ? e[2] : "";
-
-            if (!hitboxFile.empty())
+            if (e.size() < 2)
             {
-                std::string full = baseDir + "/" + hitboxFile;
-                if (!readHitboxFile(full, GRID_SIZE, frame, sheet, hitboxFrames))
-                    return;
+                LOGW("Warning: %s line is missing a frame count.\n", seqName.c_str());
+                return;
             }
+            std::string hitboxFile = e.size() == 3 ? e[2] : "";
 
             if (e[1].front() == '@')
             {
                 // reference to another sequence already defined on this boss
                 std::string ref = e[1].substr(1);
                 auto it = seq.fields.find(ref + "_base");
-                if (it != seq.fields.end())
+                if (it == seq.fields.end())
                 {
-                    boss_seq_t s{};
-                    s.base = std::atoi(it->second.c_str());
-                    auto lit = seq.fields.find(ref + "_len");
-                    s.lenght = lit == seq.fields.end() ? 0 : std::atoi(lit->second.c_str());
-                    seq.fields[seqName + "_base"] = std::to_string(s.base);
-                    seq.fields[seqName + "_len"] = std::to_string(s.lenght);
+                    LOGW("Warning: '%s' on line %d references undefined sequence '%s'\n",
+                         seqName.c_str(), lineNo, ref.c_str());
+                    return;
                 }
+                if (!hitboxFile.empty())
+                    LOGW("Warning: hitbox file `%s` on line %d ignored for @ref sequence\n",
+                         hitboxFile.c_str(), lineNo); // parse.py ignores it too
+                boss_seq_t s{};
+                s.base = std::atoi(it->second.c_str());
+                auto lit = seq.fields.find(ref + "_len");
+                s.lenght = lit == seq.fields.end() ? 0 : std::atoi(lit->second.c_str());
+                seq.fields[seqName + "_base"] = std::to_string(s.base);
+                seq.fields[seqName + "_len"] = std::to_string(s.lenght);
                 return;
             }
 
-            int count = std::atoi(e[1].c_str());
+            if (!hitboxFile.empty())
+            {
+                std::string full = baseDir + "/" + hitboxFile;
+                // failure must NOT skip base/len below or every later
+                // sequence's frames shift (audit Medium); just lose the boxes
+                if (!readHitboxFile(full, GRID_SIZE, frame, sheet, hitboxFrames))
+                    LOGW("Warning: continuing '%s' on line %d without hitbox file '%s'\n",
+                         seqName.c_str(), lineNo, hitboxFile.c_str());
+            }
+
+            int count = toInt(e[1], seqName.c_str());
+            if (count < 0)
+            {
+                LOGW("Warning: negative frame count on line %d (%d); using 0\n",
+                     lineNo, count);
+                count = 0;
+            }
             seq.fields[seqName + "_base"] = std::to_string(frame);
             seq.fields[seqName + "_len"] = std::to_string(count);
 
             int aims = seq.fields.count("aims") ? std::atoi(seq.fields.at("aims").c_str()) : 1;
+            if (aims <= 0)
+            {
+                LOGW("Warning: sequence '%s' of boss '%s' has garbage/missing aims (%d); using 1\n",
+                     seqName.c_str(), seq.name.c_str(), aims);
+                aims = 1;
+            }
             frame += count * aims;
         }
 
@@ -802,11 +928,12 @@ int g_hitboxCount = 0;
 const bossData_t *g_bossData = nullptr;
 const sprite_hitbox_t *g_hitboxes = nullptr;
 
-// Leak-pooled storage kept alive until freeBossData() is called, so the
-// returned pointers (g_bossData, g_hitboxes, and every d.name) stay valid.
-static std::vector<bossData_t> *g_pooledBosses = nullptr;
-static std::vector<std::string> *g_pooledNames = nullptr;
-static std::vector<sprite_hitbox_t> *g_pooledHitboxes = nullptr;
+// Storage kept alive until freeBossData() so the returned pointers
+// (g_bossData, g_hitboxes, and every d.name) stay valid; the statics' own
+// destructors are the last-resort release if freeBossData() is never called.
+static std::vector<bossData_t> g_pooledBosses;
+static std::vector<std::string> g_pooledNames;
+static std::vector<sprite_hitbox_t> g_pooledHitboxes;
 
 int loadBossData(const std::string &iniDir, const std::string &hitboxDir)
 {
@@ -830,38 +957,43 @@ int loadBossData(const std::string &iniDir, const std::string &hitboxDir)
     {
         sprite_hitbox_t s{};
         s.spriteID = fr.spriteID;
-        s.count = static_cast<int>(fr.boxes.size());
+        // only MAX_HITBOX_PER_FRAME boxes fit in sprite_hitbox_t; recording
+        // more would make the consumer (CBoss::draw) read past hitboxes[]
+        if (fr.boxes.size() > MAX_HITBOX_PER_FRAME)
+            LOGW("Warning: frame %d has %zu hitboxes; keeping %d.\n",
+                 fr.spriteID, fr.boxes.size(), MAX_HITBOX_PER_FRAME);
+        s.count = static_cast<int>(std::min(fr.boxes.size(),
+                                            static_cast<size_t>(MAX_HITBOX_PER_FRAME)));
         for (size_t i = 0; i < fr.boxes.size() && i < MAX_HITBOX_PER_FRAME; ++i)
             s.hitboxes[i] = fr.boxes[i];
         hb.push_back(s);
     }
 
-    // Adopt the loader's storage into leak-pooled statics.
-    g_pooledBosses = new std::vector<bossData_t>(std::move(loader.bosses));
-    g_pooledNames = new std::vector<std::string>(std::move(loader.namePool));
-    g_pooledHitboxes = new std::vector<sprite_hitbox_t>(std::move(hb));
+    // Adopt the loader's storage into the static pools.
+    g_pooledBosses = std::move(loader.bosses);
+    g_pooledNames = std::move(loader.namePool);
+    g_pooledHitboxes = std::move(hb);
 
     // Re-point each boss's name into the pooled names array (build() pointed
-    // into the transient BossAccum before the move).
-    for (size_t i = 0; i < g_pooledBosses->size(); ++i)
-        (*g_pooledBosses)[i].name = g_pooledNames->at(i).c_str();
+    // into the transient BossAccum before the move). bosses and names are
+    // only ever grown together in pushBoss(), so index i pairs with name i —
+    // keep that invariant if pushBoss ever grows a branch.
+    for (size_t i = 0; i < g_pooledBosses.size(); ++i)
+        g_pooledBosses[i].name = g_pooledNames.at(i).c_str();
 
-    g_bossData = g_pooledBosses->data();
-    g_bossCount = static_cast<int>(g_pooledBosses->size());
-    g_hitboxes = g_pooledHitboxes->data();
-    g_hitboxCount = static_cast<int>(g_pooledHitboxes->size());
+    g_bossData = g_pooledBosses.data();
+    g_bossCount = static_cast<int>(g_pooledBosses.size());
+    g_hitboxes = g_pooledHitboxes.data();
+    g_hitboxCount = static_cast<int>(g_pooledHitboxes.size());
 
     return 0;
 }
 
 void freeBossData()
 {
-    delete g_pooledBosses;
-    delete g_pooledNames;
-    delete g_pooledHitboxes;
-    g_pooledBosses = nullptr;
-    g_pooledNames = nullptr;
-    g_pooledHitboxes = nullptr;
+    g_pooledBosses.clear();
+    g_pooledNames.clear();
+    g_pooledHitboxes.clear();
     g_bossData = nullptr;
     g_hitboxes = nullptr;
     g_bossCount = 0;

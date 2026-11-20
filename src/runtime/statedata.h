@@ -29,12 +29,12 @@ enum StateValue : uint16_t
     PAR_TIME = 0x05,
     YEAR = 0x06,
     PRIVATE = 0x7f,
-    USERDEF1 = 0x80,
-    USERDEF2,
-    USERDEF3,
-    USERDEF4,
+    STATE_USERDEF1 = 0x80, // 'USERDEF1/2' are winuser.h macros
+    STATE_USERDEF2,
+    STATE_USERDEF3,
+    STATE_USERDEF4,
     ALIAS,
-    UUID,
+    STATE_UUID, // 'UUID' would clash with the Windows rpcdce.h typedef
     NOTES,
     MUSIC,
     AUTHOR = 0xc0,

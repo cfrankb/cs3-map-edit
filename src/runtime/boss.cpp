@@ -17,6 +17,9 @@
 */
 
 #include <cmath>
+
+#include <algorithm>
+#include <cstdint>
 #include "boss.h"
 #include "game.h"
 #include "tilesdata.h"
@@ -69,89 +72,9 @@ bool CBoss::isGhostBlocked(const Pos &pos) const
     return def.type == TYPE_SWAMP || def.type == TYPE_ICECUBE || c == TILES_WALLS93_3 || result.isWater;
 }
 
-std::vector<HitResult> CBoss::testHitbox2(const CMap &map,
-                                          hitboxTestCallback_t testCallback,
-                                          hitboxActionCallback_t actionCallback) const
-{
-    std::vector<HitResult> results;
-
-    // Build hitboxes in HALF-TILE units ===
-    std::vector<hitbox_t> hitboxes; // now in half-tiles
-
-    // Primary
-    hitboxes.push_back({m_x,
-                        m_y,
-                        m_bossData->hitbox.width,
-                        m_bossData->hitbox.height,
-                        static_cast<int>(BossData::HitBoxType::MAIN)});
-
-    // Secondary (frame-specific)
-    const sprite_hitbox_t *hbData = getHitboxes(m_bossData->sheet, currentFrame());
-    for (int i = 0; hbData && i < hbData->count; ++i)
-    {
-        const auto &c = hbData->hitboxes[i];
-        hitboxes.push_back({m_x + c.x - m_bossData->hitbox.x,
-                            m_y + c.y - m_bossData->hitbox.y,
-                            c.width,
-                            c.height,
-                            c.type});
-    }
-
-    // === 2. For each hitbox, scan WORLD TILES it covers ===
-    for (const auto &hb : hitboxes)
-    {
-        const int left = hb.x;
-        const int top = hb.y;
-        const int right = left + hb.width - 1;
-        const int bottom = top + hb.height - 1;
-
-        const int wx1 = left >> 1;
-        const int wy1 = top >> 1;
-        const int wx2 = right >> 1;
-        const int wy2 = bottom >> 1;
-
-        BossData::HitBoxType type = static_cast<BossData::HitBoxType>(hb.type);
-
-        for (int wy = wy1; wy <= wy2; ++wy)
-        {
-            for (int wx = wx1; wx <= wx2; ++wx)
-            {
-                // Out-of-map?
-                if (!map.isValid(wx, wy))
-                    continue;
-
-                Pos pos{static_cast<int16_t>(wx), static_cast<int16_t>(wy)};
-
-                // Does this world tile actually overlap the hitbox?
-                // (Optional: skip if no overlap — but usually yes)
-                const int tileLeft = wx << 1; // wx * 2
-                const int tileRight = tileLeft + 1;
-                const int tileTop = wy << 1;
-                const int tileBottom = tileTop + 1;
-
-                if (right < tileLeft || left > tileRight ||
-                    bottom < tileTop || top > tileBottom)
-                    continue; // no overlap
-
-                // Test callback
-                if (testCallback && !testCallback(pos, type))
-                    continue;
-
-                // HIT!
-                HitResult r{pos, type};
-                if (actionCallback)
-                    actionCallback(r);
-                results.push_back(r);
-            }
-        }
-    }
-
-    return results;
-}
-
 std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
-                                          hitboxTestCallback_t testCallback,
-                                          hitboxActionCallback_t actionCallback) const
+                                          const hitboxTestCallback_t &testCallback,
+                                          const hitboxActionCallback_t &actionCallback) const
 {
     std::vector<HitResult> results;
 
@@ -187,11 +110,13 @@ std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
         const int top = hb.y;                // Half-tile y
         const int bottom = hb.y + hb.height; // Half-tile y+height
 
-        // World tile range (inclusive)
-        const int x_start = left / BOSS_GRANULAR_FACTOR;       // floor(left/2)
-        const int x_end = (right - 1) / BOSS_GRANULAR_FACTOR;  // floor((right-1)/2)
-        const int y_start = top / BOSS_GRANULAR_FACTOR;        // floor(top/2)
-        const int y_end = (bottom - 1) / BOSS_GRANULAR_FACTOR; // floor((bottom-1)/2)
+        // World tile range (inclusive). C++ division truncates toward zero;
+        // hitbox half-tile coordinates are non-negative by data contract
+        // (maintainer ruling 2026-11-18), so trunc == floor here.
+        const int x_start = left / BOSS_GRANULAR_FACTOR;
+        const int x_end = (right - 1) / BOSS_GRANULAR_FACTOR;
+        const int y_start = top / BOSS_GRANULAR_FACTOR;
+        const int y_end = (bottom - 1) / BOSS_GRANULAR_FACTOR;
 
         // Scan all world tiles in range
         for (int wy = y_start; wy <= y_end; ++wy)
@@ -229,16 +154,11 @@ std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
 bool CBoss::canMove(const JoyAim aim) const
 {
     const CMap &map = CGame::getMap();
-    const int mapLen = map.width();
-    const int mapHei = map.height();
-    const int x = m_x / BOSS_GRANULAR_FACTOR;
-    const int y = m_y / BOSS_GRANULAR_FACTOR;
-    const int w = m_bossData->hitbox.width / BOSS_GRANULAR_FACTOR;
-    const int h = m_bossData->hitbox.height / BOSS_GRANULAR_FACTOR;
-    const int maxX = mapLen * BOSS_GRANULAR_FACTOR;
-    const int maxY = mapHei * BOSS_GRANULAR_FACTOR;
+    const int w = m_bossData->hitbox.width;  // half-tiles
+    const int h = m_bossData->hitbox.height; // half-tiles
+    const int maxX = map.width() * BOSS_GRANULAR_FACTOR;
+    const int maxY = map.height() * BOSS_GRANULAR_FACTOR;
 
-    // Check if move stays within same 8x8 grid cell and map bounds
     int next_x = m_x;
     int next_y = m_y;
     switch (aim)
@@ -259,71 +179,35 @@ bool CBoss::canMove(const JoyAim aim) const
         LOGW("invalid aim: %.2x on %d", aim, __LINE__);
         return false;
     }
-    if (next_x / BOSS_GRANULAR_FACTOR == m_x / BOSS_GRANULAR_FACTOR &&
-        next_y / BOSS_GRANULAR_FACTOR == m_y / BOSS_GRANULAR_FACTOR &&
-        next_x >= 0 && next_x + m_bossData->hitbox.width <= maxX &&
-        next_y >= 0 && next_y + m_bossData->hitbox.height <= maxY)
-    {
-        return true; // Sub-tile move within same 8x8 cell and map bounds
-    }
-
-    // Check collisions for new 8x8 grid cell
-    switch (aim)
-    {
-    case JoyAim::AIM_UP:
-        if (next_y < 0)
-            return false;
-        for (int ax = x; ax < x + w; ++ax)
-        {
-            if (ax < 0 || ax >= mapLen)
-                continue;
-            const Pos pos{static_cast<int16_t>(ax), static_cast<int16_t>(y - 1)};
-            if ((this->*m_solidCheck)(pos))
-                return false;
-        }
-        break;
-
-    case JoyAim::AIM_DOWN:
-        if (next_y + m_bossData->hitbox.height > maxY)
-            return false;
-        for (int ax = x; ax < x + w; ++ax)
-        {
-            if (ax < 0 || ax >= mapLen)
-                continue;
-            const Pos pos{static_cast<int16_t>(ax), static_cast<int16_t>(y + h)};
-            if ((this->*m_solidCheck)(pos))
-                return false;
-        }
-        break;
-
-    case JoyAim::AIM_LEFT:
-        if (next_x < 0)
-            return false;
-        for (int ay = y; ay < y + h; ++ay)
-        {
-            if (ay < 0 || ay >= mapHei)
-                continue;
-            const Pos pos{static_cast<int16_t>(x - 1), static_cast<int16_t>(ay)};
-            if ((this->*m_solidCheck)(pos))
-                return false;
-        }
-        break;
-
-    case JoyAim::AIM_RIGHT:
-        if (next_x + m_bossData->hitbox.width > maxX)
-            return false;
-        for (int ay = y; ay < y + h; ++ay)
-        {
-            if (ay < 0 || ay >= mapHei)
-                continue;
-            const Pos pos{static_cast<int16_t>(x + w), static_cast<int16_t>(ay)};
-            if ((this->*m_solidCheck)(pos))
-                return false;
-        }
-        break;
-    default:
-        LOGE("invalid aim: %.2x on line %d", aim, __LINE__);
+    if (next_x < 0 || next_y < 0 ||
+        next_x + w > maxX || next_y + h > maxY)
         return false;
+
+    // The hitbox spans several world tiles; every tile it would *newly*
+    // cover must be non-solid. Checking only the anchor tile's row/column
+    // let a half-tile step slide the hitbox's far edge into a blocking
+    // tile (e.g. a static ice cube the boss then collided with).
+    const int nx1 = next_x / BOSS_GRANULAR_FACTOR;
+    const int nx2 = (next_x + w - 1) / BOSS_GRANULAR_FACTOR;
+    const int ny1 = next_y / BOSS_GRANULAR_FACTOR;
+    const int ny2 = (next_y + h - 1) / BOSS_GRANULAR_FACTOR;
+    const int ox1 = m_x / BOSS_GRANULAR_FACTOR;
+    const int ox2 = (m_x + w - 1) / BOSS_GRANULAR_FACTOR;
+    const int oy1 = m_y / BOSS_GRANULAR_FACTOR;
+    const int oy2 = (m_y + h - 1) / BOSS_GRANULAR_FACTOR;
+
+    for (int ty = ny1; ty <= ny2; ++ty)
+    {
+        for (int tx = nx1; tx <= nx2; ++tx)
+        {
+            if (tx >= ox1 && tx <= ox2 && ty >= oy1 && ty <= oy2)
+                continue; // already overlapped before the move
+            if (!map.isValid(tx, ty))
+                return false;
+            const Pos pos{static_cast<int16_t>(tx), static_cast<int16_t>(ty)};
+            if ((this->*m_solidCheck)(pos))
+                return false;
+        }
     }
     return true;
 }
@@ -402,13 +286,15 @@ void CBoss::animate()
         return;
     }
 
-    int maxFrames = seq->lenght;
-    ++m_framePtr;
-    if (maxFrames == 0)
+    const int maxFrames = seq->lenght;
+    if (maxFrames <= 0)
     {
-        // sanity check
+        // zero-length seq: no advance, and no Hurt->Patrol-style transitions
+        // either (the old 0 >= 0 fallthrough ran them; audit 284-301)
         m_framePtr = 0;
+        return;
     }
+    ++m_framePtr;
 
     if (m_framePtr >= maxFrames)
     {
@@ -427,7 +313,10 @@ int CBoss::currentFrame() const
     const boss_seq_t *seq = getCurrentSeq();
     if (seq == nullptr)
         return 0;
-    const int normalizedAim = m_aim % m_bossData->aims;
+    // aims are validated/warned at load (bossdata build); clamp kept here
+    // as defense-in-depth so the modulo can never divide by zero.
+    const int aims = m_bossData->aims > 0 ? m_bossData->aims : 1;
+    const int normalizedAim = m_aim % aims;
     const int baseFrame = seq->base + seq->lenght * normalizedAim;
     return baseFrame + m_framePtr;
 }
@@ -443,14 +332,14 @@ void CBoss::setState(const BossState state)
 
 int CBoss::maxHp() const
 {
-    auto skill = (int)CGame::getGame()->skill();
-    return (int)m_bossData->hp * ((skill * 0.5) + 1);
+    const auto skill = (int)CGame::getGame()->skill();
+    return m_bossData->hp * (2 + skill) / 2; // same values as hp*(skill*0.5+1), no fp (audit 323-327)
 }
 
-bool CBoss::subtainDamage(const int lostHP)
+bool CBoss::sustainDamage(const int lostHP)
 {
     bool justDied = false;
-    m_hp = std::max(m_hp - lostHP, 0);
+    m_hp = std::max(m_hp - std::max(lostHP, 0), 0); // a negative lostHP must not heal past maxHp (audit 332)
     if (m_hp == 0)
     {
         if (m_state != Death)
@@ -485,7 +374,9 @@ int CBoss::damage(const BossData::HitBoxType hbType) const
 
 const Pos CBoss::toPos(int x, int y)
 {
-    return Pos{static_cast<int16_t>(x), static_cast<int16_t>(y)};
+    // clamp instead of silently wrapping through int16_t (audit 365-368)
+    return Pos{static_cast<int16_t>(std::clamp<int>(x, INT16_MIN, INT16_MAX)),
+               static_cast<int16_t>(std::clamp<int>(y, INT16_MIN, INT16_MAX))};
 }
 
 bool CBoss::followPath(const Pos &playerPos, const IPath &astar)
@@ -558,28 +449,47 @@ bool CBoss::read(IFile &sfile)
         return false;
     }
     m_bossData = data;
+    // BUG-C6 follow-up: like the ctor, restored bosses need their tile-check
+    // operator; without it isSolid callers deref a null member pointer.
+    setSolidOperator();
 
     m_framePtr = 0;
-    _R(&m_framePtr, DATA_SIZE);
-    checkBound(m_framePtr, MAX_FRAME);
-    _R(&m_x, sizeof(m_x)); // uint16_t
-    checkBound(m_x, MAX_POS);
-    _R(&m_y, sizeof(m_y)); // uint16_t
-    checkBound(m_y, MAX_POS);
+    uint16_t u16 = 0;
+    _R(&u16, DATA_SIZE);
+    m_framePtr = u16;
+    if (!checkBound(m_framePtr, MAX_FRAME))
+        return false;
+    _R(&m_x, sizeof(m_x)); // int16_t
+    if (!checkBound(m_x, MAX_POS))
+        return false;
+    _R(&m_y, sizeof(m_y)); // int16_t
+    if (!checkBound(m_y, MAX_POS))
+        return false;
 
     m_hp = 0;
-    _R(&m_hp, DATA_SIZE);
-    checkBound(m_hp, MAX_HP);
+    _R(&u16, DATA_SIZE);
+    m_hp = u16;
+    if (!checkBound(m_hp, MAX_HP))
+        return false;
 
     _R(&m_state, sizeof(m_state)); // uint8_t
-    checkBound((uint8_t)m_state, (uint8_t)BossState::MAX_STATES);
+    if (!checkBound((uint8_t)m_state, (uint8_t)BossState::MAX_STATES))
+        return false;
 
     m_speed = 0;
-    _R(&m_speed, DATA_SIZE);
-    checkBound(m_speed, MAX_SPEED);
+    _R(&u16, DATA_SIZE);
+    m_speed = u16;
+    if (!checkBound(m_speed, MAX_SPEED))
+        return false;
 
     _R(&m_aim, sizeof(m_aim)); // uint8_t
-    checkBound(static_cast<uint8_t>(m_aim), JoyAim::TOTAL_AIMS);
+    // AIM_NONE is a legal on-disk value (a boss restored before its first
+    // move); currentFrame() folds it into range with the aims modulo.
+    if (m_aim >= JoyAim::TOTAL_AIMS && m_aim != JoyAim::AIM_NONE)
+    {
+        LOGE("boss aim %u outside expected -- expected < %u", m_aim, (unsigned)JoyAim::TOTAL_AIMS);
+        return false;
+    }
 
     // read path
     m_path.read(sfile);
@@ -596,13 +506,17 @@ bool CBoss::write(IFile &tfile)
     };
 
     constexpr size_t DATA_SIZE = 2;
+    uint16_t u16 = 0;
     _W(&m_bossData->type, sizeof(uint8_t));
-    _W(&m_framePtr, DATA_SIZE);
+    u16 = static_cast<uint16_t>(m_framePtr);
+    _W(&u16, DATA_SIZE);
     _W(&m_x, sizeof(m_x)); // uint16_t
     _W(&m_y, sizeof(m_y)); // uint16_t
-    _W(&m_hp, DATA_SIZE);
+    u16 = static_cast<uint16_t>(m_hp);
+    _W(&u16, DATA_SIZE);
     _W(&m_state, sizeof(m_state)); // uint8_t
-    _W(&m_speed, DATA_SIZE);
+    u16 = static_cast<uint16_t>(m_speed);
+    _W(&u16, DATA_SIZE);
     _W(&m_aim, sizeof(m_aim)); // uint8_t
 
     // write path
@@ -611,6 +525,10 @@ bool CBoss::write(IFile &tfile)
     return true;
 }
 
+// DO NOT collapse this per-type branch chain: one named branch per boss
+// type is the intended extension point for wiring a different solid-check
+// operator to a specific type when new ones are added
+// (maintainer ruling 2026-11-18; see docs/audits/boss.cpp.audit.md).
 void CBoss::setSolidOperator()
 {
     LOGI("set solidOperator for boss %.2x", m_bossData->type);

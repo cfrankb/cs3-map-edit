@@ -56,7 +56,7 @@ void CDotArray::flush()
 
 bool CDotArray::isEmpty()
 {
-    return m_dots.size() != 0;
+    return m_dots.empty();
 }
 
 const Dot &CDotArray::operator[](int i)

@@ -57,7 +57,7 @@ public:
     bool flush() override;
 
 private:
-    void append(const void *data, int size);
+    void append(const void *data, size_t size);
     std::string m_filename;
     std::vector<uint8_t> m_buffer;
     size_t m_ptr;

@@ -107,7 +107,10 @@ bool readVector(const char *name, std::vector<T> &vec, IFile &file)
     }
 
     vec.clear();
-    vec.reserve(count);
+    // The count is untrusted data: never reserve() from it. A hostile value
+    // would pre-allocate count * sizeof(T) before the first element read
+    // fails. Without the reserve, total memory stays bounded by the actual
+    // stream content because growth only happens after a successful read.
     for (uint32_t i = 0; i < count; ++i)
     {
         T elem;

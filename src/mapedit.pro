@@ -24,7 +24,7 @@ SOURCES += \
     runtime/gamemixin.cpp \
     runtime/level.cpp \
     runtime/maparch.cpp \
-    runtime/shared/DotArray.cpp \
+    #runtime/shared/DotArray.cpp \
     runtime/shared/FileWrap.cpp \
     runtime/shared/FileMem.cpp \
     runtime/shared/Frame.cpp \

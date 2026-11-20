@@ -68,14 +68,21 @@ public:
     {
         m_attr = attr;
     }
-    uint8_t getPU() const;
-    void setPU(const uint8_t c);
+    uint16_t getPU() const;
+    void setPU(const uint16_t c);
+    /**
+     * @brief Move the actor only -- does NOT touch the map
+     *
+     * Deliberate use case, distinct from move(): reposition where cells
+     * must stay put. Callers needing move()-style map/`m_pu` bookkeeping
+     * perform the cell swap themselves.
+     */
     void setPos(const Pos &pos);
     JoyAim getAim() const override;
     void setAim(const JoyAim aim) override;
     JoyAim findNextDir(const bool reverse = false) const;
     bool isPlayerThere(JoyAim aim) const;
-    uint8_t tileAt(JoyAim aim) const;
+    uint16_t tileAt(JoyAim aim) const;
     void setType(const uint8_t type);
     bool isWithin(const int x1, const int y1, const int x2, const int y2) const;
     bool read(IFile &file);
@@ -141,19 +148,22 @@ public:
     }
 
 private:
-    uint8_t m_x;
-    uint8_t m_y;
-    uint8_t m_type;
-    union
-    {
-        uint16_t m_frame;
-        uint16_t m_algo;
-    };
-    JoyAim m_aim;
-    uint8_t m_pu;
-    uint8_t m_attr;
-    int32_t m_ttl;
-    Pos m_origin;
+    uint8_t m_x = 0;
+    uint8_t m_y = 0;
+    uint8_t m_type = 0;
+    // was a uint16_t union shared with m_algo: startPath() clobbered the
+    // rendered frame index with the path-algo id (actor.cpp startPath).
+    // Split changed the actor wire record (both fields now serialized
+    // separately); ENGINE_VERSION bumped to 0x0200000f.
+    uint16_t m_frame = 0;
+    uint16_t m_algo = 0;
+    JoyAim m_aim = AIM_NONE;
+    // tileID widened to uint16_t (matches uint16_t layer tiles; maintainer
+    // ruling 2026-11-18). Wire record widened; ENGINE_VERSION bumped.
+    uint16_t m_pu = 0;
+    uint8_t m_attr = 0;
+    int32_t m_ttl = 0;
+    Pos m_origin = {};
     template <typename ReadFunc>
     bool readCommon(ReadFunc readfile);
     template <typename WriteFunc>

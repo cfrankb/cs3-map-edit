@@ -26,8 +26,6 @@
 #include <zlib.h>
 #include "Frame.h"
 #include "FrameSet.h"
-#include "DotArray.h"
-#include "CRC.h"
 #include "IFile.h"
 #include "helper.h"
 #include <cstdint>
@@ -40,7 +38,7 @@
 
 CFrame::CFrame(int width, int height) : m_width(width), m_height(height)
 {
-    if (width < 0 || height < 0 || width > 4096 || height > 4096)
+    if (width < 0 || height < 0 || width > MAX_FRAME_DIM || height > MAX_FRAME_DIM)
     {
         std::string lastError = "Invalid dimensions: " + std::to_string(width) + "x" + std::to_string(height);
         throw std::invalid_argument(lastError);
@@ -213,74 +211,6 @@ bool CFrame::read(IFile &file)
     return true;
 }
 
-void CFrame::toBmp(uint8_t *&bmp, int &totalSize)
-{
-    // BM was read separatly
-    typedef struct
-    {
-        // uint8_t m_sig;        // "BM"
-        uint32_t m_nTotalSize; // 3a 00 00 00
-        uint32_t m_nZero;      // 00 00 00 00 ???
-        uint32_t m_nDiff;      // 36 00 00 00 TotalSize - ImageSize
-        uint32_t m_n28;        // 28 00 00 00 ???
-
-        uint32_t m_nLen;      // 80 00 00 00
-        uint32_t m_nHei;      // 80 00 00 00
-        int16_t m_nPlanes;    // 01 00
-        int16_t m_nBitCount;  // 18 00
-        uint32_t m_nCompress; // 00 00 00 00
-
-        uint32_t m_nImageSize; // c0 00 00 00
-        uint32_t m_nXPix;      // 00 00 00 00 X pix/m
-        uint32_t m_nYPix;      // 00 00 00 00 Y pix/m
-        uint32_t m_nClrUsed;   // 00 00 00 00 ClrUsed
-
-        uint32_t m_nClrImpt; // 00 00 00 00 ClrImportant
-    } USER_BMPHEADER;
-
-    int pitch = m_width * 3;
-    if (pitch % 4)
-    {
-        pitch = pitch - (pitch % 4) + 4;
-    }
-
-    totalSize = bmpDataOffset + pitch * m_height;
-
-    bmp = new uint8_t[totalSize];
-    bmp[0] = 'B';
-    bmp[1] = 'M';
-
-    USER_BMPHEADER &bmpHeader = *((USER_BMPHEADER *)(bmp + 2));
-    bmpHeader.m_nTotalSize = totalSize;
-    bmpHeader.m_nZero = 0;
-    bmpHeader.m_nDiff = bmpDataOffset;
-    bmpHeader.m_n28 = bmpHeaderSize;
-
-    bmpHeader.m_nLen = m_width;
-    bmpHeader.m_nHei = m_height;
-    bmpHeader.m_nPlanes = 1; // always 1
-    bmpHeader.m_nBitCount = 24;
-    bmpHeader.m_nCompress = 0; // 00 00 00 00
-
-    bmpHeader.m_nImageSize = pitch * m_height;
-    bmpHeader.m_nXPix = 0;    // 00 00 00 00 X pix/m
-    bmpHeader.m_nYPix = 0;    // 00 00 00 00 Y pix/m
-    bmpHeader.m_nClrUsed = 0; // 00 00 00 00 ClrUsed
-    bmpHeader.m_nClrImpt = 0; // 00 00 00 00 ClrImportant
-
-    for (int y = 0; y < m_height; ++y)
-    {
-        for (int x = 0; x < m_width; ++x)
-        {
-            uint8_t *s = (uint8_t *)&at(x, m_height - y - 1);
-            uint8_t *d = bmp + bmpDataOffset + x * 3 + y * pitch;
-            d[0] = s[2];
-            d[1] = s[1];
-            d[2] = s[0];
-        }
-    }
-}
-
 uint32_t CFrame::toNet(const uint32_t a)
 {
     uint32_t b;
@@ -298,7 +228,6 @@ uint32_t CFrame::toNet(const uint32_t a)
 bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5data)
 {
     png.clear();
-    CCRC crc;
 
     // compress the data ....................................
     int scanLine = m_width * 4;
@@ -315,9 +244,9 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
     int err = compressData(rdata, cData);
     if (err != Z_OK)
     {
-        m_lastError = "Zlib decompression error " + std::to_string(err) + ": " + zError(err);
+        m_lastError = "Zlib compression error " + std::to_string(err) + ": " + zError(err);
         LOGE("CFrame::toPng error: %d", err);
-        return true;
+        return false;
     }
 
     const uLong cDataSize = cData.size();
@@ -336,7 +265,7 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
     memcpy(t, sig, 8);
     t += 8;
 
-    uint32_t crc32;
+    uint32_t crcValue;
 
     // png_IHDR ---------------------------------------------
     png_IHDR &ihdr = *((png_IHDR *)t);
@@ -351,8 +280,9 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
     ihdr.Interlace = 0;
     // ihdr.CRC = 0;
     t += png_IHDR_Size;
-    crc32 = toNet(crc.crc(((uint8_t *)&ihdr) + 4, png_IHDR_Size - 4));
-    memcpy(t, &crc32, 4);
+    crcValue = toNet(static_cast<uint32_t>(
+        crc32(0, ((uint8_t *)&ihdr) + 4, png_IHDR_Size - 4)));
+    memcpy(t, &crcValue, 4);
     t += 4;
 
     // png_IDAT ....................................................
@@ -378,8 +308,9 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
         t += 4;
         memcpy(t, cData.data() + cDataOffset, chunkSize);
         t += chunkSize;
-        crc32 = toNet(crc.crc(chunkData, chunkSize + 4));
-        memcpy(t, &crc32, 4);
+        crcValue = toNet(static_cast<uint32_t>(
+            crc32(0, chunkData, chunkSize + 4)));
+        memcpy(t, &crcValue, 4);
         t += 4;
 
         cDataOffset += chunkSize;
@@ -393,7 +324,8 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
         memcpy(t, obl5data.data(), obl5data.size());
         png_OBL5 &obl5 = *((png_OBL5 *)t);
         obl5.Length = toNet(obl5size - 12);
-        uint32_t iCrc = toNet(crc.crc(t + 4, obl5size - 8));
+        uint32_t iCrc = toNet(static_cast<uint32_t>(
+            crc32(0, t + 4, obl5size - 8)));
         memcpy(t + obl5size - 4, &iCrc, 4);
         t += obl5size;
     }
@@ -402,7 +334,7 @@ bool CFrame::toPng(std::vector<uint8_t> &png, const std::vector<uint8_t> &obl5da
     png_IEND &iend = *((png_IEND *)t);
     iend.Lenght = 0;
     memcpy(iend.ChunkType, "IEND", 4);
-    iend.CRC = toNet(crc.crc((uint8_t *)"IEND", 4));
+    iend.CRC = toNet(static_cast<uint32_t>(crc32(0, (uint8_t *)"IEND", 4)));
 
     return true;
 }
@@ -817,7 +749,7 @@ void CFrame::shiftDOWN(bool wrap)
 
 void CFrame::shiftLEFT(const bool wrap)
 {
-    if (m_height <= 1 || m_width <= 0)
+    if (m_width <= 1 || m_height <= 0)
     {
         m_lastError = "Invalid dimensions for shiftLEFT: " + std::to_string(m_width) + "x" + std::to_string(m_height);
         return;
@@ -838,7 +770,7 @@ void CFrame::shiftLEFT(const bool wrap)
 
 void CFrame::shiftRIGHT(const bool wrap)
 {
-    if (m_height <= 1 || m_width <= 0)
+    if (m_width <= 1 || m_height <= 0)
     {
         m_lastError = "Invalid dimensions for shiftRIGHT: " + std::to_string(m_width) + "x" + std::to_string(m_height);
         return;
@@ -898,6 +830,13 @@ void CFrame::copy(const CFrame *src)
 
 void CFrame::shadow(int factor)
 {
+    if (factor <= 0)
+    {
+        // (rgb & alpha) / factor was a SIGFPE for factor 0
+        m_lastError = "Invalid shadow factor: " + std::to_string(factor);
+        LOGW("CFrame::shadow: %s", m_lastError.c_str());
+        return;
+    }
     for (int y = 0; y < m_height; ++y)
     {
         for (int x = 0; x < m_width; ++x)
@@ -930,6 +869,15 @@ CFrameSet *CFrame::explode(int count, uint16_t *sx, uint16_t *sy, CFrameSet *set
     int mx = 0;
     for (int i = 0; i < count; ++i)
     {
+        // obLT is file data: clip() would throw out of m_rgb, so validate first
+        if (sx[i] == 0 || sy[i] == 0 || mx + sx[i] > m_width || sy[i] > m_height)
+        {
+            m_lastError = "obLT unit " + std::to_string(i) + " " + std::to_string(sx[i]) +
+                          "x" + std::to_string(sy[i]) + " at x=" + std::to_string(mx) +
+                          " outside " + std::to_string(m_width) + "x" + std::to_string(m_height);
+            LOGW("CFrame::explode: %s", m_lastError.c_str());
+            return set;
+        }
         CFrame *frame = clip(mx, 0, sx[i], sy[i]);
         set->add(frame);
         mx += sx[i];
@@ -950,10 +898,27 @@ CFrameSet *CFrame::explode(std::vector<CFrame::oblv2DataUnit_t> &metadata, CFram
         CFrame *frame;
         if (unit.x != INVALID && unit.y != INVALID)
         {
+            if (unit.sx == 0 || unit.sy == 0 || unit.x >= m_width || unit.y >= m_height ||
+                unit.x + unit.sx > m_width || unit.y + unit.sy > m_height)
+            {
+                m_lastError = "obLT v2 unit " + std::to_string(unit.sx) + "x" +
+                              std::to_string(unit.sy) + " at " + std::to_string(unit.x) +
+                              "," + std::to_string(unit.y) + " outside " +
+                              std::to_string(m_width) + "x" + std::to_string(m_height);
+                LOGW("CFrame::explode: %s", m_lastError.c_str());
+                return set;
+            }
             frame = clip(unit.x, unit.y, unit.sx, unit.sy);
         }
         else
         {
+            if (unit.sx == 0 || unit.sy == 0 || unit.sx > MAX_FRAME_DIM || unit.sy > MAX_FRAME_DIM)
+            {
+                m_lastError = "obLT v2 unit dimensions " + std::to_string(unit.sx) + "x" +
+                              std::to_string(unit.sy) + " rejected";
+                LOGW("CFrame::explode: %s", m_lastError.c_str());
+                return set;
+            }
             frame = new CFrame(unit.sx, unit.sy);
         }
         set->add(frame);

@@ -195,6 +195,23 @@ bool CAnimator::read(IFile &sfile)
         LOGE("failed to read tileLayer");
         return false;
     }
+    // table entries become refIDs for getLayerTileDef (g_layerdata has
+    // TOTAL_TILE_COUNT slots); restore the reloadTileData() invariant:
+    // 0 (not animated) or in-table. Same ingest policy as
+    // CGame::sanitiseMapTiles (maintainer ruling 2026-11-18).
+    // m_tileMainLayer needs no gate: both consumers (TileSet::getTile,
+    // CFrameSet::operator[]) are bounds-checked and return nullptr.
+    size_t cleared = 0;
+    for (auto &tileID : m_tileLayer)
+    {
+        if (tileID >= TOTAL_TILE_COUNT)
+        {
+            tileID = 0;
+            ++cleared;
+        }
+    }
+    if (cleared != 0)
+        LOGW("animator: %zu out-of-table tileLayer entries cleared", cleared);
 
     // read automators
     auto &automators = CGame::getGame()->automators();

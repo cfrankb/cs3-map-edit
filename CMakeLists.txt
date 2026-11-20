@@ -49,23 +49,46 @@ endif()
 # mapruntime: the engine/data layer (src/runtime). Isolated as a library so it
 # can be linked into the editor and into the test executables (tests/TESTING.md).
 #
-# Plain GLOB: re-run cmake configure when adding new .cpp files,
-# e.g. `cmake -S . -B build` or Qt Creator's "Re-run CMake Configure".
 # ---------------------------------------------------------------------------
-file(GLOB RUNTIME_SOURCES
-    src/runtime/*.cpp
-    src/runtime/shared/*.cpp
-    src/runtime/shared/qtgui/*.cpp
+add_library(mapruntime STATIC
+    src/runtime/actor.cpp
+    src/runtime/ai_path.cpp
+    src/runtime/animator.cpp
+    src/runtime/boss.cpp
+    src/runtime/bossdata.cpp
+    src/runtime/colormap.cpp
+    src/runtime/game.cpp
+    src/runtime/game_ai.cpp
+    src/runtime/game_auto.cpp
+    src/runtime/gamemixin.cpp
+    src/runtime/gamesfx.cpp
+    src/runtime/gamestats.cpp
+    src/runtime/gameui.cpp
+    src/runtime/layer.cpp
+    src/runtime/layerdata.cpp
+    src/runtime/level.cpp
+    src/runtime/logger.cpp
+    src/runtime/map.cpp
+    src/runtime/maparch.cpp
+    src/runtime/names.cpp
+    src/runtime/randomz.cpp
+    src/runtime/recorder.cpp
+    src/runtime/sheetdata.cpp
+    src/runtime/statedata.cpp
+    src/runtime/states.cpp
+    src/runtime/strhelper.cpp
+    src/runtime/tilesdata.cpp
+    src/runtime/tilesdebug.cpp
+    src/runtime/shared/DotArray.cpp
+    src/runtime/shared/FileMem.cpp
+    src/runtime/shared/FileWrap.cpp
+    src/runtime/shared/Frame.cpp
+    src/runtime/shared/FrameSet.cpp
+    src/runtime/shared/helper.cpp
+    src/runtime/shared/PngMagic.cpp
+    src/runtime/shared/qtgui/qfilewrap.cpp
+    src/runtime/shared/qtgui/qthelper.cpp
 )
-
-# The map editor uses GDI, not SDL3. The following files are runtime-origin
-# (SDL3-based) and must not be compiled:
-#   - tileset_tex.cpp: runtime uses SDL3; the map editor uses GDI
-list(REMOVE_ITEM RUNTIME_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/tileset_tex.cpp"
-)
-
-add_library(mapruntime STATIC ${RUNTIME_SOURCES})
 
 # Define SDL_NOT_WANTED so the SDL headers compile to no-ops, avoiding pulling
 # SDL functionality into the editor. USE_QFILE selects the QFile-backed file
@@ -99,9 +122,6 @@ endif()
 # mapedit_core: editor logic and widgets, i.e. everything in src/ except the
 # entry point, so the test executables can link it without main().
 # ---------------------------------------------------------------------------
-file(GLOB CORE_SOURCES src/*.cpp)
-list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-
 set(HEADERS
     src/dlgabout.h
     src/dlgattr.h
@@ -115,7 +135,6 @@ set(HEADERS
     src/dlgmaps.h
     src/dlgtest.h
     src/mainwindow.h
-
 )
 
 set(UI_FILES
@@ -128,8 +147,27 @@ set(UI_FILES
     src/mainwindow.ui
 )
 
+# ---------------------------------------------------------------------------
 add_library(mapedit_core STATIC
-    ${CORE_SOURCES}
+    src/dlgabout.cpp
+    src/dlgattr.cpp
+    src/dlgmaps.cpp
+    src/dlgresize.cpp
+    src/dlgselect.cpp
+    src/dlgspell.cpp
+    src/dlgstat.cpp
+    src/dlgtest.cpp
+    src/keyvaluedialog.cpp
+    src/LayerDock.cpp
+    src/LayerRowWidget.cpp
+    src/mainwindow.cpp
+    src/mapfile.cpp
+    src/mapprops.cpp
+    src/MapView.cpp
+    src/MapWidget.cpp
+    src/report.cpp
+    src/tilebox.cpp
+    src/TileSelectorWidget.cpp
     ${UI_FILES}
     ${HEADERS}
 )
@@ -170,13 +208,10 @@ endif()
 # into a static library can be dropped by the linker unless Q_INIT_RESOURCE is
 # called for them.
 # ---------------------------------------------------------------------------
-file(GLOB RESOURCES src/*.qrc)
-
-# Create executable with Qt-aware handling
 qt_add_executable(${PROJECT_NAME}
     MANUAL_FINALIZATION
     src/main.cpp
-    ${RESOURCES}
+    src/mapedit.qrc
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE mapedit_core)

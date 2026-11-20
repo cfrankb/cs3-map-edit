@@ -17,6 +17,8 @@
 */
 
 #include "game.h"
+#include <cstdlib>
+#include <iterator>
 #include <vector>
 #include "map.h"
 #include "boss.h"
@@ -40,7 +42,6 @@ namespace GamePrivate
         ICE_CUBE_DAMAGE = 16,
         CRUSHER_SPEED_MASK = 3,
         AUTOKILL = -1024,
-        RESPAWN_FACTOR = 10,
         RESPAWN_DELAY = 20,
         RESPAWN_SLICE = 7,
     };
@@ -116,8 +117,9 @@ CActor *CGame::spawnBullet(int x, int y, JoyAim aim, uint8_t tile)
 
 void CGame::handleBossPath(CBoss &boss)
 {
-    const int bx = boss.x() / 2;
-    const int by = boss.y() / 2;
+    const Pos bw = boss.worldPos(); // Full-tile position (m_x/2, m_y/2)
+    const int bx = bw.x;
+    const int by = bw.y;
     const CActor &player = m_player;
 
     Pos playerPos{static_cast<int16_t>(m_player.x() * CBoss::BOSS_GRANULAR_FACTOR),
@@ -132,15 +134,19 @@ void CGame::handleBossPath(CBoss &boss)
         return;
     }
 
+    bool pathMoved = false;
     const uint8_t algo = boss.data()->path;
     if (algo != BossData::Path::NONE)
     {
         auto pathAI = CPath::getPathAlgo(algo);
         if (pathAI)
-            boss.followPath(playerPos, *pathAI);
+            pathMoved = boss.followPath(playerPos, *pathAI);
     }
 
-    // Fallback movement
+    // Fallback movement: recovery only when the path AI did not move the
+    // boss this tick (maintainer ruling 2026-11-18: one move per tick).
+    if (pathMoved)
+        return;
     if (bx < player.x() && boss.canMove(JoyAim::AIM_RIGHT))
     {
         boss.move(JoyAim::AIM_RIGHT);
@@ -161,8 +167,9 @@ void CGame::handleBossPath(CBoss &boss)
 
 bool CGame::handleBossBullet(CBoss &boss)
 {
-    const int bx = boss.x() / 2;
-    const int by = boss.y() / 2;
+    const Pos bw = boss.worldPos(); // Full-tile position (m_x/2, m_y/2)
+    const int bx = bw.x;
+    const int by = bw.y;
     const CActor &player = m_player;
     CActor *bullet = nullptr;
     const auto tileID = boss.data()->bullet;
@@ -191,7 +198,6 @@ bool CGame::handleBossBullet(CBoss &boss)
         playSound(boss.data()->attack_sound);
         if (boss.data()->bullet_algo != BossData::Path::NONE)
         {
-            LOGI("bullet path algo: %d", boss.data()->bullet_algo);
             bullet->startPath(m_player.pos(), boss.data()->bullet_algo, boss.data()->bullet_ttl);
         }
 
@@ -208,9 +214,10 @@ void CGame::handleBossHitboxContact(CBoss &boss)
     boss.testHitbox1(m_map, [](const Pos &p, auto type)
                      {
                          (void)type;
-                         return m_map.at(p.x, p.y) == TILES_ANNIE2; // check if player is there
+                         // type-based like every other player-detection site
+                         return getTileDef(m_map.at(p.x, p.y)).type == TYPE_PLAYER;
                      },
-                     [boss, this, &playerDamage](const HitResult &r)
+                     [&boss, this, &playerDamage](const HitResult &r)
                      {
                          playerDamage = std::max(boss.damage(r.type), playerDamage); // find player damage
                      });
@@ -235,7 +242,7 @@ void CGame::handleBossHitboxContact(CBoss &boss)
                              playSound(SOUND_SPLASH01);
                              if (r.type != BossData::HitBoxType::SPECIAL1)
                              {
-                                 const bool justDied = boss.subtainDamage(ICE_CUBE_DAMAGE);
+                                 const bool justDied = boss.sustainDamage(ICE_CUBE_DAMAGE);
                                  if (justDied)
                                      addPoints(boss.data()->score);
                              }
@@ -291,8 +298,9 @@ void CGame::manageBosses(const uint32_t ticks)
         if (boss.state() == CBoss::BossState::Death)
             continue;
 
-        const int bx = boss.x() / 2;
-        const int by = boss.y() / 2;
+        const Pos bw = boss.worldPos(); // Full-tile position (m_x/2, m_y/2)
+        const int bx = bw.x;
+        const int by = bw.y;
 
         // hitbox attack
         handleBossHitboxContact(boss);
@@ -396,7 +404,9 @@ void CGame::manageMonsters(const uint32_t ticks)
         }
 
         const TileDef &def = getTileDef(tileID);
-        if (!speeds[def.speed])
+        // TileDef::speed is generated data; out-of-range values are not
+        // throttled rather than reading past the speeds[] array
+        if (def.speed < speedCount && !speeds[def.speed])
             continue;
 
         if (actor.type() == TYPE_MONSTER)
@@ -413,7 +423,7 @@ void CGame::manageMonsters(const uint32_t ticks)
         }
         else if (actor.type() == TYPE_VAMPLANT)
         {
-            handleVamPlant(actor, def, newMonsters);
+            handleVamPlant(actor, def, newMonsters, deletedMonsters);
         }
         else if (RANGE(actor.type(), ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
         {
@@ -490,7 +500,7 @@ void CGame::handleMonster(CActor &actor, const TileDef &def)
             return;
         }
     }
-    for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
+    for (uint8_t i = 0; i < std::size(g_dirs); ++i)
     {
         if (actor.getAim() != g_dirs[i] &&
             actor.isPlayerThere(g_dirs[i]))
@@ -529,13 +539,15 @@ void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ti
                 const CPath::Result result = actor.followPath(m_player.pos());
                 if (result != CPath::Result::Blocked)
                 {
-                    JoyAim aim = actor.getAim();
-                    actor.setAim(aim);
+                    const JoyAim aim = actor.getAim();
                     if (!def.bullet || (def.rate && ticks % def.rate != 0))
                         return;
                     if (actor.canMove(aim))
                     {
                         Pos t = translate(actor.pos(), aim);
+                        // WARNING: spawnBullet emplaces into m_monsters and may
+                        // reallocate, invalidating `actor`; nothing below may
+                        // touch actor after this call
                         spawnBullet(t.x, t.y, aim, def.bullet); // TILES_FIREBALL_SM);
                     }
                 }
@@ -559,7 +571,7 @@ void CGame::handleMonsterV3(CActor &actor, const TileDef &def, const uint32_t ti
             return;
         }
     }
-    for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
+    for (uint8_t i = 0; i < std::size(g_dirs); ++i)
     {
         if (actor.getAim() != g_dirs[i] &&
             actor.isPlayerThere(g_dirs[i]))
@@ -602,11 +614,12 @@ void CGame::handleDrone(CActor &actor, const TileDef &def)
     actor.setAim(aim);
 }
 
-void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters)
+void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor> &newMonsters,
+                           const std::set<int, std::greater<int>> &deletedMonsters)
 {
     static constexpr JoyAim g_dirs[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
 
-    for (uint8_t i = 0; i < sizeof(g_dirs); ++i)
+    for (uint8_t i = 0; i < std::size(g_dirs); ++i)
     {
         const Pos p = CGame::translate(Pos{actor.x(), actor.y()}, g_dirs[i]);
         const uint16_t ct = m_map.at(p.x, p.y);
@@ -627,7 +640,9 @@ void CGame::handleVamPlant(CActor &actor, const TileDef &def, std::vector<CActor
                  defT.type == TYPE_MONSTERV3)
         {
             const int j = findMonsterAt(p.x, p.y);
-            if (j == INVALID)
+            // a monster already killed this tick is erased at end of
+            // manageMonsters; converting it here would orphan the tile
+            if (j == INVALID || deletedMonsters.count(j))
                 continue;
             CActor &m = m_monsters[j];
             m.setType(TYPE_VAMPLANT);
@@ -709,10 +724,11 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
     // compute blast radius
     std::vector<int> index;
     index.reserve(radius * 2 + 1);
-    for (size_t i = 0; i < radius; ++i)
-        index.emplace_back(-radius + i);
+    const int r = static_cast<int>(radius);
+    for (int i = 0; i < r; ++i)
+        index.emplace_back(-r + i);
     index.emplace_back(0);
-    for (size_t i = 0; i < radius; ++i)
+    for (int i = 0; i < r; ++i)
         index.emplace_back(i + 1);
 
     struct blastPos_t
@@ -734,8 +750,15 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
             const int16_t y = pos.y + ty;
             if (m_map.isValid(x, y))
             {
-                int distance = (std::abs(tx) + std::abs(ty)) / 2;
-                int radiusDamage = distance ? damage / std::abs(distance) : damage;
+                // accepted falloff (2026-11-18 ruling): full damage for
+                // Manhattan <= 3, then damage / (manhattan / 2).
+                // distance is non-negative by construction (tx/ty abs-ed) --
+                // its abs() was dropped. radiusDamage keeps abs(): caller
+                // passes def.health (NEGATIVE health deltas); the stored
+                // splash damage must be positive or sustainDamage's
+                // negative-heal guard (BUG-C round) turns it into healing.
+                const int distance = (std::abs(tx) + std::abs(ty)) / 2;
+                int radiusDamage = distance ? damage / distance : damage;
                 blastPositions.emplace_back(blastPos_t{Pos{x, y}, std::abs(radiusDamage)});
 
                 // check player for splash danage
@@ -767,7 +790,7 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
                         // kill mob monsters
                         deletedMonsters.emplace(id);
                         m_map.set(x, y, actor.getPU());
-                        m_sfx.emplace_back(sfx_t{x, y, SFX_EXPLOSION0, SFX_EXPLOSION6_TIMEOUT});
+                        m_sfx.emplace_back(sfx_t{x, y, SFX_EXPLOSION0, SFX_EXPLOSION0_TIMEOUT});
                     }
                     else if (actor.type() == TYPE_ICECUBE)
                     {
@@ -782,6 +805,9 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
     }
 
     // test boss hitbox
+    // Hidden/Death bosses are deliberately NOT skipped: blast damage applies
+    // whether or not the boss is on screen (maintainer ruling 2026-11-18).
+    // Corpse hits are already no-ops in CBoss::sustainDamage's death guard.
     for (auto &boss : m_bosses)
     {
         int bossDamage = 0;
@@ -791,14 +817,14 @@ void CGame::blastRadius(const Pos &pos, const size_t radius, const int damage, s
                 // check if damage can occur
                 return type != BossData::HitBoxType::SPECIAL1 && p == bp.toPos();
             },
-                             [boss, &bp, &bossDamage](const HitResult &)
+                             [&bp, &bossDamage](const HitResult &)
                              {
                                  // compute maximum damage
                                  bossDamage = std::max(bp.damage, bossDamage); //
                              });
         }
         if (bossDamage)
-            boss.subtainDamage(bossDamage);
+            boss.sustainDamage(bossDamage);
     }
 }
 
@@ -835,6 +861,7 @@ void CGame::handleBarrel(CActor &actor, const TileDef &def, const int i, std::se
             .sfxID = SFX_EXPLOSION5,
             .timeout = SFX_EXPLOSION5_TIMEOUT,
         });
+        spawnFx(FX_SMOKE_BOMB, pos.x, pos.y);
         deletedMonsters.emplace(i);
         queueRespawn(actor);
         m_map.set(pos.x, pos.y, TILES_BARREL2EX);
@@ -855,8 +882,6 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             return;
         isMoving = result != CPath::Result::Blocked && actor.getTTL() != 0;
         aim = actor.getAim();
-        // if (actor.canMove(aim) && actor.getTTL() != 0)
-        //     return;
     }
     else
     {
@@ -878,7 +903,7 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
             .timeout = bullet.sfxTimeOut,
         });
         if (CGame::translate(Pos{actor.x(), actor.y()}, aim) == actor.pos())
-            // coordonate outside map bounds
+            // aim blocked (wall/edge): the bullet did not advance onto a tile
             return;
         const uint16_t tileID = actor.tileAt(aim);
         const TileDef &defX = getTileDef(tileID);
@@ -886,11 +911,13 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         {
             playSound(SOUND_SPLASH01);
             const Pos &pos = translate(actor.pos(), aim);
-            int i = findMonsterAt(pos.x, pos.y);
-            if (i != INVALID)
+            int victim = findMonsterAt(pos.x, pos.y);
+            // guard like blastRadius: a monster already killed this tick must
+            // not be queued twice or have its restored tile clobbered
+            if (victim != INVALID && !deletedMonsters.count(victim))
             {
-                queueRespawn(i);
-                deletedMonsters.insert(i);
+                queueRespawn(victim);
+                deletedMonsters.insert(victim);
                 m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION6, .timeout = SFX_EXPLOSION6_TIMEOUT});
                 m_map.set(pos.x, pos.y, TILES_BLANK);
             }
@@ -908,12 +935,13 @@ void CGame::handleBullet(CActor &actor, const TileDef &def, const int i, const b
         {
             playSound(SOUND_EXPLOSION1);
             const Pos &pos = translate(actor.pos(), aim);
-            int i = findMonsterAt(pos.x, pos.y);
-            if (i != INVALID)
+            int victim = findMonsterAt(pos.x, pos.y);
+            // guard like blastRadius (see icecube branch above)
+            if (victim != INVALID && !deletedMonsters.count(victim))
             {
-                queueRespawn(i);
-                deletedMonsters.insert(i);
-                m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION1, .timeout = SFX_EXPLOSION6_TIMEOUT});
+                queueRespawn(victim);
+                deletedMonsters.insert(victim);
+                m_sfx.emplace_back(sfx_t{.x = pos.x, .y = pos.y, .sfxID = SFX_EXPLOSION1, .timeout = SFX_EXPLOSION1_TIMEOUT});
                 m_map.set(pos.x, pos.y, TILES_BLANK);
             }
         }
@@ -979,5 +1007,6 @@ bool CGame::queueRespawn(const int i)
     const size_t index = static_cast<size_t>(i);
     if (index < m_monsters.size())
         return queueRespawn(m_monsters[i]);
+    LOGW("queueRespawn: monster index %d out of range", i);
     return false;
 }

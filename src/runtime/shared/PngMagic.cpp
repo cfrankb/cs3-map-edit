@@ -23,7 +23,6 @@
 #include <cstring>
 #include <cstdio>
 #include <cmath>
-#include "CRC.h"
 #include "IFile.h"
 #include "logger.h"
 
@@ -39,9 +38,6 @@
 #define PNG_COLOR_TYPE_RGB (PNG_COLOR_MASK_COLOR)
 #define PNG_COLOR_TYPE_RGB_ALPHA (PNG_COLOR_MASK_COLOR | PNG_COLOR_MASK_ALPHA)
 #define PNG_COLOR_TYPE_GRAY_ALPHA (PNG_COLOR_MASK_ALPHA)
-/* aliases */
-#define PNG_COLOR_TYPE_RGBA PNG_COLOR_TYPE_RGB_ALPHA
-#define PNG_COLOR_TYPE_GA PNG_COLOR_TYPE_GRAY_ALPHA
 
 constexpr uint32_t OBLT_VERSION0 = 0;
 constexpr uint32_t OBLT_VERSION2 = 2;
@@ -67,25 +63,13 @@ void enablePngMagicVerbose()
     g_verbose = true;
 }
 
-typedef struct
-{
-    uint32_t Lenght; // 4 UINT8s
-    uint8_t ChunkType[CHUNK_TYPE_LEN];
-    uint32_t Width;      //: 4 uint8_ts
-    uint32_t Height;     //: 4 uint8_ts
-    uint8_t BitDepth;    //: 1 uint8_t
-    uint8_t ColorType;   //: 1 uint8_t
-    uint8_t Compression; //: 1 uint8_t
-    uint8_t Filter;      //: 1 uint8_t
-    uint8_t Interlace;   //: 1 uint8_t
-} png_IHDR;
 
-uint8_t PaethPredictor(uint8_t a, uint8_t b, uint8_t c)
+static uint8_t PaethPredictor(uint8_t a, uint8_t b, uint8_t c)
 {
     int p = a + b - c;               // initial estimate
-    int pa = std::abs((float)p - a); // distances to a, b, c
-    int pb = std::abs((float)p - b); //
-    int pc = std::abs((float)p - c);
+    int pa = std::abs(p - a); // distances to a, b, c
+    int pb = std::abs(p - b); //
+    int pc = std::abs(p - c);
     //; return nearest of a,b,c,
     //; breaking ties in order a,b,c.
     if ((pa <= pb) && (pa <= pc))
@@ -103,8 +87,8 @@ uint8_t PaethPredictor(uint8_t a, uint8_t b, uint8_t c)
 static bool _4bpp(
     CFrame *frame,
     uint8_t *cData,
-    const int cDataSize,
-    const png_IHDR &ihdr,
+    const size_t cDataSize,
+    const CFrame::png_IHDR &ihdr,
     const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
@@ -114,15 +98,15 @@ static bool _4bpp(
 static bool _8bpp(
     CFrame *frame,
     uint8_t *cData,
-    const int cDataSize,
-    const png_IHDR &ihdr,
+    const size_t cDataSize,
+    const CFrame::png_IHDR &ihdr,
     const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
     const int offsetY,
     std::string &lastError);
 
-const std::string_view getFilteringName(uint8_t i)
+static const std::string_view getFilteringName(uint8_t i)
 {
     constexpr std::string_view names[] = {
         "None", "Sub", "Up", "Average", "Paeth"};
@@ -133,9 +117,8 @@ const std::string_view getFilteringName(uint8_t i)
         return "unknown";
 }
 
-bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
+bool parsePNG(CFrameSet &set, IFile &file, long orgPos, bool skipOblt)
 {
-    CCRC crc;
     auto fileSize = file.getSize();
     if (fileSize < 0)
     {
@@ -163,10 +146,11 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
         return false;
     }
 
-    png_IHDR ihdr;
-    memset(&ihdr, 0, sizeof(png_IHDR));
+    CFrame::png_IHDR ihdr;
+    memset(&ihdr, 0, sizeof(ihdr));
 
     uint8_t plte[PALETTE_SIZE][RGB_BYTES];
+    memset(plte, 0, sizeof(plte)); // missing/short PLTE must not leak stack bytes
     uint8_t trns[PALETTE_SIZE];
     memset(trns, ALPHA, sizeof(trns));
 
@@ -180,7 +164,7 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
     std::vector<uint16_t> obl5t_sx;                        // oblt_v0
     std::vector<uint16_t> obl5t_sy;                        // oblt_v0
     std::vector<CFrame::oblv2DataUnit_t> obl5t_metadatav2; // oblt_v2
-    int cDataSize = 0;
+    size_t cDataSize = 0;
     while (pos < fileSize)
     {
         // read chunksize
@@ -206,6 +190,16 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
         memcpy(ct, chunkType, sizeof(chunkType));
         ct[sizeof(chunkType)] = '\0';
 
+        // a hostile chunk length must fit in the remaining file bytes
+        // (BUG-C3: gate before any allocation or fixed-buffer copy)
+        if (chunkSize < 0 || pos + chunkSize + (long)sizeof(int32_t) > fileSize)
+        {
+            char tmp[128];
+            snprintf(tmp, sizeof(tmp), "invalid chunk size %d for chunk [%s]", chunkSize, ct);
+            set.setLastError(tmp);
+            return false;
+        }
+
         // read chunkdata
         std::vector<uint8_t> chunkDataRaw(chunkSize + sizeof(chunkType));
         if (chunkSize != 0 && file.read(chunkDataRaw.data() + sizeof(chunkType), chunkSize) != IFILE_OK)
@@ -219,13 +213,18 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
         memcpy(chunkDataRaw.data(), chunkType, sizeof(chunkType));
         uint8_t *chunkData = chunkDataRaw.data() + sizeof(chunkType);
 
-        int32_t crc32;
-        file.read(&crc32, sizeof(crc32));
-        pos += sizeof(crc32);
-        crc32 = CFrame::toNet(crc32);
+        int32_t chunkCrc = 0;
+        if (file.read(&chunkCrc, sizeof(chunkCrc)) != IFILE_OK)
+        {
+            set.setLastError("failed to read chunk CRC");
+            return false;
+        }
+        pos += sizeof(chunkCrc);
+        chunkCrc = CFrame::toNet(chunkCrc);
         // Check crc32 for each chunk
-        int crc32c = crc.crc(chunkDataRaw.data(), chunkSize + sizeof(chunkType));
-        if (crc32 != crc32c)
+        int32_t crc32c = static_cast<int32_t>(
+            crc32(0, chunkDataRaw.data(), chunkSize + sizeof(chunkType)));
+        if (chunkCrc != crc32c)
         {
             set.setLastError("chunk CRC32 checksum doesn't match");
             return false;
@@ -233,6 +232,11 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
 
         if (memcmp(chunkType, "IHDR", CHUNK_TYPE_LEN) == 0)
         {
+            if (chunkSize != 13)
+            {
+                set.setLastError("invalid IHDR chunk size");
+                return false;
+            }
             memcpy(((uint8_t *)&ihdr) + 8, chunkData, chunkSize);
             memcpy(ihdr.ChunkType, chunkType, 4);
             ihdr.Lenght = chunkSize;
@@ -249,6 +253,11 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
 
         else if (memcmp(chunkType, "PLTE", CHUNK_TYPE_LEN) == 0)
         {
+            if (chunkSize > (int32_t)sizeof(plte) || chunkSize % (int32_t)RGB_BYTES != 0)
+            {
+                set.setLastError("invalid PLTE chunk size");
+                return false;
+            }
             memcpy(plte, chunkData, chunkSize);
         }
 
@@ -269,6 +278,11 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
 
         else if (memcmp(chunkType, "tRNS", CHUNK_TYPE_LEN) == 0)
         {
+            if (chunkSize > (int32_t)sizeof(trns))
+            {
+                set.setLastError("invalid tRNS chunk size");
+                return false;
+            }
             memcpy(trns, chunkData, chunkSize);
             trns_found = true;
         }
@@ -280,12 +294,24 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
 
         else if (memcmp(chunkType, png_chunk_OBL5, CHUNK_TYPE_LEN) == 0)
         {
+            if (chunkSize < 12)
+            {
+                set.setLastError("obLT chunk too small");
+                return false;
+            }
             CFrame::png_OBL5 obl5t;
             char *t = (char *)&obl5t;
             memcpy(t + 8, chunkData, 12);
             obl5t_version = obl5t.Version;
             if (obl5t.Version == OBLT_VERSION0)
             {
+                // sx/sy arrays (2 * uint16 * Count) must be in the chunk payload
+                const uint64_t needed = 12ull + 2ull * sizeof(uint16_t) * obl5t.Count;
+                if (needed > (uint64_t)chunkSize)
+                {
+                    set.setLastError("obLT count exceeds chunk size");
+                    return false;
+                }
                 // version 0x0000 is supported
                 obl5t_count = obl5t.Count;
                 obl5t_sx.resize(obl5t.Count);
@@ -297,6 +323,13 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
             }
             else if (obl5t.Version == OBLT_VERSION2)
             {
+                // metadata units must be in the chunk payload
+                const uint64_t needed = 12ull + sizeof(CFrame::oblv2DataUnit_t) * (uint64_t)obl5t.Count;
+                if (needed > (uint64_t)chunkSize)
+                {
+                    set.setLastError("obLT count exceeds chunk size");
+                    return false;
+                }
                 // version 0x0002 is supported
                 obl5t_count = obl5t.Count;
                 obl5t_metadatav2.resize(obl5t.Count);
@@ -312,6 +345,12 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
         {
             // LOGW("ignored unsupported chunkType: %s", ct);
         }
+
+        // nothing is valid after IEND (spec): stop so trailing padding is
+        // tolerated and a smuggled post-IEND obLT cannot override the real
+        // metadata (writer emits obLT before IEND, Frame.cpp:320/333)
+        if (iend_found)
+            break;
     }
 
     bool valid = false;
@@ -335,8 +374,13 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
                 offsetY = 8 - (height & 7);
                 height += offsetY;
             }
+            // CFrame's ctor throws; a hostile IHDR must fail the parse instead
+            if (width < 0 || height < 0 || width > CFrame::MAX_FRAME_DIM || height > CFrame::MAX_FRAME_DIM)
+            {
+                set.setLastError("png dimensions too large");
+                return false;
+            }
             std::unique_ptr<CFrame> frame = std::make_unique<CFrame>(width, height);
-            memset(frame->getRGB().data(), 0, sizeof(uint32_t) * frame->width() * frame->height());
 
             std::string lastError;
             if (ihdr.BitDepth == 8)
@@ -372,6 +416,12 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
                     set.setLastError(error.c_str());
                     return false;
                 }
+                // explode() rejects obLT rects outside the frame instead of throwing
+                if (frame->getLastError()[0] != '\0')
+                {
+                    set.setLastError(frame->getLastError());
+                    return false;
+                }
             }
             else
             {
@@ -384,14 +434,20 @@ bool parsePNG(CFrameSet &set, IFile &file, int orgPos, bool skipOblt)
             return false;
         }
     }
+    else
+    {
+        // callers must never see a bare false with an empty lastError
+        set.setLastError(iend_found ? "no IDAT chunk" : "missing IEND chunk");
+        return false;
+    }
     return valid;
 }
 
 static bool _8bpp(
     CFrame *frame,
     uint8_t *cData,
-    const int cDataSize,
-    const png_IHDR &ihdr,
+    const size_t cDataSize,
+    const CFrame::png_IHDR &ihdr,
     const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
@@ -420,11 +476,14 @@ static bool _8bpp(
 
     // printf("pixelWidth %d\n", pixelWidth);
 
-    int pitch = CFrame::toNet(ihdr.Width) * pixelWidth + 1;
+    const int width = CFrame::toNet(ihdr.Width);
+    const int height = CFrame::toNet(ihdr.Height);
+    int pitch = width * pixelWidth + 1;
     // printf("pixelWidth: %d\n", pixelWidth);
     // printf("pitch: %d\n", pitch);
 
-    uLong dataSize = pitch * CFrame::toNet(ihdr.Height);
+    uLong dataSize = pitch * height;
+    const uLong expectedSize = dataSize;
     std::vector<uint8_t> fData(dataSize);
     //    printf("total data:%d\n", ((int)dataSize));
 
@@ -441,11 +500,18 @@ static bool _8bpp(
         lastError = tmp;
         return false;
     }
+    if (dataSize != expectedSize)
+    {
+        // zlib accepted but produced fewer rows: the fData tail would
+        // silently decode as black/zero-filtered rows
+        lastError = "truncated IDAT stream";
+        return false;
+    }
 
     bool valid = true;
     uint32_t *rgb = frame->getRGB().data();
 
-    for (int y = 0; y < (int)CFrame::toNet(ihdr.Height); y++)
+    for (int y = 0; y < height; y++)
     {
         uint8_t *line = &fData.data()[pitch * y + 1];
         uint8_t *prLine = nullptr;
@@ -461,7 +527,7 @@ static bool _8bpp(
             break;
 
         case FILTERING_SUB:
-            for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
+            for (int x = 0; x < width; x++)
             {
                 uint32_t p = 0;
                 uint32_t c = 0;
@@ -485,7 +551,7 @@ static bool _8bpp(
             break;
 
         case FILTERING_UP:
-            for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
+            for (int x = 0; x < width; x++)
             {
                 uint32_t p = 0;
                 uint32_t c = 0;
@@ -509,7 +575,7 @@ static bool _8bpp(
             break;
 
         case FILTERING_AVERAGE:
-            for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
+            for (int x = 0; x < width; x++)
             {
 
                 uint32_t a = 0; // left
@@ -538,7 +604,7 @@ static bool _8bpp(
             break;
 
         case FILTERING_PAETH:
-            for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
+            for (int x = 0; x < width; x++)
             {
                 uint32_t a = 0; // left
                 uint32_t b = 0; // above
@@ -578,7 +644,7 @@ static bool _8bpp(
             return false;
         }
 
-        for (int x = 0; x < (int)CFrame::toNet(ihdr.Width); x++)
+        for (int x = 0; x < width; x++)
         {
             uint32_t rgba = 0xff000000;
             switch (pixelWidth)
@@ -588,7 +654,7 @@ static bool _8bpp(
 
                 if (trns_found)
                 {
-                    rgba &= (trns[line[x]] * 0x1000000) + 0xffffff;
+                    rgba &= (trns[line[x]] * 0x1000000u) + 0xffffff;
                 }
                 break;
 
@@ -607,8 +673,8 @@ static bool _8bpp(
 static bool _4bpp(
     CFrame *frame,
     uint8_t *cData,
-    const int cDataSize,
-    const png_IHDR &ihdr,
+    const size_t cDataSize,
+    const CFrame::png_IHDR &ihdr,
     const uint8_t plte[][RGB_BYTES],
     const bool trns_found,
     const uint8_t trns[],
@@ -624,21 +690,22 @@ static bool _4bpp(
         return false;
     }
 
-    int pitch = 1 + CFrame::toNet(ihdr.Width) / 2;
-    if (CFrame::toNet(ihdr.Width) & 1)
+    int pitch = 1 + width / 2;
+    if (width & 1)
     {
         ++pitch;
     }
     // printf("pixelWidth: %d\n", pixelWidth);
     // printf("pitch: %d\n", pitch);
 
-    uint64_t dataSize = pitch * CFrame::toNet(ihdr.Height);
+    uLong dataSize = pitch * height;
+    const uLong expectedSize = dataSize;
     std::vector<uint8_t> fData(dataSize);
     //    printf("total data:%d\n", ((int)dataSize));
 
     int err = uncompress(
         (uint8_t *)fData.data(),
-        (uLong *)&dataSize,
+        &dataSize,
         (uint8_t *)cData,
         (uLong)cDataSize);
 
@@ -647,6 +714,11 @@ static bool _4bpp(
         char tmp[128];
         snprintf(tmp, sizeof(tmp), "Zlib compression error %d: %s", err, zError(err));
         lastError = tmp;
+        return false;
+    }
+    if (dataSize != expectedSize)
+    {
+        lastError = "truncated IDAT stream";
         return false;
     }
 

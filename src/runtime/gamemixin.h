@@ -49,7 +49,7 @@ public:
     explicit CGameMixin();
     virtual ~CGameMixin();
     virtual void init(CMapArch *maparch, const int index);
-    inline bool isWithin(int val, int min, int max);
+    bool isWithin(int val, int min, int max);
     void enableHiScore();
     void setSkill(uint8_t skill);
     static int tickRate();
@@ -58,6 +58,12 @@ public:
 
 #ifdef USE_QFILE
 protected slots:
+#else
+// non-Qt build: without a label these members silently inherit the
+// preceding `public:`. Explicit here — and the divergence from the Qt
+// branch (protected slots) is load-bearing: engine.cpp calls these
+// from outside the class. See gamemixin.audit.md USE_QFILE finding.
+public:
 #endif
     virtual void mainLoop();
     void changeZoom();
@@ -77,7 +83,8 @@ protected slots:
         char name[MAX_NAME_LENGTH];
     };
 
-    hiscore_t &getHiScoreAtIndex(int i) { return m_hiscores[i]; }
+    // clamped so a bogus index can never index m_hiscores out of bounds (audit)
+    hiscore_t &getHiScoreAtIndex(int i) { return m_hiscores[i < 0 ? 0 : (i >= static_cast<int>(MAX_SCORES) ? MAX_SCORES - 1 : i)]; }
     int scoreRank() { return m_scoreRank; }
     bool recordScore() { return m_recordScore; }
     std::vector<std::string> &helptext() { return m_helptext; }
@@ -108,7 +115,6 @@ protected:
         INTERLINES = 2,
         Y_STATUS = 2,
         PLAYER_FRAMES = 8,
-        PLAYER_STD_FRAMES = 7,
         PLAYER_DOWN_INDEX = 8,
         PLAYER_TOTAL_FRAMES = 45,
         PLAYER_BOAT_FRAME = 44,
@@ -167,7 +173,6 @@ protected:
         PROMPT_RESTART_GAME,
         PROMPT_LOAD,
         PROMPT_SAVE,
-        PROMPT_RESTART_LEVEL,
         PROMPT_HARDCORE,
         PROMPT_TOGGLE_MUSIC,
     };
@@ -231,22 +236,22 @@ protected:
         int rLives = 0;
         int rSugar = 0;
         int sugarFx = 0;
-        uint8_t sugarCubes[SUGAR_CUBES];
+        uint8_t sugarCubes[SUGAR_CUBES] = {};
     };
 
     struct message_t
     {
-        int scaleX;
-        int scaleY;
-        int baseY;
-        Color color;
+        int scaleX = 0;
+        int scaleY = 0;
+        int baseY = 0;
+        Color color = {};
         std::string lines[3];
     };
 
-    hiscore_t m_hiscores[MAX_SCORES];
-    uint8_t m_joyState[JOY_AIMS];
-    uint8_t m_vjoyState[JOY_AIMS];
-    uint8_t m_buttonState[Button_Count];
+    hiscore_t m_hiscores[MAX_SCORES] = {};
+    uint8_t m_joyState[JOY_AIMS] = {};
+    uint8_t m_vjoyState[JOY_AIMS] = {};
+    uint8_t m_buttonState[Button_Count] = {};
     uint32_t m_ticks = 0;
     CAnimator *m_animator;
     std::unique_ptr<CFrameSet> m_tiles;
@@ -254,6 +259,7 @@ protected:
     std::unique_ptr<CFrameSet> m_users;
     std::unique_ptr<CFrameSet> m_sheet0;
     std::unique_ptr<CFrameSet> m_sheet1;
+    std::unique_ptr<CFrameSet> m_fxSheet; // extended fx; null => fx draw no-ops
     std::unique_ptr<CFrameSet> m_uisheet;
     std::unique_ptr<CFrameSet> m_layerTiles;
     std::vector<uint8_t> m_fontData;
@@ -277,15 +283,15 @@ protected:
     int m_optionCooldown = 0;
     // bool m_gameMenuActive = false;
     int m_gameMenuCooldown = 0;
-    int m_cx;
-    int m_cy;
+    int m_cx = 0;
+    int m_cy = 0;
     int m_cameraMode = CAMERA_MODE_STATIC;
     int m_healthBar = HEALTHBAR_CLASSIC;
-    int m_currentEvent;
-    int m_eventCountdown;
-    int m_timer;
-    int _WIDTH;
-    int _HEIGHT;
+    int m_currentEvent = 0;
+    int m_eventCountdown = 0;
+    int m_timer = 0;
+    int _WIDTH = 0;
+    int _HEIGHT = 0;
     ColorMaps m_colormaps;
     visualStates_t m_visualStates;
     CGameUI m_ui;
@@ -299,19 +305,22 @@ protected:
     void flashScreen(CFrame &bitmap);
     void drawViewPortDynamic(CFrame &bitmap);
     void drawViewPortStatic(CFrame &bitmap);
+    // extended fx layer blit (docs/spec/gamespec/extended-fx.md); front/back
+    // pass around the sprite loop, origin = world px at screen 0
+    void drawFx(CFrame &bitmap, const bool front, const int viewLeft, const int viewTop);
     void drawBossses(CFrame &bitmap, const int mx, const int my, const int sx, const int sy);
     void drawLevelIntro(CFrame &bitmap);
     void drawFont(CFrame &frame, int x, int y, const char *text, Color color = WHITE, Color bgcolor = BLACK, const int scaleX = 1, const int scaleY = 1);
     void drawFont6x6(CFrame &frame, int x, int y, const char *text, const Color color = WHITE, const Color bgcolor = BLACK);
     void drawRect(CFrame &frame, const rect_t &rect, const Color color = GREEN, bool fill = true);
     void plotLine(CFrame &frame, int x0, int y0, const int x1, const int y1, const Color color);
-    inline void drawTimeout(CFrame &bitmap);
-    inline void drawKeys(CFrame &bitmap);
-    inline void drawSugarMeter(CFrame &bitmap, const int bx);
-    inline void drawTile(CFrame &bitmap, const int x, const int y, const CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
-    inline void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    void drawTimeout(CFrame &bitmap);
+    void drawKeys(CFrame &bitmap);
+    void drawSugarMeter(CFrame &bitmap, const int bx);
+    void drawTile(CFrame &bitmap, const int x, const int y, const CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
     void drawTileFaz(CFrame &bitmap, const int x, const int y, CFrame &tile, int fazBitShift = 0, const ColorMask colorMask = COLOR_NOCHANGE);
-    inline CFrame *tile2Frame(const uint16_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
+    CFrame *tile2Frame(const uint16_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap, const bool isPlayerHurt);
     void drawGameStatus(CFrame &bitmap, const visualCues_t &visualcues);
     void drawScroll(CFrame &bitmap);

@@ -35,6 +35,7 @@ public:
     CFrameSet();
     ~CFrameSet();
     CFrameSet(CFrameSet *s);
+    CFrameSet(const CFrameSet &s);
 
     enum Format : uint32_t
     {
@@ -49,6 +50,7 @@ public:
     int operator--();
     CFrame *operator[](int) const;
     CFrameSet &operator=(CFrameSet &s);
+    CFrameSet &operator=(const CFrameSet &s);
     int add(CFrame *pFrame);
     void setName(const char *s);
     const char *getName() const;
@@ -82,7 +84,7 @@ public:
     void resize(int size);
 
 private:
-    int m_currFrame;
+    int m_currFrame = -1;
     enum
     {
         FNT_SIZE = 8,
@@ -110,5 +112,4 @@ private:
     std::vector<CFrame *> m_frames;
     std::string m_name;
     std::unordered_map<std::string, std::string> m_tags;
-    friend class CFrameArray;
 };

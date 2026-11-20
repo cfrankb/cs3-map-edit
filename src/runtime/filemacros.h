@@ -23,13 +23,15 @@
 #define _W(_data, _size)                                                             \
     if (!writefile(_data, _size))                                                    \
     {                                                                                \
-        LOGE("failed to write: `%s` size: %lu on line %d", #_data, _size, __LINE__); \
+        LOGE("failed to write: `%s` size: %llu on line %d", #_data,                      \
+             static_cast<unsigned long long>(_size), __LINE__);                          \
         return false;                                                                \
     }
 
 #define _R(_data, _size)                                                            \
     if (!readfile(_data, _size))                                                    \
     {                                                                               \
-        LOGE("failed to read: `%s` size: %lu on line %d", #_data, _size, __LINE__); \
+        LOGE("failed to read: `%s` size: %llu on line %d", #_data,                       \
+             static_cast<unsigned long long>(_size), __LINE__);                          \
         return false;                                                               \
     }

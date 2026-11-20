@@ -217,7 +217,7 @@ void MapPropertiesDialog::loadFromMap()
     // Get the states object from CMap
     CStates &states = m_map->states();
     m_aliasLineEdit->setText(QString::fromUtf8(states.getS(StateValue::ALIAS)));
-    m_uuidLineEdit->setText(QString::fromUtf8(states.getS(StateValue::UUID)));
+    m_uuidLineEdit->setText(QString::fromUtf8(states.getS(StateValue::STATE_UUID)));
     m_musicLineEdit->setText(QString::fromUtf8(states.getS(StateValue::MUSIC)));
 
     // Load uint16_t values
@@ -246,7 +246,7 @@ void MapPropertiesDialog::applyChanges()
     newStates.setU(StateValue::PRIVATE, m_privateCheckBox->isChecked() ? 1 : 0);
     newStates.setS(StateValue::AUTHOR, m_authorLineEdit->text().trimmed().toStdString());
     newStates.setS(StateValue::ALIAS, m_aliasLineEdit->text().trimmed().toStdString());
-    newStates.setS(StateValue::UUID, m_uuidLineEdit->text().trimmed().toStdString());
+    newStates.setS(StateValue::STATE_UUID, m_uuidLineEdit->text().trimmed().toStdString());
     newStates.setS(StateValue::MUSIC, m_musicLineEdit->text().trimmed().toStdString());
 
     // Save current message being edited

@@ -86,7 +86,8 @@ bool processLevel(CMap &map, const char *fname)
         LOGE("failed read: %s", fname);
         return false;
     }
-    std::string input(reinterpret_cast<char *>(data.data()));
+    // bounded by data.size(); the char* overload strlen()'d past the buffer
+    std::string input(reinterpret_cast<char *>(data.data()), data.size());
     size_t pos = 0;
     int maxRows = 0;
     int maxCols = 0;

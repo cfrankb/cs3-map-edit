@@ -108,6 +108,9 @@ public:
     const attrMap_t &attrs() { return m_attrs; }
     CStates &states();
     inline const CStates &statesConst() const { return *m_states; };
+    // toKey(0,0) == 0, and state slots (POS_ORIGIN/POS_EXIT) use 0 as
+    // "absent": (0,0) is border-reserved and a by-design invalid
+    // origin/exit placement (maintainer ruling 2026-11-18).
     static uint16_t toKey(const uint8_t x, const uint8_t y);
     static uint16_t toKey(const Pos &pos);
     static Pos toPos(const uint16_t key);

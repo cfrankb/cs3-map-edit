@@ -74,5 +74,6 @@
         <file>data/bosses/bosses.ini</file>
         <file>data/bosses/data/harpy-attack.json</file>
         <file>data/bosses/data/beholder1_attacks-trim.json</file>
+        <file>data/sfx.png</file>
     </qresource>
 </RCC>

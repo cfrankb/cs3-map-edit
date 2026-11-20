@@ -125,7 +125,9 @@ bool CFrameSet::writeSolid(IFile &file)
         }
         int len = frame->width();
         int hei = frame->height();
-        if (len <= 0 || hei <= 0 || len > 4096 || hei > 4096)
+        // must match readSolid's MAX_IMAGE_SIZE gate (L326) or such a set
+        // would save cleanly but be un-loadable (round-trip loss)
+        if (len <= 0 || hei <= 0 || len > MAX_IMAGE_SIZE || hei > MAX_IMAGE_SIZE)
         {
             m_lastError = "Invalid frame dimensions at index " + std::to_string(i);
             return false;
@@ -204,6 +206,14 @@ bool CFrameSet::writeSolid(IFile &file)
             ++tagCount;
     }
 
+    if (tagCount > TAG_COUNT_MAX)
+    {
+        // readSolid hard-rejects more; writing them would produce a file
+        // the reader refuses (audit: writer/reader cap mismatch)
+        m_lastError = "too many serializable tags: " + std::to_string(tagCount);
+        return false;
+    }
+
     if (file.write(&tagCount, sizeof(uint32_t)) != IFILE_OK)
     {
         m_lastError = "fail to write tagCount";
@@ -213,8 +223,11 @@ bool CFrameSet::writeSolid(IFile &file)
     {
         if (!v.empty() && k.size() <= TAG_KEY_MAX && v.size() <= TAG_VAL_MAX)
         {
-            file << k;
-            file << v;
+            if (!(file << k) || !(file << v)) // disk path can fail mid-tags (audit L216)
+            {
+                m_lastError = "fail to write tag payload";
+                return false;
+            }
         }
         if (k.size() > TAG_KEY_MAX || v.size() > TAG_VAL_MAX)
         {
@@ -293,7 +306,8 @@ bool CFrameSet::readSolid(IFile &file, int size)
     // OBL5 IMAGESET HEADER
     // Read compressed size
     long srcSize = 0;
-    if (file.read(&srcSize, sizeof(uint32_t)) != IFILE_OK || srcSize <= 0)
+    if (file.read(&srcSize, sizeof(uint32_t)) != IFILE_OK || srcSize <= 0 ||
+        srcSize > INT_MAX) // IFile::read takes int; reject unrepresentable sizes
     {
         m_lastError = "Failed to read or invalid compressed size";
         return false;
@@ -341,12 +355,25 @@ bool CFrameSet::readSolid(IFile &file, int size)
         totalSize += frameSize;
     }
 
+    // The declared dimensions are untrusted: 1024 x 512 x 512 would pre-
+    // allocate 1 GiB from a tiny file. Deflate's best ratio is ~1/1032, so
+    // anything beyond that bound can never actually decompress.
+    if (totalSize > static_cast<int64_t>(srcSize) * 1032 + 1024)
+    {
+        m_lastError = "Declared pixel data size too large for compressed stream";
+        return false;
+    }
+
     std::vector<uint8_t> buffer(totalSize);
     uint8_t *ptr = buffer.data();
 
     // read OBL5Data (compressed)
     std::vector<uint8_t> srcBuffer(srcSize);
-    file.read(srcBuffer.data(), srcSize);
+    if (file.read(srcBuffer.data(), srcSize) != IFILE_OK)
+    {
+        m_lastError = "Failed to read compressed data";
+        return false;
+    }
     uLong destLen = totalSize;
 
     const int err = uncompress(
@@ -354,7 +381,7 @@ bool CFrameSet::readSolid(IFile &file, int size)
         &destLen,
         srcBuffer.data(),
         srcSize);
-    if (err != Z_OK)
+    if (err != Z_OK || destLen != static_cast<uLong>(totalSize))
     {
         char tmp[128];
 #if defined(__EMSCRIPTEN__)
@@ -385,8 +412,8 @@ bool CFrameSet::readSolid(IFile &file, int size)
     }
 
     // Read tags
-    uint32_t tagCount;
-    if (file.read(&tagCount, sizeof(tagCount)) != IFILE_OK || tagCount > 100)
+    uint32_t tagCount = 0;
+    if (file.read(&tagCount, sizeof(tagCount)) != IFILE_OK || tagCount > TAG_COUNT_MAX)
     {
         m_lastError = "Failed to read or invalid tag count: " + std::to_string(tagCount);
         return false;
@@ -397,8 +424,11 @@ bool CFrameSet::readSolid(IFile &file, int size)
     {
         std::string key;
         std::string val;
-        file >> key;
-        file >> val;
+        if (!(file >> key) || !(file >> val))
+        {
+            m_lastError = "Failed to read tag at index " + std::to_string(i);
+            return false;
+        }
         if (key.length() > TAG_KEY_MAX || val.size() > TAG_VAL_MAX)
         {
             m_lastError = "Failed to read or invalid tag at index " + std::to_string(i);
@@ -475,6 +505,7 @@ bool CFrameSet::read(IFile &file)
             if (!frame->read(file))
             {
                 m_lastError = frame->getLastError();
+                delete frame; // not adopted: free the local (audit L474 leak)
                 return false;
             }
             add(frame);
@@ -493,8 +524,8 @@ bool CFrameSet::read(IFile &file)
         result = false;
     }
 
-    // Warn if extra data remains
-    if (file.tell() < fileSize)
+    // Warn if extra data remains (only when the read itself succeeded, audit L497)
+    if (result && file.tell() < fileSize)
     {
         LOGW("Extra data after OBL5 frame set; possible format mismatch");
     }
@@ -531,17 +562,40 @@ void CFrameSet::copyTags(CFrameSet &src)
 
 CFrameSet &CFrameSet::operator=(CFrameSet &s)
 {
+    return operator=(static_cast<const CFrameSet &>(s));
+}
+
+CFrameSet &CFrameSet::operator=(const CFrameSet &s)
+{
+    // Self-assignment must not empty the set (audit L532 finding).
+    if (this == &s)
+        return *this;
     clear();
-    m_frames.reserve(s.getSize());
-    for (size_t i = 0; i < s.getSize(); i++)
+    m_frames.reserve(s.m_frames.size());
+    for (CFrame *src : s.m_frames)
     {
         CFrame *frame = new CFrame;
-        frame->copy(s[i]);
+        frame->copy(src);
         m_frames.emplace_back(frame);
     }
-    copyTags(s);
-    m_name = s.getName();
+    m_tags = s.m_tags;
+    m_name = s.m_name;
     return *this;
+}
+
+CFrameSet::CFrameSet(const CFrameSet &s)
+{
+    // Deep copy: the set owns its slots, so a copy must duplicate them
+    // (the implicit copy ctor shallow-copied raw pointers -> double free).
+    m_frames.reserve(s.m_frames.size());
+    for (CFrame *src : s.m_frames)
+    {
+        CFrame *frame = new CFrame;
+        frame->copy(src);
+        m_frames.emplace_back(frame);
+    }
+    m_name = s.m_name;
+    m_tags = s.m_tags;
 }
 
 /**
@@ -567,15 +621,14 @@ int CFrameSet::operator--()
 {
     if (this->getSize() == 0)
         return 0;
-    delete m_frames[this->getSize()];
-    removeAt(this->getSize() - 1);
+    delete removeAt(this->getSize() - 1);
     return this->getSize() - 1;
 }
 
 int CFrameSet::add(CFrame *pFrame)
 {
     m_frames.emplace_back(pFrame);
-    return m_frames.size() - 1;
+    return static_cast<int>(m_frames.size() - 1);
 }
 
 void CFrameSet::insertAt(int i, CFrame *pFrame)
@@ -712,6 +765,12 @@ bool CFrameSet::importIMA(IFile &file, const long org)
     int fileSize = file.getSize();
     USER_IMAHEADER imaHead;
     int hdrSize = static_cast<int>(sizeof(USER_IMAHEADER));
+    // NOTE (maintainer ruling 2026-11-18): the size gate below compares
+    // against the *whole* stream, so it is exact only for standalone
+    // .ima files at org==0 (all known real-world IMA usage). An IMA
+    // embedded in a container (org>0, as importOBL5/importGE96/
+    // importIMC1/parsePNG support) will fail validation here by
+    // design; consumers needing that must pre-extract the member.
     file.seek(org);
     if (file.read(&imaHead, hdrSize) != IFILE_OK)
     {
@@ -819,40 +878,38 @@ bool CFrameSet::importIMC1(IFile &file, const long org)
 
     // allocating destination buffer
     std::vector<uint8_t> dest(destSize, '\0');
-    auto ptr = dest.data();
-    if (ptr == nullptr)
-    {
-        m_lastError = "allocation error";
-        return false;
-    }
 
-    // decoding RLE-like data
+    // decoding RLE-like data (BUG-C4: bound source escapes and destination runs)
+    // NB: real IMC1 streams may carry trailing filler past an exactly-full
+    // destination (the original decoder stopped one byte short); a decoder
+    // that treats a dest-full literal as padding stays compatible, while an
+    // escape run that overruns dest is rejected outright.
     int cpt = 0;
-    while (cpt < imc1Head.SizeData - 1)
+    size_t out = 0;
+    while (cpt < imc1Head.SizeData && out < (size_t)destSize)
     {
-        if (*ptrIMC1 == 0xff)
+        if (ptrIMC1[cpt] == 0xff)
         {
-            for (int loop = ptrIMC1[2] + ptrIMC1[3] * 256; loop; loop--, ptr++)
+            // escape sequence: 0xff, value, count low, count high
+            if (cpt + 4 > imc1Head.SizeData)
             {
-                *ptr = ptrIMC1[1];
+                m_lastError = "truncated IMC1 escape sequence";
+                return false;
             }
-            ptrIMC1 += 4;
+            const int run = ptrIMC1[cpt + 2] + ptrIMC1[cpt + 3] * 256;
+            if (out + (size_t)run > (size_t)destSize)
+            {
+                m_lastError = "IMC1 run exceeds destination buffer";
+                return false;
+            }
+            memset(dest.data() + out, ptrIMC1[cpt + 1], run);
+            out += run;
             cpt += 4;
         }
         else
         {
-            *ptr = *ptrIMC1;
-            ptr++;
-            ptrIMC1++;
-            cpt++;
+            dest[out++] = ptrIMC1[cpt++];
         }
-    }
-    if (cpt > imc1Head.SizeData)
-    {
-        char tmp[128];
-        snprintf(tmp, sizeof(tmp), "IMC1 decoding went outside of range %d. reached: %d", imc1Head.SizeData, cpt);
-        m_lastError = tmp;
-        return false;
     }
 
     // converting ima/FNT data to bitmap
@@ -979,7 +1036,9 @@ bool CFrameSet::importOBL5(IFile &file, const long org)
     file.seek(org);
     if (!frameSet.read(file))
     {
-        m_lastError = "unsupported OBL5 version";
+        // carry the real cause (dimensions/zlib/truncation) instead of the generic text
+        const char *inner = frameSet.getLastError();
+        m_lastError = (inner && *inner) ? inner : "unsupported OBL5 version";
         return false;
     }
     auto fileSize = file.getSize();
@@ -1012,7 +1071,11 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
     }
 
     int32_t size = 0;
-    file >> size;
+    if (!(file >> size)) // truncated stream would leave 'size' indeterminate (audit L1028)
+    {
+        m_lastError = "Failed to read OBL4 frame count";
+        return false;
+    }
 
     // Validate number of frames
     if (size <= 0 || size > MAX_IMAGES)
@@ -1025,14 +1088,21 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
     std::vector<std::unique_ptr<CFrame>> tmpFrames;
     tmpFrames.reserve(size);
 
-    int32_t mode;
-    file >> mode;
+    int32_t mode = 0;
+    if (!(file >> mode)) // audit L1028: unchecked >> left mode indeterminate
+    {
+        m_lastError = "Failed to read OBL4 mode";
+        return false;
+    }
     for (int i = 0; i < size; ++i)
     {
-        int32_t len;
-        int32_t hei;
-        file >> len;
-        file >> hei;
+        int32_t len = 0;
+        int32_t hei = 0;
+        if (!(file >> len) || !(file >> hei)) // audit L1028: dimension check read UB
+        {
+            m_lastError = "Failed to read OBL4 frame dimensions";
+            return false;
+        }
 
         // Validate dimensions
         if (len <= 0 || hei <= 0 || len > MAX_IMAGE_SIZE || hei > MAX_IMAGE_SIZE)
@@ -1070,7 +1140,8 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
         {
             // Zlib-compressed mode
             uint32_t nSrcLen = 0;
-            if (file.read(&nSrcLen, sizeof(nSrcLen)) != IFILE_OK || nSrcLen <= 0 || nSrcLen > fileSize - file.tell())
+            if (file.read(&nSrcLen, sizeof(nSrcLen)) != IFILE_OK || nSrcLen <= 0 ||
+                static_cast<long>(nSrcLen) > static_cast<long>(fileSize) - file.tell()) // signed math (audit L1072)
             {
                 m_lastError = "Invalid or truncated compressed size in OBL4";
                 return false;
@@ -1192,6 +1263,16 @@ bool CFrameSet::importOBL3(IFile &file, const long org)
     if (numImages == 0 || numImages > MAX_IMAGES)
     { // Arbitrary max to prevent DoS-like attacks
         m_lastError = "Invalid number of images in OBL3 header";
+        return false;
+    }
+
+    // gate iLen/iHei in uint32 before the *OBL3_GRANULAR multiply can wrap
+    // (audit L1197: iLen = 2^28+k wraps to <=512 and sails the int gate)
+    if (oblHead.iLen == 0 || oblHead.iHei == 0 ||
+        oblHead.iLen > static_cast<uint32_t>(MAX_IMAGE_SIZE / OBL3_GRANULAR) ||
+        oblHead.iHei > static_cast<uint32_t>(MAX_IMAGE_SIZE / OBL3_GRANULAR))
+    {
+        m_lastError = "Invalid frame dimensions in OBL3 header";
         return false;
     }
 
@@ -1334,7 +1415,8 @@ bool CFrameSet::toPng(std::vector<uint8_t> &png)
                sy.data(), size * sizeof(uint16_t));
 
         // inject obldata into png
-        frame->toPng(png, obl5t);
+        if (!frame->toPng(png, obl5t))
+            return false;
     }
     return true;
 }
@@ -1356,8 +1438,16 @@ void CFrameSet::setTag(const char *tag, const char *v)
 
 void CFrameSet::toSubset(CFrameSet &dest, int start, int end)
 {
-    const int last = end == -1 ? getSize() - 1 : end;
-    dest.reserve(last - start);
+    // clamp the requested range to what exists; hostile or empty ranges
+    // yield an empty subset instead of length_error/OOB reads
+    int last = end == -1 ? static_cast<int>(getSize()) - 1 : end;
+    if (start < 0)
+        start = 0;
+    if (last > static_cast<int>(getSize()) - 1)
+        last = static_cast<int>(getSize()) - 1;
+    if (start > last)
+        return;
+    dest.reserve(last - start + 1);
     for (int i = start; i <= last; ++i)
     {
         CFrame *frame = new CFrame;
@@ -1373,6 +1463,10 @@ void CFrameSet::reserve(int n)
 
 void CFrameSet::set(const int i, CFrame *frame)
 {
+    // The set retains slot ownership, so the replaced frame is deleted
+    // (maintainer ruling, leak review 2026-11-18; it used to leak).
+    if (m_frames[i] != frame)
+        delete m_frames[i];
     m_frames[i] = frame;
 }
 
@@ -1398,6 +1492,12 @@ const std::vector<CFrame *> &CFrameSet::framesConst()
 
 void CFrameSet::resize(int size)
 {
-    // TODO: fix memory leaks
-    m_frames.resize(size);
+    // The set owns every slot, so truncation deletes the dropped tail
+    // (maintainer ruling, leak review 2026-11-18; it used to leak).
+    // Growth still inserts null slots: fill them before any dereference.
+    if (size < 0)
+        size = 0;
+    for (size_t i = static_cast<size_t>(size); i < m_frames.size(); ++i)
+        delete m_frames[i];
+    m_frames.resize(static_cast<size_t>(size));
 }
