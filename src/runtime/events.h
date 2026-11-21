@@ -31,4 +31,5 @@ enum Event
     EVENT_EXIT_OPENED,
     EVENT_SHIELD,
     EVENT_BOAT,
+    EVENT_POISON,
 };

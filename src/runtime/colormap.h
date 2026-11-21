@@ -29,6 +29,7 @@ struct ColorMaps
     colorMap_t sugarRush; ///< Color mappings for sugar rush mode.
     colorMap_t godMode;   ///< Color mappings for god mode.
     colorMap_t rage;      ///< Color mappings for rage mode.
+    colorMap_t poison;    ///< Color mappings for poisoned state.
 };
 
 /// Clears all color mappings.

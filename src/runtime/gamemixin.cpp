@@ -667,6 +667,10 @@ CFrame *CGameMixin::tile2Frame(const uint16_t tileID, ColorMask &colorMask, std:
         {
             colorMap = &m_colormaps.rage;
         }
+        else if (m_game->isPoisoned())
+        {
+            colorMap = &m_colormaps.poison;
+        }
     }
     else
     {
@@ -2538,8 +2542,14 @@ void CGameMixin::setHeight(int h)
  */
 void CGameMixin::drawHealthBar(CFrame &bitmap, const bool isPlayerHurt)
 {
-    const uint32_t color = m_game->isGodMode() ? WHITE : isPlayerHurt ? PINK
-                                                                      : RED;
+    // poison green (docs/plans/poison-damage-plan.md phase 5): lowest
+    // priority, mirrors the player tint chain; LIME stays the classic
+    // bar's healthy color, GREEN marks the poisoned state
+    const uint32_t color = m_game->isGodMode()
+                               ? WHITE
+                               : isPlayerHurt ? PINK
+                               : m_game->isPoisoned() ? GREEN
+                                                      : RED;
     auto drawHearth = [&bitmap, color, this](auto bx, auto by, auto health)
     {
         // const uint8_t *heart = getCustomChars() + (CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;

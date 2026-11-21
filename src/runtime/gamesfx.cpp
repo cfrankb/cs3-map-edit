@@ -20,28 +20,31 @@
 
 #include "gamesfx.h"
 #include "logger.h"
+#include "sfx_private.h"
 
-// layer base/count from the contiguous imageID runs of
-// cs3-data-private/pixels/sfx.idx; sequences without an explicit
+// layer base/frames from the FxLayer enum in sfx_private.h (generated
+// from cs3-data-private/pixels/sfx.idx); sequences without an explicit
 // EffectBack/EffectFront suffix are front-layer.
 // ponytail: speed/ttl are design placeholders until per-effect tuning.
 std::vector<fxData_t> g_fxData = {
-    {.id = FX_BLUE_LIGHTNING, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 32, .h = 48, .back = {0, 0}, .front = {0, 6}, .onEnd = nullptr},
-    {.id = FX_FIRE_COLUMN, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 32, .h = 48, .back = {0, 0}, .front = {6, 8}, .onEnd = nullptr},
-    {.id = FX_MUSHROOM_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 32, .h = 48, .back = {0, 0}, .front = {14, 8}, .onEnd = nullptr},
-    {.id = FX_ICE_SPIKES, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 32, .h = 48, .back = {0, 0}, .front = {22, 6}, .onEnd = nullptr},
-    {.id = FX_SMOKE_BOMB, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 32, .h = 32, .back = {0, 0}, .front = {28, 6}, .onEnd = nullptr},
-    {.id = FX_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 48, .h = 48, .back = {34, 6}, .front = {40, 6}, .onEnd = nullptr},
-    {.id = FX_BOMB_FUSE_LIT, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 48, .h = 48, .back = {0, 0}, .front = {46, 11}, .onEnd = nullptr},
-    {.id = FX_BOMB_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT,
-     .ttl = 0, .w = 48, .h = 48, .back = {0, 0}, .front = {57, 8}, .onEnd = nullptr},
+    {.id = FX_BLUE_LIGHTNING, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
+     .back = {0, 0}, .front = {FX_BLUE_LIGHTNING_BASEID, FX_BLUE_LIGHTNING_FRAMES}, .onEnd = nullptr},
+    {.id = FX_FIRE_COLUMN, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
+     .back = {0, 0}, .front = {FX_FIRE_COLUMN_BASEID, FX_FIRE_COLUMN_FRAMES}, .onEnd = nullptr},
+    {.id = FX_MUSHROOM_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
+     .back = {0, 0}, .front = {FX_MUSHROOM_EXPLOSION_BASEID, FX_MUSHROOM_EXPLOSION_FRAMES}, .onEnd = nullptr},
+    {.id = FX_ICE_SPIKES, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
+     .back = {0, 0}, .front = {FX_ICE_SPIKES_BASEID, FX_ICE_SPIKES_FRAMES}, .onEnd = nullptr},
+    {.id = FX_SMOKE_BOMB, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 32,
+     .back = {0, 0}, .front = {FX_SMOKE_BOMB_BASEID, FX_SMOKE_BOMB_FRAMES}, .onEnd = nullptr},
+    {.id = FX_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 48, .h = 48,
+     .back = {FX_EXPLOSION_BACK_BASEID, FX_EXPLOSION_BACK_FRAMES}, .front = {FX_EXPLOSION_FRONT_BASEID, FX_EXPLOSION_FRONT_FRAMES}, .onEnd = nullptr},
+    {.id = FX_BOMB_FUSE_LIT, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 48, .h = 48,
+     .back = {0, 0}, .front = {FX_BOMB_FUSE_LIT_BASEID, FX_BOMB_FUSE_LIT_FRAMES}, .onEnd = nullptr},
+    {.id = FX_BOMB_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 48, .h = 48,
+     .back = {0, 0}, .front = {FX_BOMB_EXPLOSION_BASEID, FX_BOMB_EXPLOSION_FRAMES}, .onEnd = nullptr},
+    {.id = FX_POISON_AURA, .sheet = 0, .speed = 6, .flags = 0, .ttl = 0, .w = 32, .h = 32,
+     .back = {FX_POISON_AURA_BACK_BASEID, FX_POISON_AURA_BACK_FRAMES}, .front = {FX_POISON_AURA_FRONT_BASEID, FX_POISON_AURA_FRONT_FRAMES}, .onEnd = nullptr},
 };
 
 // filled by the sheet loader from the sfx.png obLT metadata (imageID order)

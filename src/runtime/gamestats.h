@@ -44,6 +44,8 @@ enum GameStat : uint16_t
     S_BOAT,
     S_FLASH,
     S_TIME_FREEZE_TIMER, // stops time
+    S_POISON,            // remaining HP damage to drain
+    S_POISON_NEXT,       // ticks until next drain
 };
 
 class CGameStats

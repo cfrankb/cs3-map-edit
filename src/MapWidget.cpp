@@ -1244,6 +1244,10 @@ QColor MapWidget::attr2color(const uint8_t attr)
         {
             return RED;
         }
+        else if (attr == ATTR_POISON_TRAP)
+        {
+            return BLUEVIOLET;
+        }
         else if (RANGE(attr, ATTR_CRUSHER_MIN, ATTR_CRUSHER_MAX))
         {
             return ORANGE;

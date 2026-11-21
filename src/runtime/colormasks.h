@@ -28,4 +28,5 @@ enum ColorMask : uint8_t
     COLOR_SUGARRUSH,
     COLOR_GODMODE,
     COLOR_RAGE,
+    COLOR_POISON,
 };

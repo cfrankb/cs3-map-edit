@@ -137,7 +137,9 @@ public:
     int score() const;
     int lives() const;
     int health() const;
-    void addHealth(const int hp); // public so tests can observe damage (see t_game_ai)
+    void addHealth(const int hp, const bool silent = false); // public so tests can observe damage (see t_game_ai)
+    void addPoison(const int amount); // adds to the S_POISON drain pool (see docs/plans/poison-damage-plan.md)
+    bool isPoisoned() const;
     int sugar() const;
     bool hasExtraSpeed() const;
     void setMapArch(CMapArch *arch);
@@ -238,6 +240,7 @@ private:
     std::vector<CBoss> m_bosses;
     std::vector<sfx_t> m_sfx;
     std::vector<fx_t> m_fx;
+    uint32_t m_fxTick = 0; // free-running fx clock (poison aura); not saved
     CActor m_player;
     CMapArch *m_mapArch = nullptr;
     std::shared_ptr<ISound> m_sound;

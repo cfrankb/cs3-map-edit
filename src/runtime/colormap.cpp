@@ -62,6 +62,7 @@ void clearColorMaps(ColorMaps &colorMaps)
     colorMaps.godMode.clear();
     colorMaps.rage.clear();
     colorMaps.sugarRush.clear();
+    colorMaps.poison.clear();
 }
 
 bool parseColorMaps(const char *tmp, ColorMaps &colorMaps)
@@ -93,7 +94,7 @@ bool parseColorMaps(const char *tmp, ColorMaps &colorMaps)
                 return false;
             }
             section = current.substr(1, end - 1);
-            if (section.empty() || (section != "sugarrush" && section != "godmode" && section != "rage"))
+            if (section.empty() || (section != "sugarrush" && section != "godmode" && section != "rage" && section != "poison"))
             {
                 LOGE("Invalid section '%s' on line %d", section.c_str(), line);
                 return false;
@@ -120,6 +121,10 @@ bool parseColorMaps(const char *tmp, ColorMaps &colorMaps)
             {
                 colorMaps.rage[k] = v;
             }
+            else if (section == "poison")
+            {
+                colorMaps.poison[k] = v;
+            }
             else
             {
                 LOGE("No section defined for key-value pair on line %d", line);
@@ -128,5 +133,6 @@ bool parseColorMaps(const char *tmp, ColorMaps &colorMaps)
         }
         ++line;
     }
-    return !colorMaps.sugarRush.empty() || !colorMaps.godMode.empty() || !colorMaps.rage.empty();
+    return !colorMaps.sugarRush.empty() || !colorMaps.godMode.empty() || !colorMaps.rage.empty() ||
+           !colorMaps.poison.empty();
 }

@@ -40,7 +40,8 @@
 #define ATTR_IDLE_MAX 0xe9     // 0xe9 monster wait
 #define ATTR_FREEZE_TRAP 0xea  // 0xea freeze trap
 #define ATTR_TRAP 0xeb         // 0xeb trap
-                               // EC ED EE EF (unassigned)
+#define ATTR_POISON_TRAP 0xec  // 0xec poison trap
+                               // ED EE EF (unassigned)
 #define ATTR_MSG_MIN 0xf0      // 0xf0 .. 0xff message string
 #define ATTR_MSG_MAX 0xff      // 0xff .. 0xff message string
 

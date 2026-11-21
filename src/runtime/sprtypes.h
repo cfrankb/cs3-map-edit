@@ -31,6 +31,7 @@ enum TileAI:uint16_t
     AI_FOCUS                  = 0x04,
     AI_REVERSE                = 0x08,
     AI_SMART                  = 0x10,
+    AI_POISON                 = 0x20,
 };
 
 
@@ -41,6 +42,8 @@ enum TileFlag:uint16_t
     FLAG_EXTRA_LIFE           = 0x02,
     FLAG_EXTRA_SPEED          = 0x04,
     FLAG_RAGE                 = 0x08,
+    FLAG_ANTIPOISON           = 0x10,
+    FLAG_POISON               = 0x20,
     FLAG_FRUIT                = 0x1000,
     FLAG_TREASURE             = 0x2000,
     FLAG_ONE_TIME             = 0x4000,

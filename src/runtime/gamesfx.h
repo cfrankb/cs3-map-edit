@@ -20,6 +20,7 @@
 #include <functional>
 #include <vector>
 #include "sheetdata.h"
+#include "sfx_public.h"
 
 class CGame;
 
@@ -75,6 +76,7 @@ enum SfxTimeout : uint16_t
 
 // new id space, independent of Sfx (MIN_SFX = 0xf0); fx never travels
 // the sprite_t/tileID pipeline
+/*
 enum Fx : uint16_t
 {
     FX_BLUE_LIGHTNING = 0,
@@ -82,11 +84,12 @@ enum Fx : uint16_t
     FX_MUSHROOM_EXPLOSION,
     FX_ICE_SPIKES,
     FX_SMOKE_BOMB,
-    FX_EXPLOSION, // two-layer: back 34..39 + front 40..45
-    FX_BOMB_FUSE_LIT,   // dungeon_gathering: front 46..56
-    FX_BOMB_EXPLOSION,  // dungeon_gathering: front 57..64
+    FX_EXPLOSION,      // two-layer: back 34..39 + front 40..45
+    FX_BOMB_FUSE_LIT,  // dungeon_gathering: front 46..56
+    FX_BOMB_EXPLOSION, // dungeon_gathering: front 57..64
     MAX_FX
 };
+*/
 
 enum FxFlags : uint8_t
 {
@@ -97,9 +100,9 @@ enum FxFlags : uint8_t
 // per-instance wire record: pure POD, raw-serialized, 12 bytes
 struct fx_t
 {
-    int16_t x;        // world px, anchor = frame center
+    int16_t x; // world px, anchor = frame center
     int16_t y;
-    int16_t ox;       // origin tile coords; -1 = not available (px spawn)
+    int16_t ox; // origin tile coords; -1 = not available (px spawn)
     int16_t oy;
     int16_t effectID; // index into g_fxData
     uint16_t timer;   // ticks alive, counts up from 0
@@ -132,19 +135,19 @@ using FxEndFn = std::function<void(CGame &, const fx_t &)>;
 // static definition table entry (g_fxData); never serialized
 struct fxData_t
 {
-    uint16_t id;     // Fx enum value
-    uint16_t sheet;  // fx sheet index (single sheet for now)
-    uint8_t speed;   // ticks per frame (boss speed_anime style)
-    uint8_t flags;   // FxFlags
-    uint16_t ttl;    // lifetime (ticks) for FX_REPEATABLE
-    uint16_t w, h;   // max frame extents, culling only
-    fx_layer_t back; // drawn before actors
-    fx_layer_t front;// drawn after actors
-    int16_t damage = 0;               // reserved, unused
-    uint8_t splashRadius = 0;         // reserved, unused
+    uint16_t id;                           // Fx enum value
+    uint16_t sheet;                        // fx sheet index (single sheet for now)
+    uint8_t speed;                         // ticks per frame (boss speed_anime style)
+    uint8_t flags;                         // FxFlags
+    uint16_t ttl;                          // lifetime (ticks) for FX_REPEATABLE
+    uint16_t w, h;                         // max frame extents, culling only
+    fx_layer_t back;                       // drawn before actors
+    fx_layer_t front;                      // drawn after actors
+    int16_t damage = 0;                    // reserved, unused
+    uint8_t splashRadius = 0;              // reserved, unused
     const fx_hitbox_t *hitboxes = nullptr; // reserved, unused
-    uint8_t hitboxCount = 0;          // reserved, unused
-    FxEndFn onEnd; // fired by tickFx; per-effect, table-owned
+    uint8_t hitboxCount = 0;               // reserved, unused
+    FxEndFn onEnd;                         // fired by tickFx; per-effect, table-owned
 };
 
 // world-px view bounds for the culling query (spec S2)

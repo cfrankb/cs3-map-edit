@@ -202,6 +202,7 @@ static const std::unordered_map<uint16_t, std::string> g_aiNames = {
     _S(AI_FOCUS),
     _S(AI_REVERSE),
     _S(AI_SMART),
+    _S(AI_POISON),
 };
 
 static const std::unordered_map<uint16_t, std::string> g_speedsNames = {
@@ -224,6 +225,8 @@ static const std::unordered_map<uint16_t, std::string> g_flagsNames = {
     _S(FLAG_EXTRA_LIFE),
     _S(FLAG_EXTRA_SPEED),
     _S(FLAG_RAGE),
+    _S(FLAG_ANTIPOISON),
+    _S(FLAG_POISON),
     _S(FLAG_FRUIT),
     _S(FLAG_TREASURE),
     _S(FLAG_ONE_TIME),
