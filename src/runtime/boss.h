@@ -105,6 +105,19 @@ public:
     inline const Pos pos() const override { return Pos{m_x, m_y}; };
     void animate();
     int currentFrame() const;
+    // true when the current aim's art is the mirrored twin of the frame
+    // returned by currentFrame() (aims-3 layouts; plan
+    // docs/plans/boss-aims3-mirror-plan.md §2). Renderers flip
+    // horizontally and per-frame hitboxes reflect when this is set.
+    bool isMirrored() const
+    {
+        return m_bossData != nullptr && m_bossData->aims == 3 &&
+               static_cast<int>(m_aim) == m_bossData->mirror;
+    }
+    // renderers of a mirrored aim call this with the drawn frame's pixel
+    // width and grid size: LOGW once per boss type when the main hitbox
+    // anchor is not centred in the frame (plan boss-aims3-mirror §7)
+    void warnAsymAnchor(const int frameWidthPx, const int grid) const;
     int damage(const BossData::HitBoxType hbType) const;
     int sheet() const { return m_bossData->sheet; }
     int score() const { return m_bossData->score; }

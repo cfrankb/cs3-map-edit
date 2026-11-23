@@ -259,6 +259,7 @@ protected:
     std::unique_ptr<CFrameSet> m_users;
     std::unique_ptr<CFrameSet> m_sheet0;
     std::unique_ptr<CFrameSet> m_sheet1;
+    std::unique_ptr<CFrameSet> m_sheet2;
     std::unique_ptr<CFrameSet> m_fxSheet; // extended fx; null => fx draw no-ops
     std::unique_ptr<CFrameSet> m_uisheet;
     std::unique_ptr<CFrameSet> m_layerTiles;
@@ -308,6 +309,7 @@ protected:
     // extended fx layer blit (docs/spec/gamespec/extended-fx.md); front/back
     // pass around the sprite loop, origin = world px at screen 0
     void drawFx(CFrame &bitmap, const bool front, const int viewLeft, const int viewTop);
+    void tintTelegraphTile(CFrame &bitmap, int tx, int ty, int viewLeft, int viewTop);
     void drawBossses(CFrame &bitmap, const int mx, const int my, const int sx, const int sy);
     void drawLevelIntro(CFrame &bitmap);
     void drawFont(CFrame &frame, int x, int y, const char *text, Color color = WHITE, Color bgcolor = BLACK, const int scaleX = 1, const int scaleY = 1);
@@ -318,7 +320,7 @@ protected:
     void drawKeys(CFrame &bitmap);
     void drawSugarMeter(CFrame &bitmap, const int bx);
     void drawTile(CFrame &bitmap, const int x, const int y, const CFrame &tile, const bool alpha, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
-    void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr);
+    void drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask = COLOR_NOCHANGE, std::unordered_map<uint32_t, uint32_t> *colorMap = nullptr, bool flipX = false);
     void drawTileFaz(CFrame &bitmap, const int x, const int y, CFrame &tile, int fazBitShift = 0, const ColorMask colorMask = COLOR_NOCHANGE);
     CFrame *tile2Frame(const uint16_t tileID, ColorMask &colorMask, std::unordered_map<uint32_t, uint32_t> *&colorMap);
     void drawHealthBar(CFrame &bitmap, const bool isPlayerHurt);

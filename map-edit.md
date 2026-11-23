@@ -119,3 +119,13 @@ All other attributes are undefined at the moment.
 | `EA` | freeze trap |
 | `EB` | trap |
 | `F0-FF` | messages |
+
+### bosses
+
+|ID|Name|
+|-|-|
+|`B0`|Mr. Demon|
+|`B1`|Ghost|
+|`B2`|Harpy|
+|`B3`|Beholder|
+|`B4`|Arachine|

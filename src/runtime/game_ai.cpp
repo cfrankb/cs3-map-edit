@@ -206,9 +206,32 @@ bool CGame::handleBossBullet(CBoss &boss)
     return false;
 }
 
-void CGame::handleBossHitboxContact(CBoss &boss)
+void CGame::handleBossHitboxContact(CBoss &boss, const uint32_t ticks)
 {
     int playerDamage = 0;
+
+    // §7: a declared SKILL_SPECIAL1 slot parameterizes this hit-test —
+    // SPECIAL1 contact hits only land on ticks passing rng.range(0, rate),
+    // rng re-seeded to the tick like manageBosses. Slot-less bosses, and
+    // MAIN/ATTACK/SPECIAL2 hits, are untouched.
+    int special1Rate = -1;
+    for (uint8_t i = 0; i < boss.data()->skillCount; ++i)
+    {
+        const bossSkill_t &slot = boss.data()->skills[i];
+        if (g_skillDefs[slot.skill].kind == SKILL_SPECIAL1)
+        {
+            special1Rate = slot.rate;
+            break;
+        }
+    }
+    bool special1Ok = true;
+    if (special1Rate >= 0)
+    {
+        auto &rng = getRandom();
+        rng.setTick(ticks);
+        // rate 0 = declared but never lands (rng.range degenerates at 0)
+        special1Ok = special1Rate > 0 && rng.range(0, special1Rate) == 0;
+    }
 
     //  Attack hitbox: Affect all player tiles it overlaps
     boss.testHitbox1(m_map, [](const Pos &p, auto type)
@@ -217,8 +240,10 @@ void CGame::handleBossHitboxContact(CBoss &boss)
                          // type-based like every other player-detection site
                          return getTileDef(m_map.at(p.x, p.y)).type == TYPE_PLAYER;
                      },
-                     [&boss, this, &playerDamage](const HitResult &r)
+                     [&boss, this, &playerDamage, special1Ok](const HitResult &r)
                      {
+                         if (r.type == BossData::SPECIAL1 && !special1Ok)
+                             return; // rate-gated: this tick whiffs
                          playerDamage = std::max(boss.damage(r.type), playerDamage); // find player damage
                      });
 
@@ -302,8 +327,8 @@ void CGame::manageBosses(const uint32_t ticks)
         const int bx = bw.x;
         const int by = bw.y;
 
-        // hitbox attack
-        handleBossHitboxContact(boss);
+        // hitbox attack (a SPECIAL1 slot rate-gates the contact hits, §7)
+        handleBossHitboxContact(boss, ticks);
 
         if (boss.speed() != 0 && (ticks % boss.speed() != 0))
             continue;
@@ -324,13 +349,52 @@ void CGame::manageBosses(const uint32_t ticks)
                 continue;
             }
 
-            if (boss.distance(player) <= boss.data()->distance_attack &&
-                boss.data()->bullet != TILES_BLANK)
+            const bossData_t *bd = boss.data();
+
+            // §7: a declared SKILL_BULLET slot takes over firing — the legacy
+            // rate gate yields so a migrated boss cannot double-fire.
+            bool hasBulletSlot = false;
+            for (uint8_t i = 0; i < bd->skillCount; ++i)
+                hasBulletSlot = hasBulletSlot || g_skillDefs[bd->skills[i].skill].kind == SKILL_BULLET;
+
+            if (!hasBulletSlot &&
+                boss.distance(player) <= bd->distance_attack &&
+                bd->bullet != TILES_BLANK)
             {
                 // Fireball spawning
-                if (rng.range(0, boss.data()->bullet_rate) == 0 && bx > 2 && by > 0)
+                if (rng.range(0, bd->bullet_rate) == 0 && bx > 2 && by > 0)
                 {
                     handleBossBullet(boss);
+                }
+            }
+
+            // Skill casting: per-slot rng gate, same tick-determinism as the
+            // legacy bullet gate above. distance_pursuit already holds here.
+            for (uint8_t i = 0; i < bd->skillCount; ++i)
+            {
+                const bossSkill_t &slot = bd->skills[i];
+                if (slot.rate == 0 || rng.range(0, slot.rate) != 0)
+                    continue; // rate 0 = declared, never cast
+                const bossSkillDef_t &sk = g_skillDefs[slot.skill];
+                switch (sk.kind)
+                {
+                case SKILL_BULLET:
+                    handleBossBullet(boss); // reads the boss's own bullet* fields
+                    break;
+                case SKILL_SPECIAL1:
+                    break; // no cast spawn — rate-gates the contact hit-test instead
+                case SKILL_FX:
+                    // warn first: red tile hint for the row's telegraphTtl,
+                    // then the strike lands where he stands (tickFx spawns);
+                    // telegraphTtl 0 = legacy immediate spawn, no warning
+                    if (sk.telegraphTtl > 0)
+                        scheduleFx(sk.effectId, player.x(), player.y(), sk.telegraphTtl);
+                    else
+                        spawnFx(sk.effectId, player.x(), player.y());
+                    if (sk.telegraphFx >= 0)
+                        spawnFx(sk.telegraphFx, player.x(), player.y());
+                    playSound(bd->attack_sound);
+                    break;
                 }
             }
             handleBossPath(boss);

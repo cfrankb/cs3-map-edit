@@ -274,7 +274,7 @@ void CGameMixin::drawRect(CFrame &frame, const rect_t &rect, const Color color, 
  * @param colorMap
  */
 
-void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask, std::unordered_map<uint32_t, uint32_t> *colorMap)
+void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile, const rect_t &rect, const ColorMask colorMask, std::unordered_map<uint32_t, uint32_t> *colorMap, bool flipX)
 {
     const int width = bitmap.width();
     uint32_t *dest = bitmap.getRGB().data() + x + y * width;
@@ -284,7 +284,11 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
         {
             for (int col = 0; col < rect.width; ++col)
             {
-                auto color = tile.at(col + rect.x, row + rect.y);
+                // flipX mirrors about the FULL tile width (aims-3 boss
+                // blits, plan boss-aims3-mirror §4), so a clipped rect
+                // still samples the mirrored frame pixels
+                const int srcX = flipX ? tile.width() - 1 - (rect.x + col) : rect.x + col;
+                auto color = tile.at(srcX, row + rect.y);
                 if (!(color & ALPHA))
                     continue;
                 dest[col] = color;
@@ -299,7 +303,8 @@ void CGameMixin::drawTile(CFrame &bitmap, const int x, const int y, CFrame &tile
         {
             for (int col = 0; col < rect.width; ++col)
             {
-                uint32_t color = tile.at(col + rect.x, row + rect.y);
+                const int srcX = flipX ? tile.width() - 1 - (rect.x + col) : rect.x + col;
+                uint32_t color = tile.at(srcX, row + rect.y);
                 if (!(color & ALPHA))
                     continue;
                 if (colorMap && colorMap->count(color))
@@ -739,6 +744,42 @@ void CGameMixin::gatherSprites(std::vector<sprite_t> &sprites, const cameraConte
     }
 }
 
+// telegraph hint placeholder (no marker art yet): 25% red tint on the
+// target tile, drawn under the fx frame
+void CGameMixin::tintTelegraphTile(CFrame &bitmap, const int tx, const int ty,
+                                   const int viewLeft, const int viewTop)
+{
+    int x = tx * TILE_SIZE - viewLeft;
+    int y = ty * TILE_SIZE - viewTop;
+    int w = TILE_SIZE;
+    int h = TILE_SIZE;
+    if (x < 0)
+    {
+        w += x;
+        x = 0;
+    }
+    if (y < 0)
+    {
+        h += y;
+        y = 0;
+    }
+    w = std::min(w, getWidth() - x);
+    h = std::min(h, getHeight() - y);
+    for (int py = y; py < y + h; ++py)
+    {
+        for (int px = x; px < x + w; ++px)
+        {
+            const uint32_t p = bitmap.at(px, py);
+            if ((p & 0xff000000) == 0)
+                continue; // keep transparent pixels clean
+            const uint32_t r = (((p >> 16) & 0xff) * 3 + 255) / 4;
+            const uint32_t g = (((p >> 8) & 0xff) * 3) / 4;
+            const uint32_t b = ((p & 0xff) * 3) / 4;
+            bitmap.at(px, py) = (p & 0xff000000) | (r << 16) | (g << 8) | b;
+        }
+    }
+}
+
 void CGameMixin::drawFx(CFrame &bitmap, const bool front, const int viewLeft, const int viewTop)
 {
     if (!m_fxSheet)
@@ -748,6 +789,11 @@ void CGameMixin::drawFx(CFrame &bitmap, const bool front, const int viewLeft, co
     m_game->getFxToDraw(view, front, draws);
     for (const auto &draw : draws)
     {
+        if (draw.telegraph)
+        {
+            tintTelegraphTile(bitmap, draw.ox, draw.oy, viewLeft, viewTop);
+            continue; // hint-only entry: no fx frame yet
+        }
         CFrame *frame = (*m_fxSheet)[draw.frameID];
         if (!frame)
             continue;
@@ -1031,6 +1077,12 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
         {
             frames = &(m_sheet1.get())->frames();
         }
+        else if (boss.data()->sheet == 2)
+        {
+            if (!m_sheet2) // optional asset: manifests without ASSET_SHEET2
+                continue;
+            frames = &(m_sheet2.get())->frames();
+        }
         else
         {
             LOGE("invalid sheet: %d", boss.data()->sheet);
@@ -1052,9 +1104,13 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
         // Logical coordonates comverted to screen positions
         // (using GRID_SIZE)
 
-        // Boss Rect
+        // Boss Rect; an aims-3 mirrored aim draws the shared frame
+        // flipped, its anchor mirrored about the boss centre (plan
+        // docs/plans/boss-aims3-mirror-plan.md §4)
+        const bool mirrored = boss.isMirrored();
         const rect_t bRect{
-            GRID_SIZE * (boss.x() - hitbox.x),
+            mirrored ? GRID_SIZE * (boss.x() + hitbox.x) - frame.width()
+                     : GRID_SIZE * (boss.x() - hitbox.x),
             GRID_SIZE * (boss.y() - hitbox.y),
             frame.width(),
             frame.height(),
@@ -1070,6 +1126,8 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
 
         if (betweenRect(bRect, sRect))
         {
+            if (mirrored)
+                boss.warnAsymAnchor(frame.width(), GRID_SIZE);
             const int x = bRect.x - sRect.x;
             const int y = bRect.y - sRect.y;
             const rect_t rect{
@@ -1083,7 +1141,10 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
                      x > 0 ? x : 0,
                      y > 0 ? y : 0,
                      frame,
-                     rect);
+                     rect,
+                     COLOR_NOCHANGE,
+                     nullptr,
+                     mirrored);
         }
 
         // skip drawing the healthbar and name
@@ -1093,9 +1154,11 @@ void CGameMixin::drawBossses(CFrame &bitmap, const int mx, const int my, const i
         // Hp Rect
         // data with maxHp == 0 would make the bar width hp()/0.0f (audit 1016)
         const float hpRatio = boss.maxHp() > 0 ? (float)boss.maxHp() / MAX_HP_GAUGE : 1.0f;
+        // healthbar/name block shifted by the bosses.ini healthbar_offset
+        // (plan docs/plans/boss-healthbar-offset-plan.md §3)
         const rect_t hRect{
-            .x = bRect.x,
-            .y = bRect.y - HP_BAR_HEIGHT - HP_BAR_SPACING,
+            .x = bRect.x + boss.data()->hpbar_off_x,
+            .y = bRect.y - HP_BAR_HEIGHT - HP_BAR_SPACING + boss.data()->hpbar_off_y,
             .width = MAX_HP_GAUGE, // boss.maxHp(),
             .height = HP_BAR_HEIGHT,
         };
@@ -2323,6 +2386,16 @@ CGameMixin::message_t CGameMixin::getEventText(const int baseY)
             .lines{"BOAT FOUND"},
         };
     }
+    else if (m_currentEvent == EVENT_POISON)
+    {
+        return {
+            .scaleX = 2,
+            .scaleY = 1,
+            .baseY = baseY,
+            .color = BLUEVIOLET,
+            .lines{"POISON TRAP"},
+        };
+    }
     else
     {
         LOGW("unhandled event: 0x%.2x", m_currentEvent);
@@ -2547,11 +2620,13 @@ void CGameMixin::drawHealthBar(CFrame &bitmap, const bool isPlayerHurt)
     // bar's healthy color, GREEN marks the poisoned state
     const uint32_t color = m_game->isGodMode()
                                ? WHITE
-                               : isPlayerHurt ? PINK
-                               : m_game->isPoisoned() ? GREEN
-                                                      : RED;
+                           : isPlayerHurt         ? PINK
+                           : m_game->isPoisoned() ? GREEN
+                                                  : RED;
     auto drawHearth = [&bitmap, color, this](auto bx, auto by, auto health)
     {
+        if (m_fontData.empty()) // audit glyph-loop guard: hearts use their own path
+            return;
         // const uint8_t *heart = getCustomChars() + (CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;
         const uint8_t *heart = m_fontData.data() + (CHARS_CUSTOM_BASE + CHARS_HEART - CHARS_CUSTOM) * FONT_SIZE;
         for (uint32_t y = 0; y < FONT_SIZE; ++y)

@@ -29,8 +29,11 @@
 
 #include "bossdata.h"
 
+#include "joyaim.h"
 #include "sounds.h"
 #include "tilesdata.h"
+#include "gamesfx.h"
+#include "sfx_private.h"
 
 #include <algorithm>
 #include <cctype>
@@ -40,6 +43,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <sstream>
 #include <utility>
 
 #include "logger.h"
@@ -92,6 +96,29 @@ namespace
             return 0;
         }
         return static_cast<uint8_t>(v);
+    }
+
+    // Extract the integers embedded in a string ("x, y, w", "-3 4", "32, -8"):
+    // anything not a digit or '-' is skipped. Needed because tokenize() splits
+    // on whitespace only, so commas stay attached to their token.
+    std::vector<int> parseNumberList(const std::string &s)
+    {
+        std::vector<int> v;
+        size_t i = 0;
+        while (i < s.size())
+        {
+            while (i < s.size() &&
+                   !std::isdigit((unsigned char)s[i]) &&
+                   s[i] != '-')
+                ++i;
+            size_t start = i;
+            while (i < s.size() &&
+                   (std::isdigit((unsigned char)s[i]) || s[i] == '-'))
+                ++i;
+            if (i > start)
+                v.push_back(std::atoi(s.substr(start, i - start).c_str()));
+        }
+        return v;
     }
 
     struct JsonValue
@@ -437,8 +464,22 @@ namespace
         return true;
     }
 
-    bool readHitboxFile(const std::string &path, int grid, int baseFrame,
-                        int sheet, std::vector<HitboxFrame> &frames)
+    // One box as derived from a §0b hitbox JSON: raw_id = row*cols+col
+    // selects the frame strip, offX/offY is the box offset inside its cell.
+    struct RawHitbox
+    {
+        int rawId;
+        int offX;
+        int offY;
+        int w;
+        int h;
+        int type;
+    };
+
+    // Shared §0b core: parse a hitbox JSON, derive frame membership for each
+    // box, drop type 0 markers. Callers apply their own keying/quantization.
+    bool readHitboxJson(const std::string &path, int &frameWidth, int &frameHeight,
+                        std::vector<RawHitbox> &out)
     {
         std::string text;
         if (!readFile(path.c_str(), text))
@@ -459,8 +500,6 @@ namespace
             return false;
         }
 
-        int frameWidth = 0;
-        int frameHeight = 0;
         int cols = 0;
         auto numAt = [](const JsonValue &obj, const char *key, int &out) -> bool
         {
@@ -483,40 +522,64 @@ namespace
         {
             int x = 0;
             int y = 0;
-            int w = 0;
-            int h = 0;
-            int type = 0;
+            RawHitbox box{};
             if (hb.type != JsonValue::Type::Object ||
                 !numAt(hb, "x", x) || !numAt(hb, "y", y) ||
-                !numAt(hb, "w", w) || !numAt(hb, "h", h) ||
-                !numAt(hb, "type", type))
+                !numAt(hb, "w", box.w) || !numAt(hb, "h", box.h) ||
+                !numAt(hb, "type", box.type))
             {
                 LOGE("Error: bad hitbox entry in '%s'.\n", path.c_str());
                 return false;
             }
-            if (x < 0 || y < 0 || w < 0 || h < 0)
+            if (x < 0 || y < 0 || box.w < 0 || box.h < 0)
             { // negative coords would produce negative col/row/frame ids
                 LOGE("Error: negative hitbox coord in '%s'.\n", path.c_str());
                 return false;
             }
-            if (type == 0)
+            if (box.type == 0)
                 continue; // ignored frame marker, same as parse.py
 
-            int col = x / frameWidth;
-            int row = y / frameHeight;
-            int id = row * cols + col;
-            int relX = (x - col * frameWidth) / grid;
-            int relY = (y - row * frameHeight) / grid;
+            const int col = x / frameWidth;
+            const int row = y / frameHeight;
+            box.rawId = row * cols + col;
+            box.offX = x - col * frameWidth;
+            box.offY = y - row * frameHeight;
+            out.push_back(box);
+        }
+        return true;
+    }
 
-            hitbox_t box;
-            box.x = relX;
-            box.y = relY;
-            box.width = w / grid;
-            box.height = h / grid;
-            box.type = type;
+    bool readHitboxFile(const std::string &path, int grid, int baseFrame,
+                        int sheet, std::vector<HitboxFrame> &frames, int blockFrames)
+    {
+        int frameWidth = 0;
+        int frameHeight = 0;
+        std::vector<RawHitbox> raw;
+        if (!readHitboxJson(path, frameWidth, frameHeight, raw))
+            return false;
+
+        for (const RawHitbox &box : raw)
+        {
+            // Plan boss-aims3-mirror §8: a box mapping past this sequence's
+            // count*aims block (phantom aims-3 direction, misaligned
+            // frame.cols) would silently bleed into the next boss's frame
+            // ids — sheets are contiguous. Drop it at the source.
+            if (box.rawId >= blockFrames)
+            {
+                LOGE("Error: hitbox in '%s' maps to sequence frame %d, outside "
+                     "block [0,%d); dropped.\n",
+                     path.c_str(), box.rawId, blockFrames);
+                continue;
+            }
+            hitbox_t hb;
+            hb.x = box.offX / grid;
+            hb.y = box.offY / grid;
+            hb.width = box.w / grid;
+            hb.height = box.h / grid;
+            hb.type = box.type;
 
             // Absolute frame id, keyed exactly like parse.py's all_frames.
-            int frame_id = baseFrame + id + sheet * BossData::SHEET_SPACER;
+            const int frame_id = baseFrame + box.rawId + sheet * BossData::SHEET_SPACER;
 
             // Insert-or-append keyed by absolute frame id (dict preserves
             // first-seen order).
@@ -534,7 +597,7 @@ namespace
                 frames.push_back(HitboxFrame{frame_id, {}});
                 target = &frames.back();
             }
-            target->boxes.push_back(box);
+            target->boxes.push_back(hb);
         }
         return true;
     }
@@ -542,12 +605,24 @@ namespace
     // -----------------------------------------------------------------------
     // Boss accumulator (mirror parse.py seq dict)
     // -----------------------------------------------------------------------
+    // plan §3: skill token -> index into g_skillDefs, -1 when unknown.
+    // The registry itself is the name table (same style as resolveSound).
+    int resolveSkill(const std::string &token)
+    {
+        for (size_t i = 0; i < g_skillDefs.size(); ++i)
+        {
+            if (g_skillDefs[i].name && token == g_skillDefs[i].name)
+                return static_cast<int>(i);
+        }
+        return -1;
+    }
+
     struct BossAccum
     {
         std::string name;
         std::map<std::string, std::string> fields; // final-name -> raw token
 
-        bossData_t build(int sheetIndex) const
+        bossData_t build(int sheetIndex, int lineNo) const
         {
             bossData_t d{};
             d.sheet = sheetIndex;
@@ -599,6 +674,33 @@ namespace
                 d.aims = 1;
             }
 
+            // aims 3 layout: UP/DOWN + ONE horizontal block; `mirror`
+            // declares the derived horizontal aim (plan
+            // docs/plans/boss-aims3-mirror-plan.md §1). aims 3 without a
+            // valid mirror is a data error: fall back to aims 1 (same
+            // garbage convention as above). handleSeq tallies identically.
+            {
+                const std::string m = get("mirror");
+                d.mirror = (m == "left") ? AIM_LEFT : (m == "right") ? AIM_RIGHT : -1;
+                if (!m.empty() && d.mirror < 0)
+                {
+                    LOGW("Warning: boss '%s' has invalid mirror '%s'; ignored\n",
+                         name.c_str(), m.c_str());
+                }
+            }
+            if (d.aims == 3 && d.mirror < 0)
+            {
+                LOGE("Error: boss '%s' has aims 3 without 'mirror left|right'; using aims 1\n",
+                     name.c_str());
+                d.aims = 1;
+            }
+            else if (d.aims != 3 && d.mirror >= 0)
+            {
+                LOGW("Warning: boss '%s' declares mirror with aims %d; mirror ignored\n",
+                     name.c_str(), d.aims);
+                d.mirror = -1;
+            }
+
             auto seqFrom = [&](const char *name) -> boss_seq_t
             {
                 boss_seq_t s{};
@@ -617,27 +719,64 @@ namespace
             if (fields.count("hitbox"))
             {
                 // "x, y, w, h , 0" (parse.py appends ", 0" for the type slot)
-                const std::string &hbStr = fields.at("hitbox");
-                std::vector<int> v;
-                size_t i = 0;
-                while (i < hbStr.size())
-                {
-                    while (i < hbStr.size() &&
-                           !std::isdigit((unsigned char)hbStr[i]) &&
-                           hbStr[i] != '-')
-                        ++i;
-                    size_t start = i;
-                    while (i < hbStr.size() &&
-                           (std::isdigit((unsigned char)hbStr[i]) || hbStr[i] == '-'))
-                        ++i;
-                    if (i > start)
-                        v.push_back(std::atoi(hbStr.substr(start, i - start).c_str()));
-                }
+                const std::vector<int> v = parseNumberList(fields.at("hitbox"));
                 d.hitbox.x = v.size() > 0 ? v[0] : 0;
                 d.hitbox.y = v.size() > 1 ? v[1] : 0;
                 d.hitbox.width = v.size() > 2 ? v[2] : 0;
                 d.hitbox.height = v.size() > 3 ? v[3] : 0;
                 d.hitbox.type = v.size() > 4 ? v[4] : 0;
+            }
+
+            // "x, y" pixel offsets for the healthbar/name block (plan
+            // docs/plans/boss-healthbar-offset-plan.md §2); negatives allowed
+            if (fields.count("healthbar_offset"))
+            {
+                const std::vector<int> v = parseNumberList(fields.at("healthbar_offset"));
+                if (v.size() < 2)
+                    LOGW("Warning: boss '%s' healthbar_offset needs 2 values; using what is there\n",
+                         name.c_str());
+                d.hpbar_off_x = v.size() > 0 ? v[0] : 0;
+                d.hpbar_off_y = v.size() > 1 ? v[1] : 0;
+            }
+
+            // skill NAME rate=N entries in file order (plan §2/§3);
+            // unknown token -> LOGE + skipped, 5th line -> LOGW + ignored
+            const std::string skillStr = get("skill");
+            size_t pos = 0;
+            while (pos <= skillStr.size())
+            {
+                size_t semi = skillStr.find(';', pos);
+                std::string entry = skillStr.substr(
+                    pos, semi == std::string::npos ? std::string::npos : semi - pos);
+                pos = semi == std::string::npos ? skillStr.size() + 1 : semi + 1;
+                std::istringstream is(entry);
+                std::string token;
+                is >> token;
+                if (token.empty())
+                    continue;
+                const int idx = resolveSkill(token);
+                if (idx < 0)
+                {
+                    LOGE("Error: boss '%s' unknown skill '%s' on line %d; entry skipped\n",
+                         name.c_str(), token.c_str(), lineNo);
+                    continue;
+                }
+                if (d.skillCount >= 4)
+                {
+                    LOGW("Warning: boss '%s' exceeds 4 skill slots; '%s' ignored\n",
+                         name.c_str(), token.c_str());
+                    continue;
+                }
+                uint8_t rate = 0;
+                std::string kv;
+                while (is >> kv)
+                {
+                    if (kv.rfind("rate=", 0) == 0)
+                        rate = toU8(kv.substr(5), "skill rate");
+                }
+                d.skills[d.skillCount].skill = static_cast<uint8_t>(idx);
+                d.skills[d.skillCount].rate = rate;
+                ++d.skillCount;
             }
 
             return d;
@@ -662,7 +801,7 @@ namespace
         {
             if (!seq.fields.empty() || !seq.name.empty())
             {
-                bosses.push_back(seq.build(sheet));
+                bosses.push_back(seq.build(sheet, lineNo));
                 namePool.push_back(seq.name);
             }
             seq = BossAccum{};
@@ -786,9 +925,37 @@ namespace
                     continue;
                 }
 
+                if (item == "healthbar_offset")
+                {
+                    if (e.size() < 2)
+                    {
+                        LOGW("Warning: 'healthbar_offset' on line %d is missing a value: %s\n",
+                             lineNo, t.c_str());
+                        continue;
+                    }
+                    seq.fields["healthbar_offset"] = joinSpace(e, 1);
+                    continue;
+                }
+
                 if (item == "flags")
                 {
                     seq.fields["flags"] = joinSpace(e, 1);
+                    continue;
+                }
+
+                // repeated key: the flat fields map would overwrite, so
+                // skill lines accumulate "NAME key=value ..." joined by ';'
+                if (item == "skill")
+                {
+                    if (e.size() < 2)
+                    {
+                        LOGW("Warning: 'skill' on line %d is missing a skill name: %s\n",
+                             lineNo, t.c_str());
+                        continue;
+                    }
+                    std::string entry = joinSpace(e, 1);
+                    auto it = seq.fields.find("skill");
+                    seq.fields["skill"] = it == seq.fields.end() ? entry : it->second + ";" + entry;
                     continue;
                 }
 
@@ -800,7 +967,7 @@ namespace
 
                 if (item == "type" || item == "hp" || item == "score" ||
                     item == "path" || item == "attack_sound" || item == "is_goal" ||
-                    item == "show_details" || item == "aims")
+                    item == "show_details" || item == "aims" || item == "mirror")
                 {
                     if (e.size() < 2)
                     {
@@ -858,16 +1025,6 @@ namespace
                 return;
             }
 
-            if (!hitboxFile.empty())
-            {
-                std::string full = baseDir + "/" + hitboxFile;
-                // failure must NOT skip base/len below or every later
-                // sequence's frames shift (audit Medium); just lose the boxes
-                if (!readHitboxFile(full, GRID_SIZE, frame, sheet, hitboxFrames))
-                    LOGW("Warning: continuing '%s' on line %d without hitbox file '%s'\n",
-                         seqName.c_str(), lineNo, hitboxFile.c_str());
-            }
-
             int count = toInt(e[1], seqName.c_str());
             if (count < 0)
             {
@@ -885,6 +1042,28 @@ namespace
                      seqName.c_str(), seq.name.c_str(), aims);
                 aims = 1;
             }
+            if (aims == 3)
+            {
+                // tally must match BossAccum::build()'s validation: aims 3
+                // without a valid `mirror` degrades to one frame block
+                const std::string m =
+                    seq.fields.count("mirror") ? seq.fields.at("mirror") : std::string();
+                if (m != "left" && m != "right")
+                    aims = 1;
+            }
+
+            if (!hitboxFile.empty())
+            {
+                // read AFTER count/aims: out-of-block boxes are rejected
+                // against this sequence's frame block (plan §8)
+                std::string full = baseDir + "/" + hitboxFile;
+                // failure must NOT skip base/len above or every later
+                // sequence's frames shift (audit Medium); just lose the boxes
+                if (!readHitboxFile(full, GRID_SIZE, frame, sheet, hitboxFrames, count * aims))
+                    LOGW("Warning: continuing '%s' on line %d without hitbox file '%s'\n",
+                         seqName.c_str(), lineNo, hitboxFile.c_str());
+            }
+
             frame += count * aims;
         }
 
@@ -927,6 +1106,149 @@ int g_bossCount = 0;
 int g_hitboxCount = 0;
 const bossData_t *g_bossData = nullptr;
 const sprite_hitbox_t *g_hitboxes = nullptr;
+
+// skill registry (plan fx-boss-skills §1): hand-authored rows; the data/fx
+// JSON fill-in (loadFxSkills) populates the FX frames entries. Never serialized.
+std::vector<bossSkillDef_t> g_skillDefs = {
+    // kind markers only: payload + attack code stay in bossData_t (§1)
+    // trailing members spelled out: silence -Wmissing-field-initializers
+    {.name = "BULLET",
+     .kind = SKILL_BULLET,
+     .frames = {},
+     .firstHitFrame = -1,
+     .lastHitFrame = -1},
+    {.name = "SPECIAL1",
+     .kind = SKILL_SPECIAL1,
+     .frames = {},
+     .firstHitFrame = -1,
+     .lastHitFrame = -1},
+    // ponytail: damage values are design placeholders until per-skill tuning
+    {.name = "LIGHTNING_STRIKE",
+     .kind = SKILL_FX,
+     .effectId = FX_BLUE_LIGHTNING,
+     .telegraphFx = -1,
+     .telegraphTtl = 18,
+     .damage = 16,
+     .baseFrame = FX_BLUE_LIGHTNING_BASEID,
+     .hitboxFile = "LIGHTNING_STRIKE.json",
+     .frames = {},
+     .firstHitFrame = -1,
+     .lastHitFrame = -1},
+    {.name = "METEOR",
+     .kind = SKILL_FX,
+     .effectId = FX_FIRE_COLUMN,
+     .telegraphFx = -1,
+     .telegraphTtl = 18,
+     .damage = 24,
+     .baseFrame = FX_FIRE_COLUMN_BASEID,
+     .hitboxFile = "METEOR.json",
+     .frames = {},
+     .firstHitFrame = -1,
+     .lastHitFrame = -1},
+};
+
+const bossSkillDef_t *skillForFx(const int effectID)
+{
+    for (const bossSkillDef_t &s : g_skillDefs)
+    {
+        if (s.kind == SKILL_FX && s.effectId == effectID)
+            return &s;
+    }
+    return nullptr;
+}
+
+// Fill the SKILL_FX registry rows' frames from their declared hitboxFile
+// under <fxDir>/ (§0b format): same grid derivation as the boss loader, but
+// keyed by plain fx sheet frameID (single fx sheet, no SHEET_SPACER) and
+// converted to px relative to the frame center anchor (§1). Missing file:
+// LOGW, the file boxes are skipped. Rows with default_box also get one
+// synthesized box on the fx's last frame (table extents, bottom rect
+// w x 8 px). Rows declaring neither source are skipped silently.
+void loadFxSkills(const std::string &fxDir)
+{
+    for (bossSkillDef_t &skill : g_skillDefs)
+    {
+        if (skill.kind != SKILL_FX || (!skill.hitboxFile && !skill.default_box))
+            continue; // no hitbox source declared: the skill never damages
+        skill.frames.clear();
+        skill.firstHitFrame = -1;
+        skill.lastHitFrame = -1;
+        // find-or-create the per-frame record; updates the window bounds
+        auto frameFor = [&skill](int frameID) -> sprite_hitbox_t &
+        {
+            for (auto &fr : skill.frames)
+            {
+                if (fr.spriteID == frameID)
+                    return fr;
+            }
+            skill.frames.push_back(sprite_hitbox_t{frameID, 0, {}});
+            skill.firstHitFrame = skill.firstHitFrame < 0
+                                      ? static_cast<int16_t>(frameID)
+                                      : std::min(skill.firstHitFrame, static_cast<int16_t>(frameID));
+            skill.lastHitFrame = skill.lastHitFrame < 0
+                                     ? static_cast<int16_t>(frameID)
+                                     : std::max(skill.lastHitFrame, static_cast<int16_t>(frameID));
+            return skill.frames.back();
+        };
+        const auto addBox = [&skill, &frameFor](int frameID, int x, int y, int w, int h, int type)
+        {
+            sprite_hitbox_t &target = frameFor(frameID);
+            if (target.count >= MAX_HITBOX_PER_FRAME)
+            {
+                LOGW("fx skill '%s': frame %d exceeds %d hitboxes; box dropped\n",
+                     skill.name, frameID, MAX_HITBOX_PER_FRAME);
+                return;
+            }
+            hitbox_t &hb = target.hitboxes[target.count++];
+            hb.x = x;
+            hb.y = y;
+            hb.width = w;
+            hb.height = h;
+            hb.type = type;
+        };
+
+        if (skill.hitboxFile)
+        {
+            const std::string path = fxDir + "/" + skill.hitboxFile;
+            int frameWidth = 0;
+            int frameHeight = 0;
+            std::vector<RawHitbox> raw;
+            if (!readHitboxJson(path, frameWidth, frameHeight, raw))
+            {
+                LOGW("fx skill '%s': no hitbox file '%s'; file boxes skipped\n",
+                     skill.name, path.c_str());
+            }
+            for (const RawHitbox &box : raw)
+            {
+                // px relative to the frame center anchor; no grid quantization
+                addBox(skill.baseFrame + box.rawId,
+                       static_cast<int>(box.offX - frameWidth / 2),
+                       static_cast<int>(box.offY - frameHeight / 2),
+                       box.w, box.h, box.type);
+            }
+        }
+
+        if (skill.default_box)
+        {
+            const fxData_t *fx = fxDataAt(skill.effectId);
+            const fx_layer_t *layer = fx && fx->front.count  ? &fx->front
+                                      : fx && fx->back.count ? &fx->back
+                                                             : nullptr;
+            if (!layer)
+            {
+                LOGW("fx skill '%s': default_box has no fx frames (effect %d)\n",
+                     skill.name, skill.effectId);
+            }
+            else
+            {
+                // bottom rect of the table extents, frame-bottom flush
+                addBox(layer->base + layer->count - 1,
+                       -static_cast<int>(fx->w) / 2, static_cast<int>(fx->h) / 2 - 8,
+                       fx->w, 8, 2); // SPECIAL1 vocab; tickFx damages any box
+            }
+        }
+    }
+}
 
 // Storage kept alive until freeBossData() so the returned pointers
 // (g_bossData, g_hitboxes, and every d.name) stay valid; the statics' own

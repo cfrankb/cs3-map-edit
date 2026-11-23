@@ -58,6 +58,7 @@ struct scan_t
     bool isWater;
     bool isSolid;
     bool isDeadly;
+    bool isSticky;
 };
 
 class CGame
@@ -138,7 +139,7 @@ public:
     int lives() const;
     int health() const;
     void addHealth(const int hp, const bool silent = false); // public so tests can observe damage (see t_game_ai)
-    void addPoison(const int amount); // adds to the S_POISON drain pool (see docs/plans/poison-damage-plan.md)
+    void addPoison(const int amount);                        // adds to the S_POISON drain pool (see docs/plans/poison-damage-plan.md)
     bool isPoisoned() const;
     int sugar() const;
     bool hasExtraSpeed() const;
@@ -150,9 +151,9 @@ public:
     int playerSpeed() const;
     static userKeys_t &keys();
     std::vector<CActor> &getMonsters();
-    CActor &getMonster(int i); // contract (2026-11-18 ruling): caller owns bounds checking against getMonsters().size()
+    CActor &getMonster(int i);       // contract (2026-11-18 ruling): caller owns bounds checking against getMonsters().size()
     std::vector<CBoss> &getBosses(); // public so tests can inject bosses (see t_game_ai)
-    void rebuildMonsterGrid(); // public so tests can sync the grid after getMonsters() injection
+    void rebuildMonsterGrid();       // public so tests can sync the grid after getMonsters() injection
     std::vector<sfx_t> &getSfx();
     void playSound(const int id) const;
     void playTileSound(const int tileID) const;
@@ -170,6 +171,20 @@ public:
     std::vector<fx_t> &getFx();
     int spawnFx(const int effectID, const int tileX, const int tileY);
     int spawnFxPx(const int effectID, const int px, const int py);
+    // delayed fx strike (fx-boss-skills): warn the tile first (renderer
+    // paints the red telegraph placeholder from pendingFx() for `ticks` =
+    // the skill row's telegraphTtl), the fx spawns when the countdown
+    // expires in tickFx(). Transient: NOT serialized -- save/load drops
+    // pending strikes, the boss just recasts.
+    struct pendingFx_t
+    {
+        int16_t effectId;
+        int16_t tileX;
+        int16_t tileY;
+        int16_t ticks;
+    };
+    void scheduleFx(const int effectID, const int tileX, const int tileY, const int ticks);
+    const std::vector<pendingFx_t> &pendingFx() const { return m_pendingFx; }
     void tickFx();
     void getFxToDraw(const fxView_t &view, const bool front,
                      std::vector<fxDraw_t> &out) const;
@@ -240,7 +255,8 @@ private:
     std::vector<CBoss> m_bosses;
     std::vector<sfx_t> m_sfx;
     std::vector<fx_t> m_fx;
-    uint32_t m_fxTick = 0; // free-running fx clock (poison aura); not saved
+    std::vector<pendingFx_t> m_pendingFx; // telegraph countdowns; not saved
+    uint32_t m_fxTick = 0;                // free-running fx clock (poison aura); not saved
     CActor m_player;
     CMapArch *m_mapArch = nullptr;
     std::shared_ptr<ISound> m_sound;
@@ -291,7 +307,7 @@ private:
     CActor *spawnBullet(int x, int y, JoyAim aim, uint8_t tile);
     void handleBossPath(CBoss &boss);
     bool handleBossBullet(CBoss &boss);
-    void handleBossHitboxContact(CBoss &boss);
+    void handleBossHitboxContact(CBoss &boss, uint32_t ticks);
 
     inline static CMap m_map;
     friend class CGameMixin;

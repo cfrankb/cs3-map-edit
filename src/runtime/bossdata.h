@@ -39,6 +39,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "rect.h"
 #include "color.h"
@@ -53,7 +54,8 @@ constexpr int MAX_HITBOX_PER_FRAME = 4;
 #define BOSS_GHOST 0xb1
 #define BOSS_HARPY 0xb2
 #define BOSS_BEHOLDER 0xb3
-#define BOSS_COUNT 4
+#define BOSS_ARACHINE 0xb4
+#define BOSS_COUNT 5
 
 #define FLAG_FIREBALL 0x00000001
 #define BOSS_FLAG_PROXIMITY_ATTACK 0x40000000
@@ -107,6 +109,59 @@ struct sprite_hitbox_t
     hitbox_t hitboxes[MAX_HITBOX_PER_FRAME];
 };
 
+// --- skill registry (plan docs/plans/fx-boss-skills-plan.md §1) ---
+// A SKILL links visual + hit resolution + damage for one castable attack.
+// BULLET/SPECIAL1 are kind markers whose data stays in bossData_t; SKILL_FX
+// entries own the fx id + per-frame hitboxes + damage. Static table,
+// never serialized.
+enum SkillKind : uint8_t
+{
+    SKILL_BULLET,
+    SKILL_SPECIAL1,
+    SKILL_FX
+};
+
+struct bossSkillDef_t
+{
+    const char *name = nullptr; // ini token: "BULLET", "LIGHTNING_STRIKE", "METEOR"
+    SkillKind kind = SKILL_FX;
+    // --- SKILL_FX payload ---
+    int16_t effectId = -1;      // damaging Fx id (index into g_fxData)
+    int16_t telegraphFx = -1;   // warning Fx id, -1 = none
+    uint8_t telegraphTtl = 0;   // warning lead (ticks) before the strike spawns;
+                                // 0 = no warning, cast spawns immediately
+    int16_t damage = 0;         // hp dealt to player per collision registration
+    int16_t baseFrame = -1;     // fx-sheet frameID of the hitbox run's first frame
+    // hitbox JSON filename under the fx dir (loadFxSkills); nullptr = this
+    // skill has no hitboxes and never damages (most fx animations)
+    const char *hitboxFile = nullptr;
+    // true: synthesize one hitbox at load on the fx's LAST frame: the bottom
+    // rect of the table entry (w x 8 px, frame-bottom flush), appended to any
+    // file-authored boxes; damaged by tickFx like authored boxes
+    bool default_box = false;
+    // sparse per-frame boxes; hitbox_t x/y are px offsets from the fx
+    // center anchor; frames absent from the vector never damage
+    std::vector<sprite_hitbox_t> frames;
+    int16_t firstHitFrame = -1; // min key, derived at load (lead-in bound)
+    int16_t lastHitFrame = -1;  // max key (damage-window bound)
+};
+
+// hand-authored table, filled at load (JSON hitbox files fill FX frames)
+extern std::vector<bossSkillDef_t> g_skillDefs;
+// registry scan by damaging effectId; nullptr when no skill owns the fx
+const bossSkillDef_t *skillForFx(int effectID);
+// fill SKILL_FX rows' frames from <fxDir>/<name>.json (§0b format, px
+// relative to the frame center anchor); missing file warns + keeps empty
+void loadFxSkills(const std::string &fxDir);
+
+// boss skill slot (plan fx-boss-skills §2): repeated `skill NAME rate=N`
+// ini lines fill skills[0..skillCount), max 4 per boss.
+struct bossSkill_t
+{
+    uint8_t skill; // index into g_skillDefs (generic kind entry)
+    uint8_t rate;  // use frequency: rng gate 0..rate (1 = often)
+};
+
 struct bossData_t
 {
     const char *name;     // boss name
@@ -134,7 +189,12 @@ struct bossData_t
     bool show_details;    // display hp bar/name
     Color color_hp;       // hp bar color
     Color color_name;     // name color
+    int hpbar_off_x = 0;  // healthbar/name x offset in px (may be negative)
+    int hpbar_off_y = 0;  // healthbar/name y offset in px (may be negative)
     int aims;             // aim count (typically 1 or 4)
+    int mirror = -1;      // aims 3: derived horizontal JoyAim (AIM_LEFT/
+                          // AIM_RIGHT); -1 = no mirroring (plan
+                          // docs/plans/boss-aims3-mirror-plan.md §1)
     boss_seq_t moving;    // animation seq: moving
     boss_seq_t attack;    // animation seq: attack
     boss_seq_t hurt;      // animation seq: hurt
@@ -142,6 +202,8 @@ struct bossData_t
     boss_seq_t idle;      // animation seq: idle
     hitbox_t hitbox;      // primary hitbox
     int sheet;            // sprite sheet used
+    bossSkill_t skills[4];  // declared skills (plan §2); 0 slots = legacy behavior
+    uint8_t skillCount = 0; // used-slot counter; skills[0..skillCount)
 };
 
 // --- runtime state (populated by loadBossData) ---

@@ -134,9 +134,14 @@ long CFileWrap::getSize()
     }
     else if (m_file)
     {
-        long cur = ftell(m_file);
-        fseek(m_file, 0, SEEK_END);
-        long w = ftell(m_file);
+        // audit FileWrap.cpp L26: a failed ftell must propagate as -1 without
+        // the bogus fseek(m_file, -1, SEEK_SET) restore
+        const long cur = ftell(m_file);
+        if (cur < 0)
+            return -1;
+        if (fseek(m_file, 0, SEEK_END) != 0)
+            return -1;
+        const long w = ftell(m_file);
         fseek(m_file, cur, SEEK_SET);
         return w;
     }
@@ -206,6 +211,8 @@ bool CFileWrap::operator<<(const std::string_view &str)
 {
     if (m_memFile)
         return *m_memFile << str;
+    if (!m_file)
+        return false;
 
     const size_t size = str.length();
     if (size < 0xff)
@@ -233,7 +240,9 @@ bool CFileWrap::operator<<(const std::string_view &str)
                 return false;
         }
     }
-    if (fwrite(str.data(), size, 1, m_file) != 1)
+    // BUG-H8: zero-length body is a success no-op (fwrite(data, 0, 1) returns
+    // 0; CFileMem already treats it as success — mirror it)
+    if (size != 0 && fwrite(str.data(), size, 1, m_file) != 1)
         return false;
     return true;
 }

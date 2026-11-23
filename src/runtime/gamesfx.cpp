@@ -28,13 +28,13 @@
 // ponytail: speed/ttl are design placeholders until per-effect tuning.
 std::vector<fxData_t> g_fxData = {
     {.id = FX_BLUE_LIGHTNING, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
-     .back = {0, 0}, .front = {FX_BLUE_LIGHTNING_BASEID, FX_BLUE_LIGHTNING_FRAMES}, .onEnd = nullptr},
+     .align = FX_ALIGN_BOTTOM, .back = {0, 0}, .front = {FX_BLUE_LIGHTNING_BASEID, FX_BLUE_LIGHTNING_FRAMES}, .onEnd = nullptr},
     {.id = FX_FIRE_COLUMN, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
-     .back = {0, 0}, .front = {FX_FIRE_COLUMN_BASEID, FX_FIRE_COLUMN_FRAMES}, .onEnd = nullptr},
+     .align = FX_ALIGN_BOTTOM, .back = {0, 0}, .front = {FX_FIRE_COLUMN_BASEID, FX_FIRE_COLUMN_FRAMES}, .onEnd = nullptr},
     {.id = FX_MUSHROOM_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
      .back = {0, 0}, .front = {FX_MUSHROOM_EXPLOSION_BASEID, FX_MUSHROOM_EXPLOSION_FRAMES}, .onEnd = nullptr},
     {.id = FX_ICE_SPIKES, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 48,
-     .back = {0, 0}, .front = {FX_ICE_SPIKES_BASEID, FX_ICE_SPIKES_FRAMES}, .onEnd = nullptr},
+     .align = FX_ALIGN_BOTTOM, .back = {0, 0}, .front = {FX_ICE_SPIKES_BASEID, FX_ICE_SPIKES_FRAMES}, .onEnd = nullptr},
     {.id = FX_SMOKE_BOMB, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 32, .h = 32,
      .back = {0, 0}, .front = {FX_SMOKE_BOMB_BASEID, FX_SMOKE_BOMB_FRAMES}, .onEnd = nullptr},
     {.id = FX_EXPLOSION, .sheet = 0, .speed = 6, .flags = FX_ONESHOT, .ttl = 0, .w = 48, .h = 48,

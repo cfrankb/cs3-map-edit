@@ -42,6 +42,7 @@ enum LayerTileType
     Solid,
     Deadly,
     Water,
+    Sticky,
 };
 
 enum

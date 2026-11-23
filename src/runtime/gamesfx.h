@@ -19,7 +19,6 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
-#include "sheetdata.h"
 #include "sfx_public.h"
 
 class CGame;
@@ -68,6 +67,16 @@ enum SfxTimeout : uint16_t
     SFX_FLAME_TIMEOUT = 20,
 };
 
+// frame rect in sheet-pixel space; tables are obsolete, rects now
+// arrive from the sheet png's private obLT chunk (tileset loadFx)
+struct tileinfo_t
+{
+    float x;
+    float y;
+    float w;
+    float h;
+};
+
 // ---------------------------------------------------------------------------
 // extended fx (spec docs/spec/gamespec/extended-fx.md)
 // pixel coordinates, multi-frame, up to two layers, owned by CGame.
@@ -95,6 +104,15 @@ enum FxFlags : uint8_t
 {
     FX_ONESHOT = 0x01,    // plays once, ends at frames * speed (spec I1)
     FX_REPEATABLE = 0x02, // loops (modulo), ends at ttl (spec I1)
+};
+
+// tile-spawn anchor modes (plan fx-boss-skills §6): how the tile is turned
+// into the frame-center anchor. Drawing/culling/hitboxes always use the
+// center anchor, so only spawnFx's tile->px conversion consults this.
+enum FxAlign : uint8_t
+{
+    FX_ALIGN_CENTER, // anchor at tile center (explosions, auras, smoke)
+    FX_ALIGN_BOTTOM, // tall skyfalls: horizontally centered, frame bottom on the tile bottom
 };
 
 // per-instance wire record: pure POD, raw-serialized, 12 bytes
@@ -141,6 +159,7 @@ struct fxData_t
     uint8_t flags;                         // FxFlags
     uint16_t ttl;                          // lifetime (ticks) for FX_REPEATABLE
     uint16_t w, h;                         // max frame extents, culling only
+    uint8_t align = FX_ALIGN_CENTER;       // FxAlign: tile-spawn anchor mode
     fx_layer_t back;                       // drawn before actors
     fx_layer_t front;                      // drawn after actors
     int16_t damage = 0;                    // reserved, unused
@@ -165,6 +184,10 @@ struct fxDraw_t
     int16_t x;
     int16_t y;
     uint16_t frameID;
+    int16_t ox; // origin tile (fx_t.ox/oy; -1 = unavailable)
+    int16_t oy;
+    bool telegraph; // front pass only: skill fx in its lead-in frames ->
+                    // renderer paints the red target-tile hint placeholder
 };
 
 extern std::vector<fxData_t> g_fxData;

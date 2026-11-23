@@ -73,7 +73,7 @@ add_library(mapruntime STATIC
     src/runtime/names.cpp
     src/runtime/randomz.cpp
     src/runtime/recorder.cpp
-    src/runtime/sheetdata.cpp
+    #src/runtime/sheetdata.cpp
     src/runtime/statedata.cpp
     src/runtime/states.cpp
     src/runtime/strhelper.cpp

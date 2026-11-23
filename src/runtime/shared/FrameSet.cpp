@@ -313,9 +313,11 @@ bool CFrameSet::readSolid(IFile &file, int size)
         return false;
     }
 
-    // Validate file size
+    // Validate file size (int64 math: on 32-bit-long targets the sum could
+    // signed-overflow and wrap negative, bypassing this gate)
     long fileSize = file.getSize();
-    if (file.tell() + srcSize + size * 2 * (long)sizeof(uint16_t) > fileSize)
+    if (static_cast<int64_t>(file.tell()) + srcSize + static_cast<int64_t>(size) * 2 * (long)sizeof(uint16_t) >
+        static_cast<int64_t>(fileSize))
     {
         char tmp[128];
         snprintf(tmp, sizeof(tmp), "File too small for OBL5_SOLID data; data size=%ld; file size=%ld)", srcSize, fileSize);
@@ -1141,7 +1143,8 @@ bool CFrameSet::importOBL4(IFile &file, const long org)
             // Zlib-compressed mode
             uint32_t nSrcLen = 0;
             if (file.read(&nSrcLen, sizeof(nSrcLen)) != IFILE_OK || nSrcLen <= 0 ||
-                static_cast<long>(nSrcLen) > static_cast<long>(fileSize) - file.tell()) // signed math (audit L1072)
+                static_cast<int64_t>(nSrcLen) >
+                    static_cast<int64_t>(fileSize) - file.tell()) // signed int64 math (audit L1072): a 32-bit long cast would let nSrcLen > LONG_MAX wrap negative and pass
             {
                 m_lastError = "Invalid or truncated compressed size in OBL4";
                 return false;

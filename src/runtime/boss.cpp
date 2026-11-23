@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <set>
 #include "boss.h"
 #include "game.h"
 #include "tilesdata.h"
@@ -85,13 +86,16 @@ std::vector<HitResult> CBoss::testHitbox1(const CMap &map,
                         hbMain.width, hbMain.height,
                         static_cast<int>(BossData::HitBoxType::MAIN)});
 
-    // Secondary hitboxes (relative to main, half-tiles)
+    // Secondary hitboxes (relative to main, half-tiles). On a mirrored
+    // aim the frame is the twin direction's, so reflect each authored box
+    // in boss space: x -> -x - width (plan boss-aims3-mirror §2).
+    const bool mirrored = isMirrored();
     const sprite_hitbox_t *hbData = getHitboxes(m_bossData->sheet, currentFrame());
     for (int i = 0; hbData != nullptr && i < hbData->count; ++i)
     {
         const hitbox_t &c = hbData->hitboxes[i];
         const hitbox_t hb{
-            m_x + c.x - hbMain.x,
+            mirrored ? m_x - (c.x - hbMain.x) - c.width : m_x + c.x - hbMain.x,
             m_y + c.y - hbMain.y,
             c.width,
             c.height,
@@ -316,9 +320,43 @@ int CBoss::currentFrame() const
     // aims are validated/warned at load (bossdata build); clamp kept here
     // as defense-in-depth so the modulo can never divide by zero.
     const int aims = m_bossData->aims > 0 ? m_bossData->aims : 1;
-    const int normalizedAim = m_aim % aims;
+    int normalizedAim = 0;
+    if (aims == 3)
+    {
+        // aims-3 layout (plan docs/plans/boss-aims3-mirror-plan.md §2):
+        // slots are UP=0, DOWN=1 and ONE horizontal block at 2 shared by
+        // LEFT and RIGHT; data->mirror says which of them is the flipped
+        // copy (see isMirrored()). AIM_NONE (never-moved/just-restored)
+        // and any out-of-range aim normalise to UP, the slot-0 convention.
+        normalizedAim = (m_aim == AIM_UP || m_aim == AIM_DOWN) ? static_cast<int>(m_aim)
+                      : (m_aim < TOTAL_AIMS ? 2 : 0);
+    }
+    else
+    {
+        normalizedAim = m_aim % aims;
+    }
     const int baseFrame = seq->base + seq->lenght * normalizedAim;
     return baseFrame + m_framePtr;
+}
+
+void CBoss::warnAsymAnchor(const int frameWidthPx, const int grid) const
+{
+    // the primary hitbox doubles as the sprite draw anchor; when an aims-3
+    // mirror draws the shared frame flipped, an anchor that is not
+    // horizontally centred (hb.x == frameW - hb.x - hb.width) shifts the
+    // mirrored sprite. warn once per boss type (plan §7).
+    static std::set<uint8_t> warned;
+    if (m_bossData == nullptr || warned.count(m_bossData->type))
+        return;
+    warned.insert(m_bossData->type);
+    const int frameWHalf = frameWidthPx / grid;
+    const hitbox_t &hb = m_bossData->hitbox;
+    if (hb.x != frameWHalf - hb.x - hb.width)
+    {
+        LOGW("boss '%s' aims-3 anchor hb.x=%d w=%d frame=%d half-tiles: "
+             "mirrored draw may be off-centre\n",
+             m_bossData->name, hb.x, hb.width, frameWHalf);
+    }
 }
 
 void CBoss::setState(const BossState state)

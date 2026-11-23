@@ -84,9 +84,10 @@ namespace GamePrivate
         RAGE_TIMER = 150,
         FREEZE_TIMER = 80,
         TRAP_DAMAGE = -16,
-        POISON_DRAIN = 8,
-        POISON_INTERVAL = 12,
+        POISON_DRAIN = 2,
+        POISON_INTERVAL = 6,
         POISON_DEFAULT = 32,
+        POISON_TRAP_DAMAGE = 16,
         DEFAULT_PLAYER_SPEED = 3,
         FAST_PLAYER_SPEED = 2,
         MAX_SHIELDS = 2,
@@ -383,7 +384,7 @@ void CGame::manageTrigger(const int x, const int y, const uint8_t attr)
     {
         // poison trap (docs/plans/archive/poison-damage-plan.md): one-shot
         // like its neighbours; addPoison queues EVENT_POISON itself
-        addPoison(POISON_DEFAULT);
+        addPoison(POISON_TRAP_DAMAGE);
     }
     else if (RANGE(attr, PASSAGE_ATTR_MIN, PASSAGE_ATTR_MAX))
     {
@@ -446,7 +447,8 @@ size_t CGame::sanitiseMapTiles()
         // tileDefs (TILES_TOTAL_COUNT, tilesdata.h); other layers index
         // the animator tables and g_layerdata (TOTAL_TILE_COUNT,
         // layerdata.h). See docs/spec/gamespec/tile-table-limits.md.
-        const uint16_t limit = layer->baseID() == 0 ? TILES_TOTAL_COUNT : TOTAL_TILE_COUNT;
+        const uint16_t limit = layer->baseID() == 0 ? static_cast<uint16_t>(TILES_TOTAL_COUNT)
+                                                    : static_cast<uint16_t>(TOTAL_TILE_COUNT);
         for (int y = 0; y < layer->height(); ++y)
         {
             for (int x = 0; x < layer->width(); ++x)
@@ -544,6 +546,7 @@ bool CGame::loadLevel(const GameMode mode)
     spawnMonsters();
     m_sfx.clear();
     m_fx.clear();
+    m_pendingFx.clear(); // transient: dropped on level reset, like m_fx
     resetStats();
     m_report = currentMapReport();
 
@@ -675,7 +678,7 @@ void CGame::setLevel(int levelId)
 {
     // maintainer ruling 2026-11-18: clamp out-of-range early with LOGW.
     // Only clamped when an archive is present; the archive can be set after
-    // setLevel(), and loadLevel() (L453-463) remains the authoritative guard.
+    // setLevel(), and loadLevel() (L476-486) remains the authoritative guard.
     if (m_mapArch && m_mapArch->size() != 0 && m_mapArch->at(levelId) == nullptr)
     {
         const int clamped = std::clamp(levelId, 0, static_cast<int>(m_mapArch->size()) - 1);
@@ -872,6 +875,11 @@ uint8_t CGame::managePlayer(const uint8_t *joystate)
         // apply health damage
         addHealth(def.health);
     }
+    else if (result.isSticky)
+    {
+        return AIM_NONE;
+    }
+
     const JoyAim aims[] = {AIM_UP, AIM_DOWN, AIM_LEFT, AIM_RIGHT};
     for (const JoyAim &aim : aims)
     {
@@ -1481,7 +1489,7 @@ bool CGame::read(IFile &sfile)
         m_sfx.emplace_back(std::move(sfx));
     }
 
-    // load fx
+    // load fx (not duplicated)
     m_fx.clear();
     uint16_t fxCount = 0;
     _R(&fxCount, sizeof(fxCount));
@@ -1494,6 +1502,9 @@ bool CGame::read(IFile &sfile)
 
     // clear events
     clearEvents();
+    // the exit-announce flag is not serialized; on restore the level state
+    // comes from the savegame, so the once-per-level gate must restart
+    m_exitAnnounced = false;
 
     // read animation state
     if (!m_animator->read(sfile))
@@ -1606,7 +1617,7 @@ bool CGame::write(IFile &tfile)
     for (const auto &sfx : m_sfx)
         _W(&sfx, sizeof(sfx));
 
-    // save fx
+    // save fx (not duplicated)
     if (m_fx.size() > UINT16_MAX)
         LOGW("fx list of %zu exceeds uint16 save field; truncating", m_fx.size());
     const uint16_t fxCount = static_cast<uint16_t>(m_fx.size());
@@ -1899,17 +1910,23 @@ std::vector<fx_t> &CGame::getFx()
 
 /**
  * @brief Spawn an extended fx at tile coords (spec S1): converts to world
- * pixels (tile center) and records the origin point ox/oy.
+ * pixels using the table entry's FxAlign anchor mode and records the origin
+ * point ox/oy.
  *
  * @return instance index, or -1 for an unknown effectID
  */
 int CGame::spawnFx(const int effectID, const int tileX, const int tileY)
 {
-    if (!fxDataAt(effectID))
+    const fxData_t *def = fxDataAt(effectID);
+    if (!def)
         return -1;
+    // FX_ALIGN_BOTTOM: centered horizontally, frame bottom flush with the tile bottom
+    const int anchorY = def->align == FX_ALIGN_BOTTOM
+                            ? (tileY + 1) * FX_TILE_SIZE - def->h / 2
+                            : tileY * FX_TILE_SIZE + FX_TILE_SIZE / 2;
     m_fx.emplace_back(fx_t{
         .x = static_cast<int16_t>(tileX * FX_TILE_SIZE + FX_TILE_SIZE / 2),
-        .y = static_cast<int16_t>(tileY * FX_TILE_SIZE + FX_TILE_SIZE / 2),
+        .y = static_cast<int16_t>(anchorY),
         .ox = static_cast<int16_t>(tileX),
         .oy = static_cast<int16_t>(tileY),
         .effectID = static_cast<int16_t>(effectID),
@@ -1923,6 +1940,16 @@ int CGame::spawnFx(const int effectID, const int tileX, const int tileY)
  *
  * @return instance index, or -1 for an unknown effectID
  */
+void CGame::scheduleFx(const int effectID, const int tileX, const int tileY, const int ticks)
+{
+    if (!fxDataAt(effectID) || ticks <= 0)
+        return;
+    m_pendingFx.push_back(pendingFx_t{static_cast<int16_t>(effectID),
+                                      static_cast<int16_t>(tileX),
+                                      static_cast<int16_t>(tileY),
+                                      static_cast<int16_t>(ticks)});
+}
+
 int CGame::spawnFxPx(const int effectID, const int px, const int py)
 {
     if (!fxDataAt(effectID))
@@ -1944,6 +1971,17 @@ int CGame::spawnFxPx(const int effectID, const int px, const int py)
  */
 void CGame::tickFx()
 {
+    // pending strikes: count down, spawn the fx on expiry (hint ends, fx runs)
+    for (size_t i = 0; i < m_pendingFx.size();)
+    {
+        if (--m_pendingFx[i].ticks > 0)
+            ++i;
+        else
+        {
+            spawnFx(m_pendingFx[i].effectId, m_pendingFx[i].tileX, m_pendingFx[i].tileY);
+            m_pendingFx.erase(m_pendingFx.begin() + static_cast<ptrdiff_t>(i));
+        }
+    }
     for (auto it = m_fx.begin(); it != m_fx.end();)
     {
         const fxData_t *def = fxDataAt(it->effectID);
@@ -1954,6 +1992,37 @@ void CGame::tickFx()
             continue;
         }
         it->timer++;
+        // skill hitbox damage (plan fx-boss-skills §4): the current frame's
+        // boxes placed at the fx anchor; overlap registers addHealth, whose
+        // invincibility window throttles repeat hits
+        if (const bossSkillDef_t *skill = skillForFx(it->effectID))
+        {
+            const fx_layer_t &layer = def->front.count ? def->front : def->back;
+            const uint16_t frameID = fxFrameIndex(*it, *def, layer);
+            const Pos ppos = m_player.pos();
+            const int px1 = ppos.x * FX_TILE_SIZE;
+            const int py1 = ppos.y * FX_TILE_SIZE;
+            const int px2 = px1 + FX_TILE_SIZE;
+            const int py2 = py1 + FX_TILE_SIZE;
+            for (const sprite_hitbox_t &frame : skill->frames)
+            {
+                if (frame.spriteID != static_cast<int>(frameID))
+                    continue;
+                for (int b = 0; b < frame.count; ++b)
+                {
+                    const hitbox_t &box = frame.hitboxes[b];
+                    const int bx1 = it->x + box.x;
+                    const int by1 = it->y + box.y;
+                    if (bx1 < px2 && bx1 + box.width > px1 &&
+                        by1 < py2 && by1 + box.height > py1)
+                    {
+                        addHealth(-skill->damage);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
         bool ended = false;
         if (def->flags & FX_REPEATABLE)
             ended = it->timer >= def->ttl;
@@ -1992,7 +2061,25 @@ void CGame::getFxToDraw(const fxView_t &view, const bool front,
         if (!fx.isWithin(view.left - def->w / 2, view.top - def->h / 2,
                          view.right + def->w / 2, view.bottom + def->h / 2))
             continue;
-        out.emplace_back(fxDraw_t{fx.x, fx.y, fxFrameIndex(fx, *def, layer)});
+        const uint16_t frameID = fxFrameIndex(fx, *def, layer);
+        out.emplace_back(fxDraw_t{fx.x, fx.y, frameID, fx.ox, fx.oy, false});
+    }
+
+    // telegraph hints: pending strikes warn their target tile (red rect
+    // placeholder until marker art lands); front pass only, hint-only
+    // entries (the renderers skip the frame blit when telegraph is set)
+    if (front)
+    {
+        for (const pendingFx_t &p : m_pendingFx)
+        {
+            const int x = p.tileX * FX_TILE_SIZE + FX_TILE_SIZE / 2;
+            const int y = p.tileY * FX_TILE_SIZE + FX_TILE_SIZE / 2;
+            if (x < view.left || x > view.right || y < view.top || y > view.bottom)
+                continue;
+            out.emplace_back(
+                fxDraw_t{static_cast<int16_t>(x), static_cast<int16_t>(y), 0,
+                         p.tileX, p.tileY, true});
+        }
     }
 
     // poison aura (docs/plans/poison-damage-plan.md D7): a derived draw
@@ -2013,7 +2100,8 @@ void CGame::getFxToDraw(const fxView_t &view, const bool front,
             {
                 const uint16_t frame =
                     layer.base + static_cast<uint16_t>(m_fxTick / def->speed) % layer.count;
-                out.emplace_back(fxDraw_t{static_cast<int16_t>(x), static_cast<int16_t>(y), frame});
+                out.emplace_back(fxDraw_t{static_cast<int16_t>(x), static_cast<int16_t>(y), frame,
+                                          -1, -1, false});
             }
         }
     }
@@ -2291,7 +2379,7 @@ scan_t CGame::scanPos(const Pos &pos, const uint8_t aim) const
     {
         return (gr & g1) && (gr & g2);
     };
-    scan_t result{false, false, false};
+    scan_t result{false, false, false, false};
     const CMap &map = getMap();
     const int layerCount = (int)map.layerCount();
     for (int i = layerCount - 1; i >= 0; --i)
@@ -2318,6 +2406,8 @@ scan_t CGame::scanPos(const Pos &pos, const uint8_t aim) const
                 result.isSolid = true;
             else if (data.tileType == LayerTileType::Water)
                 result.isWater = true;
+            else if (data.tileType == LayerTileType::Sticky)
+                result.isSticky = true;
             else if (gr)
             {
                 if (aim == JoyAim::AIM_UP && testGranular(gr, GranualarDL, GranualarDR))

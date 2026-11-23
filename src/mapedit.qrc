@@ -75,5 +75,7 @@
         <file>data/bosses/data/harpy-attack.json</file>
         <file>data/bosses/data/beholder1_attacks-trim.json</file>
         <file>data/sfx.png</file>
+        <file>data/sheet2.obl</file>
+        <file>data/bosses/data/ARACHINE_ATTACK.json</file>
     </qresource>
 </RCC>

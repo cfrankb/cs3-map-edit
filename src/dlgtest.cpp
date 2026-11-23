@@ -182,6 +182,7 @@ void CDlgTest::preloadAssets()
         {":/data/annie.obl", &m_users},
         {":/data/sheet0.obl", &m_sheet0},
         {":/data/sheet1.obl", &m_sheet1},
+        {":/data/sheet2.obl", &m_sheet2},
         {":/data/uisheet.png", &m_uisheet},
         {":/data/sfx.png", &m_fxSheet}
     };
